@@ -1,0 +1,18 @@
+{
+  "name": "walletdk",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" run build",
+    "typecheck": "pnpm -r run typecheck && tsc -p scripts/tsconfig.json",
+    "gen:types": "node scripts/gen-types.mts",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.2"
+  }
+}

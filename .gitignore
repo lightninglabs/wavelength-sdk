@@ -1,0 +1,7 @@
+node_modules/
+dist/
+test-results/
+*.tsbuildinfo
+.DS_Store
+# public/ is an ephemeral staging area for runtime assets; never committed.
+apps/*/public/
