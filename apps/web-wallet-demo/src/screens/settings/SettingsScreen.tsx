@@ -1,0 +1,262 @@
+import { ReactNode, useState } from "react";
+import {
+  ChevronDown,
+  Layers,
+  type LucideIcon,
+  Monitor,
+  Power,
+  Server,
+  Settings as SettingsIcon,
+  ShieldCheck,
+  Trash2,
+  Wallet,
+  Zap,
+} from "lucide-react";
+import { WalletInfo, WalletKind } from "@lightninglabs/walletdk-react";
+import { GatewayFields } from "../../components/GatewayFields";
+import { PageHead } from "../../components/layout/PageHead";
+import { AppTab } from "../../components/layout/nav";
+import { Band } from "../../components/ui/Band";
+import { CopyButton } from "../../components/ui/CopyButton";
+import { Label } from "../../components/ui/Label";
+import { Segmented } from "../../components/ui/Segmented";
+import { SummaryRow } from "../../components/ui/SummaryRow";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { cn } from "../../lib/cn";
+import { formatSats, shortKey } from "../../lib/format";
+import { requestWipe } from "../../lib/wipeLocalData";
+import { RuntimeFieldSetter, RuntimeForm } from "../../lib/runtime-config";
+import { useTheme } from "../../theme/ThemeProvider";
+
+// TwoCol pairs two compact sections within one band, split by a hairline column
+// rule, so the band fills its width instead of stranding a control on the side.
+function TwoCol({ left, right }: { left: ReactNode; right: ReactNode }) {
+  return (
+    <div className="grid gap-y-8 sm:grid-cols-2 sm:gap-y-0">
+      <div className="sm:pr-10">{left}</div>
+      <div className="sm:border-l sm:border-border sm:pl-10">{right}</div>
+    </div>
+  );
+}
+
+// SettingsScreen surfaces identity, appearance, runtime status, wallet-type
+// security, advanced gateway configuration, build version and the runtime stop
+// control, consolidated into full-bleed Zones bands.
+export function SettingsScreen({
+  info,
+  phaseLabel,
+  form,
+  onField,
+  walletKind,
+  onStop,
+  onNavigate,
+}: {
+  info: Partial<WalletInfo> | null;
+  phaseLabel: string;
+  form: RuntimeForm;
+  onField: RuntimeFieldSetter;
+  walletKind: WalletKind | null;
+  onStop: () => void;
+  onNavigate: (tab: AppTab) => void;
+}) {
+  const { theme, setTheme } = useTheme();
+  const [advanced, setAdvanced] = useState(false);
+  const [confirmWipe, setConfirmWipe] = useState(false);
+  const identity = info?.identityPubKey || "";
+
+  const runtime: Array<{
+    icon: LucideIcon;
+    label: string;
+    value: string;
+    good?: boolean;
+  }> = [
+    { icon: ShieldCheck, label: "Phase", value: phaseLabel, good: true },
+    { icon: Zap, label: "Network", value: info?.network || "-" },
+    { icon: Wallet, label: "Wallet", value: info?.walletType || "-" },
+    {
+      icon: Server,
+      label: "Server",
+      value: info?.serverConnected ? "Connected" : "Offline",
+      good: info?.serverConnected,
+    },
+    {
+      icon: Layers,
+      label: "Block height",
+      value: info?.blockHeight ? formatSats(info.blockHeight) : "-",
+    },
+  ];
+
+  return (
+    <div>
+      <PageHead
+        title="Settings"
+        subtitle="Identity, appearance, security and runtime"
+        onBack={() => onNavigate("home")}
+      />
+
+      <Band>
+        <Label>Runtime</Label>
+        <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
+          {runtime.map((r) => (
+            <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
+              <div className="flex items-center gap-1.5 text-xs text-muted">
+                <r.icon
+                  size={13}
+                  className={r.good ? "text-good" : "text-muted"}
+                />
+                {r.label}
+              </div>
+              <div
+                className={cn(
+                  "mt-1 font-mono text-sm tabular-nums",
+                  r.good ? "text-good" : "text-fg",
+                )}
+              >
+                {r.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Band>
+
+      <Band tinted>
+        <TwoCol
+          left={
+            <>
+              <Label>Identity</Label>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span className="break-all font-mono text-sm text-fg">
+                  {identity ? shortKey(identity, 10, 8) : "-"}
+                </span>
+                {identity ? <CopyButton value={identity} /> : null}
+              </div>
+            </>
+          }
+          right={
+            <>
+              <Label>About</Label>
+              <div className="mt-3 space-y-2.5 text-sm">
+                <SummaryRow label="Version" value={info?.version || "-"} mono />
+                <SummaryRow label="Commit" value={info?.commit || "-"} mono />
+              </div>
+            </>
+          }
+        />
+      </Band>
+
+      <Band>
+        <TwoCol
+          left={
+            <>
+              <Label>Security</Label>
+              <div className="mt-3 space-y-2.5 text-sm">
+                <SummaryRow
+                  label="Wallet type"
+                  value={
+                    walletKind === "passkey"
+                      ? "Passkey"
+                      : walletKind === "password"
+                        ? "Password"
+                        : "Unknown"
+                  }
+                />
+              </div>
+            </>
+          }
+          right={
+            <>
+              <Label>Appearance</Label>
+              <div className="mt-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Monitor size={16} className="text-muted" />
+                  <div className="text-sm font-medium text-fg">Theme</div>
+                </div>
+                <Segmented
+                  size="sm"
+                  value={theme}
+                  onChange={(t) => setTheme(t)}
+                  options={[
+                    { value: "light", label: "Light" },
+                    { value: "dark", label: "Dark" },
+                  ]}
+                />
+              </div>
+            </>
+          }
+        />
+      </Band>
+
+      <Band tinted>
+        <TwoCol
+          left={
+            <>
+              <Label>Advanced</Label>
+              <button
+                type="button"
+                onClick={() => setAdvanced((v) => !v)}
+                className="mt-3 flex w-full items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <SettingsIcon size={15} className="text-muted" />
+                  <span className="text-sm font-medium text-fg">
+                    Network gateways
+                  </span>
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={cn(
+                    "text-muted transition-transform",
+                    advanced && "rotate-180",
+                  )}
+                />
+              </button>
+            </>
+          }
+          right={
+            <>
+              <Label>Danger zone</Label>
+              <div className="mt-3 flex flex-row items-start gap-3">
+                <button
+                  type="button"
+                  onClick={onStop}
+                  className="inline-flex items-center justify-center gap-2 border
+                    border-bad bg-bad/10 px-4 py-2.5 text-sm font-semibold
+                    text-bad transition-opacity hover:opacity-90"
+                >
+                  <Power size={16} /> Stop runtime
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmWipe(true)}
+                  className="inline-flex items-center justify-center gap-2 border
+                    border-bad bg-bad/10 px-4 py-2.5 text-sm font-semibold
+                    text-bad transition-opacity hover:opacity-90"
+                >
+                  <Trash2 size={16} /> Clear wallet data
+                </button>
+              </div>
+            </>
+          }
+        />
+        {advanced ? (
+          <div className="mt-6 border-t border-border pt-6">
+            <p className="mb-4 text-xs text-muted">
+              Display only. The running configuration cannot be changed. Stop
+              the runtime to reconnect with different gateways.
+            </p>
+            <GatewayFields form={form} onField={onField} disabled />
+          </div>
+        ) : null}
+      </Band>
+      <ConfirmDialog
+        open={confirmWipe}
+        title="Clear wallet data?"
+        description="This permanently deletes the wallet and all data stored in this browser. You can only get it back with your recovery phrase or passkey. This cannot be undone."
+        confirmLabel="Clear everything"
+        destructive
+        onConfirm={requestWipe}
+        onCancel={() => setConfirmWipe(false)}
+      />
+    </div>
+  );
+}

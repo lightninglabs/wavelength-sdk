@@ -1,0 +1,32 @@
+{
+  "name": "web-wallet-demo",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "preview": "vite preview",
+    "build": "vite build",
+    "test": "playwright test",
+    "test:signet": "playwright test --config=playwright.signet.config.js",
+    "typecheck": "tsc --noEmit",
+    "wasm:local": "bash scripts/wasm-local.sh"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.1.0",
+    "@fontsource/ibm-plex-sans": "^5.1.0",
+    "@lightninglabs/walletdk-react": "workspace:*",
+    "@lightninglabs/walletdk-web": "workspace:*",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  }
+}
