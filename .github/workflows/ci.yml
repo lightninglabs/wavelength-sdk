@@ -1,0 +1,19 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # Build first so each package's dist (.d.ts) exists before the workspace
+      # typecheck resolves cross-package imports (e.g. web -> core).
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm --filter @lightninglabs/walletdk-web test

@@ -1,0 +1,26 @@
+{
+  "name": "@lightninglabs/walletdk-web",
+  "version": "0.0.0",
+  "private": false,
+  "publishConfig": { "access": "public" },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./walletdk-worker.js": "./dist/walletdk-worker.js"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp src/walletdk-worker.js dist/walletdk-worker.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@lightninglabs/walletdk-core": "workspace:*"
+  },
+  "files": ["dist"]
+}
