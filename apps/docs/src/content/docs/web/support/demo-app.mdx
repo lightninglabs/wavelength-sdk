@@ -28,7 +28,8 @@ What it demonstrates:
 - **Network presets** for signet, testnet, and regtest (`runtime-config.ts`
   mirrors public gateway URLs and local arktest ports).
 - **Production-like hosting concerns**: COOP/COEP headers in `vite.config.ts`,
-  self-hosted WASM binaries under `public/`, persistent storage request, and a
+  self-hosted WASM binaries under `public/runtime/<version>/`, persistent
+  storage request, and a
   local wipe path that clears OPFS and app markers (`src/lib/wipeLocalData.ts`).
 
 Treat the demo as the source of truth for wiring details that docs summarize.
@@ -53,6 +54,7 @@ gateways. No local backend is required for signet. For regtest, start
 [arktest](https://github.com/lightninglabs/darepo-client) locally and point the
 runtime form at the ports it prints.
 
-The demo ships with runtime assets committed under `public/` so `pnpm dev` works
-immediately. After upgrading the SDK or rebuilding WASM from `darepo-client`, run
-`pnpm --filter web-wallet-demo run wasm:local` to refresh those binaries.
+Runtime assets are staged (never committed) under
+`public/runtime/<RUNTIME_MANIFEST_VERSION>/`. Before the first `pnpm dev`, and
+after upgrading the SDK or rebuilding WASM from `darepo-client`, run
+`pnpm --filter web-wallet-demo run wasm:local` to stage fresh binaries.

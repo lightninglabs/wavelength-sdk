@@ -216,10 +216,12 @@ these files and point `runtimeBaseUrl` at them before calling
 
 <ApiSymbol name="RUNTIME_MANIFEST_VERSION" kind="const">
 
-Identifies this runtime asset set. The current value is `'0.0.0-dev'`, a
-placeholder; it is bumped whenever the daemon wasm or go-wasmsqlite stack
-changes, so hosted assets and the client stay in lockstep. It will track the
-darepo-client release tag once one exists.
+The daemon build this SDK release is paired with: the generated types, the
+client methods, and the runtime asset set all come from this one daemon
+revision. Hosted asset sets live in a directory named after this value, so a
+version bump changes every asset URL and browsers can never serve a stale
+cached runtime. Defined in (and re-exported from)
+`@lightninglabs/walletdk-core`.
 
 <Signature title="walletdk-web.d.ts" code={runtimeManifestVersionSig} />
 
