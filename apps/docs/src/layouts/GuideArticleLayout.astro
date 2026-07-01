@@ -1,0 +1,248 @@
+---
+/**
+ * GuideArticleLayout.astro - Conventional, inline-code guide page layout.
+ *
+ * This replaces the scroll-synced GuideLayout for guides. It is a three-column
+ * article like DocLayout: fixed Sidebar | guide article | "On this page" rail
+ * (the reused TableOfContents). Code lives INLINE in the prose (fenced blocks),
+ * so there is no sticky code rail.
+ *
+ * The article adds a header above the prose slot: a breadcrumb, a per-section
+ * accent bar, the h1 (from frontmatter), and a meta row (estimated read time,
+ * a "Guides" label, a "Web SDK" label). Each in-content h2 is numbered via a
+ * CSS counter scoped to .wdk-guide__content (see the h2::before rule below),
+ * so the MDX bodies stay clean: authors write plain ## headings.
+ *
+ * Structure and CSS are ported from design-mockups/r4-final/guide.html
+ * (.guide-page-header, .guide-breadcrumb, .guide-title-accent, .guide-meta,
+ * .step-num). The on-this-page rail mirrors DocLayout's TableOfContents column.
+ *
+ * Sets data-accent on <html> from accentForSlug (guides => lime) so the
+ * per-section accent (--sl-accent) is available to CSS before paint.
+ *
+ * Props (match DocLayout / GuideLayout):
+ *   entry    - the content collection entry (.id, .data.title, .body, etc.).
+ *   headings - from render(entry); passed through to TableOfContents.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Sidebar from '~/components/Sidebar.astro';
+import TableOfContents from '~/components/TableOfContents.astro';
+import PrevNext from '~/components/PrevNext.astro';
+import RelatedGuides from '~/components/RelatedGuides.astro';
+import { accentForSlug } from '~/config/nav';
+
+interface Props {
+  entry: {
+    id: string;
+    body?: string;
+    data: {
+      title: string;
+      description?: string;
+      related: string[];
+    };
+  };
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry, headings } = Astro.props;
+const accent = accentForSlug(entry.id);
+
+// Estimate read time from the raw MDX body at ~200 words/min, rounded up to a
+// whole minute (minimum 1). entry.body is the unrendered source string. Fenced
+// code blocks are stripped before counting so inlined code samples do not
+// inflate the prose word count.
+const prose = (entry.body ?? '').replace(/```[\s\S]*?```/g, '');
+const wordCount = prose.split(/\s+/).filter(Boolean).length;
+const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
+---
+
+<BaseLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  accent={accent}
+  footerInsetLeft
+>
+  <div class="wdk-guide">
+    <Sidebar currentSlug={entry.id} />
+
+    <!-- Main area pushed right of the fixed sidebar; flex row for article + rail. -->
+    <div class="wdk-guide__main">
+      <div class="wdk-guide__inner">
+
+        <!-- Guide article: header + inline-code prose. -->
+        <main class="wdk-guide__content" data-pagefind-body>
+
+          <!-- Page header: breadcrumb, accent bar, title, meta row. -->
+          <header class="wdk-guide__header">
+            <nav class="wdk-guide__breadcrumb" aria-label="Breadcrumb">
+              <a href="/">WalletDK</a>
+              <span class="wdk-guide__breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+              <span>Guides</span>
+              <span class="wdk-guide__breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+              <span aria-current="page">{entry.data.title}</span>
+            </nav>
+            <div class="wdk-guide__title-accent" aria-hidden="true"></div>
+            <h1 class="wdk-guide__title">{entry.data.title}</h1>
+            <div class="wdk-guide__meta">
+              <div class="wdk-guide__meta-item">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25" />
+                  <path d="M8 4.5v4l2.5 2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
+                </svg>
+                {readMinutes} min read
+              </div>
+              <div class="wdk-guide__meta-item">
+                <span class="wdk-guide__meta-sq wdk-guide__meta-sq--lime" aria-hidden="true"></span>
+                Guides
+              </div>
+              <div class="wdk-guide__meta-item">
+                <span class="wdk-guide__meta-sq wdk-guide__meta-sq--teal" aria-hidden="true"></span>
+                Web SDK
+              </div>
+            </div>
+          </header>
+
+          <!-- Inline-code prose: plain ## headings get numbered via CSS counter. -->
+          <slot />
+
+          <PrevNext slug={entry.id} />
+          <RelatedGuides related={entry.data.related} />
+        </main>
+
+        <!-- Right rail: the reused page-level "On this page" nav. -->
+        <TableOfContents headings={headings} />
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /*
+   * Three-column guide layout: sidebar (fixed, from Sidebar.astro) |
+   * guide article | "On this page" rail. Mirrors DocLayout's column geometry;
+   * the article header is ported from design-mockups/r4-final/guide.html.
+   */
+
+  /* Outer wrapper - full height, flex row. */
+  .wdk-guide {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Main area pushed right of the fixed sidebar. The "On this page" rail is a
+     fixed full-height column pinned to the right screen edge (see
+     TableOfContents.astro), so the content needs a matching right margin to
+     avoid being overlapped. */
+  .wdk-guide__main {
+    margin-left: var(--sidebar-w, 256px);
+    margin-right: var(--toc-w, 240px);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  /* Inner flex row for the article column. */
+  .wdk-guide__inner {
+    display: flex;
+    gap: 40px;
+    padding: 48px 40px 80px;
+    max-width: 1200px;
+    width: 100%;
+  }
+
+  /* Guide article column. */
+  .wdk-guide__content {
+    flex: 1;
+    min-width: 0;
+    max-width: 760px;
+  }
+
+  /* Page header: breadcrumb + accent + title + meta, divided from the prose. */
+  .wdk-guide__header {
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  /* Breadcrumb trail (port of .guide-breadcrumb). */
+  .wdk-guide__breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .wdk-guide__breadcrumb a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .wdk-guide__breadcrumb a:hover {
+    color: var(--teal);
+  }
+  /* The chevron separators are a touch dimmer than the link text. The "Guides"
+     crumb is a non-link span (there is no guides index page to link to) but
+     keeps the same color as the WalletDK link so it still reads as a trail
+     segment, not a dimmed separator. */
+  .wdk-guide__breadcrumb-sep {
+    color: var(--border-2);
+  }
+
+  /* Short accent bar above the title - keyed to the per-section accent. */
+  .wdk-guide__title-accent {
+    display: inline-block;
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sl-accent, var(--lime));
+    margin-bottom: 16px;
+  }
+
+  /* Page title - h1 injected by the layout (MDX bodies start at ##). */
+  .wdk-guide__title {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 10px;
+    line-height: 1.15;
+    color: var(--text);
+  }
+
+  /* Meta row: read time + section labels. */
+  .wdk-guide__meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  .wdk-guide__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* Small colored squares for the section labels. */
+  .wdk-guide__meta-sq {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 1.75px;
+    flex-shrink: 0;
+  }
+  .wdk-guide__meta-sq--lime {
+    background: var(--lime);
+  }
+  .wdk-guide__meta-sq--teal {
+    background: var(--teal);
+  }
+
+  /* Mobile: single column - drop the left/right margins (sidebar and TOC
+     rail hide themselves; see their own media queries), content goes
+     full-width. */
+  @media (max-width: 768px) {
+    .wdk-guide__main { margin-left: 0; margin-right: 0; }
+    .wdk-guide__inner { padding: 32px 20px 60px; gap: 0; }
+    .wdk-guide__content { max-width: 100%; }
+  }
+</style>

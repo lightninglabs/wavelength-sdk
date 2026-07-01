@@ -1,0 +1,327 @@
+---
+/**
+ * ReferenceLayout.astro - API reference page layout.
+ *
+ * Three-column layout: fixed Sidebar | scrollable symbol prose | a fixed
+ * full-height symbol-list rail on the right (mirrors the left Sidebar
+ * column) that lists every exported symbol and highlights the active one as
+ * the reader scrolls.
+ *
+ * The symbol-list rail is populated entirely client-side on astro:page-load
+ * by collecting every [data-symbol] section in the content column. This
+ * matches the lifecycle used by CodeRail.astro and QuickstartLayout.astro:
+ *   - Init on astro:page-load (module scripts do not re-run on client nav).
+ *   - Per-element guard (data-wdk-bound) prevents double-binding.
+ *   - IntersectionObserver (NOT a window scroll listener) for scroll-sync.
+ *   - Self-removing astro:before-swap teardown to prevent listener stacking.
+ *
+ * Accent resolves from accentForSlug (reference slugs => orange).
+ *
+ * Props (match DocLayout / GuideLayout):
+ *   entry    - the content collection entry (has .id, .data.title, etc.)
+ *   headings - from render(entry); accepted for signature parity, unused here.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Sidebar from '~/components/Sidebar.astro';
+import { accentForSlug } from '~/config/nav';
+
+interface Props {
+  entry: {
+    id: string;
+    data: {
+      title: string;
+      description?: string;
+    };
+  };
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry } = Astro.props;
+const accent = accentForSlug(entry.id);
+---
+
+<BaseLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  accent={accent}
+  footerInsetLeft
+>
+  <div class="wdk-ref">
+    <Sidebar currentSlug={entry.id} />
+
+    <!-- Main area pushed right of the fixed sidebar. -->
+    <div class="wdk-ref__main">
+
+      <!-- Prose content column. -->
+      <main class="wdk-ref__content" data-pagefind-body>
+        <div class="wdk-ref__accent" aria-hidden="true"></div>
+        <h1 class="wdk-ref__title">{entry.data.title}</h1>
+        {entry.data.description && (
+          <p class="wdk-ref__desc">{entry.data.description}</p>
+        )}
+        <!-- MDX content: Symbol / Signature / ParamsTable / Returns blocks. -->
+        <slot />
+      </main>
+
+      <!-- Fixed full-height right rail: symbol list, populated by the client
+           script. Pinned to the right screen edge, mirroring the left
+           Sidebar.astro column. -->
+      <aside class="wdk-ref__rail" aria-label="Symbols on this page">
+        <div class="wdk-ref__rail-heading" aria-hidden="true">
+          <span class="wdk-ref__rail-sq" aria-hidden="true"></span>
+          On this page
+        </div>
+        <!-- Symbol links are injected here by the script. -->
+        <nav data-symbol-list aria-label="Symbol list"></nav>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // Initialise the symbol-list rail on astro:page-load so it runs on first
+  // load AND after every client-side (view transition) navigation. Module
+  // scripts do not re-run on client nav, so the astro:page-load listener is
+  // required (same pattern as CodeRail.astro and QuickstartLayout.astro).
+  function setupSymbolRail() {
+    const nav = document.querySelector('[data-symbol-list]');
+    if (!nav || nav.dataset.wdkBound) return;
+    nav.dataset.wdkBound = '1';
+
+    const sections = Array.from(document.querySelectorAll('[data-symbol]'));
+    if (sections.length === 0) return;
+
+    // Build one <a> per symbol section and insert into the rail nav.
+    sections.forEach((sec) => {
+      const id = sec.id;
+      const name = sec.querySelector('.wdk-symbol__name')?.textContent ?? id;
+      const kindBadge = sec.querySelector('.wdk-symbol__badge');
+      const kind = kindBadge?.textContent ?? '';
+
+      const a = document.createElement('a');
+      a.href = `#${id}`;
+      a.className = 'wdk-ref__rail-link';
+      a.dataset.symbolLink = id;
+      a.innerHTML = `
+        <span class="wdk-ref__rail-link-name">${name}</span>
+        ${kind ? `<span class="wdk-ref__rail-link-kind">${kind}</span>` : ''}
+      `;
+      nav.appendChild(a);
+    });
+
+    const links = Array.from(nav.querySelectorAll('[data-symbol-link]'));
+
+    // Activate the link matching the given section id.
+    function activate(id) {
+      links.forEach((a) => {
+        const isActive = a.dataset.symbolLink === id;
+        a.classList.toggle('is-active', isActive);
+        if (isActive) {
+          a.setAttribute('aria-current', 'true');
+        } else {
+          a.removeAttribute('aria-current');
+        }
+      });
+    }
+
+    // Use IntersectionObserver (not a scroll listener) to sync active state
+    // as the reader scrolls through symbol sections. Matches the same pattern
+    // used in CodeRail.astro and QuickstartLayout.astro.
+    const io = new IntersectionObserver(
+      (entries) => {
+        const vis = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (vis) activate(vis.target.id);
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.25, 0.5, 1] }
+    );
+
+    sections.forEach((s) => io.observe(s));
+
+    // Activate the first symbol on initial load.
+    if (sections[0]) activate(sections[0].id);
+
+    // Tear down the observer and remove listeners before the next
+    // view-transition swap so they do not accumulate across client-side
+    // navigations. The teardown listener removes itself from astro:before-swap
+    // so teardown listeners do not stack up either.
+    // Clear nav contents and the bound guard so the next astro:page-load
+    // rebuilds the rail from scratch even when Astro preserves the nav node
+    // across a reference->reference swap.
+    function teardown() {
+      io.disconnect();
+      nav.innerHTML = '';
+      delete nav.dataset.wdkBound;
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+
+  document.addEventListener('astro:page-load', setupSymbolRail);
+</script>
+
+<style>
+  /* Outer wrapper: full height, flex row (sidebar is fixed; sits outside flow). */
+  .wdk-ref {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Main area pushed right of the fixed sidebar. The symbol-list rail is a
+     fixed full-height column pinned to the right screen edge (see
+     .wdk-ref__rail below), so the content needs a matching right margin to
+     avoid being overlapped. */
+  .wdk-ref__main {
+    margin-left: var(--sidebar-w, 256px);
+    margin-right: var(--toc-w, 240px);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  /* Prose content column. */
+  .wdk-ref__content {
+    flex: 1;
+    min-width: 0;
+    max-width: 780px;
+    padding: 48px 40px 80px;
+  }
+
+  /* Short orange accent bar above the page title. */
+  .wdk-ref__accent {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sl-accent, var(--orange));
+    margin-bottom: 16px;
+  }
+
+  /* Page h1 - symbol sections begin below this. */
+  .wdk-ref__title {
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    line-height: 1.15;
+    color: var(--text);
+  }
+
+  /* Optional page-level description below the title. */
+  .wdk-ref__desc {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin: 0 0 40px;
+    line-height: 1.6;
+  }
+
+  /* Right rail: fixed full-height column pinned to the right screen edge -
+     mirrors .wdk-sidebar's fixed left column so the two rails read as
+     symmetric surfaces. Padding insets the heading and symbol list from the
+     rail's edges. */
+  .wdk-ref__rail {
+    position: fixed;
+    top: var(--header-height, 56px);
+    right: 0;
+    bottom: var(--rail-bottom, 0);
+    width: var(--toc-w, 240px);
+    background: var(--rail-bg);
+    padding: 24px 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    z-index: 50;
+  }
+
+  .wdk-ref__rail::-webkit-scrollbar { width: 3px; }
+  .wdk-ref__rail::-webkit-scrollbar-track { background: transparent; }
+  .wdk-ref__rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Rail heading: small caps label with an orange accent square. */
+  .wdk-ref__rail-heading {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* Small orange square in the heading. */
+  .wdk-ref__rail-sq {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 1.75px;
+    background: var(--sl-accent, var(--orange));
+    flex-shrink: 0;
+  }
+
+  /* Symbol link list rendered by the script. */
+  :global([data-symbol-list]) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* Individual symbol link. */
+  :global(.wdk-ref__rail-link) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 0.8125rem;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  :global(.wdk-ref__rail-link:hover) {
+    color: var(--text);
+    background: var(--surface, #18181e);
+  }
+
+  /* Active symbol: orange accent highlight. */
+  :global(.wdk-ref__rail-link.is-active) {
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 10%, transparent);
+    font-weight: 600;
+  }
+
+  /* Symbol name inside the link. */
+  :global(.wdk-ref__rail-link-name) {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Kind badge in the rail link (tiny, secondary). */
+  :global(.wdk-ref__rail-link-kind) {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  :global(.wdk-ref__rail-link.is-active .wdk-ref__rail-link-kind) {
+    color: inherit;
+    opacity: 0.8;
+  }
+
+  /* Mobile: hide the right rail; content goes full-width.
+     The Sidebar component hides itself via its own media query. */
+  @media (max-width: 768px) {
+    .wdk-ref__main { margin-left: 0; margin-right: 0; flex-direction: column; }
+    .wdk-ref__content { max-width: 100%; padding: 32px 20px 60px; }
+    .wdk-ref__rail { display: none; }
+  }
+</style>

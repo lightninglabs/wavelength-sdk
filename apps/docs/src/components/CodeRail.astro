@@ -1,0 +1,187 @@
+---
+/**
+ * CodeRail.astro - Sticky right rail that cross-fades to the active section's
+ * code as the reader scrolls the prose column.
+ *
+ * The rail ships empty. On load the client script collects every
+ * [data-guide-code] payload that GuideSection rendered hidden in the reading
+ * flow, moves them into this rail, and toggles `.is-active` based on which
+ * [data-guide-section] is most visible (IntersectionObserver). Panels are
+ * absolutely stacked and cross-fade via opacity.
+ *
+ * Styling ported from design-mockups/r4-final/guide.html
+ * (.guide-rail / .rail-code-panel-guide / .rail-code-pane-guide).
+ */
+---
+<aside class="wdk-rail" aria-label="Code examples for the current section">
+  <div class="wdk-rail__sticky">
+    <div class="wdk-rail__panels" data-code-rail role="region" aria-label="Code example for the current section"></div>
+
+    <!-- Try it live: links to the quickstart (no live playground in scope). -->
+    <a href="/web/get-started/quickstart/" class="wdk-rail__cta">
+      <span class="wdk-rail__cta-icon" aria-hidden="true">&#9654;</span>
+      <span class="wdk-rail__cta-text">
+        <span class="wdk-rail__cta-title">Try it live</span>
+        <span class="wdk-rail__cta-sub">Run a real signet wallet in the quickstart</span>
+      </span>
+    </a>
+  </div>
+</aside>
+
+<script>
+  // Initialise on astro:page-load so it runs on first load AND after every
+  // client-side (view transition) navigation; module scripts do not re-run on
+  // client nav. The per-element guard prevents double-binding on re-init.
+  function setupCodeRail() {
+    const rail = document.querySelector('[data-code-rail]');
+    if (!rail || rail.dataset.wdkBound) return;
+    rail.dataset.wdkBound = '1';
+    const sections = Array.from(document.querySelectorAll('[data-guide-section]'));
+    const panels = new Map();
+    for (const sec of sections) {
+      const code = sec.querySelector('[data-guide-code]');
+      if (!code) continue;
+      code.hidden = false;
+      code.classList.add('wdk-rail__panel');
+      rail.appendChild(code);             // move code out of the reading flow
+      panels.set(sec.id, code);
+    }
+    function activate(id) {
+      panels.forEach((el, key) => el.classList.toggle('is-active', key === id));
+      document.querySelectorAll('[data-guide-toc] a').forEach((a) =>
+        a.toggleAttribute('aria-current', a.getAttribute('href') === '#' + id));
+    }
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (vis) activate(vis.target.id);
+    }, { rootMargin: '-30% 0px -55% 0px', threshold: [0, 0.25, 0.5, 1] });
+    sections.forEach((s) => io.observe(s));
+    if (sections[0]) activate(sections[0].id);
+
+    // Scroll-progress line over the reading column.
+    const bar = document.querySelector('[data-guide-progress]');
+    function onScroll() {
+      const doc = document.documentElement;
+      const p = doc.scrollTop / (doc.scrollHeight - doc.clientHeight || 1);
+      if (bar) bar.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Tear down listeners before the next view-transition swap so they do not
+    // accumulate across client-side navigations. The teardown removes itself
+    // from astro:before-swap so teardown listeners do not stack up either.
+    function teardown() {
+      window.removeEventListener('scroll', onScroll);
+      io.disconnect();
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+  document.addEventListener('astro:page-load', setupCodeRail);
+</script>
+
+<style>
+  /* Right rail column - code only, fixed width, does not grow. */
+  .wdk-rail {
+    width: 400px;
+    flex-shrink: 0;
+    padding: 48px 28px 48px 0;
+  }
+
+  /* Sticky wrapper so the code tracks the reader down the page. */
+  .wdk-rail__sticky {
+    position: sticky;
+    top: calc(var(--header-height, 56px) + 24px);
+    max-height: calc(100vh - var(--header-height, 56px) - 48px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Panel stack - panels are absolutely positioned over each other and the
+     container grows to the active panel's height (the active panel is the only
+     one in normal flow). */
+  .wdk-rail__panels {
+    position: relative;
+    min-height: 120px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .wdk-rail__panels::-webkit-scrollbar { width: 4px; }
+  .wdk-rail__panels::-webkit-scrollbar-track { background: transparent; }
+  .wdk-rail__panels::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Each code panel: stacked, cross-fades via opacity. Inactive panels are
+     pulled out of flow so only the active one sets the container height. */
+  :global(.wdk-rail__panel) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+
+  :global(.wdk-rail__panel.is-active) {
+    position: relative;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Expressive Code blocks already supply their own surface/border/radius;
+     drop the default block margin so panels sit flush in the rail. */
+  :global(.wdk-rail__panel .expressive-code) {
+    margin: 0;
+  }
+
+  /* Try it live CTA at the rail foot. */
+  .wdk-rail__cta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .wdk-rail__cta:hover {
+    border-color: var(--sl-accent, var(--lime));
+    color: var(--text);
+  }
+  .wdk-rail__cta-icon { font-size: 1rem; }
+  .wdk-rail__cta-text { display: flex; flex-direction: column; gap: 2px; }
+  .wdk-rail__cta-title { font-weight: 600; color: inherit; }
+  .wdk-rail__cta-sub { font-size: 0.775rem; color: var(--text-dim); }
+
+  /* Narrow screens: drop the sticky rail and stack every code panel inline
+     below the prose so no code is lost (the scrollytelling swap is a
+     wide-screen affordance). Each panel returns to normal flow and is fully
+     visible regardless of the active state. */
+  @media (max-width: 768px) {
+    .wdk-rail {
+      width: 100%;
+      padding: 0 0 32px;
+    }
+    .wdk-rail__sticky {
+      position: static;
+      max-height: none;
+    }
+    .wdk-rail__panels { min-height: 0; overflow: visible; }
+    :global(.wdk-rail__panel),
+    :global(.wdk-rail__panel.is-active) {
+      position: relative;
+      opacity: 1;
+      pointer-events: auto;
+      margin-bottom: 16px;
+    }
+  }
+</style>

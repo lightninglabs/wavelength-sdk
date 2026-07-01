@@ -1,0 +1,132 @@
+---
+/**
+ * GuideLayout.astro - Scrollytelling guide page layout.
+ *
+ * Three columns like DocLayout: Sidebar | prose content | sticky CodeRail.
+ * The reading column holds each GuideSection's prose; the rail holds the code,
+ * swapping to the active section as the reader scrolls. There is no separate
+ * on-this-page TOC in this layout - the rail is the right column.
+ *
+ * Sets data-accent on <html> from accentForSlug (guides => lime) so the
+ * per-section accent is available to CSS before paint, matching DocLayout.
+ *
+ * Props (match DocLayout):
+ *   entry    - the content collection entry (has .id, .data.title, etc.)
+ *   headings - from render(entry); accepted for signature parity, unused here.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Sidebar from '~/components/Sidebar.astro';
+import CodeRail from '~/components/CodeRail.astro';
+import PrevNext from '~/components/PrevNext.astro';
+import RelatedGuides from '~/components/RelatedGuides.astro';
+import { accentForSlug } from '~/config/nav';
+
+interface Props {
+  entry: {
+    id: string;
+    data: {
+      title: string;
+      description?: string;
+      related: string[];
+    };
+  };
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry } = Astro.props;
+const accent = accentForSlug(entry.id);
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description} accent={accent}>
+  <div class="wdk-guide">
+    <Sidebar currentSlug={entry.id} />
+    <div class="wdk-guide__main">
+      <main class="wdk-guide__content" data-pagefind-body>
+        <div class="wdk-guide__accent" aria-hidden="true"></div>
+        <h1 class="wdk-guide__title">{entry.data.title}</h1>
+        <!-- Reading-progress line; CodeRail's script drives the scaleX. -->
+        <div class="wdk-guide__progress" aria-hidden="true">
+          <span class="wdk-guide__progress-fill" data-guide-progress></span>
+        </div>
+        <slot />
+        <PrevNext slug={entry.id} />
+        <RelatedGuides related={entry.data.related} />
+      </main>
+      <CodeRail />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /*
+   * Three-column guide layout: sidebar (fixed, from Sidebar.astro) |
+   * prose content | sticky CodeRail. Ported from
+   * design-mockups/r4-final/guide.html (.guide-layout / .guide-main /
+   * .guide-content / .guide-rail).
+   */
+
+  /* Outer wrapper - full height, flex row. */
+  .wdk-guide {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Main area pushed right of the fixed sidebar; flex row for content + rail. */
+  .wdk-guide__main {
+    margin-left: var(--sidebar-w, 256px);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  /* Prose content column - narrowed slightly to give the rail room. */
+  .wdk-guide__content {
+    flex: 1;
+    min-width: 0;
+    max-width: 700px;
+    padding: 48px 40px 80px;
+  }
+
+  /* Short accent bar above the title (lime for guides via --sl-accent). */
+  .wdk-guide__accent {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sl-accent, var(--lime));
+    margin-bottom: 16px;
+  }
+
+  /* Page title - h1 injected by the layout (MDX bodies start at GuideSection). */
+  .wdk-guide__title {
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 20px;
+    line-height: 1.15;
+    color: var(--text);
+  }
+
+  /* Reading-progress track + accent fill (scaled by CodeRail's onScroll). */
+  .wdk-guide__progress {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 0 32px;
+    overflow: hidden;
+  }
+  .wdk-guide__progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--sl-accent, var(--lime));
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.1s linear;
+  }
+
+  /* Mobile: single column - drop the left margin (sidebar hides itself), and
+     the rail stacks below the prose (handled in CodeRail). */
+  @media (max-width: 768px) {
+    .wdk-guide__main { margin-left: 0; flex-direction: column; }
+    .wdk-guide__content { max-width: 100%; padding: 32px 20px 40px; }
+  }
+</style>

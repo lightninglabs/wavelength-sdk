@@ -1,0 +1,50 @@
+---
+/**
+ * HomeLayout.astro - v4 home page layout.
+ * Composes Hero + all home section components inside BaseLayout.
+ * No sidebar, no TOC - only Header and Footer via BaseLayout.
+ * Sets data-accent="violet" on the html element so --sl-accent resolves
+ * to the brand primary on the home page (no section colour override needed).
+ *
+ * Props:
+ *   entry    - the content collection entry.
+ *   headings - from render(entry) (unused at home but matches DocLayout signature).
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Hero from '~/components/home/Hero.astro';
+import CapabilityList from '~/components/home/CapabilityList.astro';
+import ConceptsStrip from '~/components/home/ConceptsStrip.astro';
+import LayersBand from '~/components/home/LayersBand.astro';
+import CtaBand from '~/components/home/CtaBand.astro';
+
+interface Props {
+  entry: {
+    id: string;
+    data: {
+      title: string;
+      description?: string;
+    };
+  };
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry } = Astro.props;
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description} accent="violet">
+  <main class="wdk-home" data-pagefind-body>
+    <Hero />
+    <CapabilityList />
+    <ConceptsStrip />
+    <LayersBand />
+    <CtaBand />
+  </main>
+</BaseLayout>
+
+<style>
+  .wdk-home {
+    /* Reset the home from any doc-page centering - sections manage their own padding. */
+    width: 100%;
+    overflow-x: hidden;
+  }
+</style>

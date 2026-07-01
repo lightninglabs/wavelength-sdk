@@ -1,0 +1,278 @@
+---
+/**
+ * RelatedGuides.astro - A 3-card row of related guide links.
+ *
+ * Props:
+ *   related - array of content slugs (entry.data.related), e.g.
+ *             ['web/guides/send-a-payment', 'web/guides/show-balance-and-activity'].
+ *
+ * Each slug is resolved to its title via the NAV flat list (fast, no async
+ * content collection call needed) with a getCollection fallback for slugs not
+ * in the nav. Renders nothing at all when `related` is empty, so no empty
+ * heading or container leaks into the DOM.
+ *
+ * Card style follows the r2-4-components "3-card row" variation: a small
+ * icon tile, a section label in the item's accent color, the page title, and
+ * a "Read guide" call-to-action that nudges right on hover. A 2px accent bar
+ * sweeps in from the left edge on hover/focus.
+ *
+ * Each card carries a `data-accent` attribute (resolved via accentForSlug)
+ * and the per-accent color is applied through `[data-accent='...']` rules in
+ * the scoped stylesheet below, rather than an inline custom property. This
+ * keeps normal CSS cascade in play so the light-mode lime override (further
+ * down) can win without fighting inline-style specificity.
+ */
+import { getCollection } from 'astro:content';
+import { flattenNav, NAV, accentForSlug } from '~/config/nav';
+
+interface Props {
+  related: string[];
+}
+
+const { related } = Astro.props;
+
+/**
+ * Returns the human-readable group label for a given section key.
+ * Falls back to the raw key if no matching group is found.
+ */
+function labelForSection(section: string): string {
+  const group = NAV.find((g) => g.section === section);
+  return group ? group.label : section;
+}
+
+// Build the resolved card list only when there are slugs to resolve.
+let cards: { slug: string; title: string; section: string }[] = [];
+
+if (related && related.length > 0) {
+  // Build a slug -> { title, section } map from the flat nav first
+  // (synchronous, free).
+  const navFlat = flattenNav();
+  const navMeta: Record<string, { title: string; section: string }> = {};
+  for (const item of navFlat) {
+    navMeta[item.slug] = { title: item.label, section: item.section };
+  }
+
+  // For any slug not in the nav, fall back to getCollection. There is no
+  // section to resolve in this case, so it is left blank.
+  const missingFromNav = related.filter((s) => !navMeta[s]);
+  if (missingFromNav.length > 0) {
+    const all = await getCollection('docs');
+    for (const entry of all) {
+      if (missingFromNav.includes(entry.id)) {
+        navMeta[entry.id] = { title: entry.data.title, section: '' };
+      }
+    }
+  }
+
+  // Skip any slug that cannot be resolved to a title.
+  cards = related
+    .map((slug) => ({ slug, title: navMeta[slug]?.title, section: navMeta[slug]?.section ?? '' }))
+    .filter((c): c is { slug: string; title: string; section: string } => Boolean(c.title));
+}
+---
+
+{cards.length > 0 && (
+  <aside class="wdk-related" data-related aria-label="Related guides">
+    <p class="wdk-related__heading" role="heading" aria-level="2">Related guides</p>
+    <div class="wdk-related__grid">
+      {cards.map(({ slug, title, section }) => (
+        <a
+          href={`/${slug}/`}
+          class="wdk-related__card"
+          data-related-card
+          data-accent={accentForSlug(slug)}
+        >
+          <span class="wdk-related__icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M2 8h12M10 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          {section && <span class="wdk-related__section">{labelForSection(section)}</span>}
+          <span class="wdk-related__title">{title}</span>
+          <span class="wdk-related__cta">
+            Read guide
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 6h6M7 4l2 2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+      ))}
+    </div>
+  </aside>
+)}
+
+<style>
+  /* Section sits below the PrevNext block with additional top spacing. */
+  .wdk-related {
+    margin-top: 40px;
+  }
+
+  /* Section heading - subtle, uppercase metadata style. */
+  .wdk-related__heading {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+    /* Override the prose h2::after underline motif for this heading. */
+    font-family: var(--font-body);
+  }
+
+  /* Responsive row: 3 equal columns on wide viewports. */
+  .wdk-related__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* Card - surface tile with an accent bar that sweeps in on hover. */
+  .wdk-related__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+
+  /* Accent bar along the top edge, hidden until hover/focus. Defaults to
+     --sl-accent (the page's own section color); per-accent rules below set
+     the card's own resolved accent via accentForSlug. */
+  .wdk-related__card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--sl-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .wdk-related__card:hover,
+  .wdk-related__card:focus-visible {
+    border-color: var(--border-2);
+    background: var(--surface-2);
+    transform: translateY(-2px);
+  }
+
+  .wdk-related__card:hover::before,
+  .wdk-related__card:focus-visible::before {
+    transform: scaleX(1);
+  }
+
+  /* Icon tile in the section accent color. */
+  .wdk-related__icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--sl-accent);
+  }
+
+  /* Section label - small uppercase metadata in the card's accent color. */
+  .wdk-related__section {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sl-accent);
+  }
+
+  /* Title text - main label, wraps naturally. */
+  .wdk-related__title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+    color: var(--text);
+    line-height: 1.35;
+  }
+
+  /* Call-to-action row - nudges right on hover. */
+  .wdk-related__cta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    transition: color 0.15s, gap 0.15s;
+  }
+
+  .wdk-related__card:hover .wdk-related__cta,
+  .wdk-related__card:focus-visible .wdk-related__cta {
+    color: var(--sl-accent);
+    gap: 6px;
+  }
+
+  /* Per-card accent: each card's icon, section label, accent bar, and hover
+     CTA pick up the color of the *related* page's own section, not the
+     current page's --sl-accent. Mirrors the per-accent pattern already used
+     by Sidebar.astro's active-link variants. */
+  .wdk-related__card[data-accent='violet']::before { background: var(--violet); }
+  .wdk-related__card[data-accent='violet'] .wdk-related__icon,
+  .wdk-related__card[data-accent='violet'] .wdk-related__section { color: var(--violet); }
+  .wdk-related__card[data-accent='violet']:hover .wdk-related__cta,
+  .wdk-related__card[data-accent='violet']:focus-visible .wdk-related__cta { color: var(--violet); }
+
+  .wdk-related__card[data-accent='teal']::before { background: var(--teal); }
+  .wdk-related__card[data-accent='teal'] .wdk-related__icon,
+  .wdk-related__card[data-accent='teal'] .wdk-related__section { color: var(--teal); }
+  .wdk-related__card[data-accent='teal']:hover .wdk-related__cta,
+  .wdk-related__card[data-accent='teal']:focus-visible .wdk-related__cta { color: var(--teal); }
+
+  .wdk-related__card[data-accent='lime']::before { background: var(--lime); }
+  .wdk-related__card[data-accent='lime'] .wdk-related__icon,
+  .wdk-related__card[data-accent='lime'] .wdk-related__section { color: var(--lime); }
+  .wdk-related__card[data-accent='lime']:hover .wdk-related__cta,
+  .wdk-related__card[data-accent='lime']:focus-visible .wdk-related__cta { color: var(--lime); }
+
+  .wdk-related__card[data-accent='orange']::before { background: var(--orange); }
+  .wdk-related__card[data-accent='orange'] .wdk-related__icon,
+  .wdk-related__card[data-accent='orange'] .wdk-related__section { color: var(--orange); }
+  .wdk-related__card[data-accent='orange']:hover .wdk-related__cta,
+  .wdk-related__card[data-accent='orange']:focus-visible .wdk-related__cta { color: var(--orange); }
+
+  .wdk-related__card[data-accent='sky']::before { background: var(--sky); }
+  .wdk-related__card[data-accent='sky'] .wdk-related__icon,
+  .wdk-related__card[data-accent='sky'] .wdk-related__section { color: var(--sky); }
+  .wdk-related__card[data-accent='sky']:hover .wdk-related__cta,
+  .wdk-related__card[data-accent='sky']:focus-visible .wdk-related__cta { color: var(--sky); }
+
+  /* Light-mode override: the lime fill alias stays bright (#c9f000) for dots
+     and squares, but that is too low-contrast as text or a rule on a light
+     surface. Swap to the darker --accent-lime token here, mirroring the same
+     fix already applied to the sidebar's active-link lime variant. */
+  :global([data-theme='light']) .wdk-related__card[data-accent='lime']::before {
+    background: var(--accent-lime);
+  }
+  :global([data-theme='light']) .wdk-related__card[data-accent='lime'] .wdk-related__icon,
+  :global([data-theme='light']) .wdk-related__card[data-accent='lime'] .wdk-related__section {
+    color: var(--accent-lime);
+  }
+  :global([data-theme='light']) .wdk-related__card[data-accent='lime']:hover .wdk-related__cta,
+  :global([data-theme='light']) .wdk-related__card[data-accent='lime']:focus-visible .wdk-related__cta {
+    color: var(--accent-lime);
+  }
+
+  @media (max-width: 800px) {
+    .wdk-related__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
