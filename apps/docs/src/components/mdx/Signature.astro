@@ -1,0 +1,43 @@
+---
+/**
+ * Signature.astro - TypeScript function/type signature block.
+ *
+ * Wraps an Expressive Code block so signatures get consistent presentation
+ * across all reference pages. Uses the `astro-expressive-code/components`
+ * import that is available when the expressiveCode integration is active.
+ *
+ * Props:
+ *   code - the raw signature string (TypeScript by default).
+ *   lang - language hint passed to Expressive Code; defaults to 'ts'.
+ *   title - optional filename shown in the Expressive Code frame header,
+ *           e.g. "walletdk-core.d.ts". Forwarded via the `meta` prop, which
+ *           is the same mechanism a fenced code block uses for its
+ *           `title="..."` attribute.
+ */
+import { Code } from 'astro-expressive-code/components';
+
+interface Props {
+  code: string;
+  lang?: string;
+  title?: string;
+}
+
+const { code, lang = 'ts', title } = Astro.props;
+const meta = title ? `title="${title}"` : undefined;
+---
+
+<div class="wdk-signature">
+  <Code code={code} lang={lang} meta={meta} />
+</div>
+
+<style>
+  /* Narrow the top margin so the signature sits close to the symbol heading. */
+  .wdk-signature {
+    margin: 0 0 20px;
+  }
+
+  /* Remove default Expressive Code outer margin inside the signature wrapper. */
+  .wdk-signature :global(.expressive-code) {
+    margin: 0;
+  }
+</style>

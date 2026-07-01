@@ -1,0 +1,115 @@
+---
+/**
+ * Symbol.astro - One exported symbol in a reference page.
+ *
+ * Renders a <section id={name} data-symbol> so the ReferenceLayout script
+ * can collect every symbol, build the sticky symbol-list rail, and highlight
+ * the active one as the reader scrolls.
+ *
+ * Props:
+ *   name - the export name (used as the section id and heading text).
+ *   kind - optional: 'function' | 'class' | 'type' | 'const'. Shown as a
+ *          small badge beside the heading.
+ */
+interface Props {
+  name: string;
+  kind?: 'function' | 'class' | 'type' | 'const';
+}
+
+const { name, kind } = Astro.props;
+---
+
+<section id={name} data-symbol class="wdk-symbol">
+  <header class="wdk-symbol__header">
+    <h2 class="wdk-symbol__name">{name}</h2>
+    {kind && <span class={`wdk-symbol__badge wdk-symbol__badge--${kind}`}>{kind}</span>}
+  </header>
+  <div class="wdk-symbol__body">
+    <slot />
+  </div>
+</section>
+
+<style>
+  /* Scroll-margin keeps the heading clear of the sticky header when jumping
+     from a symbol-list link. */
+  .wdk-symbol {
+    scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+  }
+
+  /* Separator between consecutive symbols. */
+  .wdk-symbol + .wdk-symbol {
+    margin-top: 64px;
+    padding-top: 64px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Heading row: name + optional kind badge. */
+  .wdk-symbol__header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  /* Symbol name - prominent but smaller than the page h1. */
+  .wdk-symbol__name {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin: 0;
+  }
+
+  /* Kind badge: small pill to the right of the name. */
+  .wdk-symbol__badge {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: lowercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    /* Default orange accent matches reference section. */
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 15%, transparent);
+    color: var(--sl-accent, var(--orange));
+    border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 30%, transparent);
+  }
+
+  /* Per-kind tint overrides (subtle; the orange default suits most cases). */
+  .wdk-symbol__badge--function { }
+  .wdk-symbol__badge--class { }
+  .wdk-symbol__badge--type {
+    background: color-mix(in srgb, var(--teal, #15e0c2) 15%, transparent);
+    color: var(--teal, #15e0c2);
+    border-color: color-mix(in srgb, var(--teal, #15e0c2) 30%, transparent);
+  }
+  .wdk-symbol__badge--const {
+    background: color-mix(in srgb, var(--violet, #a78bfa) 15%, transparent);
+    color: var(--violet, #a78bfa);
+    border-color: color-mix(in srgb, var(--violet, #a78bfa) 30%, transparent);
+  }
+
+  /* Body: prose + signature + params table. */
+  .wdk-symbol__body {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  .wdk-symbol__body :global(p) {
+    color: var(--text-muted);
+    margin: 0 0 16px;
+  }
+
+  /* Inline code within symbol body. Background uses the surface-2 token, which
+     resolves correctly in both light and dark mode without a hardcoded fallback. */
+  .wdk-symbol__body :global(:not(.expressive-code) code) {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+</style>
