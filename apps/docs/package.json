@@ -1,0 +1,35 @@
+{
+  "name": "@lightninglabs/walletdk-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-runtime-assets.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/copy-runtime-assets.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^7.0.0",
+    "@astrojs/react": "^6.0.0",
+    "@astrojs/sitemap": "^3.7.3",
+    "@fontsource/inter": "^5.2.5",
+    "@fontsource/jetbrains-mono": "^5.2.5",
+    "@fontsource/work-sans": "^5.2.5",
+    "astro": "^7.0.3",
+    "astro-expressive-code": "^0.44.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@playwright/test": "^1.61.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "astro-pagefind": "^2.0.0",
+    "sharp": "^0.35.2",
+    "typescript": "^6.0.3"
+  }
+}

@@ -5,3 +5,12 @@ test-results/
 .DS_Store
 # public/ is an ephemeral staging area for runtime assets; never committed.
 apps/*/public/
+# _headers is a static host config file (Netlify/Cloudflare Pages), not a runtime asset.
+!apps/docs/public/
+!apps/docs/public/_headers
+
+# Local Claude session tooling (not project source).
+.claude/
+
+# Superpowers SDD scratch (briefs, reports, ledger, review diffs).
+.superpowers/

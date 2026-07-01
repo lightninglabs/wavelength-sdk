@@ -1,0 +1,11 @@
+# Cross-origin isolation headers for the Playground (deferred).
+#
+# When the live-wallet Playground lands, restore this block scoped to the route
+# it lives on (e.g. /web/playground/*). The two headers together make the page
+# cross-origin isolated, which the WASM runtime requires for SharedArrayBuffer
+# and OPFS access. Hosts that do not read _headers (e.g. CloudFront) must
+# reproduce the same headers in their own CDN/server config.
+#
+# /web/playground/*
+#   Cross-Origin-Opener-Policy: same-origin
+#   Cross-Origin-Embedder-Policy: require-corp
