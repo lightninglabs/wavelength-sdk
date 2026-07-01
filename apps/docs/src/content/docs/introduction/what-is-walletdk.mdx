@@ -3,6 +3,9 @@ title: What is WalletDK?
 description: An overview of WalletDK as a self-custodial Bitcoin, Lightning, and Ark wallet SDK that runs entirely in the browser.
 ---
 
+import DiagramFrame from '~/components/diagrams/DiagramFrame.astro';
+import FlowLane from '~/components/diagrams/FlowLane.astro';
+
 ## What it is
 
 WalletDK is a TypeScript SDK for embedding a **self-custodial Bitcoin, Lightning, and Ark wallet** directly in your web app. Your users hold their own keys. You do not run a wallet server on their behalf.
@@ -23,9 +26,16 @@ WalletDK ships as three packages:
 
 Think of WalletDK as **your app talking to a local wallet daemon**, not your app talking to a remote wallet API.
 
-```
-Your app  →  WalletDKClient (typed API)  →  WASM daemon (in-browser)  →  backend gateways
-```
+<DiagramFrame label="Diagram: your app calls the typed WalletDKClient, which forwards to the WASM daemon running in the browser, which reaches the backend gateways.">
+  <FlowLane
+    steps={[
+      { label: 'Your app', accent: 'lime' },
+      { label: 'WalletDKClient', sub: 'typed API', accent: 'teal' },
+      { label: 'WASM daemon', sub: 'in-browser', accent: 'teal' },
+      { label: 'Gateways', sub: 'Ark · Swap · Esplora', accent: 'violet' },
+    ]}
+  />
+</DiagramFrame>
 
 1. **Your app** calls methods like `balance()`, `send()`, and `deposit()` on a `WalletDKClient`.
 2. **The client** forwards those calls to the embedded daemon over an in-process call (a Web Worker by default, or the main thread if configured).

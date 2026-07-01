@@ -3,6 +3,9 @@ title: System architecture
 description: How WalletDK's in-browser daemon connects to the Ark, Lightning, and Bitcoin backend gateways to enable payments, boarding, swaps, and exits.
 ---
 
+import DiagramFrame from '~/components/diagrams/DiagramFrame.astro';
+import FlowLane from '~/components/diagrams/FlowLane.astro';
+
 ## The in-browser daemon
 
 WalletDK embeds [darepo-client](https://github.com/lightninglabs/darepo-client), the same wallet daemon used in native integrations, compiled to WebAssembly. When your app calls `createWebClient()` and `client.start()`, it boots that daemon inside the browser and keeps it running for the session.
@@ -66,12 +69,46 @@ Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark opera
 
 **Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WalletDKClient` for this path; see [Unilateral exit](/web/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
 
-```
-On-chain deposit ──► boarding address ──► next round (operator-configured interval) ──► VTXO (Ark balance)
-Lightning receive  ──► in-swap  ──► swap server ──► VTXO
-Lightning send     ──► out-swap ──► swap server ──► Lightning invoice paid
-On-chain send      ──► cooperative leave ──► operator + Esplora
-Emergency          ──► unilateral exit ──► on-chain (no operator cooperation)
-```
+<DiagramFrame label="Diagram: the five payment rails. On-chain in: deposit, boarding, round, VTXO. Lightning receive: in-swap through the swap server to a VTXO. Lightning send: out-swap through the swap server to a paid invoice. On-chain send: cooperative leave via the operator and Esplora. Emergency: unilateral exit to on-chain.">
+  <FlowLane
+    header="On-chain in"
+    steps={[
+      { label: 'Deposit', accent: 'teal' },
+      { label: 'Boarding', accent: 'teal' },
+      { label: 'Round', accent: 'teal' },
+      { label: 'VTXO', accent: 'teal' },
+    ]}
+  />
+  <FlowLane
+    header="Lightning receive"
+    steps={[
+      { label: 'In-swap', accent: 'violet' },
+      { label: 'Swap server', accent: 'violet' },
+      { label: 'VTXO', accent: 'violet' },
+    ]}
+  />
+  <FlowLane
+    header="Lightning send"
+    steps={[
+      { label: 'Out-swap', accent: 'violet' },
+      { label: 'Swap server', accent: 'violet' },
+      { label: 'Invoice paid', accent: 'violet' },
+    ]}
+  />
+  <FlowLane
+    header="On-chain send"
+    steps={[
+      { label: 'Cooperative leave', accent: 'teal' },
+      { label: 'Operator + Esplora', accent: 'teal' },
+    ]}
+  />
+  <FlowLane
+    header="Emergency"
+    steps={[
+      { label: 'Unilateral exit', accent: 'orange' },
+      { label: 'On-chain', accent: 'orange' },
+    ]}
+  />
+</DiagramFrame>
 
 For deeper detail on each rail, see [Balances & VTXOs](/concepts/balances-and-vtxos/), [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/), and [Leaving Ark](/concepts/leaving-ark/).

@@ -307,6 +307,359 @@ code, pre, kbd {
   color: var(--text-code);
 }
 
+/* Mermaid diagrams (astro-mermaid) in doc prose. */
+.wdk-mermaid {
+  margin: 1.5rem 0;
+  padding: 1.25rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  overflow-x: auto;
+}
+
+.wdk-mermaid pre.mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  min-height: auto;
+}
+
+.wdk-mermaid pre.mermaid:not([data-processed]) {
+  min-height: 100px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--surface) 25%,
+    var(--surface-2) 50%,
+    var(--surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: wdk-mermaid-shimmer 1.5s infinite;
+  border-radius: 0.375rem;
+}
+
+.wdk-mermaid pre.mermaid[data-processed] {
+  animation: none;
+  background: transparent;
+}
+
+.wdk-mermaid pre.mermaid svg {
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+/* Pill nodes, legible labels, soft subgraph frames. */
+.wdk-mermaid pre.mermaid svg .node rect,
+.wdk-mermaid pre.mermaid svg .node polygon {
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
+}
+
+.wdk-mermaid pre.mermaid svg .nodeLabel,
+.wdk-mermaid pre.mermaid svg .label {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.wdk-mermaid pre.mermaid svg .nodeLabel p {
+  margin: 0;
+  color: #f5f5f7 !important;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.wdk-mermaid pre.mermaid svg .nodeLabel text,
+.wdk-mermaid pre.mermaid svg .nodeLabel tspan,
+.wdk-mermaid pre.mermaid svg .label text,
+.wdk-mermaid pre.mermaid svg .label tspan,
+.wdk-mermaid pre.mermaid svg .label span,
+.wdk-mermaid pre.mermaid svg .nodeLabel span {
+  fill: #f5f5f7 !important;
+  color: #f5f5f7 !important;
+}
+
+.wdk-mermaid pre.mermaid svg .muted .nodeLabel p {
+  color: #e8e8ed !important;
+}
+
+.wdk-mermaid pre.mermaid svg .edgeLabel .label {
+  font-size: 0.75rem;
+}
+
+.wdk-mermaid pre.mermaid svg .edgeLabel rect {
+  fill: var(--surface-2) !important;
+  stroke: var(--border) !important;
+  rx: 6;
+  ry: 6;
+}
+
+.wdk-mermaid pre.mermaid svg .edgeLabel text {
+  fill: var(--text-muted) !important;
+}
+
+.wdk-mermaid pre.mermaid svg .cluster rect {
+  fill: rgb(20 20 23 / 0.35) !important;
+  stroke: var(--border) !important;
+  stroke-dasharray: 4 4;
+}
+
+.wdk-mermaid pre.mermaid svg .cluster-label .nodeLabel {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.wdk-mermaid pre.mermaid svg .cluster-label text,
+.wdk-mermaid pre.mermaid svg .cluster-label span {
+  fill: var(--text-dim) !important;
+  color: var(--text-dim) !important;
+}
+
+@keyframes wdk-mermaid-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+:root[data-theme='light'] .wdk-mermaid pre.mermaid svg .edgeLabel rect {
+  fill: var(--surface-3) !important;
+}
+
+:root[data-theme='light'] .wdk-mermaid pre.mermaid svg .cluster rect {
+  fill: rgb(247 247 248 / 0.8) !important;
+}
+
+/* ==========================================================================
+   Bespoke "signal path" diagrams (src/components/diagrams/).
+   Hand-built HTML/CSS architecture diagrams: accent-square node chips,
+   animated directional signal traces, lane headers that echo the sidebar
+   dividers, and a faint circuit dot grid for atmosphere. All colors come
+   from theme tokens, so light and dark both work with no overrides.
+   ========================================================================== */
+
+/* Frame: surface panel with a circuit dot grid that pans with the content. */
+.wdk-dg {
+  container-type: inline-size;
+  margin: 1.75rem 0;
+  padding: 28px 26px;
+  background-color: var(--surface);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--text-dim) 16%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 20px 20px;
+  background-attachment: local;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.wdk-dg::-webkit-scrollbar { height: 4px; }
+.wdk-dg::-webkit-scrollbar-track { background: transparent; }
+.wdk-dg::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Accent hooks: nodes, edges, and lane dots read --dg-accent. */
+.wdk-dg--lime   { --dg-accent: var(--lime); }
+.wdk-dg--teal   { --dg-accent: var(--teal); }
+.wdk-dg--violet { --dg-accent: var(--violet); }
+.wdk-dg--sky    { --dg-accent: var(--sky); }
+.wdk-dg--orange { --dg-accent: var(--orange); }
+.wdk-dg--muted  { --dg-accent: var(--text-dim); }
+
+/* Node chip: accent square + display-font name + mono sub-label. */
+.wdk-dg-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--dg-accent, var(--border)) 45%, var(--border));
+  border-radius: 9px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.wdk-dg-node:hover {
+  border-color: var(--dg-accent);
+  transform: translateY(-1px);
+}
+
+.wdk-dg-node__sq {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--dg-accent);
+  flex-shrink: 0;
+}
+
+.wdk-dg-node__label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.wdk-dg-node__sub {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Edge: a dashed signal trace whose dashes flow toward the arrowhead. The
+   trace takes the DESTINATION node's accent, so color carries direction. */
+.wdk-dg-edge {
+  position: relative;
+  flex: 1 1 52px;
+  min-width: 40px;
+  height: 2px;
+  color: color-mix(in srgb, var(--dg-accent, var(--text-dim)) 70%, transparent);
+}
+
+.wdk-dg-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    currentColor 0 7px,
+    transparent 7px 13px
+  );
+}
+
+.wdk-dg-edge::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  translate: 0 -50%;
+  border-left: 7px solid currentColor;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+}
+
+/* Edge label: a small mono pill sitting on the trace. */
+.wdk-dg-edge__tag {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.594rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* Vertical edge variant (used by the system map). min-width must be reset
+   or the base horizontal edge's 40px minimum turns the trace into a bar. */
+.wdk-dg-edge--v {
+  flex: none;
+  width: 2px;
+  min-width: 2px;
+  height: 44px;
+}
+
+.wdk-dg-edge--v::before {
+  background-image: repeating-linear-gradient(
+    180deg,
+    currentColor 0 7px,
+    transparent 7px 13px
+  );
+}
+
+.wdk-dg-edge--v::after {
+  right: auto;
+  left: 50%;
+  top: auto;
+  bottom: -1px;
+  translate: -50% 0;
+  border-left: 4.5px solid transparent;
+  border-right: 4.5px solid transparent;
+  border-top: 7px solid currentColor;
+  border-bottom: none;
+}
+
+/* Lane: an eyebrow header (accent dot + label + hairline, echoing the
+   sidebar dividers) above a horizontal pipeline of nodes and edges. */
+.wdk-dg-lane + .wdk-dg-lane {
+  margin-top: 30px;
+}
+
+.wdk-dg-lane__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.wdk-dg-lane__head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  margin-left: 4px;
+}
+
+.wdk-dg-lane__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 1.75px;
+  background: var(--dg-accent, var(--text-dim));
+  flex-shrink: 0;
+}
+
+.wdk-dg-lane__row {
+  display: flex;
+  align-items: center;
+  margin-top: 14px;
+  min-width: max-content;
+}
+
+/* A lane with no header (a standalone pipeline) centers itself in the frame. */
+.wdk-dg-lane:not(:has(.wdk-dg-lane__head)) .wdk-dg-lane__row {
+  width: max-content;
+  margin-inline: auto;
+  margin-top: 0;
+}
+
+/* Narrow frames (smaller laptops, tablets): tighten the chips so a four-node
+   pipeline still fits before falling back to horizontal scroll. Declared after
+   the base .wdk-dg-* rules; at equal specificity the later declaration must be
+   this one for the container-scoped values to win. */
+@container (max-width: 700px) {
+  .wdk-dg-node { padding: 8px 11px; gap: 7px; }
+  .wdk-dg-node__label { font-size: 0.8125rem; }
+  .wdk-dg-node__sub { font-size: 0.575rem; }
+  .wdk-dg-edge:not(.wdk-dg-edge--v) { flex-basis: 36px; min-width: 28px; }
+}
+
 /* Blockquotes - neutral left border; callouts handle emphasis. */
 :is(.wdk-doc__content, .wdk-guide__content) blockquote {
   background: var(--surface);

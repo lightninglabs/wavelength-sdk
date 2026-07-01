@@ -4,6 +4,7 @@ description: How SwapDK turns self-custodial Bitcoin and Lightning payments into
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
+import SwapDkSystemMap from '~/components/diagrams/SwapDkSystemMap.astro';
 
 ## What SwapDK is
 
@@ -19,26 +20,7 @@ Lightning has always offered a fully self-sovereign path where you run your own 
 
 You run **WalletDK**, the self-custodial client (compiled from [darepo-client](https://github.com/lightninglabs/darepo-client)). It holds the user's keys, tracks their balance, and builds and signs their payments. Everything the wallet talks to is managed for you.
 
-```
-   Your app
-      │  calls the wallet API
-      ▼
-   ┌───────────────────────────────────────────────┐
-   │  WalletDK   the client you run                 │   browser · server · SDK · MCP
-   │  holds keys, tracks balances, signs payments   │
-   └───────────────┬───────────────────┬───────────┘
-        exit       │                   │  BOLT 11
-        ▼          │                   ▼
-   ┌───────────┐   │   ┌───────────────────────────┐
-   │  Bitcoin  │◀──┘   │  SwapDK   managed for you  │
-   │ on-chain  │       │  coordination + settlement │
-   └───────────┘       │  deep liquidity via Loop   │
-                       └───────────────┬───────────┘
-                                       ▼
-                       ┌───────────────────────────┐
-                       │    The Lightning Network   │
-                       └───────────────────────────┘
-```
+<SwapDkSystemMap />
 
 | Piece | Who runs it | What it does |
 |---|---|---|
