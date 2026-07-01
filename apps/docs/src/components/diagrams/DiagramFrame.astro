@@ -1,0 +1,28 @@
+---
+/**
+ * DiagramFrame.astro - panel wrapper for the bespoke "signal path" diagrams.
+ * Renders the dot-grid surface frame; compose FlowLane (or a bespoke map)
+ * inside it. Shared styles live in theme.css under "Bespoke signal path
+ * diagrams" (.wdk-dg*).
+ *
+ * Props:
+ *   label - optional accessible description announced to screen readers.
+ */
+interface Props {
+  label?: string;
+}
+
+const { label } = Astro.props;
+---
+
+<figure class="wdk-dg" aria-label={label}>
+  <slot />
+</figure>
+
+<style>
+  /* The frame itself is styled globally (.wdk-dg); this only resets the
+     figure's user-agent margins so the global spacing applies cleanly. */
+  figure.wdk-dg {
+    margin-inline: 0;
+  }
+</style>

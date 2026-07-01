@@ -1,0 +1,208 @@
+---
+title: React
+description: How to integrate WalletDK into a React application using the provider-injected client, the available hooks, and the passkey ceremony helpers.
+---
+
+## Provider (injected client)
+
+`@lightninglabs/walletdk-react` is **transport-agnostic**: it depends only on
+`@lightninglabs/walletdk-core` and never imports a browser or native transport.
+You build a `WalletDKClient` with your transport (for web,
+`createWebClient()` from `@lightninglabs/walletdk-web`) and pass it to
+`WalletDKProvider`.
+
+The provider accepts either a prebuilt **`client`** or a **`createClient`**
+factory. The factory is called once and memoized, so an inline arrow function is
+safe:
+
+```tsx title="App.tsx"
+import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { createWebClient } from '@lightninglabs/walletdk-web';
+
+const client = createWebClient({
+  runtimeBaseUrl: 'https://your-host/walletdk/',
+});
+
+export function App() {
+  return (
+    <WalletDKProvider client={client}>
+      {/* your app */}
+    </WalletDKProvider>
+  );
+}
+```
+
+Alternatively, defer client construction to the provider:
+
+```tsx title="App.tsx"
+<WalletDKProvider
+  createClient={() =>
+    createWebClient({ runtimeBaseUrl: 'https://your-host/walletdk/' })
+  }
+>
+  {/* your app */}
+</WalletDKProvider>
+```
+
+If neither prop is supplied, the provider throws. After mount it waits for
+`client.ready()`, sets `phase` to `'runtimeReady'`, and subscribes to runtime
+events (including a bounded log tail). Call **`start(config)`** with a
+`RuntimeConfig` to boot the embedded daemon; the provider derives phase from
+`getInfo()`, polls while `'syncing'`, and refreshes balance and activity when
+activity events arrive.
+
+`phase` is a `RuntimePhase`, one of: `'loading'`, `'runtimeReady'`,
+`'starting'`, `'needsWallet'`, `'locked'`, `'syncing'`, `'ready'`,
+`'stopping'`, `'stopped'`, or `'error'`. The `loading`/`runtimeReady`/
+`starting`/`stopping`/`stopped`/`error` phases are owned by the start/stop
+flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from wallet info.
+See [Handle phases and errors](/web/guides/handle-phases-and-errors/) for the
+full state machine and how to react to each phase.
+
+The package **re-exports every type and enum from `core`**, so a React app can
+import contracts from one place. It does **not** re-export `createWebClient`;
+keep the transport import separate so the same binding can later run over React
+Native.
+
+## Hooks
+
+**`useWalletDK()`** is the main hook. It returns the full provider state:
+`client`, `phase`, `error`, `info`, `balance`, `activity`, `logs`,
+`operations`, and the wallet methods (`start`, `stop`, `refresh`,
+`createWallet`, `unlockWallet`, `deposit`, `receive`, `send`). It throws outside
+a provider.
+
+For narrower surfaces, use the granular hooks. Each exposes flat
+`{ busy, error, clearError }` for its operation (matching `usePasskeyWallet`'s
+shape) so components do not reach into the `operations` record:
+
+| Hook | Returns |
+|---|---|
+| `useSend()` | `{ send, busy, error, clearError }` |
+| `useReceive()` | `{ receive, busy, error, clearError }` |
+| `useWalletBalance()` | `{ balance, refresh, busy, error, clearError }` |
+| `useDepositAddress()` | `{ deposit, busy, error, clearError }` |
+| `useWalletActivity()` | `{ activity, refresh, busy, error, clearError }` |
+
+For example, `useSend()` returns a `send(req)` action alongside its own
+`busy`/`error` state:
+
+```tsx title="SendButton.tsx"
+import { useSend } from '@lightninglabs/walletdk-react';
+
+function SendButton({ invoice }: { invoice: string }) {
+  const { send, busy, error } = useSend();
+
+  return (
+    <>
+      <button disabled={busy} onClick={() => send({ invoice })}>
+        Send payment
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </>
+  );
+}
+```
+
+See [Send a payment](/web/guides/send-a-payment/),
+[Receive a Lightning payment](/web/guides/receive-a-lightning-payment/),
+[Get a deposit address](/web/guides/get-a-deposit-address/), and
+[Show balance and activity](/web/guides/show-balance-and-activity/) for
+end-to-end usage of these hooks.
+
+Additional helpers split common concerns:
+
+- **`useWalletRuntime()`**: `client`, `phase`, `error`, `info`, `start`,
+  `stop`, `refresh`, and runtime `operations`.
+- **`useWalletBootstrap()`**: `createWallet`, `unlockWallet`, `info`, and
+  bootstrap `operations`.
+- **`useWalletLogs()`**: `{ logs, clearLogs }` for the provider's bounded log
+  tail.
+
+Typical boot sequence inside the provider tree:
+
+```tsx title="WalletBoot.tsx"
+import { useEffect } from 'react';
+import { useWalletDK, defaultConfig } from '@lightninglabs/walletdk-react';
+
+function WalletBoot() {
+  const { phase, start } = useWalletDK();
+
+  useEffect(() => {
+    if (phase === 'runtimeReady') {
+      start(defaultConfig('signet')).catch(() => {});
+    }
+  }, [phase, start]);
+
+  return null;
+}
+```
+
+## Passkey
+
+Passkeys are driven by **`usePasskeyWallet(ceremony)`**, where `ceremony` is a
+`PasskeyCeremony` implementation injected from your transport. On web, pass
+**`webPasskeyCeremony`** from `@lightninglabs/walletdk-web`:
+
+```tsx title="PasskeyUnlock.tsx"
+import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+
+function PasskeyUnlock() {
+  const {
+    supported,
+    busy,
+    error,
+    createPasskeyWallet,
+    openPasskeyWallet,
+    clearError,
+  } = usePasskeyWallet(webPasskeyCeremony);
+
+  if (!supported) {
+    return <p>Passkeys are not available on this device.</p>;
+  }
+
+  return (
+    <>
+      <button
+        disabled={busy}
+        onClick={() => createPasskeyWallet('My App')}
+      >
+        Create with passkey
+      </button>
+      <button
+        disabled={busy}
+        onClick={() => openPasskeyWallet(/* optional credential id */)}
+      >
+        Unlock with passkey
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </>
+  );
+}
+```
+
+The hook checks **`ceremony.supportsPasskeyPrf()`** on mount (platform
+authenticator availability). **`createPasskeyWallet(appName)`** runs
+`registerPasskeyWallet`, then `client.openWalletFromPasskey({ prfOutput })`,
+then refreshes provider state. **`openPasskeyWallet(allowCredentialId?)`**
+asserts an existing passkey (scoped when an id is passed, discoverable
+otherwise) and opens the wallet the same way. On success the provider phase
+advances automatically; persist the returned **`credentialId`** if you want
+scoped unlocks later.
+
+Both `createPasskeyWallet` and `openPasskeyWallet` resolve to a
+`PasskeyWalletOutcome | null`: `null` when the ceremony fails (with `error`
+set to the failure message), or `{ result, credentialId }` on success. Capture
+`credentialId` from a successful result and store it so a later
+`openPasskeyWallet(credentialId)` call can perform a scoped unlock instead of
+a discoverable one:
+
+```tsx title="PasskeyUnlock.tsx"
+const outcome = await createPasskeyWallet('My App');
+if (outcome) {
+  localStorage.setItem('passkeyCredentialId', outcome.credentialId);
+}
+```
+
+See [Use a passkey](/web/guides/use-a-passkey/) for end-to-end onboarding UX.

@@ -1,0 +1,96 @@
+---
+title: Handle phases & errors
+description: How to respond to WalletDK wallet phase transitions and interpret structured error codes in your application.
+pageLayout: guide
+related:
+  - web/guides/create-a-wallet
+  - web/guides/send-a-payment
+  - web/guides/use-a-passkey
+---
+
+## React to wallet phases
+
+`phase` from `useWalletDK()` (or `useWalletRuntime()`) describes where the
+wallet is in its lifecycle. Runtime phases include `loading`, `runtimeReady`,
+`starting`, `stopping`, `stopped`, and `error`. Wallet phases include
+`needsWallet` (no wallet created yet), `locked`, `syncing`, and `ready`.
+
+Use a switch or a series of conditionals at the root of your app to render
+the right screen for each phase. The value updates reactively, so the UI
+transitions automatically as the wallet moves through phases.
+
+`info.walletState` carries the underlying `WalletState` string (`none`,
+`locked`, `ready`, or `syncing`) when you need the daemon-level detail.
+
+```tsx title="errors.tsx"
+import { useWalletRuntime } from '@lightninglabs/walletdk-react';
+
+function WalletGate({ children }: { children: React.ReactNode }) {
+  const { phase } = useWalletRuntime();
+
+  switch (phase) {
+    case 'loading':
+    case 'runtimeReady':
+    case 'starting':
+      return <p>Starting wallet runtime...</p>;
+    case 'needsWallet':
+      return <CreateWalletScreen />;
+    case 'locked':
+      return <UnlockScreen />;
+    case 'syncing':
+      return <p>Syncing with Ark server...</p>;
+    case 'ready':
+      return <>{children}</>;
+    case 'error':
+      return <p>Runtime failed to start.</p>;
+    default:
+      return null;
+  }
+}
+```
+
+## Interpret error codes
+
+Every WalletDK error extends `WalletDKError` and carries a `code` string that
+identifies the failure reason at the machine level. Match on `err.code` to
+show a specific message rather than a generic fallback.
+
+Named SDK codes include `runtime_not_ready`, `asset_load_failed`, and
+`worker_error`. Daemon-originated errors currently use `walletdk_error`.
+Operation hooks also expose flat `error` strings on `useSend()`, `useReceive()`,
+and similar helpers.
+
+```tsx title="errors.tsx"
+import { useSend, WalletDKError } from '@lightninglabs/walletdk-react';
+
+function PayButton({ bolt11 }: { bolt11: string }) {
+  const { send, error, clearError, busy } = useSend();
+
+  const pay = async () => {
+    clearError();
+    try {
+      await send({ invoice: bolt11 });
+    } catch (err) {
+      if (err instanceof WalletDKError) {
+        switch (err.code) {
+          case 'runtime_not_ready':
+            console.error('Runtime still loading.');
+            break;
+          case 'asset_load_failed':
+            console.error('Check runtimeBaseUrl and hosted assets.');
+            break;
+          default:
+            console.error('Payment failed:', err.message);
+        }
+      }
+    }
+  };
+
+  return (
+    <>
+      <button onClick={pay} disabled={busy}>Pay</button>
+      {error && <p role="alert">{error}</p>}
+    </>
+  );
+}
+```

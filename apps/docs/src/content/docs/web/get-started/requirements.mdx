@@ -1,0 +1,95 @@
+---
+title: Requirements
+description: The browser support matrix, cross-origin isolation prerequisites, and backend services needed to integrate WalletDK Web.
+---
+
+## Browser support
+
+WalletDK runs the full wallet daemon in the browser as WebAssembly. Target
+browsers with mature WASM, Web Worker, and storage APIs:
+
+| Browser | Minimum version |
+|---|---|
+| Chrome (and Chromium-based browsers) | 100+ |
+| Firefox | 110+ |
+| Safari (macOS and iOS) | 16+ |
+
+Node.js 20 or later is recommended for local development (Vite, Next.js, and
+similar bundlers). No special build plugins are required beyond serving the WASM
+runtime assets and, for worker mode, setting cross-origin isolation headers.
+
+Passkey support (WebAuthn with PRF) is optional and depends on the browser and
+OS. Password-based wallets work everywhere in the matrix above.
+
+## Cross-origin isolation
+
+The default transport runs the daemon in a dedicated Web Worker and persists
+wallet state with OPFS-backed SQLite. Both paths rely on
+`SharedArrayBuffer`, which browsers only expose on **cross-origin isolated**
+pages.
+
+Your app must send `Cross-Origin-Opener-Policy` and
+`Cross-Origin-Embedder-Policy` response headers on every route that loads the
+wallet. See [Cross-origin isolation](/web/get-started/cross-origin-isolation/)
+for the exact values and a quick verification command.
+
+If you cannot isolate the page (for example, because third-party embeds block
+`require-corp`), you can run the runtime on the main thread with
+`createWebClient({ runtimeThread: 'main' })`, but OPFS persistence will not be
+available and the UI thread will block while the daemon is busy. See
+[Data & persistence](/web/runtime/data-and-persistence/) for how storage
+behavior differs between main-thread and worker mode.
+
+## Backends
+
+WalletDK is self-custodial: the seed never leaves the browser. The embedded
+daemon still needs reachable **Ark**, **Esplora**, and (for Lightning swaps)
+**swap server** endpoints at runtime.
+
+**Signet (recommended for development)** works out of the box with the public
+preset. Pass `defaultConfig('signet')` to `start()` and the client connects to
+Lightning Labs hosted gateways:
+
+```ts title="config.ts"
+import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+
+const client = createWebClient();
+await client.start(defaultConfig('signet'));
+```
+
+Presets also exist for `testnet`. No local backend is required for signet or
+testnet.
+
+**Regtest (local development)** targets services you run yourself. The
+`defaultConfig('regtest')` preset assumes default ports from a local
+[arktest](https://github.com/lightninglabs/darepo-client) environment (Ark
+server, Esplora, swap server). Start arktest, note the ports it prints, and
+override URLs if yours differ:
+
+```ts title="config.ts"
+import { defaultConfig } from '@lightninglabs/walletdk-web';
+
+await client.start(
+  defaultConfig('regtest', {
+    arkServerUrl: 'http://127.0.0.1:7071',
+    esploraUrl: 'http://127.0.0.1:8501',
+    swapServerUrl: 'http://127.0.0.1:10032',
+    serverInsecure: true,
+    swapServerInsecure: true,
+  }),
+);
+```
+
+**Mainnet** has no public preset yet. Supply your own gateway URLs and set
+`allowMainnet: true` before going live:
+
+```ts title="config.ts"
+import { defaultConfig } from '@lightninglabs/walletdk-web';
+
+const config = defaultConfig('mainnet', {
+  arkServerUrl: 'https://your-ark-server.example.com',
+  esploraUrl: 'https://your-esplora.example.com/api',
+  swapServerUrl: 'https://your-swap-server.example.com',
+  allowMainnet: true,
+});
+```

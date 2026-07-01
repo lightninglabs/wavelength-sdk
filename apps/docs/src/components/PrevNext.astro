@@ -1,0 +1,208 @@
+---
+/**
+ * PrevNext.astro - Bottom-of-page previous/next navigation, "Option 1" style.
+ *
+ * Props:
+ *   slug - the current page's content collection id (entry.id).
+ *
+ * Calls prevNext(slug) from src/config/nav.ts to resolve the adjacent pages.
+ * Renders a progress row (a "Step N of M . <Section>" label plus a thin
+ * filled progress bar) above a two-card row: a "Previous" card on the left
+ * and a "Next" card on the right. If a side is absent (first or last page in
+ * the flat nav), that side renders an invisible spacer so the remaining card
+ * keeps its alignment.
+ *
+ * prevNext()'s `total` field counts only items within the current section,
+ * while its `index` field is the position in the *entire* flattened nav. To
+ * report a sensible "Step N of M" (M matching `total`), this component
+ * derives the step number from the item's position within its own section
+ * instead of reusing the global `index` directly.
+ *
+ * Uses only CSS custom properties so light and dark themes both work without
+ * any hardcoded color values.
+ */
+import { prevNext, flattenNav, NAV } from '~/config/nav';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const pn = prevNext(slug);
+
+/**
+ * Returns the human-readable group label for a given section key.
+ * Falls back to the raw key if no matching group is found.
+ */
+function labelForSection(section: string): string {
+  const group = NAV.find((g) => g.section === section);
+  return group ? group.label : section;
+}
+
+// Derive the 1-based step within the current section (not the global flat
+// nav position) so it lines up with `total`, which counts section members.
+const sectionItems = flattenNav().filter((i) => i.section === pn.section);
+const stepInSection = sectionItems.findIndex((i) => i.slug === slug) + 1;
+const progressLabel = `Step ${stepInSection} of ${pn.total} · ${labelForSection(pn.section)}`;
+const progressPercent = pn.total > 0 ? Math.round((stepInSection / pn.total) * 100) : 0;
+---
+
+{(pn.prev || pn.next) && (
+  <nav class="wdk-prevnext" data-prevnext aria-label="Page navigation">
+    <div class="wdk-prevnext__progress" data-prevnext-progress>
+      <span class="wdk-prevnext__progress-label">{progressLabel}</span>
+      <div
+        class="wdk-prevnext__bar"
+        role="progressbar"
+        aria-valuenow={progressPercent}
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <div class="wdk-prevnext__bar-fill" style={`width: ${progressPercent}%;`}></div>
+      </div>
+    </div>
+
+    <div class="wdk-prevnext__links">
+      {pn.prev && (
+        <a
+          href={`/${pn.prev.slug}/`}
+          class="wdk-prevnext__link wdk-prevnext__link--prev"
+          data-prev-link
+          rel="prev"
+        >
+          <span class="wdk-prevnext__section-label">{labelForSection(pn.prev.section)}</span>
+          <span class="wdk-prevnext__arrow">&larr; Previous</span>
+          <span class="wdk-prevnext__page-title">{pn.prev.label}</span>
+        </a>
+      )}
+      {!pn.prev && <div class="wdk-prevnext__spacer" aria-hidden="true"></div>}
+
+      {pn.next && (
+        <a
+          href={`/${pn.next.slug}/`}
+          class="wdk-prevnext__link wdk-prevnext__link--next"
+          data-next-link
+          rel="next"
+        >
+          <span class="wdk-prevnext__section-label">{labelForSection(pn.next.section)}</span>
+          <span class="wdk-prevnext__arrow">Next &rarr;</span>
+          <span class="wdk-prevnext__page-title">{pn.next.label}</span>
+        </a>
+      )}
+      {!pn.next && <div class="wdk-prevnext__spacer" aria-hidden="true"></div>}
+    </div>
+  </nav>
+)}
+
+<style>
+  /* Top separator to visually divide the prev/next from the prose content. */
+  .wdk-prevnext {
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Progress row - step label + thin filled bar. */
+  .wdk-prevnext__progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .wdk-prevnext__progress-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .wdk-prevnext__bar {
+    flex: 1;
+    height: 2px;
+    background: var(--surface-3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .wdk-prevnext__bar-fill {
+    height: 100%;
+    background: var(--sl-accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Two-column row; each link takes equal width. */
+  .wdk-prevnext__links {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  /* Invisible spacer so a lone next link stays right-aligned. */
+  .wdk-prevnext__spacer {
+    flex: 1;
+  }
+
+  /* Base link - plain text stack, no card chrome (per Option 1). */
+  .wdk-prevnext__link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-decoration: none;
+    color: inherit;
+    max-width: 320px;
+    min-width: 0;
+  }
+
+  .wdk-prevnext__link--next {
+    align-items: flex-end;
+    text-align: right;
+    margin-left: auto;
+  }
+
+  /* Section label - small uppercase metadata above the arrow. */
+  .wdk-prevnext__section-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* Directional arrow text - the accent on hover. */
+  .wdk-prevnext__arrow {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: color 0.15s;
+  }
+
+  .wdk-prevnext__link:hover .wdk-prevnext__arrow {
+    color: var(--sl-accent);
+  }
+
+  /* Page title - the most prominent text on the link. */
+  .wdk-prevnext__page-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  /* Narrow viewports stack the links vertically and left-align both. */
+  @media (max-width: 600px) {
+    .wdk-prevnext__links {
+      flex-direction: column;
+    }
+    .wdk-prevnext__link--next {
+      align-items: flex-start;
+      text-align: left;
+      margin-left: 0;
+    }
+  }
+</style>

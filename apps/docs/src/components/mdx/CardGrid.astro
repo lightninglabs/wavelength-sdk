@@ -1,0 +1,14 @@
+---
+// A responsive card grid (replaces Starlight's <CardGrid>). Styling ported from
+// design-mockups/r4-final/styles.css (.related-grid rules). Class is .wdk-card-grid.
+---
+<div class="wdk-card-grid"><slot /></div>
+
+<style>
+  .wdk-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 1.25rem 0;
+  }
+</style>

@@ -1,0 +1,41 @@
+---
+/**
+ * GuideSection.astro - One scrollytelling step in a guide.
+ *
+ * The prose lives in the reading column (default slot); the code is authored
+ * once here in the `code` prop and rendered hidden, then moved into the sticky
+ * CodeRail by its client script. Authoring code in one place keeps the prose
+ * and the rail from ever duplicating it.
+ *
+ * Props:
+ *   id   - unique section id; CodeRail keys the active panel on it.
+ *   lang - Expressive Code language for the highlighted code.
+ *   code - the source string rendered into the rail panel.
+ */
+import { Code } from 'astro-expressive-code/components';
+interface Props { id: string; lang: string; code: string; }
+const { id, lang, code } = Astro.props;
+---
+<section id={id} data-guide-section class="wdk-gsec">
+  <div class="wdk-gsec__prose"><slot /></div>
+  <!-- Hidden code payload; CodeRail moves these into the sticky rail. -->
+  <div data-guide-code={id} class="wdk-gsec__code" hidden>
+    <Code code={code} lang={lang} />
+  </div>
+</section>
+
+<style>
+  /* Sections scroll-align under the sticky header so the active section is
+     fully in view. Ported from design-mockups/r4-final/guide.html
+     (.prose-section). */
+  .wdk-gsec {
+    scroll-margin-top: calc(var(--header-height, 56px) + 16px);
+  }
+
+  /* Divider + breathing room between consecutive sections. */
+  .wdk-gsec + .wdk-gsec {
+    margin-top: 48px;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+  }
+</style>

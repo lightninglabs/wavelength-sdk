@@ -1,0 +1,202 @@
+---
+/**
+ * Footer.astro - site footer for WalletDK docs.
+ * Ported from design-mockups/r4-final/home.html + styles.css.
+ * Link columns are derived from NAV so they stay in sync with the sidebar.
+ *
+ * Props:
+ *   insetLeft - clear the fixed left Sidebar by the sidebar width.
+ * Page-level right rails (TOC, stepper, symbol list) stop at the footer top
+ * via RightRailCap.astro, so the footer stays full-width on the right.
+ * Defaults to false so the home page keeps a full-width footer.
+ */
+import { NAV } from '~/config/nav';
+
+interface Props {
+  insetLeft?: boolean;
+}
+
+const { insetLeft = false } = Astro.props;
+
+// Footer link columns: pick three representative sections from NAV.
+// Each entry shows up to `limit` items from its NAV group.
+const FOOTER_COLS = [
+  { section: 'get-started', limit: 4 },
+  { section: 'guides',      limit: 4 },
+  { section: 'reference',   limit: 4 },
+].map(({ section, limit }) => {
+  const group = NAV.find((g) => g.section === section);
+  return {
+    label: group?.label ?? section,
+    items: (group?.items ?? []).slice(0, limit),
+  };
+});
+---
+
+<footer
+  class:list={[
+    'wdk-footer',
+    insetLeft && 'wdk-footer--inset-left',
+  ]}
+  role="contentinfo"
+>
+  <div class="wdk-footer-inner">
+    <div class="wdk-footer-brand-col">
+      <div class="wdk-footer-brand-row">
+        <div class="wdk-squares" aria-hidden="true">
+          <div class="wdk-sq wdk-sq-violet"></div>
+          <div class="wdk-sq wdk-sq-teal"></div>
+          <div class="wdk-sq wdk-sq-lime"></div>
+          <div class="wdk-sq wdk-sq-orange"></div>
+          <div class="wdk-sq wdk-sq-sky"></div>
+        </div>
+        <span class="wdk-wordmark">Wallet<span>DK</span></span>
+      </div>
+      <p class="wdk-footer-tagline">Self-custodial Bitcoin, Lightning, and Ark. In the browser.</p>
+    </div>
+
+    {FOOTER_COLS.map((col) => (
+      <div>
+        <div class="wdk-footer-col-label">{col.label}</div>
+        {col.items.map((item) => (
+          <a href={`/${item.slug}/`} class="wdk-footer-link">{item.label}</a>
+        ))}
+      </div>
+    ))}
+  </div>
+
+  <div class="wdk-footer-bottom">
+    <span>© 2026 Lightning Labs. WalletDK.</span>
+    <span>MIT License</span>
+  </div>
+</footer>
+
+<style>
+  .wdk-footer {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+  }
+
+  /* Inset the footer so it clears the fixed left sidebar (pinned to the
+     viewport with bottom: 0 and would otherwise sit on top of it). The margin
+     matches the content margin set by the doc-type layouts. Page-level right
+     rails stop at the footer top instead of requiring a right inset. */
+  .wdk-footer--inset-left {
+    margin-left: var(--sidebar-w, 256px);
+  }
+
+  .wdk-footer-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 40px;
+  }
+
+  .wdk-footer-brand-col {
+    grid-column: span 1;
+  }
+
+  .wdk-footer-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  /* Squares motif (duplicated from Header for component isolation). */
+  .wdk-squares {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .wdk-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2.5px;
+    flex-shrink: 0;
+  }
+
+  .wdk-sq-violet { background: var(--violet); }
+  .wdk-sq-teal   { background: var(--teal); }
+  .wdk-sq-lime   { background: var(--lime); }
+  .wdk-sq-orange { background: var(--orange); }
+  .wdk-sq-sky    { background: var(--sky); }
+
+  .wdk-wordmark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .wdk-wordmark span {
+    color: var(--teal);
+  }
+
+  .wdk-footer-tagline {
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.55;
+  }
+
+  .wdk-footer-col-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .wdk-footer-link {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    padding: 3px 0;
+    transition: color 0.15s;
+    text-decoration: none;
+  }
+
+  .wdk-footer-link:hover {
+    color: var(--teal);
+  }
+
+  .wdk-footer-bottom {
+    max-width: 1280px;
+    margin: 24px auto 0;
+    padding: 16px 40px 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  /* Mobile: collapse the 4-column grid and stack the bottom row. */
+  @media (max-width: 768px) {
+    .wdk-footer-inner {
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      padding: 0 20px;
+    }
+    .wdk-footer-bottom {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 16px 20px 0;
+    }
+    /* The side rails are hidden on mobile, so drop the footer inset too. */
+    .wdk-footer--inset-left { margin-left: 0; }
+  }
+  @media (max-width: 460px) {
+    .wdk-footer-inner { grid-template-columns: 1fr; }
+  }
+</style>

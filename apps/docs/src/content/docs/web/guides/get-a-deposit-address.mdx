@@ -1,0 +1,89 @@
+---
+title: Get a deposit address
+description: How to derive a WalletDK boarding address for on-chain deposits into Ark, with a live example.
+pageLayout: guide
+related:
+  - web/guides/create-a-wallet
+  - web/guides/show-balance-and-activity
+  - web/guides/send-a-payment
+---
+
+## Get a boarding address
+
+This guide assumes your app already renders inside a `WalletDKProvider` with a
+wallet unlocked and ready. See [Create a wallet](/web/guides/create-a-wallet/).
+
+`deposit()` creates a tracked boarding address from your wallet key. Send any
+amount of on-chain bitcoin to this address and the Ark server will sweep it into
+your VTXO balance in the next round.
+
+The returned `DepositResult` includes both the address string and an initial
+activity entry. Display the address as text, or render it as a QR code with a
+library of your choice for easy scanning.
+
+```tsx title="deposit.tsx"
+import { useState } from 'react';
+import { useDepositAddress } from '@lightninglabs/walletdk-react';
+
+function DepositAddress() {
+  const { deposit, busy, error, clearError } = useDepositAddress();
+  const [address, setAddress] = useState<string | null>(null);
+
+  const getAddress = async () => {
+    const result = await deposit();
+    setAddress(result.address);
+  };
+
+  return (
+    <div>
+      <button onClick={getAddress} disabled={busy}>
+        Get deposit address
+      </button>
+      {address && <p>{address}</p>}
+      {error && (
+        <p role="alert">
+          {error} <button onClick={clearError}>Dismiss</button>
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+`deposit()` also accepts an optional `{ amountSatHint }` if you want to record
+the amount the user intends to deposit:
+
+```tsx
+const result = await deposit({ amountSatHint: 100000 });
+```
+
+## Watch for confirmation
+
+Use `useWalletActivity()` to watch for your deposit to land. The provider
+subscribes to the activity stream and refreshes automatically, so pending
+entries appear as soon as the server sees the boarding transaction and flip to
+`'complete'` once the round settles. An entry can also flip to `'failed'`; in
+that case show `entry.failureReason` so the user knows what went wrong.
+
+Filter on `entry.kind === 'deposit'` to surface only deposit events, or display
+the full feed with status badges so the user can see the progress.
+
+```tsx title="deposit.tsx"
+import { useWalletActivity } from '@lightninglabs/walletdk-react';
+
+function WatchDeposit() {
+  const { activity } = useWalletActivity();
+
+  const deposits = activity.filter(entry => entry.kind === 'deposit');
+
+  return (
+    <ul>
+      {deposits.map(entry => (
+        <li key={entry.id}>
+          {entry.kind} {entry.amountSat} sats - {entry.status}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```

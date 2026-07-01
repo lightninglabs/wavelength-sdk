@@ -1,0 +1,63 @@
+---
+/**
+ * FlowLane.astro - one horizontal pipeline in a "signal path" diagram:
+ * an optional lane header (accent dot + uppercase label + hairline, echoing
+ * the sidebar dividers) above a row of node chips joined by animated signal
+ * traces. Each trace takes the accent of its DESTINATION node, so color
+ * carries direction. Compose one or more lanes inside a DiagramFrame.
+ *
+ * Props:
+ *   header       - optional lane label (e.g. "On-chain in").
+ *   headerAccent - accent for the header dot; defaults to the first step's.
+ *   steps        - the pipeline nodes, in order.
+ *   edgeLabels   - optional per-edge tags (length = steps.length - 1; use
+ *                  null to leave an edge unlabeled).
+ */
+type Accent = 'lime' | 'teal' | 'violet' | 'sky' | 'orange' | 'muted';
+
+interface Step {
+  label: string;
+  sub?: string;
+  accent?: Accent;
+}
+
+interface Props {
+  header?: string;
+  headerAccent?: Accent;
+  steps: Step[];
+  edgeLabels?: (string | null)[];
+}
+
+const { header, headerAccent, steps, edgeLabels = [] } = Astro.props;
+const dotAccent = headerAccent ?? steps[0]?.accent ?? 'teal';
+---
+
+<div class="wdk-dg-lane">
+  {header && (
+    <div class="wdk-dg-lane__head">
+      <span class:list={['wdk-dg-lane__dot', `wdk-dg--${dotAccent}`]} aria-hidden="true"></span>
+      {header}
+    </div>
+  )}
+  <div class="wdk-dg-lane__row">
+    {steps.map((step, i) => (
+      <>
+        <div class:list={['wdk-dg-node', `wdk-dg--${step.accent ?? 'teal'}`]}>
+          <span class="wdk-dg-node__sq" aria-hidden="true"></span>
+          <span>
+            <span class="wdk-dg-node__label">{step.label}</span>
+            {step.sub && <span class="wdk-dg-node__sub">{step.sub}</span>}
+          </span>
+        </div>
+        {i < steps.length - 1 && (
+          <div
+            class:list={['wdk-dg-edge', `wdk-dg--${steps[i + 1].accent ?? 'teal'}`]}
+            aria-hidden="true"
+          >
+            {edgeLabels[i] && <span class="wdk-dg-edge__tag">{edgeLabels[i]}</span>}
+          </div>
+        )}
+      </>
+    ))}
+  </div>
+</div>

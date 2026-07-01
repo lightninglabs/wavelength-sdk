@@ -1,0 +1,132 @@
+---
+title: Troubleshooting / FAQ
+description: Solutions to common WalletDK integration errors and guidance for diagnosing stuck or pending sends.
+---
+
+## Common errors
+
+### Runtime asset could not be loaded (`asset_load_failed`)
+
+The client throws `WalletDKError` with code **`asset_load_failed`** when
+`walletdk.wasm.gz`, `wasm_exec.js`, or the SQLite bridge cannot be fetched.
+
+**Fix:** Host every file listed in **`RUNTIME_ASSET_FILES`** together at one
+base URL and set **`runtimeBaseUrl`** on `createWebClient()`. Open the failing
+URL in the browser network tab; a 404 almost always means the base path or
+version folder is wrong. See [Hosting runtime assets](/web/get-started/hosting-runtime-assets/).
+
+### Page is not cross-origin isolated
+
+Symptoms: `SharedArrayBuffer` is undefined, worker startup fails, or SQLite/OPFS
+never initializes.
+
+**Fix:** Send **`Cross-Origin-Opener-Policy: same-origin`** and
+**`Cross-Origin-Embedder-Policy: require-corp`** (plus
+**`Cross-Origin-Resource-Policy: same-origin`** for your own assets) on every
+HTML route that loads the wallet. Confirm with:
+
+```bash
+curl -sI https://your-app.example/ | grep -i cross-origin
+```
+
+In DevTools, `crossOriginIsolated` must be `true`. See
+[Cross-origin isolation](/web/get-started/cross-origin-isolation/). Third-party
+scripts or fonts that are not CORP-compatible block isolation; self-host assets
+when needed (the demo self-hosts its fonts for this reason).
+
+### Passkey unsupported or PRF missing
+
+`usePasskeyWallet(...).supported` stays `false`, or ceremonies fail with
+*"passkey PRF extension result was not returned by this authenticator"*.
+
+**Fix:** Passkeys require a **secure context** (HTTPS or localhost), a
+**user-verifying platform authenticator**, and browser support for the **PRF**
+extension (Safari 17.4+, Chrome 114+). There is no synchronous PRF probe;
+`supportsPasskeyPrf()` can return true and still fail on a given device. Offer
+password creation/unlock or recovery-phrase restore when passkeys are
+unavailable.
+
+On the web, `usePasskeyWallet` (from `walletdk-react`) takes a `PasskeyCeremony`
+implementation as its argument; pass `webPasskeyCeremony` from
+`@lightninglabs/walletdk-web`. See the [passkey guide](/web/guides/use-a-passkey/)
+for a full wiring example.
+
+### Connection refused (wrong URLs or ports)
+
+Daemon logs or network errors show `connection refused` or failed fetches to
+`arkServerUrl`, `esploraUrl`, or `swapServerUrl`.
+
+**Fix:** Verify each gateway is reachable from the browser (not just from your
+shell). For **regtest**, start arktest and match the ports in your
+`RuntimeConfig` to what the environment prints (`./arktest env` or the
+`frontend-regtest` overlay). URLs must include the scheme (`http://` or
+`https://`). The demo's regtest defaults assume Ark on `7071`, Esplora on
+`8501`, and the swap REST gateway on `10032` (these are the regtest defaults
+returned by `defaultConfig('regtest')`).
+
+Signet and testnet presets from `defaultConfig()` should work without a local
+backend; if they fail, check corporate proxies or ad blockers first.
+
+### 401 Unauthorized from a gateway
+
+Occasional **401** responses from the Ark or swap REST gateways are retried with
+refreshed credentials inside the daemon. Persistent 401s usually mean the
+server is unhealthy or the URL points at the wrong service. These are
+daemon-log-only: the daemon does not currently map gateway-originated errors
+to a specific `WalletDKError` code, so a persistent 401 surfaces client-side
+(if at all) as a generic `walletdk_error`, not a dedicated code you can match
+on.
+
+**Fix:** Restart the backend (arktest for regtest, or wait and retry for hosted
+signet). Confirm you are hitting the **REST** gateway hostname (`*-rest` pattern
+on public networks), not a raw gRPC port.
+
+### OPFS not available
+
+Wallet state does not survive reload, or startup logs mention missing OPFS /
+SQLite VFS support.
+
+**Fix:** Serve the app with COOP/COEP headers as described in
+[Cross-origin isolation](/web/get-started/cross-origin-isolation/) (the demo's
+Vite config does this on `dev` and `preview`). Plain static hosting without
+those headers will not get OPFS-backed SQLite in worker mode. Verify isolation
+as above. Private browsing modes may restrict storage; test in a normal
+profile.
+
+### Metro or bundler cache serving stale SDK code
+
+After upgrading `@lightninglabs/walletdk-web` or rebuilding WASM, the browser
+still loads an old worker or runtime manifest.
+
+**Fix:** For Expo/Metro workflows, run `npx expo start --clear` or delete
+`node_modules/.cache`. For Vite (including `web-wallet-demo`), restart with
+`vite --force` or remove `node_modules/.vite`. Hard-refresh the browser and
+confirm `RUNTIME_MANIFEST_VERSION` matches the assets you host.
+
+## Stuck sends
+
+Lightning sends are **out-swaps** through the swap server, not direct channel
+payments. A send can sit in **`pending`** while the swap server waits for
+Lightning liquidity or routing.
+
+Watch the activity entry's **`progress.phase`**. Typical outbound phases include
+`waiting_for_payment`, `settling`, and `confirmed`. If liquidity never arrives
+before the swap timeout, the daemon moves the entry to **`refunding`** and then
+**`refunded`**: funds return to your Ark balance automatically. You do not need
+to manually cancel; show the user that the payment failed and the balance will
+update when the refund completes.
+
+If an entry stays pending far longer than expected:
+
+1. Call **`refresh()`** (from `useWalletDK()` or `useWalletRuntime()` in
+   `walletdk-react`) or rely on the provider's activity subscription (the
+   React provider debounces activity-driven refreshes). Without React, call
+   **`client.list({ pendingOnly: true })`** directly.
+2. Inspect daemon **`log`** events (`useWalletLogs()` or `client.subscribe()`).
+3. Confirm **`swapServerUrl`** is correct and swaps are enabled
+   (`disableSwaps` is false).
+4. Retry only after the prior attempt reaches `failed`/`refunded`; duplicate
+   sends to the same invoice can race.
+
+On-chain sends use cooperative leave and follow a different activity shape; see
+[Send a payment](/web/guides/send-a-payment/) for that path.

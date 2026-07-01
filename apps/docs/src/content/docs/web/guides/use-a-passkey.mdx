@@ -1,0 +1,159 @@
+---
+title: Use a passkey
+description: How to create and unlock a WalletDK wallet using WebAuthn passkeys instead of a password, with a live example.
+pageLayout: guide
+related:
+  - web/guides/create-a-wallet
+  - web/guides/handle-phases-and-errors
+  - web/guides/show-balance-and-activity
+---
+
+## Create a passkey-protected wallet
+
+`usePasskeyWallet()` drives the WebAuthn ceremony and opens the wallet through
+the provider client. Pass `webPasskeyCeremony` from walletdk-web as the
+ceremony implementation.
+
+`createPasskeyWallet(appName)` registers a device-bound credential (Face ID,
+Touch ID, Windows Hello, or a hardware security key) and derives the wallet
+seed from the PRF output. No password is stored or transmitted.
+
+```tsx title="passkey.tsx"
+import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+
+function PasskeyOnboard() {
+  const { createPasskeyWallet, supported, busy } =
+    usePasskeyWallet(webPasskeyCeremony);
+
+  const create = async () => {
+    const outcome = await createPasskeyWallet('My Wallet App');
+    if (outcome) {
+      // Persist outcome.credentialId to scope future unlocks.
+      console.log('Wallet ready:', outcome.result.identityPubKey);
+    }
+  };
+
+  if (!supported) return <p>Passkeys not supported in this browser.</p>;
+
+  return (
+    <button onClick={create} disabled={busy}>
+      Create wallet with passkey
+    </button>
+  );
+}
+```
+
+## Unlock with a passkey
+
+When `phase === 'locked'`, call `openPasskeyWallet(allowCredentialId)`.
+The browser presents the WebAuthn authentication dialog. On success, the
+runtime decrypts the seed and the provider transitions through `'syncing'` to
+`'ready'`. If the ceremony fails or times out, the provider instead moves to
+the `'error'` phase; see
+[Handle phases & errors](/web/guides/handle-phases-and-errors/) for how to
+detect and recover from that path.
+
+Pass the stored `credentialId` to scope the assertion to the same passkey.
+Omit it for a discoverable credential flow, useful when the app has not
+persisted a `credentialId` yet or the user is unlocking from a new device
+where a synced passkey is already available:
+
+```tsx
+// No credentialId: the browser prompts with any discoverable passkey
+// registered for this origin.
+await openPasskeyWallet();
+```
+
+```tsx title="passkey.tsx"
+import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+import { usePasskeyWallet, useWalletDK } from '@lightninglabs/walletdk-react';
+
+function PasskeyUnlock({ credentialId }: { credentialId: string }) {
+  const { phase } = useWalletDK();
+  const { openPasskeyWallet, busy, error } =
+    usePasskeyWallet(webPasskeyCeremony);
+
+  const unlock = async () => {
+    await openPasskeyWallet(credentialId);
+  };
+
+  return (
+    <div>
+      {phase === 'locked' && (
+        <button onClick={unlock} disabled={busy}>
+          Unlock with passkey
+        </button>
+      )}
+      {error && <p role="alert">{error}</p>}
+    </div>
+  );
+}
+```
+
+## Provide a recovery-phrase fallback
+
+If the passkey credential is unavailable (for example, the user is on a new
+device or has lost access to the registered authenticator), the passkey flow
+will fail and `openPasskeyWallet` resolves to `null`. Detect this by checking
+for a `null` outcome rather than the `error` field, since `error` is only
+updated on the next render and is not reliable to read immediately after the
+`await`.
+
+Every successful passkey outcome includes `outcome.result.imported`, a
+boolean that is `true` when the ceremony created a new local wallet from the
+derived seed (a fresh device) and `false` when it unlocked an existing local
+wallet. `outcome.result.mnemonic` is populated only when `imported` is
+`true`, so check `imported` before reading `mnemonic` for backup display. To
+restore on a new device without a passkey, call
+`createWallet({ password, mnemonic })` with a new wallet password and the
+saved recovery phrase; `password` is required by `CreateWalletRequest`. This
+is why users should record their recovery phrase when they first create the
+wallet.
+
+```tsx title="passkey.tsx"
+import { useState } from 'react';
+import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+import { usePasskeyWallet, useWalletBootstrap } from '@lightninglabs/walletdk-react';
+
+function UnlockWithFallback({ credentialId }: { credentialId: string }) {
+  const { openPasskeyWallet, error, clearError } =
+    usePasskeyWallet(webPasskeyCeremony);
+  const { createWallet } = useWalletBootstrap();
+  const [recovering, setRecovering] = useState(false);
+  const [password, setPassword] = useState('');
+  const [mnemonic, setMnemonic] = useState('');
+
+  const tryPasskey = async () => {
+    clearError();
+    const outcome = await openPasskeyWallet(credentialId);
+    if (outcome === null) {
+      setRecovering(true);
+    }
+  };
+
+  if (recovering) {
+    return (
+      <form onSubmit={e => {
+        e.preventDefault();
+        createWallet({ password, mnemonic: mnemonic.trim().split(/\s+/) });
+      }}>
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Choose a wallet password"
+        />
+        <textarea
+          value={mnemonic}
+          onChange={e => setMnemonic(e.target.value)}
+          placeholder="Enter your recovery phrase"
+        />
+        <button type="submit">Recover wallet</button>
+      </form>
+    );
+  }
+
+  return <button onClick={tryPasskey}>Unlock with passkey</button>;
+}
+```

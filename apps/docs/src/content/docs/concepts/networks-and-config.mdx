@@ -1,0 +1,75 @@
+---
+title: Networks & config
+description: How to configure WalletDK for regtest, testnet, or mainnet using the three gateway URLs, defaultConfig presets, allowMainnet flag, and advanced options.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## The three gateways
+
+Starting the embedded daemon requires three REST endpoints your app never calls directly, but they must all serve the same Bitcoin network. Misaligned URLs are a common cause of stuck deposits or swaps that never fund.
+
+The embedded daemon never talks to Bitcoin or Ark nodes directly from your app code. After `start()`, it reaches **three REST gateways** (browsers cannot use the daemon's native gRPC):
+
+1. **`arkServerUrl`** (Ark operator + mailbox edge): rounds, boarding, VTXO relay, cooperative leave, and mailbox traffic share this gateway. There is no separate mailbox URL in the launch config.
+2. **`swapServerUrl`** (swap server): Lightning↔Ark atomic swaps (in-swaps and out-swaps).
+3. **`esploraUrl`** (Esplora): chain queries and UTXO lookups for boarding detection. Must implement the Esplora `/address/:addr/utxo` API (electrs / mempool.space compatible).
+
+All three must point at infrastructure that serves the same **`network`**. A mismatched Esplora endpoint or swap server is a common source of "stuck deposit" or "swap never funds" bugs.
+
+## defaultConfig presets
+
+For public test networks, use `defaultConfig(network)` instead of hand-typing URLs. It returns a ready **RuntimeConfig** with canonical endpoints merged with any overrides you pass:
+
+```ts
+import { defaultConfig } from '@lightninglabs/walletdk-core';
+import { createWebClient } from '@lightninglabs/walletdk-web';
+
+const client = createWebClient();
+const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
+await client.start(config);
+```
+
+Presets ship for:
+
+| Network | Typical use |
+|---------|-------------|
+| `'signet'` | Default for docs live embeds and the demo app; public Lightning Labs test infrastructure. |
+| `'testnet'` | Bitcoin testnet with hosted Ark/swap/Esplora gateways. |
+| `'regtest'` | Local dev against `127.0.0.1` services; sets insecure TLS flags for HTTP endpoints. |
+| `'mainnet'` | **No public URLs preset.** You must supply all three gateways yourself. |
+
+Hosted testnet/signet gateways follow a `*-rest` hostname pattern and use TLS. Regtest assumes local processes on fixed ports (operator ~7071, Esplora ~8501, swap ~10032 in the default preset).
+
+Pass overrides as the second argument to change data directory, point at your own operator, or toggle advanced flags without losing the rest of the preset.
+
+## allowMainnet
+
+Mainnet is deliberately gated. Set **`allowMainnet: true`** together with **`network: 'mainnet'`** and your own **`arkServerUrl`**, **`swapServerUrl`**, and **`esploraUrl`**. Without **`allowMainnet`**, the daemon refuses to start on mainnet even if URLs are present.
+
+<Callout type="caution">
+`allowMainnet` is an explicit safety rail. Do not enable it in example code or demos that users might copy against production networks by accident.
+</Callout>
+
+Test networks ignore **`allowMainnet`**; it exists only for mainnet runs.
+
+## advanced options
+
+Most apps only need `defaultConfig(network)` plus an optional data directory. The remaining **RuntimeConfig** fields are for self-hosting, local dev, or specialized deployments:
+
+| Field | Purpose |
+|-------|---------|
+| **`dataDir`** | Storage root for daemon and wallet state (OPFS path in the browser). |
+| **`disableSwaps`** | Turn off the Lightning swap subsystem entirely; Ark boarding and leaves still work. |
+| **`serverInsecure`** | Skip TLS verification for **`arkServerUrl`** (local dev only). |
+| **`swapServerInsecure`** | Skip TLS verification for **`swapServerUrl`** (local dev only). |
+| **`swapDatabaseFileName`** | Daemon-owned SQLite file for swap session state. |
+| **`debugLevel`** | Daemon log verbosity (distinct from the web client's RPC **`debug`** flag). |
+
+Regtest presets already set the insecure flags because local gateways speak plain HTTP. On signet or testnet, leave them unset so connections stay TLS-verified.
+
+If you self-host Ark or swap infrastructure, replace the preset URLs while keeping network aligned with your Esplora instance. Setting `disableSwaps: true` is appropriate for boarding-only experiments where Lightning is out of scope. Full field documentation is in the [walletdk-core reference](/reference/walletdk-core/).
+
+## Next steps
+
+Once your client is configured and started, see [Handle phases and errors](/web/guides/handle-phases-and-errors/) for surfacing startup and runtime failures, or [Installation](/web/get-started/installation/) if you still need to add the SDK packages to your app.

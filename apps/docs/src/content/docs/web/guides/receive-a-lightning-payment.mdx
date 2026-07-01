@@ -1,0 +1,86 @@
+---
+title: Receive a Lightning payment
+description: How to generate a Lightning invoice via an in-swap and wait for the payment to settle, with a live example.
+pageLayout: guide
+related:
+  - web/guides/send-a-payment
+  - web/guides/show-balance-and-activity
+  - web/guides/get-a-deposit-address
+  - web/guides/handle-phases-and-errors
+---
+
+## Create a Lightning invoice
+
+`receive()` triggers an in-swap: the Ark server sets up a Lightning payment
+path that deposits into your VTXO once the payer settles. Pass `amountSat` and
+an optional `memo` for the invoice.
+
+The returned `ReceiveResult.invoice` is a standard BOLT11 string that any
+compatible wallet can pay. Display it as a QR code alongside the raw string
+so the payer has both options.
+
+```tsx title="receive.tsx"
+import { useState } from 'react';
+import { useReceive } from '@lightninglabs/walletdk-react';
+
+function CreateInvoice() {
+  const { receive, busy } = useReceive();
+  const [invoice, setInvoice] = useState<string | null>(null);
+
+  const generate = async () => {
+    const result = await receive({
+      amountSat: 10_000,
+      memo: 'Coffee',
+    });
+    setInvoice(result.invoice);
+  };
+
+  return (
+    <div>
+      <button onClick={generate} disabled={busy}>
+        Generate invoice
+      </button>
+      {invoice && <pre>{invoice}</pre>}
+    </div>
+  );
+}
+```
+
+## Wait for settlement
+
+`useWalletActivity()` streams live updates. Match the entry by invoice string
+in `entry.request?.lightningInvoice` and watch its `status` field: the entry
+appears as `'pending'` when the payer sends and switches to `'complete'` once
+the in-swap round completes. Like any entry, an in-swap can also terminate as
+`'failed'`, so handle that branch too.
+
+Render a loading state until the entry appears, then show a pending indicator
+while it settles, a failure message if it fails, and a success message once
+`status === 'complete'`.
+
+```tsx title="receive.tsx"
+import { useWalletActivity } from '@lightninglabs/walletdk-react';
+
+function InvoiceStatus({ bolt11 }: { bolt11: string }) {
+  const { activity } = useWalletActivity();
+
+  const payment = activity.find(
+    entry =>
+      entry.kind === 'receive' &&
+      entry.request?.lightningInvoice === bolt11,
+  );
+
+  if (!payment) return <p>Waiting for payment...</p>;
+  if (payment.status === 'pending') return <p>Payment received, settling...</p>;
+  if (payment.status === 'failed') {
+    return <p>Payment failed: {payment.failureReason}</p>;
+  }
+  return <p>Settled: +{payment.amountSat} sats</p>;
+}
+```
+
+For finer-grained progress than the top-level `status` field offers (for
+example, distinguishing "waiting for payment" from "settling" while an
+in-swap is still `'pending'`), see `entry.progress?.phase` in
+[Handle phases and errors](/web/guides/handle-phases-and-errors/). This guide
+sticks to the simpler `status` field for clarity.

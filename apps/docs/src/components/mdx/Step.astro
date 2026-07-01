@@ -1,0 +1,86 @@
+---
+/**
+ * Step.astro - One step in a quickstart stepper.
+ *
+ * Renders a <section data-step> with the given title as an h2 and the
+ * default slot as the body (prose + Expressive Code blocks). The
+ * QuickstartLayout script picks up every [data-step] to build the left
+ * stepper rail and sync the active state as the reader scrolls.
+ *
+ * Props:
+ *   title - display label shown both in the section heading and the
+ *            stepper rail item.
+ */
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+// Derive a URL-safe id from the title (lowercase, spaces to hyphens, strip
+// characters that are not alphanumeric or hyphens).
+const id = title
+  .toLowerCase()
+  .replace(/\s+/g, '-')
+  .replace(/[^a-z0-9-]/g, '');
+---
+
+<section id={id} data-step data-step-title={title} class="wdk-step">
+  <h2 class="wdk-step__heading">{title}</h2>
+  <div class="wdk-step__body">
+    <slot />
+  </div>
+</section>
+
+<style>
+  /* Scroll-align the section under the sticky header so clicking a step
+     label brings the heading fully into view. */
+  .wdk-step {
+    scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+  }
+
+  /* Divider and breathing room between consecutive steps. */
+  .wdk-step + .wdk-step {
+    margin-top: 56px;
+    padding-top: 56px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Step heading (h2) - slightly smaller than the page title but prominent. */
+  .wdk-step__heading {
+    font-size: clamp(1.4rem, 2.5vw, 1.875rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--text);
+    margin: 0 0 24px;
+  }
+
+  /* Body contains prose and Expressive Code blocks. */
+  .wdk-step__body {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  /* Tighten Expressive Code block margins inside a step. */
+  .wdk-step__body :global(.expressive-code) {
+    margin: 20px 0;
+  }
+
+  /* Paragraphs inside the step body. */
+  .wdk-step__body :global(p) {
+    margin: 0 0 16px;
+    color: var(--text-muted);
+  }
+
+  /* Inline code within prose. Background uses the surface-2 token, which is
+     white in light mode and dark in dark mode - no hardcoded fallback needed. */
+  .wdk-step__body :global(:not(.expressive-code) code) {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+</style>

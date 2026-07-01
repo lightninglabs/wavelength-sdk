@@ -1,0 +1,164 @@
+---
+title: Unilateral exit & status
+description: How to initiate a trustless unilateral exit from Ark using exit, exitStatus, getExitPlan, and sweepWallet to recover funds on-chain.
+pageLayout: guide
+related:
+  - web/guides/send-a-payment
+  - web/guides/handle-phases-and-errors
+  - web/guides/show-balance-and-activity
+---
+
+## Preview with getExitPlan
+
+Before initiating a unilateral exit, call `client.getExitPlan({ outpoints })`
+to preview funding requirements for each VTXO. Show the `plans` summary to the
+user so they can make an informed decision before broadcasting.
+
+Pass `confTarget` (in blocks) to influence the fee rate used for the
+recommended-funding estimate, the same way you would for other fee-sensitive
+calls.
+
+A unilateral exit is trustless but slower and more expensive than a
+cooperative leave. Use it only when the Ark server is unavailable or
+unresponsive.
+
+```tsx title="exit.tsx"
+import { useState } from 'react';
+import { useWalletDK } from '@lightninglabs/walletdk-react';
+import type { GetExitPlanResult } from '@lightninglabs/walletdk-react';
+
+function ExitPlan({ outpoints }: { outpoints: string[] }) {
+  const { client } = useWalletDK();
+  const [plan, setPlan] = useState<GetExitPlanResult | null>(null);
+
+  const preview = async () => {
+    // confTarget is optional; omit it to use the client's default fee estimate.
+    const exitPlan = await client.getExitPlan({ outpoints, confTarget: 6 });
+    setPlan(exitPlan);
+  };
+
+  return (
+    <div>
+      <button onClick={preview}>Preview exit</button>
+      {plan && (
+        <p>
+          Can start: {String(plan.canStart)}. Recommended funding:{' '}
+          {plan.totalRecommendedFundingSat} sats.
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+## Initiate the exit
+
+`client.exit({ outpoint, destination })` starts the exit for a single VTXO.
+It resolves with an `ExitResult` whose `path` discriminates cooperative,
+unilateral, and fallback outcomes.
+
+`exit` always tries a cooperative leave with the Ark server first. It only
+falls back to a unilateral, on-chain exit automatically when the server is
+unavailable or unresponsive, so the same call is safe to use as the single
+entry point for exiting a VTXO.
+
+Which fields on `ExitResult` are populated depends on `path`:
+
+| Field | Populated when |
+| --- | --- |
+| `queuedOutpoints` | `path === 'cooperative'` |
+| `created` | `path` is `'unilateral'` or `'unilateral_fallback'` |
+| `actorID` | `path` is `'unilateral'` or `'unilateral_fallback'` |
+| `cooperativeError` | retained for source compatibility; not populated by the current RPC |
+
+Do not call `exit` twice for the same outpoint. Check `client.exitStatus()`
+first if the user may have already started an exit in a previous session.
+
+```tsx title="exit.tsx"
+import { useWalletDK } from '@lightninglabs/walletdk-react';
+
+function StartExit({
+  outpoint,
+  destination,
+}: {
+  outpoint: string;
+  destination?: string;
+}) {
+  const { client } = useWalletDK();
+
+  const startExit = async () => {
+    await client.exit({ outpoint, destination });
+  };
+
+  return <button onClick={startExit}>Start exit</button>;
+}
+```
+
+## Poll status and sweep
+
+`client.exitStatus({ outpoint })` returns the durable unroll job status for
+that VTXO, including `found`, `status`, and `sweepTxid` when available. Poll
+this periodically until the job completes.
+
+`ExitStatusResult` also includes `lastError: string`. Surface it whenever
+`status === 'failed'` so the user knows why the job stopped instead of
+leaving them with a bare status label.
+
+Once claimable outputs are ready, call `client.sweepWallet()` with
+`broadcast: false` first to preview, then `broadcast: true` with a
+`destinationAddress` to consolidate funds on-chain. `broadcast` defaults to
+`false` when omitted, so a call without it is always a preview. `sweepWallet`
+also accepts optional `feeRateSatPerVByte` and `confTarget` overrides for the
+sweep transaction's fee; both have sensible defaults when omitted, so most
+callers can leave them unset. The preview result's
+`estimatedFeeSat` and `netAmountSat` are useful to show the user what a
+broadcast would cost and net before they commit to it. If
+`preview.canBroadcast` is `false`, do not attempt the broadcast call; show
+`preview.failureReason` to explain why instead.
+
+```tsx title="exit.tsx"
+import { useState } from 'react';
+import { useWalletDK } from '@lightninglabs/walletdk-react';
+import type { ExitStatusResult } from '@lightninglabs/walletdk-react';
+
+function SweepStatus({ outpoint }: { outpoint: string }) {
+  const { client } = useWalletDK();
+  const [status, setStatus] = useState<ExitStatusResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const checkAndSweep = async () => {
+    const s = await client.exitStatus({ outpoint });
+    setStatus(s);
+
+    if (s.status === 'failed') {
+      // Surface the failure reason instead of leaving the user with a bare status.
+      setError(s.lastError);
+      return;
+    }
+
+    const preview = await client.sweepWallet({
+      destinationAddress: 'bc1q...',
+      broadcast: false,
+    });
+
+    if (!preview.canBroadcast) {
+      // Do not attempt to broadcast; show why the sweep isn't ready instead.
+      setError(preview.failureReason);
+      return;
+    }
+
+    await client.sweepWallet({
+      destinationAddress: 'bc1q...',
+      broadcast: true,
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={checkAndSweep}>Check status</button>
+      {status?.found && <p>Job status: {status.status}</p>}
+      {error && <p>Error: {error}</p>}
+    </div>
+  );
+}
+```

@@ -1,0 +1,68 @@
+---
+/**
+ * RightRailCap.astro - Caps page-level right rails at the footer top.
+ *
+ * TOC, quickstart stepper, and reference symbol rails are fixed columns with
+ * --rail-bg flush to the header, right viewport edge, and (via this script)
+ * the top of the site footer. While the footer is below the fold the rail
+ * spans to the viewport bottom; once the footer enters view the rail shortens
+ * so its panel does not extend beside the footer band.
+ *
+ * Sets --rail-bottom on <html> (0 when the footer is off-screen). Mounted
+ * once in BaseLayout. Lifecycle matches ScrollProgress.astro: init on
+ * astro:page-load, teardown on astro:before-swap.
+ */
+---
+
+<script>
+  function setupRightRailCap() {
+    const hasRail = document.querySelector('.wdk-toc, .wdk-ref__rail, .wdk-qs__stepper');
+    if (!hasRail) return;
+
+    const footerEl = document.querySelector('.wdk-footer');
+    if (!(footerEl instanceof HTMLElement)) return;
+    const footer = footerEl;
+
+    const root = document.documentElement;
+    if (root.dataset.wdkRailCapBound) return;
+    root.dataset.wdkRailCapBound = '1';
+
+    function headerBottom() {
+      const raw = getComputedStyle(root).getPropertyValue('--header-height').trim();
+      const parsed = parseFloat(raw);
+      return Number.isFinite(parsed) ? parsed : 56;
+    }
+
+    function update() {
+      const footerTop = footer.getBoundingClientRect().top;
+      const vh = window.innerHeight;
+      const header = headerBottom();
+
+      // Footer below the fold: rail runs header → viewport bottom.
+      // Footer in view: rail ends at max(footerTop, headerBottom).
+      let bottom = 0;
+      if (footerTop < vh) {
+        bottom = Math.max(0, vh - Math.max(footerTop, header));
+      }
+      root.style.setProperty('--rail-bottom', `${bottom}px`);
+    }
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(footer);
+
+    function teardown() {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      ro.disconnect();
+      root.style.removeProperty('--rail-bottom');
+      delete root.dataset.wdkRailCapBound;
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+
+  document.addEventListener('astro:page-load', setupRightRailCap);
+</script>

@@ -1,0 +1,62 @@
+---
+title: Leaving Ark
+description: The two paths for withdrawing funds from Ark - cooperative leave for speed and unilateral exit for trustlessness - and when to choose each.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## Cooperative leave
+
+Most withdrawals should use the cooperative path: you forfeit VTXOs in an operator round and receive an on-chain payout in roughly one round cadence. Unilateral exit exists for emergencies when the operator cannot or will not co-sign.
+
+A **cooperative leave** is the normal way to move Ark balance to a plain on-chain Bitcoin address. You forfeit selected VTXOs in an operator **round**; the batch includes a **leave output** that pays your destination address on-chain. The operator co-signs, so the exit settles in roughly one round cadence instead of waiting for CSV timelocks.
+
+In WalletDK this is the default when you send to an on-chain address (`prepareSend` / `send` with `onchainAddress`) or call `exit({ outpoint, destination })` with a destination set. Activity shows up as kind **`exit`** (or a **`send`** on the on-chain rail). The path is **`cooperative`** in the exit result.
+
+Cooperative leave requires a **live, honest operator**. It is cheaper and faster than unilateral exit: one batch transaction (plus normal mining confirmation) rather than a chain of checkpoint and connector transactions you broadcast yourself. Round completion is asynchronous; the entry may stay pending through `settling` until the leave output confirms.
+
+<Callout type="tip">
+For everyday withdrawals, cooperative leave is what you want. Direct users to a normal Bitcoin address send, not the unilateral exit APIs.
+</Callout>
+
+## Unilateral exit
+
+When the operator is unreachable or dishonest, you can broadcast pre-signed tree branches yourself. That path is slower, costs more in fees, and should never be the default "Send" action.
+
+A **unilateral exit** (also called unilateral unroll) is the **trustless emergency** path. You broadcast the pre-signed Virtual Transaction Tree branch for your VTXO on-chain without operator cooperation, then walk checkpoint and connector transactions until your funds sit in plain UTXOs you control.
+
+It works even if the operator disappears, but it is **slow and expensive**:
+
+- CSV delays on VTXO scripts must mature before each step is valid.
+- Multiple on-chain transactions may be required (preview with `getExitPlan({ outpoints })`).
+- You may need to fund a backing wallet for fees before the exit can proceed unilaterally.
+
+WalletDK exposes this through `exit({ outpoint, forceUnrollAck: 'I_KNOW_WHAT_I_AM_DOING' })`, `exitStatus({ outpoint })`, and `sweepWallet({ destinationAddress, broadcast: false })` (call with `broadcast: false` first to preview). Unilateral unroll requires that exact acknowledgement string and cannot be combined with a cooperative `destination`. Cooperative leave failures surface as errors; they do not automatically fall back to unilateral unroll. Once a unilateral job exists, follow-up `exitStatus()` / `sweepWallet()` calls drive the unroll to completion. This path is not the same API as sending to an address cooperatively.
+
+Unilateral exit does not instantaneously credit a user-chosen address. It creates claimable on-chain outputs over time; `sweepWallet()` consolidates them once timelocks expire.
+
+Track progress with `exitStatus({ outpoint })`, which returns an `ExitJobStatus` that advances through `pending` (job queued), `materializing` (checkpoint and connector transactions being broadcast), `csv_pending` (waiting on CSV timelocks to mature), `sweeping` (final consolidation broadcast), and `completed` (funds are plain UTXOs). A job can also land in `failed`, surfaced via `ExitStatusResult.lastError`; `exitStatus()` returns `found: false` rather than an error when no job exists yet for that outpoint.
+
+Before the job can start, `getExitPlan({ outpoints })` reports whether it is ready to go: each `ExitPlanEntry` includes a per-outpoint `fundingAddress` and `fundingShortfallSat` for topping up the backing wallet's fees, plus a `canStart` flag (and an overall `canStart` on the `GetExitPlanResult`). Fund the reported address until the shortfall clears and `canStart` becomes `true` before calling `exit()`.
+
+## When to use which
+
+| Situation | Prefer |
+|-----------|--------|
+| User taps "Withdraw to my exchange address" | **Cooperative leave** (on-chain send / `exit` with `destination`) |
+| Operator online, routine payout | **Cooperative leave** |
+| Operator unresponsive or dishonest | **Unilateral exit** |
+| User needs funds soon and network is healthy | **Cooperative leave** |
+| User accepts higher fees and multi-block delays for trustlessness | **Unilateral exit** |
+
+Use cooperative leave whenever the Ark service is reachable. Reserve unilateral exit for custody emergencies, disputed operator behavior, or infrastructure outages that block rounds.
+
+<Callout type="caution">
+Unilateral exit is irreversible once broadcast and can cost many times the fee of a cooperative leave. Preview `getExitPlan({ outpoints })`, explain delays, and never trigger it silently from a primary "Send" button.
+</Callout>
+
+If cooperative leave fails, WalletDK surfaces the error directly; it does not silently fall back to unilateral unroll. The unilateral path requires an explicit `forceUnrollAck` on `exit()`. Read `ExitResult.path` to see which branch ran so the UI can treat unilateral exit as a deliberate, informed event rather than a silent substitution.
+
+<Callout type="note">
+See [Unilateral exit](/web/guides/unilateral-exit/) for a walkthrough of building the flow end to end, or [Handle phases and errors](/web/guides/handle-phases-and-errors/) for surfacing `WalletDKErrorCode` failures along the way.
+</Callout>

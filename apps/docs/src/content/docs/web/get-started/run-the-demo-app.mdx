@@ -1,0 +1,128 @@
+---
+title: Run the demo app
+description: How to clone, install, and run the WalletDK demo app locally against regtest, testnet, or a custom backend.
+---
+
+import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
+
+<LiveDemoCallout />
+
+## Clone & install
+
+The reference integration lives in the WalletDK monorepo at
+`apps/web-wallet-demo`. Clone the repository, install dependencies with pnpm,
+and build the workspace packages:
+
+```bash title="Terminal"
+git clone https://github.com/lightninglabs/dawallet.git
+cd dawallet
+pnpm install
+pnpm build
+```
+
+The demo depends on the workspace packages `@lightninglabs/walletdk-web` and
+`@lightninglabs/walletdk-react`. The `apps/web-wallet-demo/public/` folder is
+gitignored and ephemeral, so before running the demo you need to populate it
+with the runtime WASM binaries:
+
+```bash title="Terminal"
+pnpm --filter web-wallet-demo run wasm:local
+```
+
+See [Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for
+details on what this stages and how to point the demo at a different asset
+source.
+
+## Run
+
+Start the Vite dev server from the monorepo root:
+
+```bash title="Terminal"
+pnpm --filter web-wallet-demo dev
+```
+
+Open the URL Vite prints (typically `http://localhost:5173`). The demo boots a
+**signet** wallet out of the box: choose signet on the connect screen and the
+app boots with its own signet preset (`signetDefaults` in
+`src/lib/runtime-config.ts`), which mirrors the same public gateway URLs
+`defaultConfig('signet')` would produce. No local backend is required.
+
+Cross-origin isolation headers are configured in the demo's Vite config so
+OPFS persistence works in every supported browser. See
+[Cross-origin isolation](/web/get-started/cross-origin-isolation/) for why
+these headers are required and how to configure them outside of Vite:
+
+```ts title="vite.config.ts"
+const crossOriginIsolation = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+};
+
+export default defineConfig({
+  server: { headers: crossOriginIsolation },
+  preview: { headers: crossOriginIsolation },
+});
+```
+
+Use `pnpm --filter web-wallet-demo preview` to serve the production build with
+the same headers.
+
+## Optional (wasm:local, regtest, testnet)
+
+**Rebuild runtime assets locally.** When you are developing against a custom
+darepo-client build, stage fresh WASM files into the demo's `public/` folder:
+
+```bash title="Terminal"
+# Expects a sibling darepo-client checkout (override with DAREPO_DIR)
+pnpm --filter web-wallet-demo run wasm:local
+```
+
+This runs `make wasm-wallet` in darepo-client and copies the full
+`RUNTIME_ASSET_FILES` set into `public/`.
+
+**Regtest with arktest.** To exercise deposits, swaps, and exits against a local
+chain, run [arktest](https://github.com/lightninglabs/darepo-client) in a
+separate terminal:
+
+```bash title="Terminal"
+# From a darepo-client checkout
+make build
+./arktest-debug start --swapserver
+```
+
+Keep arktest running. In another terminal, print the connection URLs:
+
+```bash title="Terminal"
+./arktest-debug env
+```
+
+In the demo connect screen, switch the network to **regtest**. The defaults
+match arktest's usual ports (`7071` for Ark, `8501` for Esplora, `10032` for
+the swap server). Adjust the gateway fields if your arktest instance binds
+different ports.
+
+At a high level the full local workflow is:
+
+1. Terminal 1: `./arktest-debug start --swapserver`
+2. Terminal 2: `pnpm --filter web-wallet-demo dev` (optionally after
+   `wasm:local` if you changed the daemon)
+3. Browser: select regtest, start the runtime, create or unlock a wallet
+
+**Testnet.** Select testnet on the connect screen to boot with its own
+testnet preset (`testnetDefaults` in `src/lib/runtime-config.ts`), which
+mirrors the same public gateway URLs `defaultConfig('testnet')` would
+produce. No arktest instance is needed.
+
+**Troubleshooting OPFS.** If wallet persistence fails in the browser, confirm
+COOP/COEP headers are present:
+
+```bash title="Terminal"
+curl -sI http://localhost:5173 | grep -i cross-origin
+```
+
+Both `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` must
+appear in the response. See
+[Troubleshooting / FAQ](/web/support/troubleshooting/) for more fixes, and the
+[web guides](/web/guides/create-a-wallet/) for end-to-end wallet flows built
+on top of this demo.

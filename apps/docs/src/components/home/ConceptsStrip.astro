@@ -1,0 +1,174 @@
+---
+/**
+ * ConceptsStrip.astro - "Understand the model" concepts navigation band.
+ * Four concept tiles in a horizontal row, each linking to a concepts page.
+ * Styled per r4-final/home.html .concepts-band.
+ */
+---
+
+<section class="wdk-concepts" aria-labelledby="wdk-concepts-heading">
+  <div class="wdk-concepts__inner">
+    <div class="wdk-concepts__eyebrow">
+      <div class="wdk-concepts__eyebrow-sq" aria-hidden="true"></div>
+      <span class="wdk-concepts__eyebrow-text">Concepts</span>
+      <div class="wdk-concepts__eyebrow-line" aria-hidden="true"></div>
+    </div>
+    <h2 id="wdk-concepts-heading" class="wdk-concepts__heading">Understand the model.</h2>
+    <p class="wdk-concepts__sub">Four concepts explain how WalletDK works under the hood.</p>
+
+    <nav class="wdk-concepts__row" aria-label="Concepts navigation">
+      <a href="/concepts/balances-and-vtxos/" class="wdk-concept">
+        <div class="wdk-concept__accent wdk-concept__accent--teal"></div>
+        <div class="wdk-concept__name">Balances &amp; VTXOs</div>
+        <p class="wdk-concept__desc">How funds are represented and tracked across on-chain, Lightning, and Ark layers.</p>
+        <span class="wdk-concept__arrow" aria-hidden="true">&#8594;</span>
+      </a>
+      <a href="/concepts/lightning-payments-are-swaps/" class="wdk-concept">
+        <div class="wdk-concept__accent wdk-concept__accent--violet"></div>
+        <div class="wdk-concept__name">Lightning = swaps</div>
+        <p class="wdk-concept__desc">Lightning payments are routed as atomic swaps - no channel management required from users.</p>
+        <span class="wdk-concept__arrow" aria-hidden="true">&#8594;</span>
+      </a>
+      <a href="/concepts/leaving-ark/" class="wdk-concept">
+        <div class="wdk-concept__accent wdk-concept__accent--orange"></div>
+        <div class="wdk-concept__name">Leaving Ark</div>
+        <p class="wdk-concept__desc">Users can exit to on-chain Bitcoin at any time, unilaterally, without the Ark operator.</p>
+        <span class="wdk-concept__arrow" aria-hidden="true">&#8594;</span>
+      </a>
+      <a href="/concepts/wallet-lifecycle-and-auth/" class="wdk-concept">
+        <div class="wdk-concept__accent wdk-concept__accent--lime"></div>
+        <div class="wdk-concept__name">Wallet lifecycle</div>
+        <p class="wdk-concept__desc">From creation through passkey auth, backup, and recovery - the full wallet state machine.</p>
+        <span class="wdk-concept__arrow" aria-hidden="true">&#8594;</span>
+      </a>
+    </nav>
+  </div>
+</section>
+
+<style>
+  .wdk-concepts {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 70px 80px;
+  }
+
+  .wdk-concepts__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Eyebrow. */
+  .wdk-concepts__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .wdk-concepts__eyebrow-sq {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--teal);
+    flex-shrink: 0;
+  }
+  .wdk-concepts__eyebrow-text {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .wdk-concepts__eyebrow-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 60px;
+  }
+
+  .wdk-concepts__heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .wdk-concepts__sub {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 0;
+  }
+
+  /* Horizontal nav row. */
+  .wdk-concepts__row {
+    display: flex;
+    gap: 0;
+    margin-top: 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .wdk-concept {
+    flex: 1;
+    padding: 28px 24px;
+    border-right: 1px solid var(--border);
+    text-decoration: none;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .wdk-concept:last-child { border-right: none; }
+  .wdk-concept:hover { background: var(--surface-2); }
+
+  .wdk-concept__accent {
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 14px;
+  }
+  .wdk-concept__accent--teal   { background: var(--teal); }
+  .wdk-concept__accent--violet { background: var(--violet); }
+  .wdk-concept__accent--orange { background: var(--orange); }
+  .wdk-concept__accent--lime   { background: var(--lime); }
+
+  .wdk-concept__name {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .wdk-concept__desc {
+    font-size: 0.8375rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .wdk-concept__arrow {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .wdk-concept:hover .wdk-concept__arrow {
+    opacity: 1;
+    color: var(--teal);
+  }
+
+  /* Mobile: stack tiles vertically with horizontal dividers. */
+  @media (max-width: 768px) {
+    .wdk-concepts { padding: 50px 20px; }
+    .wdk-concepts__row { flex-direction: column; }
+    .wdk-concept { border-right: none; border-bottom: 1px solid var(--border); }
+    .wdk-concept:last-child { border-bottom: none; }
+    .wdk-concept__arrow { opacity: 1; color: var(--text-dim); }
+  }
+</style>

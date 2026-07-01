@@ -1,0 +1,509 @@
+---
+/**
+ * Hero.astro - v4 home hero section.
+ * Left-aligned layout: wordmark eyebrow + headline + tagline + CTAs on the left,
+ * a floating macOS-style code window on the right.
+ * Exactly 5 floating accent squares inside .wdk-hero__squares (the motif tested
+ * by home.spec.js).
+ * No gridlines background - subtle radial glow only.
+ */
+import { DEMO_APP_URL } from '~/config/site';
+---
+
+<section class="wdk-hero" aria-labelledby="wdk-hero-heading">
+  <!-- Subtle radial glow (no gridlines per r4 spec). -->
+  <div class="wdk-hero__glow" aria-hidden="true"></div>
+  <div class="wdk-hero__glow-right" aria-hidden="true"></div>
+
+  <!-- 10 floating accent squares (5 left + 5 right), per r4-final home.html.
+       home.spec.js asserts this exact count. -->
+  <div class="wdk-hero__squares" aria-hidden="true">
+    <div class="wdk-hero__sq wdk-hero__sq--violet wdk-hero__sq--1"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--teal   wdk-hero__sq--2"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--lime   wdk-hero__sq--3"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--orange wdk-hero__sq--4"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--sky    wdk-hero__sq--5"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--teal   wdk-hero__sq--6"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--violet wdk-hero__sq--7"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--lime   wdk-hero__sq--8"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--orange wdk-hero__sq--9"></div>
+    <div class="wdk-hero__sq wdk-hero__sq--sky    wdk-hero__sq--10"></div>
+  </div>
+
+  <div class="wdk-hero__inner">
+    <!-- LEFT: eyebrow + headline + tagline + CTAs -->
+    <div class="wdk-hero__left">
+      <div class="wdk-hero__eyebrow">
+        <span class="wdk-hero__eyebrow-squares" aria-hidden="true">
+          <span class="wdk-esq wdk-esq--violet"></span>
+          <span class="wdk-esq wdk-esq--teal"></span>
+          <span class="wdk-esq wdk-esq--lime"></span>
+          <span class="wdk-esq wdk-esq--orange"></span>
+          <span class="wdk-esq wdk-esq--sky"></span>
+        </span>
+        Bitcoin · Lightning · Ark · Browser-native
+      </div>
+
+      <h1 id="wdk-hero-heading" class="wdk-hero__headline">
+        Ship a self-custodial<br>wallet <em>in an afternoon.</em>
+      </h1>
+
+      <p class="wdk-hero__tagline">
+        Add self-custodial Bitcoin and Lightning payments to your app, running
+        entirely in the browser. No node to run, no channels to manage, no
+        liquidity to source. Your users hold their own keys.
+      </p>
+
+      <div class="wdk-hero__ctas">
+        <a href="/web/get-started/quickstart/" class="wdk-btn wdk-btn--primary">
+          Quick start
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <a href="/introduction/what-is-walletdk/" class="wdk-btn wdk-btn--ghost">Read the docs</a>
+        <a href={DEMO_APP_URL} class="wdk-btn wdk-btn--ghost">
+          <span aria-hidden="true">&#9654;</span> Try it live
+        </a>
+      </div>
+    </div>
+
+    <!-- RIGHT: floating macOS-style code window. -->
+    <div class="wdk-hero__right" aria-hidden="true">
+      <div class="wdk-hero__code-window">
+        <div class="wdk-hero__window-bar">
+          <div class="wdk-hero__dot wdk-hero__dot--red"></div>
+          <div class="wdk-hero__dot wdk-hero__dot--yellow"></div>
+          <div class="wdk-hero__dot wdk-hero__dot--green"></div>
+          <div class="wdk-hero__window-title">App.tsx</div>
+        </div>
+        <div class="wdk-hero__install-line">
+          <span class="wdk-hero__install-prompt">$</span>
+          <code>npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react</code>
+        </div>
+        <pre class="wdk-hero__code-body"><span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ createWebClient, defaultConfig }'}</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-web'</span><span class="wdk-tok-punct">;</span>
+<span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ WalletDKProvider }'}</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-react'</span><span class="wdk-tok-punct">;</span>
+
+<span class="wdk-tok-cm">// Self-custodial wallet. No node, no channels.</span>
+<span class="wdk-tok-kw">const</span> <span class="wdk-tok-id">client</span> <span class="wdk-tok-punct">=</span> <span class="wdk-tok-fn">createWebClient</span><span class="wdk-tok-punct">();</span>
+<span class="wdk-tok-kw">await</span> <span class="wdk-tok-id">client</span><span class="wdk-tok-punct">.</span><span class="wdk-tok-fn">start</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-fn">defaultConfig</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-str">'signet'</span><span class="wdk-tok-punct">));</span>
+
+<span class="wdk-tok-kw">export</span> <span class="wdk-tok-kw">function</span> <span class="wdk-tok-fn">App</span><span class="wdk-tok-punct">() {'{'}</span>
+  <span class="wdk-tok-kw">return</span> <span class="wdk-tok-punct">(</span>
+    <span class="wdk-tok-jsx">&lt;WalletDKProvider</span> <span class="wdk-tok-id">client</span><span class="wdk-tok-punct">={'{'}client{'}'}</span><span class="wdk-tok-jsx">&gt;</span>
+      <span class="wdk-tok-jsx">&lt;Balance /&gt;</span>
+      <span class="wdk-tok-jsx">&lt;SendButton /&gt;</span>
+    <span class="wdk-tok-jsx">&lt;/WalletDKProvider&gt;</span>
+  <span class="wdk-tok-punct">);</span>
+<span class="wdk-tok-punct">{'}'}</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Keyframes for the floating squares. */
+  @keyframes wdk-drift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25%       { transform: translate(6px, -10px) rotate(5deg); }
+    50%       { transform: translate(-4px, -18px) rotate(-3deg); }
+    75%       { transform: translate(8px, -8px) rotate(7deg); }
+  }
+  @keyframes wdk-float-slow {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33%       { transform: translateY(-12px) rotate(4deg); }
+    66%       { transform: translateY(-6px) rotate(-3deg); }
+  }
+  @keyframes wdk-float-alt {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%       { transform: translateY(-16px) rotate(6deg); }
+  }
+
+  /* Section root. */
+  .wdk-hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: calc(var(--header-height, 56px) + 60px) 80px 80px;
+    overflow: hidden;
+  }
+
+  /* Glows - no gridlines per r4 spec. */
+  .wdk-hero__glow {
+    position: absolute;
+    top: -10%;
+    left: -5%;
+    width: 60%;
+    height: 130%;
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at 30% 40%,
+      rgba(122, 47, 242, 0.07) 0%,
+      rgba(21, 224, 194, 0.04) 40%,
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+
+  .wdk-hero__glow-right {
+    position: absolute;
+    top: 20%;
+    right: -5%;
+    width: 45%;
+    height: 80%;
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(21, 224, 194, 0.05) 0%,
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+
+  /* The 5 floating accent squares container (tested by home.spec.js). */
+  .wdk-hero__squares {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .wdk-hero__sq {
+    position: absolute;
+    border-radius: 4px;
+    opacity: 0.55;
+  }
+
+  .wdk-hero__sq--violet { background: var(--violet); }
+  .wdk-hero__sq--teal   { background: var(--teal); }
+  .wdk-hero__sq--lime   { background: var(--lime); }
+  .wdk-hero__sq--orange { background: var(--orange); }
+  .wdk-hero__sq--sky    { background: var(--sky); }
+
+  /* Individual square positions + animations. */
+  .wdk-hero__sq--1 {
+    width: 18px; height: 18px; border-radius: 4px;
+    top: 18%; left: 3%;
+    animation: wdk-drift 9s ease-in-out infinite;
+  }
+  .wdk-hero__sq--2 {
+    width: 10px; height: 10px; border-radius: 3px;
+    top: 30%; left: 1%;
+    animation: wdk-drift 11s ease-in-out infinite reverse;
+    animation-delay: -2s;
+  }
+  .wdk-hero__sq--3 {
+    width: 22px; height: 22px; border-radius: 6px;
+    top: 62%; left: 2%;
+    animation: wdk-float-slow 13s ease-in-out infinite;
+    animation-delay: -4s;
+    opacity: 0.45;
+  }
+  .wdk-hero__sq--4 {
+    width: 12px; height: 12px; border-radius: 3px;
+    top: 77%; left: 8%;
+    animation: wdk-drift 10s ease-in-out infinite;
+    animation-delay: -1s;
+  }
+  .wdk-hero__sq--5 {
+    width: 8px; height: 8px; border-radius: 2px;
+    top: 85%; left: 20%;
+    animation: wdk-float-alt 8s ease-in-out infinite;
+    animation-delay: -3s;
+    opacity: 0.7;
+  }
+  /* Right-side squares (mirror of the left set, per r4-final float-sq-6..10). */
+  .wdk-hero__sq--6 {
+    width: 16px; height: 16px; border-radius: 4px;
+    top: 10%; right: 3%;
+    animation: wdk-drift 12s ease-in-out infinite reverse;
+    animation-delay: -5s;
+  }
+  .wdk-hero__sq--7 {
+    width: 24px; height: 24px; border-radius: 6px;
+    top: 82%; right: 2%;
+    animation: wdk-float-slow 14s ease-in-out infinite reverse;
+    animation-delay: -7s;
+    opacity: 0.5;
+  }
+  .wdk-hero__sq--8 {
+    width: 9px; height: 9px; border-radius: 2px;
+    top: 68%; right: 8%;
+    animation: wdk-drift 9s ease-in-out infinite;
+    animation-delay: -2s;
+  }
+  .wdk-hero__sq--9 {
+    width: 14px; height: 14px; border-radius: 4px;
+    top: 15%; right: 12%;
+    animation: wdk-float-alt 11s ease-in-out infinite reverse;
+    animation-delay: -4s;
+    opacity: 0.55;
+  }
+  .wdk-hero__sq--10 {
+    width: 7px; height: 7px; border-radius: 2px;
+    top: 50%; right: 1%;
+    animation: wdk-float-slow 7s ease-in-out infinite;
+    animation-delay: -1s;
+    opacity: 0.75;
+  }
+
+  /* Two-column inner layout. */
+  .wdk-hero__inner {
+    display: flex;
+    align-items: center;
+    gap: 64px;
+    max-width: 1200px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  .wdk-hero__left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Eyebrow pill. */
+  .wdk-hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 14px 5px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    margin-bottom: 28px;
+  }
+
+  .wdk-hero__eyebrow-squares {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .wdk-esq {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .wdk-esq--violet { background: var(--violet); }
+  .wdk-esq--teal   { background: var(--teal); }
+  .wdk-esq--lime   { background: var(--lime); }
+  .wdk-esq--orange { background: var(--orange); }
+  .wdk-esq--sky    { background: var(--sky); }
+
+  /* Headline. */
+  .wdk-hero__headline {
+    font-family: var(--font-display);
+    font-size: clamp(2.6rem, 4.5vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .wdk-hero__headline em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--violet) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .wdk-hero__tagline {
+    font-size: 1.0625rem;
+    color: var(--text-muted);
+    max-width: 480px;
+    margin-bottom: 36px;
+    line-height: 1.7;
+  }
+
+  /* CTA row. */
+  .wdk-hero__ctas {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .wdk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 24px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .wdk-btn--primary {
+    background: var(--teal);
+    color: #0d0d10;
+    border-color: var(--teal);
+  }
+  .wdk-btn--primary:hover {
+    background: #12ccb0;
+    border-color: #12ccb0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(21, 224, 194, 0.25);
+  }
+
+  .wdk-btn--ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .wdk-btn--ghost:hover {
+    color: var(--text);
+    border-color: var(--border-2);
+    background: var(--surface-2);
+  }
+
+  /* Right column: code window. */
+  .wdk-hero__right {
+    flex-shrink: 0;
+    width: 520px;
+    position: relative;
+  }
+
+  .wdk-hero__code-window {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.6),
+      0 0 80px rgba(122, 47, 242, 0.08),
+      0 0 40px rgba(21, 224, 194, 0.04);
+    overflow: hidden;
+  }
+
+  /* macOS traffic-light bar. */
+  .wdk-hero__window-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wdk-hero__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .wdk-hero__dot--red    { background: #ff5f57; }
+  .wdk-hero__dot--yellow { background: #febc2e; }
+  .wdk-hero__dot--green  { background: #28c840; }
+
+  .wdk-hero__window-title {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-left: -22px;
+  }
+
+  /* Install line strip. */
+  .wdk-hero__install-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 12px 16px 0;
+    padding: 8px 14px;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .wdk-hero__install-prompt {
+    color: var(--text-dim);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .wdk-hero__install-line code {
+    font-family: inherit;
+    font-size: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-muted);
+  }
+
+  /* Code body. */
+  .wdk-hero__code-body {
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.825rem;
+    line-height: 1.75;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* Syntax token colours. */
+  .wdk-tok-kw    { color: var(--violet); }
+  .wdk-tok-fn    { color: var(--orange); }
+  .wdk-tok-str   { color: var(--teal); }
+  .wdk-tok-cm    { color: var(--text-dim); font-style: italic; }
+  .wdk-tok-jsx   { color: var(--accent-pink); }
+  .wdk-tok-id    { color: var(--sky); }
+  .wdk-tok-punct { color: var(--text-dim); }
+
+  /* Light theme tweaks. */
+  :root[data-theme='light'] .wdk-hero__code-window {
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.10),
+      0 0 40px rgba(122, 47, 242, 0.04);
+  }
+
+  /* Mobile: stack to one column, full-width code window, smaller headline. */
+  @media (max-width: 900px) {
+    .wdk-hero {
+      padding: calc(var(--header-height, 56px) + 32px) 20px 56px;
+      min-height: auto;
+    }
+    .wdk-hero__inner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 32px;
+    }
+    .wdk-hero__headline {
+      font-size: clamp(1.7rem, 7.5vw, 2.6rem);
+    }
+    .wdk-hero__tagline {
+      max-width: 100%;
+    }
+    .wdk-hero__right {
+      width: 100%;
+    }
+  }
+</style>

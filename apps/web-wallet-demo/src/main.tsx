@@ -29,14 +29,13 @@ async function boot() {
   void requestPersistentStorage();
 
   // The runtime defaults to a Web Worker, keeping the UI thread free. The demo
-  // self-hosts the daemon binaries at the app origin root and points
-  // runtimeBaseUrl there. It could be omitted - worker mode defaults to the
-  // document base URL - but is explicit here to mirror a hosted-assets
-  // deployment. debug logs every RPC request/response to the console for local
-  // diagnosis. The client is built here and injected into the provider, which is
+  // self-hosts the daemon binaries next to the app bundle and points
+  // runtimeBaseUrl at Vite's base URL (./ locally, /demo/ in production).
+  // debug logs every RPC request/response to the console for local diagnosis.
+  // The client is built here and injected into the provider, which is
   // transport-agnostic.
   const client = createWebClient({
-    runtimeBaseUrl: `${window.location.origin}/`,
+    runtimeBaseUrl: new URL(import.meta.env.BASE_URL, window.location.href).href,
     debug: true,
   });
 

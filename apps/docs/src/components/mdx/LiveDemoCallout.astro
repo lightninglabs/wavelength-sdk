@@ -1,0 +1,56 @@
+---
+import { DEMO_APP_URL } from '~/config/site';
+---
+<aside class="wdk-callout wdk-callout--tip">
+  <p class="wdk-callout__title">Try it live</p>
+  <div class="wdk-callout__body">
+    <p>
+      A hosted signet demo runs in your browser at{' '}
+      <a href={DEMO_APP_URL}>{DEMO_APP_URL}</a>.
+      No clone or local setup required.
+    </p>
+  </div>
+</aside>
+
+<style>
+  .wdk-callout {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--surface, #1c1c21);
+    border: 1px solid var(--border, #303037);
+    border-left: 3px solid var(--lime, #c9f000);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 1.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted, #b6b6c0);
+    line-height: 1.6;
+  }
+
+  .wdk-callout__title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lime, #c9f000);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .wdk-callout__body {
+    color: var(--text-muted, #b6b6c0);
+  }
+
+  .wdk-callout__body p {
+    margin: 0;
+  }
+
+  .wdk-callout__body a {
+    color: var(--teal, #15e0c2);
+    text-decoration: none;
+    word-break: break-all;
+  }
+
+  .wdk-callout__body a:hover {
+    text-decoration: underline;
+  }
+</style>

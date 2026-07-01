@@ -1,0 +1,118 @@
+---
+title: Create a wallet (password)
+description: Create a password-protected WalletDK wallet in a React app, with inline code at each step.
+pageLayout: guide
+related:
+  - web/guides/handle-phases-and-errors
+  - web/guides/use-a-passkey
+  - web/guides/show-balance-and-activity
+---
+
+## Install the packages
+
+WalletDK ships as two packages: `@lightninglabs/walletdk-web`, the browser
+wallet runtime, and `@lightninglabs/walletdk-react`, the React bindings. Both
+are ES modules with full TypeScript declarations.
+
+The runtime bundles a WASM module for cryptography and uses OPFS for storage.
+There are no native dependencies and no server-side component, so a modern
+browser is all you need at runtime.
+
+```bash title="Terminal"
+# Install the browser runtime and the React bindings.
+npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
+```
+
+## Add the provider
+
+`createWebClient()` returns a browser client. Wrap your app in
+`WalletDKProvider` and pass it the client. Every component below the provider
+can reach the wallet through hooks.
+
+Call `start(defaultConfig('signet'))` to boot the daemon after the runtime
+loads. Switch to `defaultConfig('mainnet')` only once you have key backup and
+recovery in place.
+
+```tsx title="App.tsx"
+import { useEffect } from 'react';
+import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { WalletDKProvider, useWalletRuntime } from '@lightninglabs/walletdk-react';
+
+const client = createWebClient({ runtimeBaseUrl: '/walletdk/' });
+
+function WalletApp({ children }: { children: React.ReactNode }) {
+  const { start, phase } = useWalletRuntime();
+
+  useEffect(() => {
+    if (phase === 'runtimeReady') {
+      start(defaultConfig('signet'));
+    }
+  }, [phase, start]);
+
+  return <>{children}</>;
+}
+
+export function App() {
+  return (
+    <WalletDKProvider client={client}>
+      <WalletApp>
+        {/* your app */}
+      </WalletApp>
+    </WalletDKProvider>
+  );
+}
+```
+
+## Create the wallet
+
+Call `useWalletBootstrap()` inside the provider to create or unlock a wallet.
+When `phase` is `'needsWallet'`, no wallet exists yet.
+
+`createWallet({ password })` generates a fresh HD seed, encrypts it with the
+password, and stores it locally. The password is whatever you pass in; the
+SDK does not enforce a minimum length or complexity, so validate it yourself
+before calling `createWallet`. The whole operation runs in the browser and the
+seed never leaves the device. After it resolves, `phase` becomes `'ready'`.
+
+The resolved result includes `mnemonic`, the wallet's recovery phrase. This is
+the only time the SDK ever returns it, so show it to the user immediately and
+prompt them to write it down before continuing. To restore a wallet from an
+existing recovery phrase instead of generating a new one, pass `mnemonic` (and
+`seedPassphrase`, if the original wallet used a BIP-39 passphrase) to
+`createWallet`.
+
+```tsx title="Onboard.tsx"
+import { useState } from 'react';
+import { useWalletBootstrap, useWalletDK } from '@lightninglabs/walletdk-react';
+
+function Onboard() {
+  const { createWallet, operations } = useWalletBootstrap();
+  const { phase } = useWalletDK();
+  const [mnemonic, setMnemonic] = useState<string[] | null>(null);
+
+  const handleCreate = async () => {
+    // Generate the HD seed in-browser, encrypted with the password.
+    const result = await createWallet({ password: 'a-strong-password' });
+    // Show the mnemonic once, right after creation: it is not retrievable later.
+    setMnemonic(result.mnemonic);
+  };
+
+  if (phase !== 'needsWallet') {
+    return null;
+  }
+
+  return (
+    <>
+      <button onClick={handleCreate} disabled={operations.createWallet.busy}>
+        Create wallet
+      </button>
+      {operations.createWallet.error && (
+        <p role="alert">{operations.createWallet.error}</p>
+      )}
+      {mnemonic && (
+        <p>Write down your recovery phrase: {mnemonic.join(' ')}</p>
+      )}
+    </>
+  );
+}
+```

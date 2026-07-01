@@ -1,0 +1,114 @@
+---
+title: System architecture
+description: How WalletDK's in-browser daemon connects to the Ark, Lightning, and Bitcoin backend gateways to enable payments, boarding, swaps, and exits.
+---
+
+import DiagramFrame from '~/components/diagrams/DiagramFrame.astro';
+import FlowLane from '~/components/diagrams/FlowLane.astro';
+
+## The in-browser daemon
+
+WalletDK embeds [darepo-client](https://github.com/lightninglabs/darepo-client), the same wallet daemon used in native integrations, compiled to WebAssembly. When your app calls `createWebClient()` and `client.start()`, it boots that daemon inside the browser and keeps it running for the session.
+
+**`WalletDKClient` is the app-facing API.** It is defined in `@lightninglabs/walletdk-core` and implemented by `@lightninglabs/walletdk-web`. Your code never imports Go or protobuf types. You call typed methods (`deposit`, `receive`, `send`, `balance`, and so on) and receive plain JavaScript objects.
+
+Under the hood, the native daemon speaks gRPC. Browsers cannot open arbitrary gRPC connections the way a Go or mobile host can, so the web transport uses **REST** against the embedded daemon's HTTP facade. From your app's perspective this is an implementation detail: you still hold one `WalletDKClient` and call the same methods whether you are on web or a future native transport.
+
+The daemon also owns local persistence (wallet database, swap state) and signing. Your app configures *where* the daemon connects on the network, not *how* it stores keys.
+
+## The three backend gateways
+
+Once started, the daemon reaches **three external REST gateways**. These are the only network services WalletDK depends on. Configure them in `RuntimeConfig` (or use `defaultConfig(network)` for public signet, testnet, and regtest presets):
+
+```ts
+import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+
+const client = createWebClient();
+await client.ready();
+await client.start(defaultConfig('signet'));
+// arkServerUrl, esploraUrl, swapServerUrl pre-filled for signet
+```
+
+| Field | Service | What the daemon uses it for |
+|---|---|---|
+| `arkServerUrl` | Ark operator REST gateway | Ark **rounds**, VTXO lifecycle, and **mailbox relay** for out-of-round transfers |
+| `swapServerUrl` | Swap server REST gateway | **Lightning↔Ark atomic swaps** (in-swap receive, out-swap send) |
+| `esploraUrl` | Esplora-compatible indexer | **Chain and UTXO queries**; must implement the Esplora `/address/:addr/utxo` API |
+
+**Mailbox and operator share one edge.** VTXO mailbox traffic goes through the same Ark server URL. There is no separate `mailboxUrl` in `RuntimeConfig`; the redundant mailbox fields were removed so you configure a single Ark gateway.
+
+Lightning is not a fourth gateway. Lightning send and receive are **swap operations** routed through `swapServerUrl`. On-chain visibility (boarding deposits, cooperative leaves, unilateral exits) goes through Esplora and the Ark operator as appropriate.
+
+Set `disableSwaps: true` (or omit `swapServerUrl`) if you only need Ark and on-chain flows without Lightning.
+
+## How boarding, swaps, and exits connect
+
+WalletDK unifies three payment rails behind one balance and one activity stream. Here is how each rail uses the gateways above.
+
+### On-chain in: boarding
+
+1. Your app calls `deposit()` and gets a **boarding address** (a standard Bitcoin receive address).
+2. The user sends on-chain BTC to that address.
+3. Esplora lets the daemon see the UTXO arrive.
+4. At the **next Ark round** (interval is operator-configured, often well under a minute), the deposit **boards** into Ark and becomes a **VTXO** you can spend instantly off-chain.
+
+Until boarding completes, funds show as pending inbound balance.
+
+### Lightning: swaps
+
+WalletDK does not open Lightning channels in the browser. Lightning payments are **atomic swaps** between Lightning and Ark:
+
+- **Receive Lightning** (`receive()`) starts an **in-swap**: the swap server holds a Lightning invoice; when it is paid, you receive Ark balance (a VTXO).
+- **Send Lightning** (`send({ invoice })`) runs an **out-swap**: you spend Ark balance; the swap server pays the BOLT-11 invoice on Lightning. For a quote-then-confirm flow instead of a single call, see `prepareSend()`/`sendPrepared()`.
+
+Both directions go through `swapServerUrl`. Swaps can sit in a pending state while liquidity or routing resolves; the daemon tracks them in your activity stream and can refund if a swap expires.
+
+### On-chain out: leave and exit
+
+Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark operator helps convert your VTXO into an on-chain transaction. This is the default path for `send({ onchainAddress })`. It is faster and cheaper than exiting alone.
+
+**Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WalletDKClient` for this path; see [Unilateral exit](/web/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
+
+<DiagramFrame label="Diagram: the five payment rails. On-chain in: deposit, boarding, round, VTXO. Lightning receive: in-swap through the swap server to a VTXO. Lightning send: out-swap through the swap server to a paid invoice. On-chain send: cooperative leave via the operator and Esplora. Emergency: unilateral exit to on-chain.">
+  <FlowLane
+    header="On-chain in"
+    steps={[
+      { label: 'Deposit', accent: 'teal' },
+      { label: 'Boarding', accent: 'teal' },
+      { label: 'Round', accent: 'teal' },
+      { label: 'VTXO', accent: 'teal' },
+    ]}
+  />
+  <FlowLane
+    header="Lightning receive"
+    steps={[
+      { label: 'In-swap', accent: 'violet' },
+      { label: 'Swap server', accent: 'violet' },
+      { label: 'VTXO', accent: 'violet' },
+    ]}
+  />
+  <FlowLane
+    header="Lightning send"
+    steps={[
+      { label: 'Out-swap', accent: 'violet' },
+      { label: 'Swap server', accent: 'violet' },
+      { label: 'Invoice paid', accent: 'violet' },
+    ]}
+  />
+  <FlowLane
+    header="On-chain send"
+    steps={[
+      { label: 'Cooperative leave', accent: 'teal' },
+      { label: 'Operator + Esplora', accent: 'teal' },
+    ]}
+  />
+  <FlowLane
+    header="Emergency"
+    steps={[
+      { label: 'Unilateral exit', accent: 'orange' },
+      { label: 'On-chain', accent: 'orange' },
+    ]}
+  />
+</DiagramFrame>
+
+For deeper detail on each rail, see [Balances & VTXOs](/concepts/balances-and-vtxos/), [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/), and [Leaving Ark](/concepts/leaving-ark/).

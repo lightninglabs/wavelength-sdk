@@ -1,0 +1,209 @@
+---
+/**
+ * TableOfContents.astro - Fixed "On this page" TOC rail for depth-2 and
+ * depth-3 headings, pinned to the right screen edge. The panel runs from
+ * the header to the viewport bottom while reading; RightRailCap.astro
+ * shortens it to the footer top once the footer enters view.
+ *
+ * A client script highlights the link for whichever in-content heading is
+ * currently in view (IntersectionObserver-based scroll-spy). Lifecycle
+ * matches CodeRail.astro / ScrollProgress.astro: init on astro:page-load,
+ * per-element guard for idempotent re-init, and a self-removing
+ * astro:before-swap teardown so observers do not accumulate across
+ * view-transition navigations.
+ *
+ * Props:
+ *   headings - array of { depth: number, slug: string, text: string } from render().
+ */
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+}
+
+const { headings } = Astro.props;
+// Only render depth 2 and 3.
+const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{tocHeadings.length > 0 && (
+  <nav class="wdk-toc" aria-label="On this page" data-toc-spy>
+    <p class="wdk-toc__title"><span class="wdk-toc__sq" aria-hidden="true"></span>On this page</p>
+    <ul class="wdk-toc__list">
+      {tocHeadings.map((h) => (
+        <li class:list={['wdk-toc__item', h.depth === 3 && 'wdk-toc__item--depth3']}>
+          <a href={`#${h.slug}`} class="wdk-toc__link">
+            {h.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
+
+<script>
+  // Scroll-spy for the "On this page" TOC: highlight the link whose heading
+  // is currently in view as the reader scrolls the content column.
+  //
+  // Initialise on astro:page-load so this runs on first load AND after every
+  // client-side (view transition) navigation; module scripts do not re-run on
+  // client nav. The per-element guard (data-wdk-bound) prevents double-binding
+  // on re-init. Matches the lifecycle pattern in CodeRail.astro and
+  // ScrollProgress.astro.
+  function setupTocSpy() {
+    const navEl = document.querySelector('[data-toc-spy]');
+    if (!(navEl instanceof HTMLElement) || navEl.dataset.wdkBound) return;
+    const nav = navEl;
+
+    // The in-content headings live in the doc or guide reading column.
+    const content = document.querySelector('.wdk-doc__content, .wdk-guide__content');
+    if (!content) return;
+
+    const headings = Array.from(content.querySelectorAll('h2[id], h3[id]'));
+    if (headings.length === 0) return;
+
+    nav.dataset.wdkBound = '1';
+
+    const links = new Map();
+    nav.querySelectorAll('.wdk-toc__link').forEach((a) => {
+      const href = a.getAttribute('href') ?? '';
+      if (href.startsWith('#')) links.set(href.slice(1), a);
+    });
+
+    // Exactly one link is active at a time: clear every link, then mark the
+    // one matching the given heading id.
+    function activate(id: string) {
+      links.forEach((a, key) => {
+        if (key === id) {
+          a.setAttribute('aria-current', 'true');
+        } else {
+          a.removeAttribute('aria-current');
+        }
+      });
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const vis = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (vis) activate(vis.target.id);
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.25, 0.5, 1] }
+    );
+
+    headings.forEach((h) => io.observe(h));
+
+    // Activate the first heading's link on initial load.
+    if (headings[0]) activate(headings[0].id);
+
+    // Tear down the observer before the next view-transition swap so it does
+    // not accumulate across client-side navigations. The teardown removes
+    // itself from astro:before-swap so teardown listeners do not stack up
+    // either.
+    function teardown() {
+      io.disconnect();
+      delete nav.dataset.wdkBound;
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+  document.addEventListener('astro:page-load', setupTocSpy);
+</script>
+
+<style>
+  /* Fixed TOC rail, pinned to the right screen edge. Bottom is capped at the
+     footer top via --rail-bottom (RightRailCap.astro). */
+  .wdk-toc {
+    position: fixed;
+    top: var(--header-height, 56px);
+    right: 0;
+    bottom: var(--rail-bottom, 0);
+    width: var(--toc-w, 240px);
+    background: var(--rail-bg);
+    padding: 24px 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    z-index: 50;
+  }
+
+  .wdk-toc::-webkit-scrollbar { width: 4px; }
+  .wdk-toc::-webkit-scrollbar-track { background: transparent; }
+  .wdk-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Mobile: hide the fixed rail (the doc/guide layouts drop the matching
+     right margin so content goes full-width). Mirrors .wdk-sidebar's
+     same-breakpoint rule. */
+  @media (max-width: 768px) {
+    .wdk-toc { display: none; }
+  }
+
+  /* Section title. */
+  .wdk-toc__title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Accent square before the heading - matches the rail motif, keyed to section. */
+  .wdk-toc__sq {
+    width: 7px;
+    height: 7px;
+    border-radius: 1.75px;
+    background: var(--sl-accent, var(--accent-teal));
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .wdk-toc__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .wdk-toc__item {
+    margin: 0;
+  }
+
+  /* Depth-3 items are indented. */
+  .wdk-toc__item--depth3 .wdk-toc__link {
+    padding-left: 20px;
+    font-size: 0.75rem;
+  }
+
+  .wdk-toc__link {
+    display: block;
+    padding: 4px 0;
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    line-height: 1.4;
+    transition: color 0.15s;
+    border-left: 2px solid transparent;
+    padding-left: 8px;
+  }
+
+  .wdk-toc__link:hover {
+    color: var(--text);
+  }
+
+  /* Active TOC link (set by optional scroll-spy script). */
+  .wdk-toc__link[aria-current='true'] {
+    color: var(--sl-accent, var(--accent-teal));
+    border-left-color: var(--sl-accent, var(--accent-teal));
+  }
+</style>

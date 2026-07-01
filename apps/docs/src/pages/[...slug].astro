@@ -1,0 +1,30 @@
+---
+import { getCollection, render } from 'astro:content';
+import DocLayout from '~/layouts/DocLayout.astro';
+import HomeLayout from '~/layouts/HomeLayout.astro';
+import GuideArticleLayout from '~/layouts/GuideArticleLayout.astro';
+import QuickstartLayout from '~/layouts/QuickstartLayout.astro';
+import ReferenceLayout from '~/layouts/ReferenceLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('docs', (e) => !e.data.draft);
+  return entries.map((entry) => ({
+    params: { slug: entry.id === 'index' ? undefined : entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const Layout =
+  entry.data.pageLayout === 'home'
+    ? HomeLayout
+    : entry.data.pageLayout === 'guide'
+      ? GuideArticleLayout
+      : entry.data.pageLayout === 'quickstart'
+        ? QuickstartLayout
+        : entry.data.pageLayout === 'reference'
+          ? ReferenceLayout
+          : DocLayout;
+---
+<Layout entry={entry} headings={headings}><Content /></Layout>

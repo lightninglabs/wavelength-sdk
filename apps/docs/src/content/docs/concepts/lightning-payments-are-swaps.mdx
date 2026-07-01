@@ -1,0 +1,52 @@
+---
+title: Lightning payments = swaps
+description: How WalletDK sends and receives Lightning as Lightning↔Ark atomic swaps.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## In-swap (receive)
+
+Receiving Lightning does not mean opening a channel in your app. WalletDK routes inbound payments through an atomic swap, called an **in-swap**, that moves value **from Lightning into Ark**. You do **not** open or manage Lightning channels. Instead, `receive()` asks the **swap server** to act as a bridge.
+
+The flow, at a high level:
+
+1. The wallet builds a BOLT-11 **invoice** whose payment hash locks a **virtual HTLC (vHTLC)** on Ark.
+2. A Lightning payer routes to the swap server (via a route hint embedded in the invoice).
+3. The swap server **holds** the incoming Lightning HTLC and **funds a matching vHTLC** on Ark, locked to the same payment hash.
+4. The wallet observes the funded vHTLC (via the operator's indexer), **claims** it with the preimage, and the swap server uses that preimage to **settle** the Lightning side.
+
+The vHTLC is a taproot output with the same hashlock/timelock structure as a Lightning HTLC, but settled inside Ark. Until the claim completes, the receive shows up as pending inbound balance and a receive activity entry in phases like `waiting_for_payment` and `settling`.
+
+<Callout type="note">
+WalletDK Lightning receive is swap-backed. There is no inbound channel capacity to pre-fund, but swap server liquidity and operator liveness still matter for how quickly funding appears.
+</Callout>
+
+## Out-swap (send)
+
+Sending to a Lightning invoice works the same way in reverse: Ark value funds a vHTLC, and the swap server pays the invoice on Lightning once the Ark side is claimable. Sending to a Lightning invoice is an **out-swap**: value moves **from Ark out to Lightning**. Again, this is not a channel payment.
+
+The flow:
+
+1. `prepareSend({ invoice })` (or `send()` in one step) selects VTXOs and constructs a swap session.
+2. The wallet **funds a vHTLC** on Ark locked to the invoice's payment hash.
+3. The swap server **claims** that vHTLC with cooperation from the operator, learns the preimage, and **pays** the BOLT-11 invoice on Lightning.
+4. When the Lightning payment succeeds, the Ark side is settled and the send entry's progress phase (`entry.progress.phase`) reaches `confirmed`, and `entry.status` becomes `complete`.
+
+Outbound Lightning therefore consumes confirmed balance (and shows pending outbound balance while the swap runs). The **SendRail** on a prepared send is `'lightning'` when the invoice path is selected.
+
+On-chain sends (`onchainAddress`) and cooperative leaves are separate rails; only invoice payments use the swap server.
+
+## Pending & refunds
+
+Swap legs can take seconds or minutes, and either side can time out. Your UI should treat activity entries as live until they reach a terminal status or refund phase. Swap operations are **long-lived and asynchronous**. An activity entry stays pending while the swap server, operator, or Lightning network has not reached a terminal state. The progress phase tells you which leg is active: waiting for a payer, detected funding, settling through Ark, and so on.
+
+Every vHTLC encodes **refund paths** with CLTV and CSV timelocks. If the swap server never claims (receive side) or never pays the invoice (send side), the wallet can unwind cooperatively first (operator-co-signed OOR refunds) and, if needed, fall back to on-chain unilateral leaves after delays elapse.
+
+WalletDK **arms automatic refund recovery** on pay sessions so stuck out-swaps do not strand funds indefinitely. Entries may pass through `refunding` and `refunded` phases when a timeout fires; `failed` covers hard errors with failure reason text for display. When an entry fails, `entry.failureReason` holds a human-readable message and `entry.failureCode` holds one of `timed_out | expired | refunded | needs_intervention | failed` for programmatic handling.
+
+<Callout type="caution">
+A pending Lightning send is often waiting on swap server liquidity or routing, not a bug in your integration. Surface the entry phase to users and expect auto-refund if the invoice expires or the swap times out. See [Troubleshooting](/web/support/troubleshooting/) for the "stuck send" pattern.
+</Callout>
+
+You do not implement the refund ladder yourself for normal flows; the daemon drives cooperative refunds and escalates when deadlines pass. Your job is to show pending state clearly and avoid treating `prepareSend` quotes as final until the entry completes.

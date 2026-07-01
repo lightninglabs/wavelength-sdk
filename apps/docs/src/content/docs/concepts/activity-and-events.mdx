@@ -1,0 +1,83 @@
+---
+title: Activity & events
+description: How WalletDK exposes wallet history and real-time state changes through its activity stream and event model.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## The activity stream
+
+Every deposit, payment, and exit shows up in one ordered history. WalletDK keeps that history as a stream you can snapshot once or subscribe to for live updates as operations settle.
+
+Wallet history in WalletDK is an **activity stream**: a sequence of **Entry** objects, one per user-visible wallet operation. Deposits, Lightning receives, sends, and cooperative exits each create an entry when they start and update in place as they settle.
+
+You can read history in two ways:
+
+- `list({ view: 'activity' })` for a paginated snapshot (optionally filtered with `pendingOnly`, `limit`, and `offset`):
+
+  ```ts
+  const { activity } = await client.list({ view: 'activity' });
+  // activity.entries, activity.total
+  ```
+
+- `startActivity()` for a live stream that pushes updates until you call `stopActivity()`.
+
+For UI work, prefer the live stream. Call `subscribe()` first to register a listener, then `startActivity({ includeExisting: true })` so the daemon replays current rows before forwarding new changes. Each update arrives as a **WalletDKEvent** with `type: 'activity'` and the changed entry as payload. Pending entries mutate (status, phase, txid, confirmation height) until they reach `complete` or `failed`; your UI can update rows by `id` without polling `list()` on a timer.
+
+<Callout type="note">
+`stopActivity()` closes the stream but leaves your `subscribe()` listener registered. You can call `startActivity()` again later without re-subscribing.
+</Callout>
+
+The React **useWalletActivity** hook wraps this pattern: it keeps an in-memory list ordered newest-first and re-renders when activity events arrive.
+
+## Event model
+
+Beyond activity rows, the client emits runtime and log events on the same subscription. Narrow on the event type before reading its payload.
+
+**WalletDKEvent** is a discriminated union. Narrow on `type` before reading `payload`:
+
+All four event types arrive through the same `subscribe(listener)` callback registered once.
+
+| `type` | Payload | Meaning |
+|--------|---------|---------|
+| `'activity'` | `Entry` | A wallet operation was created or updated. |
+| `'log'` | `{ level, message }` | Daemon log line forwarded for debugging (`debug`, `info`, `warn`, `error`). |
+| `'runtimeReady'` | none | The embedded runtime finished loading and can accept `start()`. |
+| `'runtimeStopped'` | none | The runtime shut down cleanly after `stop()`. |
+
+Activity events carry the full entry shape:
+
+- **kind**: high-level category (see below).
+- **status**: collapsed outcome: `pending`, `complete`, or `failed`.
+- **amountSat** / **feeSat**: principal and fees in satoshis (plain int64 magnitudes; use the entry's **kind** to determine direction).
+- **progress**: optional lifecycle metadata (phase, payment hash, txid, confirmation height, VTXO outpoint).
+- **request**: optional echo of what the user initiated (Lightning invoice, on-chain address, etc.).
+- **failureReason** / **failureCode**: populated when status is `failed`. **failureCode** is one of:
+  - **`timed_out`**: the operation exceeded its deadline before completing.
+  - **`expired`**: the underlying invoice, address, or quote expired before it was used.
+  - **`refunded`**: a swap or payment failed and funds were returned to the wallet.
+  - **`needs_intervention`**: the operation stalled in a state that requires manual follow-up.
+  - **`failed`**: a generic failure not covered by the other codes.
+
+**Entry kinds** group operations for filtering and display:
+
+- **`deposit`**: on-chain boarding (`deposit()` address flow).
+- **`receive`**: inbound Lightning receive settled through an in-swap into Ark.
+- **`send`**: outbound payment (Lightning out-swap, cooperative on-chain leave, or in-Ark send).
+- **`exit`**: cooperative leave of VTXOs to a plain on-chain address.
+
+For a `send` entry, `entry.request?.type` (`'lightning'`, `'onchain'`, or `'ark'`) tells you which rail the payment actually used; when preparing a send, `PrepareSendResult.rail` reports the same thing ahead of time. See the [walletdk-core reference](/reference/walletdk-core/) for the full field list.
+
+**Entry phases** sit one level below status and describe *where* a pending operation is in its pipeline. They do not replace status; use both. Common phases include:
+
+- **`request_created`**: the wallet recorded the intent but nothing external has happened yet.
+- **`waiting_for_payment`**: waiting for a counterparty (Lightning payer, swap funder, or boarding confirmation).
+- **`waiting_for_confirmation`**: an on-chain tx is seen but not yet deep enough in the chain.
+- **`payment_detected`** / **`settling`**: value is in motion through Ark, Lightning, or swap machinery.
+- **`confirmed`**: terminal success from the backing subsystem's perspective.
+- **`refunding`** / **`refunded`**: swap timeout or cancellation path returning funds.
+- **`failed`**: terminal failure.
+
+You can switch on the progress phase for structured UI states, or render the phase label directly when you want the daemon's short label without maintaining a mapping table. Field definitions live in the [walletdk-core reference](/reference/walletdk-core/).
+
+For the React hook signatures built on this stream, see the [walletdk-react reference](/web/reference/walletdk-react/). For how activity and events relate to the client's broader startup and connection state, see [Wallet lifecycle & auth](/concepts/wallet-lifecycle-and-auth/).

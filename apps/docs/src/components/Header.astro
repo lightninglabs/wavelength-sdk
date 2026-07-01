@@ -1,0 +1,347 @@
+---
+/**
+ * Header.astro - glassy sticky topbar for WalletDK docs.
+ * Ported from design-mockups/r4-final/home.html + styles.css.
+ * Uses glass background + blur for separation; no hard border-bottom divider.
+ */
+import { TOP_NAV, isTopNavActive } from '~/config/nav';
+import ThemeToggle from '~/components/ThemeToggle';
+import MobileNav from '~/components/MobileNav.astro';
+import SearchModal from '~/components/SearchModal';
+
+// Current path drives the active top-nav highlight.
+const pathname = Astro.url.pathname;
+---
+
+<header class="wdk-header" role="banner">
+  <button
+    type="button"
+    class="wdk-menu-toggle"
+    aria-label="Open navigation menu"
+    aria-expanded="false"
+    aria-controls="wdk-mobile-drawer"
+  >
+    <svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true">
+      <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <a href="/" class="wdk-header-brand" aria-label="WalletDK home">
+    <div class="wdk-squares" aria-hidden="true">
+      <div class="wdk-sq wdk-sq-violet"></div>
+      <div class="wdk-sq wdk-sq-teal"></div>
+      <div class="wdk-sq wdk-sq-lime"></div>
+      <div class="wdk-sq wdk-sq-orange"></div>
+      <div class="wdk-sq wdk-sq-sky"></div>
+    </div>
+    <span class="wdk-wordmark">Wallet<span>DK</span></span>
+  </a>
+
+  <nav class="wdk-topnav" aria-label="Primary navigation">
+    {TOP_NAV.map((item) => {
+      const isActive = isTopNavActive(pathname, item);
+      return (
+        <a
+          href={`/${item.slug}/`}
+          class:list={[isActive && 'wdk-topnav__active']}
+          aria-current={isActive ? 'page' : undefined}
+        >{item.label}</a>
+      );
+    })}
+  </nav>
+
+  <div class="wdk-header-actions">
+    <button type="button" class="wdk-search-btn" aria-label="Search" data-search-trigger>
+      <svg class="wdk-search-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+      <span class="wdk-search-label">Search docs…</span>
+      <kbd aria-label="Command K">⌘K</kbd>
+    </button>
+
+    <a
+      href="https://github.com/lightninglabs/dawallet"
+      class="wdk-header-github"
+      aria-label="GitHub repository"
+      target="_blank"
+      rel="noopener"
+    >
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+    </a>
+
+    <a href="/web/get-started/quickstart/" class="wdk-header-cta">Get started</a>
+
+    <ThemeToggle client:load />
+  </div>
+</header>
+
+<MobileNav />
+
+<!--
+  Mount the search modal once. transition:persist keeps this island (and the
+  wdk:open-search listener it registers) alive across view-transition
+  navigations, so the listener binds exactly once and never accumulates.
+  client:load (not client:idle) so the open-search listener is ready as soon as
+  the page loads: the Cmd/Ctrl-K shortcut dispatches an event that is simply lost
+  if no listener is bound yet. The Pagefind runtime stays lazy regardless - it is
+  imported on first open by loadPagefind, not at hydration.
+-->
+<div transition:persist="wdk-search-modal">
+  <SearchModal client:load />
+</div>
+
+<script>
+  // Search open triggers. Both the header button (re-rendered each navigation)
+  // and the global Cmd/Ctrl-K shortcut only DISPATCH the wdk:open-search event;
+  // the persistent SearchModal island (mounted client:load) listens for it. This
+  // decouples this markup from React and lets either trigger open the same modal.
+
+  // The button is a fresh DOM node on every client-side navigation, so bind it
+  // on astro:page-load with a per-element guard (the MobileNav / CodeRail
+  // discipline) to avoid double-binding on re-init.
+  function wireSearchButton() {
+    const btnEl = document.querySelector('[data-search-trigger]');
+    if (!(btnEl instanceof HTMLElement) || btnEl.dataset.wdkBound) return;
+    const btn = btnEl;
+    btn.dataset.wdkBound = '1';
+    btn.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('wdk:open-search'));
+    });
+  }
+  document.addEventListener('astro:page-load', wireSearchButton);
+
+  // The global shortcut listens on window once for the whole session. Module
+  // scripts do NOT re-run on client-side navigation (ClientRouter swaps only
+  // replay inline scripts, not module scripts), but this script tag is inline
+  // rather than a module, so the window-level flag makes registration idempotent
+  // across any re-execution to prevent stacked listeners.
+  if (!window.__wdkSearchKeyBound) {
+    window.__wdkSearchKeyBound = true;
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('wdk:open-search'));
+      }
+    });
+  }
+</script>
+
+<style>
+  /* Glassy sticky topbar - no hard border-bottom, blur provides visual separation. */
+  .wdk-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height, 56px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 0;
+    background: rgba(20, 20, 23, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  :root[data-theme='light'] .wdk-header {
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  /* Hamburger menu toggle - hidden on desktop, shown on mobile. */
+  .wdk-menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    margin-right: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition: color 0.15s, background 0.15s;
+  }
+  .wdk-menu-toggle:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  /* Brand / wordmark */
+  .wdk-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 32px;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .wdk-wordmark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .wdk-wordmark span {
+    color: var(--teal);
+  }
+
+  /* Squares motif */
+  .wdk-squares {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .wdk-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2.5px;
+    flex-shrink: 0;
+  }
+
+  .wdk-sq-violet { background: var(--violet); }
+  .wdk-sq-teal   { background: var(--teal); }
+  .wdk-sq-lime   { background: var(--lime); }
+  .wdk-sq-orange { background: var(--orange); }
+  .wdk-sq-sky    { background: var(--sky); }
+
+  /* Primary navigation links */
+  .wdk-topnav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .wdk-topnav a {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+    text-decoration: none;
+  }
+
+  .wdk-topnav a:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  /* Active section: tinted pill in the page's per-section accent. */
+  .wdk-topnav a.wdk-topnav__active {
+    color: var(--sl-accent, var(--teal));
+    background: color-mix(in srgb, var(--sl-accent, var(--teal)) 12%, transparent);
+  }
+
+  /* Actions cluster */
+  .wdk-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  /* Search button */
+  .wdk-search-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    width: 220px;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+
+  .wdk-search-btn:hover {
+    border-color: var(--border-2);
+  }
+
+  .wdk-search-btn kbd {
+    margin-left: auto;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  .wdk-search-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* GitHub icon button. */
+  .wdk-header-github {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .wdk-header-github:hover {
+    color: var(--text);
+    border-color: var(--border-2);
+  }
+  .wdk-header-github svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Get started primary CTA - teal, anchors the action cluster. */
+  .wdk-header-cta {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #0d0d10;
+    background: var(--teal);
+    border: 1px solid var(--teal);
+    border-radius: 8px;
+    padding: 7px 16px;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .wdk-header-cta:hover {
+    background: #12ccb0;
+    border-color: #12ccb0;
+  }
+
+  /* Mobile: show the hamburger, collapse the top nav and non-essential actions. */
+  @media (max-width: 768px) {
+    .wdk-header { padding: 0 12px; }
+    .wdk-menu-toggle { display: inline-flex; }
+    .wdk-header-brand { margin-right: 8px; }
+    .wdk-topnav { display: none; }
+    .wdk-header-github,
+    .wdk-header-cta { display: none; }
+    .wdk-header-actions { gap: 6px; }
+    .wdk-search-btn { width: auto; padding: 8px; }
+    .wdk-search-label,
+    .wdk-search-btn kbd { display: none; }
+  }
+</style>

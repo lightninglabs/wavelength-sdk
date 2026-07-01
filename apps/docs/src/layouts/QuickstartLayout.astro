@@ -1,0 +1,469 @@
+---
+/**
+ * QuickstartLayout.astro - Quickstart stepper page layout.
+ *
+ * Three-column layout: fixed left Sidebar | step content | a fixed full-height
+ * stepper rail on the right (same geometry as TableOfContents / ReferenceLayout).
+ *
+ * The stepper is populated entirely client-side on astro:page-load by
+ * collecting every [data-step] section found in the content. This avoids any
+ * server/client data duplication and stays correct through view-transition
+ * client-side navigations (module scripts do not re-run on nav; the
+ * astro:page-load + astro:before-swap pair from CodeRail.astro is used here
+ * for the same reason). Because the step items are built with innerHTML, they
+ * never receive Astro's scoped data-astro-cid attribute, so every selector
+ * that targets a generated element (.wdk-qs__step-item and its descendants)
+ * must be wrapped in :global() - otherwise the rules are emitted scoped to an
+ * attribute the elements never carry and silently never match (see
+ * ReferenceLayout.astro's :global(.wdk-ref__rail-link) for the same pattern).
+ *
+ * Accent resolves from accentForSlug (violet for get-started).
+ *
+ * Props (match DocLayout / GuideLayout):
+ *   entry    - the content collection entry (has .id, .data.title, etc.)
+ *   headings - from render(entry); accepted for signature parity, unused here.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Sidebar from '~/components/Sidebar.astro';
+import { accentForSlug } from '~/config/nav';
+
+interface Props {
+  entry: {
+    id: string;
+    data: {
+      title: string;
+      description?: string;
+    };
+  };
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry } = Astro.props;
+const accent = accentForSlug(entry.id);
+---
+
+<BaseLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  accent={accent}
+  footerInsetLeft
+>
+  <div class="wdk-qs">
+    <Sidebar currentSlug={entry.id} />
+
+    <!-- Main area pushed right of the fixed sidebar; stepper rail is fixed on
+         the right screen edge (see .wdk-qs__stepper below). -->
+    <div class="wdk-qs__main">
+      <main class="wdk-qs__content" data-pagefind-body>
+        <div class="wdk-qs__accent" aria-hidden="true"></div>
+        <h1 class="wdk-qs__title">{entry.data.title}</h1>
+        <slot />
+      </main>
+
+      <!-- Fixed full-height stepper rail, pinned to the right screen edge. -->
+      <aside class="wdk-qs__stepper" aria-label="Quickstart steps">
+        <div class="wdk-qs__stepper-heading" aria-hidden="true">
+          <span class="wdk-qs__sq" aria-hidden="true"></span>
+          Quickstart
+        </div>
+
+        <div
+          class="wdk-qs__progress"
+          role="progressbar"
+          aria-valuenow="0"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-label="Quickstart progress"
+          data-qs-progress
+        >
+          <div class="wdk-qs__progress-text">
+            <span data-qs-progress-label></span>
+            <span data-qs-progress-pct></span>
+          </div>
+          <div class="wdk-qs__progress-bar">
+            <div class="wdk-qs__progress-fill" data-qs-progress-fill></div>
+          </div>
+        </div>
+
+        <ol class="wdk-qs__step-list" data-stepper role="list"></ol>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // Initialise the stepper on astro:page-load so it runs on first load AND
+  // after every client-side (view transition) navigation. Module scripts do
+  // not re-run on client nav, so the astro:page-load listener is required
+  // (same pattern as CodeRail.astro).
+  function setupStepper() {
+    const listEl = document.querySelector('[data-stepper]');
+    if (!(listEl instanceof HTMLElement) || listEl.dataset.wdkBound) return;
+    const list = listEl;
+    list.dataset.wdkBound = '1';
+
+    const sections = Array.from(document.querySelectorAll('[data-step]'));
+    if (sections.length === 0) return;
+
+    // Build one <li> per section and insert into the stepper rail.
+    sections.forEach((sec, idx) => {
+      const title =
+        (sec instanceof HTMLElement ? sec.dataset.stepTitle : undefined) ??
+        sec.querySelector('h2')?.textContent ??
+        `Step ${idx + 1}`;
+      const li = document.createElement('li');
+      li.className = 'wdk-qs__step-item';
+      li.dataset.stepItem = '';
+      li.setAttribute('role', 'listitem');
+      li.innerHTML = `
+        <span class="wdk-qs__step-node" aria-hidden="true">${idx + 1}</span>
+        <span class="wdk-qs__step-body">
+          <span class="wdk-qs__step-label">${title}</span>
+        </span>
+      `;
+      list.appendChild(li);
+    });
+
+    const items = Array.from(list.querySelectorAll('[data-step-item]'));
+    const total = sections.length;
+
+    function activate(index: number) {
+      items.forEach((el, i) => {
+        el.classList.remove('is-active', 'is-done');
+        if (i < index) el.classList.add('is-done');
+        if (i === index) {
+          el.classList.add('is-active');
+          el.setAttribute('aria-current', 'step');
+        } else {
+          el.removeAttribute('aria-current');
+        }
+      });
+
+      // Update the progress bar.
+      const pct = Math.round(((index + 1) / total) * 100);
+      const fill = document.querySelector('[data-qs-progress-fill]');
+      const label = document.querySelector('[data-qs-progress-label]');
+      const pctEl = document.querySelector('[data-qs-progress-pct]');
+      const pb = document.querySelector('[data-qs-progress]');
+      if (fill instanceof HTMLElement) fill.style.width = `${pct}%`;
+      if (label) label.textContent = `Step ${index + 1} of ${total}`;
+      if (pctEl) pctEl.textContent = `${pct}%`;
+      if (pb) {
+        pb.setAttribute('aria-valuenow', String(pct));
+        pb.setAttribute('aria-label', `Quickstart progress: step ${index + 1} of ${total}`);
+      }
+    }
+
+    // Map from step element to its click handler, used for teardown.
+    const clickHandlers = new WeakMap();
+
+    // Clicking a step item scrolls to its section.
+    items.forEach((item, idx) => {
+      function onStepClick() {
+        sections[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        activate(idx);
+      }
+      item.addEventListener('click', onStepClick);
+      // Store the handler reference without touching the DOM element.
+      clickHandlers.set(item, onStepClick);
+    });
+
+    // Scroll-sync: use IntersectionObserver to track which step is in view,
+    // matching the pattern from CodeRail.astro (rootMargin + thresholds).
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries
+        .filter((e) => e.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (vis) {
+        const idx = sections.indexOf(vis.target);
+        if (idx !== -1) activate(idx);
+      }
+    }, { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.25, 0.5, 1] });
+
+    sections.forEach((s) => io.observe(s));
+
+    // Activate first step immediately.
+    activate(0);
+
+    // Tear down all listeners before the next view-transition swap so they do
+    // not accumulate across client-side navigations. The teardown listener
+    // removes itself from astro:before-swap so teardown listeners also do not
+    // stack up (same pattern as CodeRail.astro).
+    function teardown() {
+      io.disconnect();
+      items.forEach((item) => {
+        const handler = clickHandlers.get(item);
+        if (handler) {
+          item.removeEventListener('click', handler);
+        }
+      });
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+
+  document.addEventListener('astro:page-load', setupStepper);
+</script>
+
+<style>
+  /* Outer wrapper - flex row so the sidebar and main area sit side by side at
+     full viewport height. */
+  .wdk-qs {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Main area pushed right of the fixed sidebar. The stepper rail is a fixed
+     full-height column pinned to the right screen edge (see .wdk-qs__stepper),
+     so the content needs a matching right margin to avoid being overlapped. */
+  .wdk-qs__main {
+    margin-left: var(--sidebar-w, 256px);
+    margin-right: var(--toc-w, 240px);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  /* Content column. */
+  .wdk-qs__content {
+    flex: 1;
+    min-width: 0;
+    max-width: 780px;
+    padding: 48px 40px 80px;
+  }
+
+  /* Stepper rail: fixed full-height column pinned to the right screen edge,
+     mirroring TableOfContents.astro and ReferenceLayout's symbol rail. */
+  .wdk-qs__stepper {
+    position: fixed;
+    top: var(--header-height, 56px);
+    right: 0;
+    bottom: var(--rail-bottom, 0);
+    width: var(--toc-w, 240px);
+    background: var(--rail-bg);
+    padding: 24px 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    z-index: 50;
+  }
+
+  .wdk-qs__stepper::-webkit-scrollbar { width: 4px; }
+  .wdk-qs__stepper::-webkit-scrollbar-track { background: transparent; }
+  .wdk-qs__stepper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Stepper heading: small caps label with a violet accent square. */
+  .wdk-qs__stepper-heading {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin: 0 0 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* Small colored square in the heading (violet accent). */
+  .wdk-qs__sq {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 1.75px;
+    background: var(--sl-accent, var(--violet));
+    flex-shrink: 0;
+  }
+
+  /* Progress bar section above the step list. */
+  .wdk-qs__progress {
+    margin-bottom: 16px;
+  }
+
+  .wdk-qs__progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .wdk-qs__progress-bar {
+    height: 2px;
+    background: var(--surface-3, #2c2c33);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .wdk-qs__progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sl-accent, var(--violet)), var(--teal, #15e0c2));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* Ordered list of step items - no default list styling. */
+  .wdk-qs__step-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * Everything from here down targets elements built client-side by the
+   * setupStepper() script (innerHTML, not Astro template markup), so these
+   * elements never receive Astro's scoped data-astro-cid attribute. Rules
+   * must be wrapped in :global() or they are emitted scoped to an attribute
+   * the elements never carry and silently never match - see
+   * ReferenceLayout.astro's :global(.wdk-ref__rail-link) for the same fix.
+   */
+
+  /* Individual step item - flex row: circle node + label body. */
+  :global(.wdk-qs__step-item) {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* Vertical connector line between steps (runs from below the node to the
+     bottom of the row, bridging into the next step). */
+  :global(.wdk-qs__step-item::before) {
+    content: '';
+    position: absolute;
+    /* Center on the 26px node column (2px line, node is 26px wide). */
+    left: 12px;
+    /* 2px margin-top + 26px node height. */
+    top: 28px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-2);
+    z-index: 0;
+  }
+
+  :global(.wdk-qs__step-item:last-child::before) {
+    display: none;
+  }
+
+  /* Connector turns accent color when step is done. */
+  :global(.wdk-qs__step-item.is-done::before) {
+    background: var(--sl-accent, var(--violet));
+  }
+
+  /* Connector fades from accent to border for the active step. */
+  :global(.wdk-qs__step-item.is-active::before) {
+    background: linear-gradient(to bottom, var(--sl-accent, var(--violet)), var(--border));
+  }
+
+  /* Circle node showing the step number. */
+  :global(.wdk-qs__step-node) {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+    margin-top: 2px;
+    transition: background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s;
+  }
+
+  /* Hover: nudge the node toward the accent before a step is active or done. */
+  :global(.wdk-qs__step-item:hover .wdk-qs__step-node) {
+    border-color: var(--sl-accent, var(--violet));
+    color: var(--sl-accent, var(--violet));
+  }
+
+  /* Completed step: filled circle. */
+  :global(.wdk-qs__step-item.is-done .wdk-qs__step-node) {
+    background: var(--sl-accent, var(--violet));
+    border-color: var(--sl-accent, var(--violet));
+    color: #fff;
+  }
+
+  /* Active step: accent ring with glow. */
+  :global(.wdk-qs__step-item.is-active .wdk-qs__step-node) {
+    background: var(--surface-2, #24242a);
+    border-color: var(--sl-accent, var(--violet));
+    color: var(--sl-accent, var(--violet));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--sl-accent, var(--violet)) 15%, transparent);
+  }
+
+  /* Body column holding the step label text. */
+  :global(.wdk-qs__step-body) {
+    padding: 4px 0 18px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Step label text - the link styling called out as missing: readable
+     size/weight/color, with hover and done/active/upcoming distinction. */
+  :global(.wdk-qs__step-label) {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    transition: color 0.2s;
+    line-height: 1.3;
+    display: block;
+  }
+
+  :global(.wdk-qs__step-item:hover .wdk-qs__step-label) {
+    color: var(--text);
+  }
+
+  :global(.wdk-qs__step-item.is-done .wdk-qs__step-label) {
+    color: var(--text-muted);
+  }
+
+  :global(.wdk-qs__step-item.is-active .wdk-qs__step-label) {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Short accent bar above the page title. */
+  .wdk-qs__accent {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sl-accent, var(--violet));
+    margin-bottom: 16px;
+  }
+
+  /* Page h1 injected by the layout (Step sections start at h2). */
+  .wdk-qs__title {
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 36px;
+    line-height: 1.15;
+    color: var(--text);
+  }
+
+  /* Mobile: single column - drop the left/right margins (sidebar and stepper
+     rail hide themselves), content goes full-width. */
+  @media (max-width: 768px) {
+    .wdk-qs__main {
+      margin-left: 0;
+      margin-right: 0;
+    }
+    .wdk-qs__content {
+      max-width: 100%;
+      padding: 32px 20px 60px;
+    }
+    .wdk-qs__stepper {
+      display: none;
+    }
+  }
+</style>

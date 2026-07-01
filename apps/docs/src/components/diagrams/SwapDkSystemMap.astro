@@ -1,0 +1,142 @@
+---
+/**
+ * SwapDkSystemMap.astro - the "what you run vs. what is managed" map on the
+ * SwapDK system page. A bespoke vertical composition: your app feeds the
+ * WalletDK hub (the client you run, with its integration surfaces), which
+ * forks to Bitcoin on-chain via exit and to the managed SwapDK service via
+ * BOLT 11, which settles over the Lightning Network. Node/edge primitives
+ * are the shared .wdk-dg* classes from theme.css; only the grid geometry
+ * lives here.
+ */
+---
+
+<figure
+  class="wdk-dg wdk-sysmap"
+  aria-label="Diagram: your app calls WalletDK, the client you run. WalletDK can exit to Bitcoin on-chain at any time, and pays BOLT 11 invoices through SwapDK, the managed coordination and liquidity service, which settles over the Lightning Network."
+>
+  <div class="wdk-sysmap__grid">
+    <!-- Your app. -->
+    <div class:list={['wdk-dg-node', 'wdk-dg--lime', 'wdk-sysmap__app']}>
+      <span class="wdk-dg-node__sq" aria-hidden="true"></span>
+      <span class="wdk-dg-node__label">Your app</span>
+    </div>
+
+    <div class="wdk-dg-edge wdk-dg-edge--v wdk-dg--teal wdk-sysmap__drop-in" aria-hidden="true">
+      <span class="wdk-dg-edge__tag">wallet API</span>
+    </div>
+
+    <!-- The WalletDK hub: the client you run, with its integration surfaces. -->
+    <div class:list={['wdk-dg-node', 'wdk-dg--teal', 'wdk-sysmap__hub']}>
+      <span class="wdk-dg-node__sq" aria-hidden="true"></span>
+      <span>
+        <span class="wdk-dg-node__label">WalletDK</span>
+        <span class="wdk-dg-node__sub">the client you run &middot; holds keys, signs payments</span>
+      </span>
+      <span class="wdk-sysmap__chips" aria-label="Integration surfaces">
+        <span>browser</span><span>server</span><span>SDK</span><span>MCP</span>
+      </span>
+    </div>
+
+    <!-- Fork: exit to Bitcoin, BOLT 11 to the managed service. -->
+    <div class="wdk-dg-edge wdk-dg-edge--v wdk-dg--sky wdk-sysmap__drop-exit" aria-hidden="true">
+      <span class="wdk-dg-edge__tag">exit</span>
+    </div>
+    <div class="wdk-dg-edge wdk-dg-edge--v wdk-dg--violet wdk-sysmap__drop-bolt" aria-hidden="true">
+      <span class="wdk-dg-edge__tag">BOLT 11</span>
+    </div>
+
+    <div class:list={['wdk-dg-node', 'wdk-dg--sky', 'wdk-sysmap__btc']}>
+      <span class="wdk-dg-node__sq" aria-hidden="true"></span>
+      <span>
+        <span class="wdk-dg-node__label">Bitcoin on-chain</span>
+        <span class="wdk-dg-node__sub">yours anytime, no permission</span>
+      </span>
+    </div>
+
+    <div class:list={['wdk-dg-node', 'wdk-dg--violet', 'wdk-sysmap__swapdk']}>
+      <span class="wdk-dg-node__sq" aria-hidden="true"></span>
+      <span>
+        <span class="wdk-dg-node__label">SwapDK</span>
+        <span class="wdk-dg-node__sub">managed for you &middot; coordination + settlement</span>
+        <span class="wdk-dg-node__sub">deep liquidity via Loop</span>
+      </span>
+    </div>
+
+    <div class="wdk-dg-edge wdk-dg-edge--v wdk-dg--sky wdk-sysmap__drop-ln" aria-hidden="true"></div>
+
+    <div class:list={['wdk-dg-node', 'wdk-dg--sky', 'wdk-sysmap__ln']}>
+      <span class="wdk-dg-node__sq" aria-hidden="true"></span>
+      <span class="wdk-dg-node__label">Lightning Network</span>
+    </div>
+  </div>
+</figure>
+
+<style>
+  figure.wdk-sysmap {
+    margin-inline: 0;
+  }
+
+  /* Two columns: exits on the left, the managed payment path on the right.
+     min-width keeps the geometry intact; the frame scrolls on small screens. */
+  .wdk-sysmap__grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    column-gap: 44px;
+    justify-items: center;
+    width: fit-content;
+    min-width: 480px;
+    margin: 0 auto;
+  }
+
+  .wdk-sysmap__app      { grid-column: 1 / -1; }
+  .wdk-sysmap__drop-in  { grid-column: 1 / -1; }
+  .wdk-sysmap__hub      { grid-column: 1 / -1; justify-self: stretch; }
+  .wdk-sysmap__drop-exit { grid-column: 1; }
+  .wdk-sysmap__drop-bolt { grid-column: 2; }
+  .wdk-sysmap__btc      { grid-column: 1; align-self: start; }
+  .wdk-sysmap__swapdk   { grid-column: 2; }
+  .wdk-sysmap__drop-ln  { grid-column: 2; }
+  .wdk-sysmap__ln       { grid-column: 2; }
+
+  /* The hub reads as the centerpiece: wider padding and the surfaces chips
+     pushed to the right edge. */
+  .wdk-sysmap__hub {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  .wdk-sysmap__chips {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    padding-left: 18px;
+  }
+
+  .wdk-sysmap__chips span {
+    padding: 3px 9px;
+    font-family: var(--font-mono);
+    font-size: 0.594rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* Small screens: stack the hub contents so the chips wrap under the name. */
+  @media (max-width: 560px) {
+    .wdk-sysmap__hub {
+      flex-wrap: wrap;
+    }
+    .wdk-sysmap__chips {
+      margin-left: 0;
+      padding-left: 18px;
+      flex-wrap: wrap;
+    }
+  }
+</style>

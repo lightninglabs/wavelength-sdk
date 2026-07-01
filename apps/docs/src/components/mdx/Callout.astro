@@ -1,0 +1,60 @@
+---
+// A content callout (replaces Starlight's <Aside>). Styling ported from
+// design-mockups/r4-final/styles.css (.callout rules). Class is .wdk-callout.
+interface Props { type?: 'note' | 'tip' | 'caution' | 'danger' | 'warning'; title?: string; }
+const { type = 'note', title } = Astro.props;
+const label = title ?? type[0].toUpperCase() + type.slice(1);
+---
+<aside class={`wdk-callout wdk-callout--${type}`}>
+  <p class="wdk-callout__title">{label}</p>
+  <div class="wdk-callout__body"><slot /></div>
+</aside>
+
+<style>
+  .wdk-callout {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--surface, #1c1c21);
+    border: 1px solid var(--border, #303037);
+    border-left: 3px solid var(--border-2, #44444d);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 1.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted, #b6b6c0);
+    line-height: 1.6;
+  }
+
+  .wdk-callout--caution,
+  .wdk-callout--danger,
+  .wdk-callout--warning {
+    border-left-color: var(--orange, #f7920e);
+  }
+
+  .wdk-callout--tip {
+    border-left-color: var(--lime, #c9f000);
+  }
+
+  .wdk-callout__title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text, #f5f5f7);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .wdk-callout--caution .wdk-callout__title,
+  .wdk-callout--danger .wdk-callout__title,
+  .wdk-callout--warning .wdk-callout__title {
+    color: var(--orange, #f7920e);
+  }
+
+  .wdk-callout--tip .wdk-callout__title {
+    color: var(--lime, #c9f000);
+  }
+
+  .wdk-callout__body {
+    color: var(--text-muted, #b6b6c0);
+  }
+</style>

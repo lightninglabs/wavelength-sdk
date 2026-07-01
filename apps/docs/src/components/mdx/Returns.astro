@@ -1,0 +1,86 @@
+---
+/**
+ * Returns.astro - Return value block for a reference symbol.
+ *
+ * Shows the return type as an accent-tinted label and uses the default slot
+ * for a prose description of what the returned value represents.
+ *
+ * Props:
+ *   type - the return type string (rendered monospaced with orange tint).
+ */
+interface Props {
+  type: string;
+}
+
+const { type } = Astro.props;
+---
+
+<div class="wdk-returns">
+  <span class="wdk-returns__label">Returns</span>
+  <code class="wdk-returns__type">{type}</code>
+  <div class="wdk-returns__desc">
+    <slot />
+  </div>
+</div>
+
+<style>
+  /* Outer block with a subtle left border that echoes the accent color. */
+  .wdk-returns {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin: 16px 0 24px;
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 6%, transparent);
+    border-left: 3px solid var(--sl-accent, var(--orange));
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* Small uppercase "Returns" label. */
+  .wdk-returns__label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--sl-accent, var(--orange));
+    flex-shrink: 0;
+  }
+
+  /* Return type: monospaced, accent-colored. */
+  .wdk-returns__type {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 25%, transparent);
+    border-radius: 3px;
+    padding: 0.1em 0.4em;
+    flex-shrink: 0;
+  }
+
+  /* Description prose below the type label. */
+  .wdk-returns__desc {
+    width: 100%;
+    margin-top: 6px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .wdk-returns__desc :global(p) {
+    margin: 0;
+  }
+
+  /* Inline code in the description slot. Background uses the surface-2 token,
+     which resolves correctly in both light and dark mode without a hardcoded fallback. */
+  .wdk-returns__desc :global(:not(.expressive-code) code) {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.3em;
+  }
+</style>

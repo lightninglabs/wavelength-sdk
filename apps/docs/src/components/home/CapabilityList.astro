@@ -1,0 +1,222 @@
+---
+/**
+ * CapabilityList.astro - "Everything you need. Nothing you don't." section.
+ * Six capability items in a two-column bordered grid.
+ * No emoji icons - SVG icons only, per r4 spec.
+ */
+---
+
+<section class="wdk-caps" aria-labelledby="wdk-caps-heading">
+  <div class="wdk-caps__eyebrow">
+    <div class="wdk-caps__eyebrow-sq" aria-hidden="true"></div>
+    <span class="wdk-caps__eyebrow-text">Capabilities</span>
+    <div class="wdk-caps__eyebrow-line" aria-hidden="true"></div>
+  </div>
+  <h2 id="wdk-caps-heading" class="wdk-caps__heading">Everything you need.<br>Nothing you don't.</h2>
+  <p class="wdk-caps__sub">No node, no channels, no liquidity to manage. WalletDK handles the hard parts of Lightning for you.</p>
+
+  <ul class="wdk-caps__list" role="list">
+    <li class="wdk-cap" role="listitem">
+      <div class="wdk-cap__icon wdk-cap__icon--violet" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="5" height="5" rx="1" fill="var(--violet)"/>
+          <rect x="9" y="2" width="5" height="5" rx="1" fill="var(--violet)" opacity=".5"/>
+          <rect x="2" y="9" width="5" height="5" rx="1" fill="var(--violet)" opacity=".5"/>
+          <rect x="9" y="9" width="5" height="5" rx="1" fill="var(--violet)" opacity=".25"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wdk-cap__name">Self-custodial</div>
+        <p class="wdk-cap__desc">Users hold their own keys. Private keys never leave the browser. No custodial risk, no trusted third parties.</p>
+      </div>
+    </li>
+
+    <li class="wdk-cap" role="listitem">
+      <div class="wdk-cap__icon wdk-cap__icon--teal" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M2 8h12M8 2l6 6-6 6" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wdk-cap__name">Lightning via swaps</div>
+        <p class="wdk-cap__desc">Instant Lightning payments with deep, reliable liquidity via Loop. No node to run and no channels to manage - routing is handled for you.</p>
+      </div>
+    </li>
+
+    <li class="wdk-cap" role="listitem">
+      <div class="wdk-cap__icon wdk-cap__icon--orange" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M8 2v12M3 7l5 5 5-5" stroke="var(--orange)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wdk-cap__name">Unilateral exit anytime</div>
+        <p class="wdk-cap__desc">Users can always exit to on-chain Bitcoin unilaterally - no cooperation required. True sovereignty, guaranteed by the protocol.</p>
+      </div>
+    </li>
+
+    <li class="wdk-cap" role="listitem">
+      <div class="wdk-cap__icon wdk-cap__icon--lime" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="1.5" y="4" width="13" height="9" rx="1.5" stroke="var(--lime)" stroke-width="1.25"/>
+          <path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1" stroke="var(--lime)" stroke-width="1.25"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wdk-cap__name">Runs in the browser</div>
+        <p class="wdk-cap__desc">No native app. No server-side wallet process. Runs entirely in a browser tab using WebAssembly, with wallet state in OPFS.</p>
+      </div>
+    </li>
+
+    <li class="wdk-cap" role="listitem">
+      <div class="wdk-cap__icon wdk-cap__icon--sky" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M8 2a3 3 0 100 6 3 3 0 000-6z" fill="var(--sky)" opacity=".4"/>
+          <path d="M8 10c-3.3 0-6 1.5-6 2.5V14h12v-1.5C14 11.5 11.3 10 8 10z" fill="var(--sky)" opacity=".7"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wdk-cap__name">Passkey auth</div>
+        <p class="wdk-cap__desc">Secure wallet access via WebAuthn passkeys. No passwords, no seed phrase UX friction - biometric authentication built in.</p>
+      </div>
+    </li>
+
+    <li class="wdk-cap" role="listitem">
+      <div class="wdk-cap__icon wdk-cap__icon--teal2" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="5.5" stroke="var(--teal)" stroke-width="1.25"/>
+          <path d="M5.5 8h5M8 5.5v5" stroke="var(--teal)" stroke-width="1.25" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="wdk-cap__name">Ark scaling</div>
+        <p class="wdk-cap__desc">Ark protocol enables near-instant, low-fee off-chain payments with on-chain settlement guarantees. Scale without compromise.</p>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<style>
+  .wdk-caps {
+    padding: 100px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Eyebrow row. */
+  .wdk-caps__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .wdk-caps__eyebrow-sq {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--teal);
+    flex-shrink: 0;
+  }
+  .wdk-caps__eyebrow-text {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .wdk-caps__eyebrow-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 60px;
+  }
+
+  .wdk-caps__heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .wdk-caps__sub {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    line-height: 1.65;
+  }
+
+  /* Two-column bordered grid. */
+  .wdk-caps__list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .wdk-cap {
+    display: flex;
+    gap: 20px;
+    padding: 28px 32px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .wdk-cap:hover { background: var(--surface); }
+
+  /* Odd items get a right border (left column). */
+  .wdk-cap:nth-child(odd) { border-right: 1px solid var(--border); }
+
+  /* Last two items have no bottom border. */
+  .wdk-cap:nth-last-child(-n+2) { border-bottom: none; }
+
+  /* Icon square. */
+  .wdk-cap__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wdk-cap__icon svg { width: 16px; height: 16px; }
+
+  .wdk-cap__icon--violet { background: rgba(122, 47, 242, 0.12); }
+  .wdk-cap__icon--teal   { background: rgba(21, 224, 194, 0.10); }
+  .wdk-cap__icon--teal2  { background: rgba(21, 224, 194, 0.10); }
+  .wdk-cap__icon--orange { background: rgba(247, 146, 14, 0.12); }
+  .wdk-cap__icon--lime   { background: rgba(201, 240, 0, 0.10); }
+  .wdk-cap__icon--sky    { background: rgba(86, 199, 242, 0.10); }
+
+  .wdk-cap__name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .wdk-cap__desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Mobile: single-column list, fix the 2-col divider borders. */
+  @media (max-width: 768px) {
+    .wdk-caps { padding: 60px 20px; }
+    .wdk-caps__list { grid-template-columns: 1fr; }
+    .wdk-cap { padding: 24px 20px; }
+    .wdk-cap:nth-child(odd) { border-right: none; }
+    .wdk-cap:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+    .wdk-cap:last-child { border-bottom: none; }
+  }
+</style>
