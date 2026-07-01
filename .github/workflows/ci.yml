@@ -17,3 +17,9 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm --filter @lightninglabs/walletdk-web test
+      - name: Build docs site
+        run: pnpm --filter @lightninglabs/walletdk-docs run build
+      - name: Docs smoke test
+        run: |
+          pnpm --filter @lightninglabs/walletdk-docs exec playwright install --with-deps chromium
+          pnpm --filter @lightninglabs/walletdk-docs test
