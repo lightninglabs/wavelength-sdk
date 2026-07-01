@@ -1,0 +1,60 @@
+name: Deploy Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      VITE_BASE_PATH: /demo/
+      # Public GCS (or CDN) directory containing RUNTIME_ASSET_FILES.
+      # Set in repo Settings → Secrets and variables → Actions → Variables.
+      RUNTIME_ASSETS_BASE_URL: ${{ vars.RUNTIME_ASSETS_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @lightninglabs/walletdk-docs run build
+      - name: Verify runtime assets URL
+        run: |
+          if [ -z "${RUNTIME_ASSETS_BASE_URL// }" ]; then
+            echo "::error::Set the RUNTIME_ASSETS_BASE_URL repository variable (Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+      - run: pnpm --filter web-wallet-demo run wasm:fetch
+      - run: pnpm --filter web-wallet-demo run build
+
+      - name: Assemble site
+        run: |
+          mkdir -p deploy/demo
+          cp -r apps/docs/dist/* deploy/
+          cp -r apps/web-wallet-demo/dist/* deploy/demo/
+          touch deploy/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

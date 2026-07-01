@@ -16,7 +16,7 @@ const crossOriginIsolation = {
 };
 
 export default defineConfig({
-  base: "./",
+  base: process.env.VITE_BASE_PATH ?? "./",
   plugins: [react(), tailwindcss()],
   server: { headers: crossOriginIsolation },
   preview: { headers: crossOriginIsolation },

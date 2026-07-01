@@ -8,7 +8,8 @@
     "test": "playwright test",
     "test:signet": "playwright test --config=playwright.signet.config.js",
     "typecheck": "tsc --noEmit",
-    "wasm:local": "bash scripts/wasm-local.sh"
+    "wasm:local": "bash scripts/wasm-local.sh",
+    "wasm:fetch": "bash scripts/fetch-runtime-assets.sh"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.1.0",
