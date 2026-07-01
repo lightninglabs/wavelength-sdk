@@ -40,8 +40,8 @@ Both paths protect the same underlying wallet seed, but they derive the encrypti
 
 **Password unlock** is the baseline flow:
 
-1. `createWallet({ password })` generates (or imports) a mnemonic and encrypts the seed with the password.
-2. `unlockWallet({ password })` decrypts the seed on each session.
+1. `createWallet({ password })` generates (or imports) a mnemonic and creates the wallet database with its key material encrypted under the password.
+2. `unlockWallet({ password })` opens the wallet database with that password on each session.
 
 The password never leaves your app as plaintext on the wire; the SDK encodes it for the daemon's unlock RPC. Users must remember the password (and back up the mnemonic if you expose it).
 
@@ -102,4 +102,4 @@ Passkeys tie unlock to a device and biometric or PIN verification. They remove p
 WebAuthn registration, PRF extension availability, and credential persistence are platform mechanics. See [Use a passkey](/guides/use-a-passkey/) for browser-specific steps; this page is the shared mental model.
 </Callout>
 
-From the wallet lifecycle perspective both paths converge: after unlock the daemon enters syncing, then ready. A restore (either path) instead passes through the engine-owned `'restoring'` phase first; recovery tracking through `snapshot.recovery` only kicks in when the call sets `recoverState: true`. Choose password for the simplest cross-device story; choose passkey when you want passwordless return visits on a trusted device.
+From the wallet lifecycle perspective both paths converge: after unlock the daemon enters syncing, then ready. A restore (either path) instead passes through the engine-owned `'restoring'` phase first; recovery tracking through `snapshot.recovery` only kicks in when the call sets `recoverState: true`. Choose password for the simplest cross-device story; choose passkey when you want passwordless return visits on a trusted device. For what the seed and passwords actually are, and how backup and recovery work in each mode, see [Keys, backup & recovery](/concepts/keys-backup-and-recovery/).
