@@ -35,14 +35,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm --filter @lightninglabs/walletdk-docs run build
-      - name: Verify runtime assets URL
+      - name: Fetch runtime assets
         run: |
           if [ -z "${RUNTIME_ASSETS_BASE_URL// }" ]; then
             echo "::error::Set the RUNTIME_ASSETS_BASE_URL repository variable (Settings → Secrets and variables → Actions → Variables)."
             exit 1
           fi
-      - run: pnpm --filter web-wallet-demo run wasm:fetch
+          pnpm --filter web-wallet-demo run wasm:fetch
+      - run: pnpm --filter @lightninglabs/walletdk-docs run build
       - run: pnpm --filter web-wallet-demo run build
 
       - name: Assemble site
