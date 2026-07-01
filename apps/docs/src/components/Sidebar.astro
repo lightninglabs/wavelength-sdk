@@ -6,7 +6,7 @@
  * Props:
  *   currentSlug - the slug of the currently active page (e.g. "web/get-started/quickstart").
  */
-import { NAV, SECTION_ACCENT, accentForSlug } from '~/config/nav';
+import { SECTION_ACCENT, accentForSlug, sliceForSlug } from '~/config/nav';
 
 interface Props {
   currentSlug: string;
@@ -16,10 +16,11 @@ const { currentSlug } = Astro.props;
 
 // Resolve the accent color for the currently active slug.
 const activeAccent = accentForSlug(currentSlug);
+const groups = sliceForSlug(currentSlug).nav;
 ---
 
 <nav class="wdk-sidebar" aria-label="Documentation navigation">
-  {NAV.map((group) => {
+  {groups.map((group) => {
     const groupAccent = SECTION_ACCENT[group.section] ?? 'violet';
     return (
       <div class="wdk-sidebar__section">

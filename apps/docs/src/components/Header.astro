@@ -4,13 +4,14 @@
  * Ported from design-mockups/r4-final/home.html + styles.css.
  * Uses glass background + blur for separation; no hard border-bottom divider.
  */
-import { TOP_NAV, isTopNavActive } from '~/config/nav';
+import { SLICES, sliceForPath } from '~/config/nav';
 import ThemeToggle from '~/components/ThemeToggle';
 import MobileNav from '~/components/MobileNav.astro';
 import SearchModal from '~/components/SearchModal';
 
-// Current path drives the active top-nav highlight.
+// Current path drives the active slice-tab highlight.
 const pathname = Astro.url.pathname;
+const activeSlice = sliceForPath(pathname);
 ---
 
 <header class="wdk-header" role="banner">
@@ -38,14 +39,14 @@ const pathname = Astro.url.pathname;
   </a>
 
   <nav class="wdk-topnav" aria-label="Primary navigation">
-    {TOP_NAV.map((item) => {
-      const isActive = isTopNavActive(pathname, item);
+    {SLICES.map((slice) => {
+      const isActive = slice.key === activeSlice.key;
       return (
         <a
-          href={`/${item.slug}/`}
+          href={slice.href}
           class:list={[isActive && 'wdk-topnav__active']}
           aria-current={isActive ? 'page' : undefined}
-        >{item.label}</a>
+        >{slice.label}</a>
       );
     })}
   </nav>
