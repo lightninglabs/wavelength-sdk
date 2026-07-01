@@ -1,0 +1,133 @@
+---
+title: Send a payment
+description: How to send sats over Lightning (out-swap) or on-chain (cooperative leave) using the prepare then confirm flow.
+pageLayout: guide
+related:
+  - web/guides/receive-a-lightning-payment
+  - web/guides/show-balance-and-activity
+  - web/guides/get-a-deposit-address
+  - web/guides/unilateral-exit
+---
+
+## Send over Lightning
+
+WalletDK uses an out-swap to route a Lightning payment from your Ark balance.
+Call `prepareSend({ invoice })` to get a fee quote and a single-use
+`sendIntentId`. Pass the result to `sendPrepared()` to execute.
+
+The two-step flow lets you show the user the fee before committing. If the
+user cancels, discard the quote and call nothing. For a one-step path, call
+`send({ invoice })` instead.
+
+The quote returned by `prepareSend()` expires at `expiresAtUnix`. If the user
+waits too long before confirming, call `prepareSend()` again to get a fresh
+quote before calling `sendPrepared()`. Check `feeKnown` before displaying
+`expectedFeeSat`: when `feeKnown` is `false` the fee is only an estimate, and
+`warning` may contain additional detail to show the user.
+
+```tsx title="send.tsx"
+import { useState } from 'react';
+import { useWalletDK } from '@lightninglabs/walletdk-react';
+import type { PrepareSendResult } from '@lightninglabs/walletdk-core';
+
+function SendLightning() {
+  const { client } = useWalletDK();
+  const [quote, setQuote] = useState<PrepareSendResult | null>(null);
+
+  const prepare = async (bolt11: string) => {
+    // prepareSend returns a fee quote and sendIntentId.
+    setQuote(await client.prepareSend({ invoice: bolt11 }));
+  };
+
+  const confirm = async () => {
+    if (!quote) return;
+    // sendPrepared dispatches the payment.
+    await client.sendPrepared(quote);
+    setQuote(null);
+  };
+
+  if (quote) {
+    return (
+      <div>
+        <p>
+          Fee: {quote.expectedFeeSat} sats
+          {!quote.feeKnown && ' (estimate)'}
+        </p>
+        {quote.warning && <p role="alert">{quote.warning}</p>}
+        <button onClick={confirm}>Confirm payment</button>
+        <button onClick={() => setQuote(null)}>Cancel</button>
+      </div>
+    );
+  }
+
+  return <button onClick={() => prepare('lnbc...')}>Pay invoice</button>;
+}
+```
+
+## Send on-chain (cooperative leave)
+
+An on-chain send performs a cooperative leave: the Ark server co-signs a
+transaction that moves your VTXO value to a plain Bitcoin address. This is
+faster and cheaper than a unilateral exit because the round happens in one
+confirmation.
+
+Pass `onchainAddress` and `amountSat` to `send()`. The returned `SendResult`
+includes the activity entry and `actualAmountSat`.
+
+```tsx title="send.tsx"
+import { useSend } from '@lightninglabs/walletdk-react';
+
+function SendOnChain() {
+  const { send, busy } = useSend();
+
+  const handleSend = async (address: string, amountSat: number) => {
+    await send({
+      onchainAddress: address,
+      amountSat,
+    });
+  };
+
+  return (
+    <button onClick={() => handleSend('bc1q...', 50_000)} disabled={busy}>
+      Send on-chain
+    </button>
+  );
+}
+```
+
+## Handle errors
+
+Wallet operations throw a `WalletDKError` on failure. Check `err.code` for a
+machine-readable reason. Display `err.message` to the user.
+
+When using `useSend()`, read `error` from the hook or call `clearError()`
+after handling the failure. Errors thrown
+during `prepareSend` are safe to retry. Errors thrown during `sendPrepared`
+may indicate the payment was already sent; check the activity feed before
+retrying.
+
+```tsx title="send.tsx"
+import { useSend, WalletDKError } from '@lightninglabs/walletdk-react';
+
+function SafeSend() {
+  const { send, error, clearError } = useSend();
+
+  const pay = async (bolt11: string) => {
+    clearError();
+    try {
+      await send({ invoice: bolt11 });
+    } catch (err) {
+      if (err instanceof WalletDKError) {
+        console.error('Payment failed:', err.code, err.message);
+      }
+    }
+  };
+
+  return (
+    <>
+      <button onClick={() => pay('lnbc...')}>Pay</button>
+      {error && <p role="alert">{error}</p>}
+    </>
+  );
+}
+```

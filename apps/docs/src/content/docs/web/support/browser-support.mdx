@@ -1,0 +1,54 @@
+---
+title: Browser support
+description: The compatibility matrix showing which browsers and versions support WalletDK's WebAssembly runtime, OPFS storage, and passkey features.
+---
+
+## Matrix
+
+WalletDK targets evergreen desktop and mobile browsers with mature WebAssembly,
+Worker, and storage APIs. Minimum versions below are **floors for the WASM
+runtime**; passkeys and OPFS persistence have stricter requirements noted in
+their columns.
+
+| Browser | Min version | WebAuthn passkeys (PRF) | SharedArrayBuffer | OPFS persistence |
+|---|---|---|---|---|
+| Chrome / Edge | 100 | 114+ (platform authenticator + PRF extension) | Yes, with COOP/COEP | Yes, with COOP/COEP |
+| Firefox | 110 | Limited PRF support; prefer password fallback | Yes, with COOP/COEP | Yes, with COOP/COEP |
+| Safari (macOS) | 16 | 17.4+ for PRF | Yes, with COOP/COEP | Yes, with COOP/COEP |
+| Safari (iOS / iPadOS) | 16 | 17.4+ for PRF | Yes, with COOP/COEP | Yes, with COOP/COEP |
+
+**WebAssembly runtime:** Chrome 100+, Firefox 110+, and Safari 16+ are the
+documented development targets. Older engines may fail to instantiate the daemon
+or lack required APIs. See the
+[error codes reference](/web/guides/handle-phases-and-errors/) for the
+`runtime_not_ready` and `asset_load_failed` codes to catch when instantiation
+fails.
+
+**SharedArrayBuffer:** Available only when the page is
+[cross-origin isolated](/web/get-started/cross-origin-isolation/). Verify in
+DevTools: `crossOriginIsolated` should be `true`. Without it, worker mode with
+OPFS SQLite will not initialize.
+
+**OPFS:** Requires a secure context and cross-origin isolation for the SQLite
+VFS the daemon uses. `runtimeThread: 'main'` only changes which thread runs the
+wasm runtime (main thread instead of a Web Worker); it does not change the
+storage backend, so it is not a fallback for missing OPFS. Passing
+`createWebClient({ runtimeThread: 'main' })` is useful as a debugging escape
+hatch in environments without Web Worker support, but do not ship that path for
+real wallets. If OPFS itself is unavailable, wallet persistence is not
+currently guaranteed; treat this as an open question and verify behavior for
+your target environment before relying on it.
+
+**WebAuthn passkeys:** WalletDK derives wallet keys from the WebAuthn **PRF**
+extension. `webPasskeyCeremony.supportsPasskeyPrf()` checks for a user-verifying
+platform authenticator, but the authenticator must still return a PRF result at
+ceremony time. Gate passkey UI on the hook's `supported` flag and offer a
+password or recovery-phrase path when it is false. See the
+[passkey guide](/web/guides/use-a-passkey/) for a full example using
+`usePasskeyWallet`.
+
+Node.js **20+** is recommended for local development (Vite, Next.js, and
+similar bundlers). The runtime itself executes entirely in the user's browser.
+
+Password-based wallets work across the full matrix. Passkeys are optional and
+depend on the OS authenticator as well as the browser.

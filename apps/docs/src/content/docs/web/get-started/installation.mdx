@@ -1,0 +1,117 @@
+---
+title: Installation
+description: How to add the walletdk-web and walletdk-react packages to your project, including required peer dependencies.
+---
+
+## The packages
+
+WalletDK ships as three npm packages. You install one or two of them depending on
+your stack:
+
+| Package | What it is |
+|---|---|
+| `@lightninglabs/walletdk-core` | Types, the `WalletDKClient` interface, errors, and enums. Pulled in transitively; you rarely install it directly. |
+| `@lightninglabs/walletdk-web` | The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports everything from `core`. |
+| `@lightninglabs/walletdk-react` | React provider and hooks. Transport-agnostic: it takes an injected client and depends only on `core`. |
+
+**React apps** need the web transport and the React bindings:
+
+```bash title="Terminal"
+npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
+```
+
+**Vanilla JS, Vue, Svelte, or other non-React frameworks** need only the web
+transport:
+
+```bash title="Terminal"
+npm install @lightninglabs/walletdk-web
+```
+
+Before wiring up the code samples below, make sure the browser environment you're
+deploying to meets the [requirements](/web/get-started/requirements/) and serves
+your app with the headers described in
+[Cross-origin isolation](/web/get-started/cross-origin-isolation/). WalletDK's
+WebAssembly runtime will not start without them.
+
+## Peer deps
+
+`@lightninglabs/walletdk-react` declares `react` as a peer dependency, with an
+accepted range of `^18.0.0 || ^19.0.0`. Your app must also provide `react-dom`
+(or the equivalent for your React renderer). Either major version, 18 or 19,
+works:
+
+```bash title="Terminal"
+npm install react react-dom
+```
+
+Build the web client once near the root of your app. `createWebClient` accepts
+`WebClientOptions` (for example `runtimeBaseUrl` pointing at hosted WASM
+assets, see [Hosting runtime assets](/web/get-started/hosting-runtime-assets/)).
+Booting the embedded daemon is a separate step: call `start(config)` with
+a `RuntimeConfig` after the runtime is ready.
+
+```tsx title="App.tsx"
+import { useEffect } from 'react';
+import { WalletDKProvider, useWalletDK, defaultConfig } from '@lightninglabs/walletdk-react';
+import { createWebClient } from '@lightninglabs/walletdk-web';
+
+// Configure transport options once. runtimeBaseUrl points at the hosted WASM
+// asset folder.
+const client = createWebClient({
+  runtimeBaseUrl: 'https://your-host/walletdk/',
+});
+
+export function App() {
+  return (
+    <WalletDKProvider client={client}>
+      <Wallet />
+    </WalletDKProvider>
+  );
+}
+
+function Wallet() {
+  const wallet = useWalletDK();
+
+  // Boot the embedded daemon once the WASM runtime has loaded.
+  useEffect(() => {
+    if (wallet.phase === 'runtimeReady') {
+      wallet.start(defaultConfig('signet')).catch(() => {});
+    }
+  }, [wallet.phase]);
+
+  if (wallet.phase !== 'ready') {
+    return <p>Loading… ({wallet.phase})</p>;
+  }
+
+  return <p>Spendable: {wallet.balance?.confirmedSat ?? 0} sats</p>;
+}
+```
+
+The `.catch(() => {})` above silently swallows a failed `start` call. In practice
+you'll want to surface that failure: `wallet.error` holds the last runtime-level
+error message, and `wallet.operations.runtime.error` holds the same message
+scoped to the `start`/`stop` operation. Render either one instead of dropping
+the error on the floor.
+
+For a non-React app, skip the provider and call `start` on the client directly
+after `ready()` resolves:
+
+```ts title="main.ts"
+import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+
+const client = createWebClient({
+  runtimeBaseUrl: 'https://your-host/walletdk/',
+});
+
+await client.ready();
+await client.start(defaultConfig('signet'));
+```
+
+## Next steps
+
+- [Requirements](/web/get-started/requirements/): confirm the browser support
+  matrix and backend services WalletDK Web needs.
+- [Hosting runtime assets](/web/get-started/hosting-runtime-assets/): serve the
+  WebAssembly runtime from the CDN default or your own host.
+- [Quickstart](/web/get-started/quickstart/): wire up the provider, create a
+  wallet, and send your first payment.

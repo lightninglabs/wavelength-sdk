@@ -1,0 +1,1853 @@
+---
+title: walletdk-core
+description: Cross-platform interfaces, shared types, and error codes that every WalletDK platform target builds on.
+pageLayout: reference
+---
+
+import ApiSymbol from '~/components/mdx/ApiSymbol.astro';
+import Signature from '~/components/mdx/Signature.astro';
+import ParamsTable from '~/components/mdx/ParamsTable.astro';
+import Returns from '~/components/mdx/Returns.astro';
+import Callout from '~/components/mdx/Callout.astro';
+
+`@lightninglabs/walletdk-core` is the framework-agnostic contract every
+WalletDK transport implements: a typed `WalletDKClient` interface, the request
+and result shapes its methods take and return, and the shared error and event
+model. It has no browser or React dependency: [`walletdk-web`](/web/reference/walletdk-web/)
+implements it for the browser, and [`walletdk-react`](/web/reference/walletdk-react/)
+re-exports it and layers hooks on top.
+
+Every method response is camelCase-normalized at the boundary: the embedded
+daemon speaks PascalCase JSON, and the client rewrites every key to camelCase
+(via [`camelizeKeys()`](#camelizeKeys)) before it reaches you, so you never
+see a `WalletState` or `AmountSat` field in application code. All errors the
+SDK itself raises are a [`WalletDKError`](#WalletDKError) carrying a
+machine-readable [`WalletDKErrorCode`](#WalletDKErrorCode); daemon-originated
+failures currently surface as the generic `walletdk_error` code with a
+descriptive message.
+
+## Configuration
+
+export const defaultConfigSig = `function defaultConfig(
+  network: Network,
+  overrides?: Partial<RuntimeConfig>,
+): RuntimeConfig`;
+
+export const runtimeConfigSig = `type RuntimeConfig = {
+  network?: Network;
+  allowMainnet?: boolean;
+  dataDir?: string;
+  arkServerUrl?: string;
+  esploraUrl?: string;
+  swapServerUrl?: string;
+  swapDatabaseFileName?: string;
+  serverInsecure?: boolean;
+  swapServerInsecure?: boolean;
+  disableSwaps?: boolean;
+  debugLevel?: string;
+};`;
+
+export const networkSig = `type Network = 'mainnet' | 'testnet' | 'signet' | 'regtest';`;
+
+<ApiSymbol name="defaultConfig" kind="function">
+
+Returns a ready-to-use `RuntimeConfig` for a network, preloaded with canonical
+public gateway endpoints. Pass overrides to set `dataDir` or point at your own
+infrastructure, e.g. `defaultConfig('signet', { dataDir: 'my-wallet' })`.
+
+<Signature title="walletdk-core.d.ts" code={defaultConfigSig} />
+
+<ParamsTable rows={[
+  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Use signet for development and testing.' },
+  { name: 'overrides', type: 'Partial<RuntimeConfig>', desc: 'Optional. Fields that override the network preset’s defaults. Default: {}.' },
+]} />
+
+<Returns type="RuntimeConfig">
+A complete configuration object passed to `client.start()`.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="RuntimeConfig" kind="type">
+
+Configuration passed to `WalletDKClient.start()`. For the common case, start
+from `defaultConfig(network)` and override only the fields you need.
+
+<Signature title="walletdk-core.d.ts" code={runtimeConfigSig} />
+
+<ParamsTable rows={[
+  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Required. Use \'mainnet\' only together with allowMainnet.' },
+  { name: 'allowMainnet', type: 'boolean', desc: 'Must be true to run on mainnet; ignored on test networks. The daemon refuses to start on mainnet without it.' },
+  { name: 'dataDir', type: 'string', desc: 'Storage root for daemon and wallet state (an OPFS path in the browser). A daemon default is used when unset.' },
+  { name: 'arkServerUrl', type: 'string', desc: 'The Ark operator’s mailbox edge server (its REST gateway in the browser). Required to reach the Ark network.' },
+  { name: 'esploraUrl', type: 'string', desc: 'The Esplora REST endpoint the lightweight wallet uses for chain data. Required.' },
+  { name: 'swapServerUrl', type: 'string', desc: 'The Lightning swap server’s REST gateway. Leave unset (or set disableSwaps) to run without Lightning swaps.' },
+  { name: 'swapDatabaseFileName', type: 'string', desc: 'Advanced. The daemon-owned SQLite file for swap state; a sensible default is used when unset.' },
+  { name: 'serverInsecure', type: 'boolean', desc: 'Advanced. Disables TLS for the Ark server connection; for local development only.' },
+  { name: 'swapServerInsecure', type: 'boolean', desc: 'Advanced. Disables TLS for the swap server connection; for local development only.' },
+  { name: 'disableSwaps', type: 'boolean', desc: 'Turns off the Lightning swap subsystem entirely.' },
+  { name: 'debugLevel', type: 'string', desc: "The daemon's log verbosity (e.g. 'info', 'debug'). Distinct from the client's RPC-payload debug option." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="Network" kind="type">
+
+Selects the Bitcoin network the embedded daemon runs against.
+
+<Signature title="walletdk-core.d.ts" code={networkSig} />
+
+`defaultConfig()` holds a canonical public gateway preset per network, so the
+common case needs no URLs looked up:
+
+| Network | `arkServerUrl` | `esploraUrl` | `swapServerUrl` | Other fields |
+|---|---|---|---|---|
+| `signet` | `https://arkd-signet-rest.testnet.lightningcluster.com` | `https://mempool-signet.testnet.lightningcluster.com/api` | `https://swapd-signet-rest.testnet.lightningcluster.com` | - |
+| `testnet` | `https://arkd-rest.testnet.lightningcluster.com` | `https://mempool.space/testnet/api` | `https://swapd-rest.testnet.lightningcluster.com` | - |
+| `regtest` | `http://127.0.0.1:7071` | `http://127.0.0.1:8501` | `http://127.0.0.1:10032` | `serverInsecure: true`, `swapServerInsecure: true` |
+| `mainnet` | (none) | (none) | (none) | - |
+
+<Callout type="caution" title="mainnet has no public preset">
+`defaultConfig('mainnet')` returns an empty preset (just `{ network: 'mainnet' }`).
+There is no canonical public gateway for mainnet yet, so you must supply your
+own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or `disableSwaps`) and
+pass `allowMainnet: true`, or `start()` will refuse to run.
+</Callout>
+
+</ApiSymbol>
+
+## Client lifecycle
+
+export const walletDKClientSig = `interface WalletDKClient {
+  ready(): Promise<void>;
+  start(config: RuntimeConfig): Promise<WalletInfo>;
+  stop(): Promise<void>;
+  getInfo(): Promise<WalletInfo>;
+  status(): Promise<WalletStatus>;
+  balance(): Promise<Balance>;
+  createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
+  unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
+  openWalletFromPasskey(req: OpenWalletFromPasskeyRequest): Promise<OpenWalletFromPasskeyResult>;
+  deposit(req?: DepositRequest): Promise<DepositResult>;
+  receive(req: ReceiveRequest): Promise<ReceiveResult>;
+  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
+  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
+  send(req: SendRequest): Promise<SendResult>;
+  list(req?: ListRequest): Promise<ListResult>;
+  exit(req: ExitRequest): Promise<ExitResult>;
+  exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>;
+  getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
+  sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
+  callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
+  subscribe(listener: WalletDKListener): () => void;
+  startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
+  stopActivity(): void;
+  dispose(): void;
+}`;
+
+export const readySig = `ready(): Promise<void>`;
+export const startSig = `start(config: RuntimeConfig): Promise<WalletInfo>`;
+export const stopSig = `stop(): Promise<void>`;
+export const disposeSig = `dispose(): void`;
+
+<ApiSymbol name="WalletDKClient" kind="type">
+
+The typed RPC surface every transport implements. Create a client with
+[`createWebClient()`](/web/reference/walletdk-web/) from walletdk-web (or a
+native transport), call `start(config)`, then use the wallet methods
+documented in the sections below.
+
+<Signature title="walletdk-core.d.ts" code={walletDKClientSig} />
+
+**Call order.** A client's methods are only meaningful in this order: await
+`ready()` once, then `start(config)` once, then any of the wallet operations
+(any number of times, in any order appropriate to your app), then `stop()`
+when you are done running the daemon, then `dispose()` to release the
+client's own resources. `dispose()` is terminal: build a new client to start
+again.
+
+</ApiSymbol>
+
+<ApiSymbol name="ready" kind="function">
+
+Resolves once the runtime assets (the wasm daemon and its supporting files)
+are loaded and the client is otherwise usable. Always await this before
+`start()`.
+
+<Signature title="walletdk-core.d.ts" code={readySig} />
+
+<Returns type="Promise<void>">
+Resolves when the client is ready to `start()`. Rejects with a `WalletDKError`
+(code `asset_load_failed`) if the runtime assets fail to load.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="start" kind="function">
+
+Starts the embedded daemon with the given config and resolves with its
+initial [`WalletInfo`](#WalletInfo).
+
+<Signature title="walletdk-core.d.ts" code={startSig} />
+
+<ParamsTable rows={[
+  { name: 'config', type: 'RuntimeConfig', desc: 'The runtime configuration to start the daemon with. Build it with defaultConfig(network) plus any overrides.' },
+]} />
+
+<Returns type="Promise<WalletInfo>">
+The daemon's info immediately after startup, reflecting whatever wallet state
+already exists on disk (none, locked, or ready).
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="stop" kind="function">
+
+Stops the embedded daemon. The client instance itself remains usable
+afterward: call `start()` again to restart the daemon without constructing a
+new client. Use `dispose()` instead when you are done with the client
+entirely, since it also releases the client's own resources (subscriptions,
+the activity stream, and, for the worker transport, the underlying Worker).
+
+<Signature title="walletdk-core.d.ts" code={stopSig} />
+
+<Returns type="Promise<void>">
+Resolves once the daemon has stopped.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="dispose" kind="function">
+
+Releases the client's resources and unsubscribes all listeners: it closes the
+activity stream opened by [`startActivity()`](#startActivity) and, for the
+worker transport, terminates the underlying Worker. The client is unusable
+afterward; construct a new one to start again.
+
+<Signature title="walletdk-core.d.ts" code={disposeSig} />
+
+<Returns type="void">
+Nothing; the client is torn down synchronously.
+</Returns>
+
+</ApiSymbol>
+
+## Wallet setup and authentication
+
+export const createWalletMethodSig = `createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>`;
+export const createWalletRequestSig = `type CreateWalletRequest = {
+  password: string;
+  mnemonic?: string[];
+  seedPassphrase?: string;
+};`;
+export const createWalletResultSig = `type CreateWalletResult = {
+  mnemonic: string[];
+  encipheredSeed: string;
+  identityPubKey: string;
+  recoveryRan: boolean;
+  recoveredBoardingAddresses: number;
+  recoveredBoardingUTXOs: number;
+  recoveredVTXOs: number;
+  recoveredOORReceiveScripts: number;
+  recoveredOORRecipientEvents: number;
+};`;
+
+export const unlockWalletMethodSig = `unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>`;
+export const unlockWalletRequestSig = `type UnlockWalletRequest = {
+  password: string;
+};`;
+export const unlockWalletResultSig = `type UnlockWalletResult = {
+  identityPubKey: string;
+};`;
+
+export const openWalletFromPasskeyMethodSig = `openWalletFromPasskey(
+  req: OpenWalletFromPasskeyRequest,
+): Promise<OpenWalletFromPasskeyResult>`;
+export const openWalletFromPasskeyRequestSig = `type OpenWalletFromPasskeyRequest = {
+  prfOutput: string;
+};`;
+export const openWalletFromPasskeyResultSig = `type OpenWalletFromPasskeyResult = {
+  imported: boolean;
+  mnemonic: string[];
+  identityPubKey: string;
+};`;
+
+<ApiSymbol name="createWallet" kind="function">
+
+Creates a new wallet from the given request: generates (or imports) a
+mnemonic, enciphers it with `password`, and returns the seed words for backup
+display.
+
+<Signature title="walletdk-core.d.ts" code={createWalletMethodSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'CreateWalletRequest', desc: 'Parameters for creating (or importing) the wallet.' },
+]} />
+
+<Returns type="Promise<CreateWalletResult>">
+The generated (or imported) mnemonic, the daemon identity, and recovery
+counters.
+</Returns>
+
+**`CreateWalletRequest`**
+
+<Signature title="walletdk-core.d.ts" code={createWalletRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
+  { name: 'mnemonic', type: 'string[]', desc: 'Optional. An existing mnemonic to restore from; a fresh one is generated when omitted.' },
+  { name: 'seedPassphrase', type: 'string', desc: 'Optional. A BIP-39 passphrase applied on top of the mnemonic.' },
+]} />
+
+**`CreateWalletResult`**
+
+<Signature title="walletdk-core.d.ts" code={createWalletResultSig} />
+
+<ParamsTable rows={[
+  { name: 'mnemonic', type: 'string[]', desc: 'The seed words. Display this to the user for backup; it is not recoverable from the daemon afterward.' },
+  { name: 'encipheredSeed', type: 'string', desc: 'The password-enciphered seed, as stored by the daemon.' },
+  { name: 'identityPubKey', type: 'string', desc: "The wallet's identity public key." },
+  { name: 'recoveryRan', type: 'boolean', desc: 'True when mnemonic was supplied and the daemon ran chain recovery to rediscover funds.' },
+  { name: 'recoveredBoardingAddresses', type: 'number', desc: 'Count of boarding addresses recovered. Only meaningful when recoveryRan is true.' },
+  { name: 'recoveredBoardingUTXOs', type: 'number', desc: 'Count of boarding UTXOs recovered.' },
+  { name: 'recoveredVTXOs', type: 'number', desc: 'Count of VTXOs recovered.' },
+  { name: 'recoveredOORReceiveScripts', type: 'number', desc: 'Count of out-of-round receive scripts recovered.' },
+  { name: 'recoveredOORRecipientEvents', type: 'number', desc: 'Count of out-of-round recipient events recovered.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="unlockWallet" kind="function">
+
+Unlocks an existing wallet with the given password.
+
+<Signature title="walletdk-core.d.ts" code={unlockWalletMethodSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'UnlockWalletRequest', desc: 'The password to unlock with.' },
+]} />
+
+<Returns type="Promise<UnlockWalletResult>">
+The daemon identity after unlock.
+</Returns>
+
+**`UnlockWalletRequest`**
+
+<Signature title="walletdk-core.d.ts" code={unlockWalletRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
+]} />
+
+**`UnlockWalletResult`**
+
+<Signature title="walletdk-core.d.ts" code={unlockWalletResultSig} />
+
+<ParamsTable rows={[
+  { name: 'identityPubKey', type: 'string', desc: "The wallet's identity public key." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="openWalletFromPasskey" kind="function">
+
+Opens a wallet from a passkey assertion: derives a wallet from the PRF output
+of a [`PasskeyCeremony`](#PasskeyCeremony) ceremony, creating one on first use
+per device or unlocking the existing one thereafter.
+
+<Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyMethodSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'OpenWalletFromPasskeyRequest', desc: 'The passkey PRF output to derive the wallet from.' },
+]} />
+
+<Returns type="Promise<OpenWalletFromPasskeyResult>">
+Whether a wallet was freshly created from the derived seed, plus the mnemonic
+(on import only) and the daemon identity.
+</Returns>
+
+**`OpenWalletFromPasskeyRequest`**
+
+<Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'prfOutput', type: 'string', desc: 'The PRF output (hex) derived from the passkey ceremony. See PasskeyAssertion.' },
+]} />
+
+**`OpenWalletFromPasskeyResult`**
+
+<Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyResultSig} />
+
+<ParamsTable rows={[
+  { name: 'imported', type: 'boolean', desc: 'true when a new local wallet was created from the derived seed (a fresh device that has never seen this passkey); false when an existing local wallet was unlocked.' },
+  { name: 'mnemonic', type: 'string[]', desc: 'The seed words. Populated only when imported is true, for backup display.' },
+  { name: 'identityPubKey', type: 'string', desc: "The wallet's identity public key." },
+]} />
+
+</ApiSymbol>
+
+## Reading wallet state
+
+export const getInfoSig = `getInfo(): Promise<WalletInfo>`;
+export const statusSig = `status(): Promise<WalletStatus>`;
+export const balanceMethodSig = `balance(): Promise<Balance>`;
+
+export const walletInfoSig = `type WalletInfo = {
+  version: string;
+  commit: string;
+  network: string;
+  blockHeight: number;
+  serverConnected: boolean;
+  walletType: string;
+  identityPubKey: string;
+  walletState: WalletState;
+  walletReady: boolean;
+};`;
+
+export const walletStatusSig = `type WalletStatus = {
+  ready: boolean;
+  unlocked: boolean;
+  network: string;
+  balance: Balance;
+  pendingCount: number;
+};`;
+
+export const balanceSig = `type Balance = {
+  confirmedSat: number;
+  pendingInSat: number;
+  pendingOutSat: number;
+};`;
+
+**When to use each.** `getInfo()` is the richest snapshot (daemon version,
+network, block height, and wallet lifecycle state) and is what `start()`
+also returns; reach for it when you need `walletState` or build metadata.
+`status()` is a lighter operational check (ready/unlocked/pending count) that
+also embeds the balance, useful for a quick health probe. `balance()` returns
+only the `Balance` you would find nested in `status().balance`; call it
+directly when that is all you need.
+
+<ApiSymbol name="getInfo" kind="function">
+
+Returns the current normalized wallet info.
+
+<Signature title="walletdk-core.d.ts" code={getInfoSig} />
+
+<Returns type="Promise<WalletInfo>">
+The current wallet and daemon info.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="status" kind="function">
+
+Returns the daemon's runtime status snapshot.
+
+<Signature title="walletdk-core.d.ts" code={statusSig} />
+
+<Returns type="Promise<WalletStatus>">
+The current readiness, lock, network, balance, and pending-activity snapshot.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="balance" kind="function">
+
+Returns the current wallet balance.
+
+<Signature title="walletdk-core.d.ts" code={balanceMethodSig} />
+
+<Returns type="Promise<Balance>">
+The current confirmed and pending balances, in satoshis.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletInfo" kind="type">
+
+Wallet and daemon info returned by [`getInfo()`](#getInfo) and
+[`start()`](#start).
+
+<Signature title="walletdk-core.d.ts" code={walletInfoSig} />
+
+<ParamsTable rows={[
+  { name: 'version', type: 'string', desc: 'The daemon version string.' },
+  { name: 'commit', type: 'string', desc: 'The daemon build commit hash.' },
+  { name: 'network', type: 'string', desc: 'The Bitcoin network the daemon is running against.' },
+  { name: 'blockHeight', type: 'number', desc: 'The current chain tip height the wallet has synced to.' },
+  { name: 'serverConnected', type: 'boolean', desc: "Whether the daemon's connection to the Ark server is currently up." },
+  { name: 'walletType', type: 'string', desc: 'The backing wallet implementation in use.' },
+  { name: 'identityPubKey', type: 'string', desc: "The wallet's identity public key." },
+  { name: 'walletState', type: 'WalletState', desc: 'The wallet lifecycle state, normalized to the SDK string union.' },
+  { name: 'walletReady', type: 'boolean', desc: "True iff the wallet is unlocked and ready (mirrors the daemon's Info.WalletReady() method); backfilled by normalizeInfo() since the daemon JSON does not carry it directly." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletStatus" kind="type">
+
+Runtime status snapshot returned by [`status()`](#status).
+
+<Signature title="walletdk-core.d.ts" code={walletStatusSig} />
+
+<ParamsTable rows={[
+  { name: 'ready', type: 'boolean', desc: 'Whether the wallet is unlocked and fully usable.' },
+  { name: 'unlocked', type: 'boolean', desc: 'Whether the wallet is currently unlocked (may still be syncing).' },
+  { name: 'network', type: 'string', desc: 'The Bitcoin network the daemon is running against.' },
+  { name: 'balance', type: 'Balance', desc: 'The current wallet balance; see Balance below.' },
+  { name: 'pendingCount', type: 'number', desc: 'The number of activity entries currently pending.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="Balance" kind="type">
+
+Wallet-level balance returned by [`balance()`](#balance) and embedded in
+[`WalletStatus.balance`](#WalletStatus). All amounts are in satoshis.
+
+<Signature title="walletdk-core.d.ts" code={balanceSig} />
+
+<ParamsTable rows={[
+  { name: 'confirmedSat', type: 'number', desc: 'Spendable VTXO balance.' },
+  { name: 'pendingInSat', type: 'number', desc: 'Inbound amount not yet confirmed.' },
+  { name: 'pendingOutSat', type: 'number', desc: 'Outbound amount in flight.' },
+]} />
+
+</ApiSymbol>
+
+## Deposits and receiving
+
+export const depositMethodSig = `deposit(req?: DepositRequest): Promise<DepositResult>`;
+export const depositRequestSig = `type DepositRequest = {
+  amountSatHint?: number;
+};`;
+export const depositResultSig = `type DepositResult = {
+  address: string;
+  entry: Entry;
+};`;
+
+export const receiveMethodSig = `receive(req: ReceiveRequest): Promise<ReceiveResult>`;
+export const receiveRequestSig = `type ReceiveRequest = {
+  amountSat: number;
+  memo?: string;
+};`;
+export const receiveResultSig = `type ReceiveResult = {
+  invoice: string;
+  entry: Entry;
+};`;
+
+<ApiSymbol name="deposit" kind="function">
+
+Generates an on-chain deposit (boarding) address.
+
+<Signature title="walletdk-core.d.ts" code={depositMethodSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'DepositRequest', desc: 'Optional. Defaults to {} when omitted.' },
+]} />
+
+<Returns type="Promise<DepositResult>">
+The boarding address and its initial [`Entry`](#Entry) in the activity feed.
+</Returns>
+
+**`DepositRequest`**
+
+<Signature title="walletdk-core.d.ts" code={depositRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'amountSatHint', type: 'number', desc: 'Optional. A hint for the amount (in sats) the caller intends to deposit.' },
+]} />
+
+**`DepositResult`**
+
+<Signature title="walletdk-core.d.ts" code={depositResultSig} />
+
+<ParamsTable rows={[
+  { name: 'address', type: 'string', desc: 'The boarding (on-chain) address to deposit to.' },
+  { name: 'entry', type: 'Entry', desc: 'The activity entry tracking this deposit; see Entry.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="receive" kind="function">
+
+Generates a receive invoice for the requested amount.
+
+<Signature title="walletdk-core.d.ts" code={receiveMethodSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'ReceiveRequest', desc: 'The amount (and optional memo) to request.' },
+]} />
+
+<Returns type="Promise<ReceiveResult>">
+The invoice and its initial [`Entry`](#Entry) in the activity feed.
+</Returns>
+
+**`ReceiveRequest`**
+
+<Signature title="walletdk-core.d.ts" code={receiveRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'amountSat', type: 'number', desc: 'The amount to request, in sats.' },
+  { name: 'memo', type: 'string', desc: 'Optional. A memo attached to the invoice.' },
+]} />
+
+**`ReceiveResult`**
+
+<Signature title="walletdk-core.d.ts" code={receiveResultSig} />
+
+<ParamsTable rows={[
+  { name: 'invoice', type: 'string', desc: 'The BOLT-11 Lightning invoice to be paid.' },
+  { name: 'entry', type: 'Entry', desc: 'The activity entry tracking this receive; see Entry.' },
+]} />
+
+</ApiSymbol>
+
+## Sending payments
+
+export const prepareSendSig = `prepareSend(req: SendRequest): Promise<PrepareSendResult>`;
+export const sendPreparedSig = `sendPrepared(prepared: PrepareSendResult): Promise<SendResult>`;
+export const sendSig = `send(req: SendRequest): Promise<SendResult>`;
+
+export const sendRequestSig = `type SendRequest =
+  | {
+      invoice: string;
+      amountSat?: number;
+      note?: string;
+      maxFeeSat?: number;
+    }
+  | {
+      onchainAddress: string;
+      amountSat?: number;
+      sweepAll?: boolean;
+      note?: string;
+      maxFeeSat?: number;
+    };`;
+
+export const prepareSendResultSig = `type PrepareSendResult = {
+  sendIntentId: string;
+  amountSat: number;
+  expectedFeeSat: number;
+  feeKnown: boolean;
+  expectedTotalOutflowSat: number;
+  totalOutflowKnown: boolean;
+  rail: SendRail;
+  quoteStatus: 'unspecified' | 'complete' | 'local_only';
+  destinationSummary: string;
+  invoiceDescription: string;
+  paymentHash: string;
+  expiresAtUnix: number;
+  selectedOutpoints: string[];
+  warning: string;
+};`;
+
+export const sendResultSig = `type SendResult = {
+  entry: Entry;
+  actualAmountSat: number;
+  paymentHash?: string;
+};`;
+
+export const sendRailSig = `type SendRail =
+  | 'unspecified'
+  | 'offchain_unknown'
+  | 'in_ark'
+  | 'lightning'
+  | 'onchain';`;
+
+Sending a payment follows a quote &rarr; confirm &rarr; pay flow.
+[`prepareSend()`](#prepareSend) validates the request and returns a quote (the
+expected fee, rail, and a single-use `sendIntentId`) without moving funds;
+[`sendPrepared()`](#sendPrepared) then dispatches that exact quote.
+[`send()`](#send) folds both steps into one call for the common case where you
+do not need to show the user a confirmation screen between quoting and
+paying.
+
+<ApiSymbol name="prepareSend" kind="function">
+
+Quotes a payment without dispatching it: validates the request and returns
+the expected fee, settlement rail, and a single-use `sendIntentId`. Pair it
+with [`sendPrepared()`](#sendPrepared) for a quote &rarr; confirm &rarr; pay
+flow.
+
+<Signature title="walletdk-core.d.ts" code={prepareSendSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'SendRequest', desc: 'The Lightning invoice or on-chain address to quote a send for.' },
+]} />
+
+<Returns type="Promise<PrepareSendResult>">
+The quote: fee, rail, and the `sendIntentId` to pass to `sendPrepared()`.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="sendPrepared" kind="function">
+
+Dispatches a payment previously quoted by [`prepareSend()`](#prepareSend).
+
+<Signature title="walletdk-core.d.ts" code={sendPreparedSig} />
+
+<ParamsTable rows={[
+  { name: 'prepared', type: 'PrepareSendResult', desc: "The quote returned by prepareSend(). Its sendIntentId is consumed on dispatch; if dispatch fails, prepare a fresh send before retrying." },
+]} />
+
+<Returns type="Promise<SendResult>">
+The dispatched send's activity entry and actual amounts.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="send" kind="function">
+
+Quotes and dispatches a payment in a single call, folding
+[`prepareSend()`](#prepareSend) and [`sendPrepared()`](#sendPrepared)
+together.
+
+<Signature title="walletdk-core.d.ts" code={sendSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'SendRequest', desc: 'The Lightning invoice or on-chain address to pay.' },
+]} />
+
+<Returns type="Promise<SendResult>">
+The dispatched send's activity entry and actual amounts.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="SendRequest" kind="type">
+
+Parameters accepted by [`prepareSend()`](#prepareSend) and [`send()`](#send),
+as a discriminated union: supply `invoice` for a Lightning send or
+`onchainAddress` for an on-chain send. The two arms are mutually exclusive,
+and `sweepAll` applies only to the on-chain arm.
+
+<Signature title="walletdk-core.d.ts" code={sendRequestSig} />
+
+**Lightning arm**
+
+<ParamsTable rows={[
+  { name: 'invoice', type: 'string', desc: 'A Lightning invoice to pay.' },
+  { name: 'amountSat', type: 'number', desc: "Optional. The amount to send, in sats. Omit to pay the invoice's own amount." },
+  { name: 'note', type: 'string', desc: 'Optional. A note recorded with the activity.' },
+  { name: 'maxFeeSat', type: 'number', desc: 'Optional. A cap on the fee, in sats.' },
+]} />
+
+**On-chain arm**
+
+<ParamsTable rows={[
+  { name: 'onchainAddress', type: 'string', desc: 'An on-chain address to pay.' },
+  { name: 'amountSat', type: 'number', desc: 'Optional. The amount to send, in sats. Provide this or set sweepAll.' },
+  { name: 'sweepAll', type: 'boolean', desc: 'Optional. When true, sweeps the entire spendable balance to the destination.' },
+  { name: 'note', type: 'string', desc: 'Optional. A note recorded with the activity.' },
+  { name: 'maxFeeSat', type: 'number', desc: 'Optional. A cap on the fee, in sats.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="PrepareSendResult" kind="type">
+
+The quote and intent id returned by [`prepareSend()`](#prepareSend).
+
+<Signature title="walletdk-core.d.ts" code={prepareSendResultSig} />
+
+<ParamsTable rows={[
+  { name: 'sendIntentId', type: 'string', desc: 'Single-use id identifying this quote; pass the whole result object to sendPrepared() to dispatch it.' },
+  { name: 'amountSat', type: 'number', desc: 'The amount that will be sent, in sats.' },
+  { name: 'expectedFeeSat', type: 'number', desc: 'The expected fee, in sats.' },
+  { name: 'feeKnown', type: 'boolean', desc: 'Whether expectedFeeSat is a firm quote rather than an estimate.' },
+  { name: 'expectedTotalOutflowSat', type: 'number', desc: 'The expected total amount leaving the wallet (amount plus fee), in sats.' },
+  { name: 'totalOutflowKnown', type: 'boolean', desc: 'Whether expectedTotalOutflowSat is firm rather than an estimate.' },
+  { name: 'rail', type: 'SendRail', desc: 'The settlement rail this send is expected to use.' },
+  { name: 'quoteStatus', type: "'unspecified' | 'complete' | 'local_only'", desc: 'How complete the prepare-time quote is: complete means the fee is fully known; local_only means only a local estimate was possible.' },
+  { name: 'destinationSummary', type: 'string', desc: 'A human-readable summary of the destination.' },
+  { name: 'invoiceDescription', type: 'string', desc: "The invoice's embedded description, for Lightning sends." },
+  { name: 'paymentHash', type: 'string', desc: 'The Lightning payment hash, when applicable.' },
+  { name: 'expiresAtUnix', type: 'number', desc: 'Unix timestamp after which this quote (and its sendIntentId) is no longer valid.' },
+  { name: 'selectedOutpoints', type: 'string[]', desc: 'The VTXO outpoints selected to fund this send; sendPrepared() spends exactly this set.' },
+  { name: 'warning', type: 'string', desc: 'An optional human-readable warning about this quote (e.g. a high fee).' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="SendResult" kind="type">
+
+The result of a dispatched send, returned by [`sendPrepared()`](#sendPrepared)
+and [`send()`](#send).
+
+<Signature title="walletdk-core.d.ts" code={sendResultSig} />
+
+<ParamsTable rows={[
+  { name: 'entry', type: 'Entry', desc: 'The activity entry tracking this send; see Entry.' },
+  { name: 'actualAmountSat', type: 'number', desc: 'The real amount that left the wallet. For invoice sends this matches the invoice principal; for a bounded on-chain send it matches the requested amount; for a sweep-all send it reflects the swept VTXO total, so echo it back to the user before treating the send as confirmed.' },
+  { name: 'paymentHash', type: 'string', desc: "Optional. The Lightning payment hash, when the send produced one. The daemon returns this from prepareSend (not sendPrepared), so the client folds it into send()'s result here; prefer this field over digging into entry.progress or entry.request, and note that entry.id is an activity id, not a payment hash." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="SendRail" kind="type">
+
+Identifies the expected settlement rail for a prepared send.
+
+<Signature title="walletdk-core.d.ts" code={sendRailSig} />
+
+| Value | Meaning |
+|---|---|
+| `unspecified` | No rail could be determined. |
+| `offchain_unknown` | An off-chain rail was used but the specific one is not known. |
+| `in_ark` | Settled directly within Ark, without leaving the protocol. |
+| `lightning` | Settled over Lightning (via a swap). |
+| `onchain` | Settled with an on-chain transaction. |
+
+</ApiSymbol>
+
+## Activity and history
+
+export const listSig = `list(req?: ListRequest): Promise<ListResult>`;
+export const listRequestSig = `type ListRequest = {
+  view?: ListView;
+  pendingOnly?: boolean;
+  limit?: number;
+  offset?: number;
+};`;
+export const listResultSig = `type ListResult = {
+  view: ListView;
+  activity?: ActivityList;
+  vtxos?: VTXOInventory;
+  onchain?: OnchainHistory;
+};`;
+export const listViewSig = `type ListView = 'activity' | 'vtxos' | 'onchain';`;
+export const activityListSig = `type ActivityList = {
+  entries: Entry[];
+  total: number;
+};`;
+
+export const subscribeSig = `subscribe(listener: WalletDKListener): () => void`;
+export const walletDKListenerSig = `type WalletDKListener = (event: WalletDKEvent) => void;`;
+
+export const startActivitySig = `startActivity(opts?: { includeExisting?: boolean }): Promise<void>`;
+export const stopActivitySig = `stopActivity(): void`;
+
+export const entrySig = `type Entry = {
+  id: string;
+  kind: EntryKind;
+  status: EntryStatus;
+  amountSat: number;
+  feeSat: number;
+  counterparty: string;
+  createdAt: string;
+  updatedAt: string;
+  note: string;
+  failureReason: string;
+  failureCode: EntryFailureCode;
+  progress?: EntryProgress;
+  request?: EntryRequest;
+};`;
+
+export const entryProgressSig = `type EntryProgress = {
+  phase: EntryPhase;
+  phaseLabel: string;
+  paymentHash: string;
+  txid: string;
+  confirmationHeight: number;
+  vTXOOutpoint: string;
+};`;
+
+export const entryRequestSig = `type EntryRequest = {
+  type: EntryRequestType;
+  lightningInvoice: string;
+  paymentHash: string;
+  onchainAddress: string;
+  arkAddress: string;
+};`;
+
+export const entryKindSig = `type EntryKind = 'send' | 'receive' | 'deposit' | 'exit';`;
+export const entryStatusSig = `type EntryStatus = 'pending' | 'complete' | 'failed';`;
+export const entryPhaseSig = `type EntryPhase =
+  | 'unspecified'
+  | 'request_created'
+  | 'waiting_for_payment'
+  | 'payment_detected'
+  | 'settling'
+  | 'confirmed'
+  | 'refunding'
+  | 'refunded'
+  | 'failed'
+  | 'waiting_for_confirmation';`;
+export const entryFailureCodeSig = `type EntryFailureCode =
+  | 'timed_out'
+  | 'expired'
+  | 'refunded'
+  | 'needs_intervention'
+  | 'failed';`;
+export const entryRequestTypeSig = `type EntryRequestType = 'lightning' | 'onchain' | 'ark';`;
+
+<ApiSymbol name="list" kind="function">
+
+Lists wallet activity or UTXOs per the request.
+
+<Signature title="walletdk-core.d.ts" code={listSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'ListRequest', desc: 'Optional. Defaults to {} (the activity view) when omitted.' },
+]} />
+
+<Returns type="Promise<ListResult>">
+A tagged union with only the field matching the requested view populated.
+</Returns>
+
+**`ListRequest`**
+
+<Signature title="walletdk-core.d.ts" code={listRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'view', type: 'ListView', desc: "Optional. Which view to list: activity entries, VTXOs, or on-chain outputs. Default: 'activity'." },
+  { name: 'pendingOnly', type: 'boolean', desc: 'Optional. When true, returns only pending items. Applies to the activity view only.' },
+  { name: 'limit', type: 'number', desc: 'Optional. The maximum number of items to return; zero uses the daemon default.' },
+  { name: 'offset', type: 'number', desc: 'Optional. The number of items to skip for pagination.' },
+]} />
+
+**`ListResult`**
+
+A tagged union on `view`: exactly one of `activity`, `vtxos`, or `onchain` is
+populated, matching the requested (or default) view. Switch on `view` to read
+the right field.
+
+<Signature title="walletdk-core.d.ts" code={listResultSig} />
+
+<ParamsTable rows={[
+  { name: 'view', type: 'ListView', desc: 'The populated variant. Mirrors the request’s view; an empty request view is reported as \'activity\'.' },
+  { name: 'activity', type: 'ActivityList', desc: "Populated when view === 'activity'." },
+  { name: 'vtxos', type: 'VTXOInventory', desc: "Populated when view === 'vtxos'. See the balances-and-vtxos guide for the VTXO shape." },
+  { name: 'onchain', type: 'OnchainHistory', desc: "Populated when view === 'onchain'." },
+]} />
+
+**`ListView`**
+
+<Signature title="walletdk-core.d.ts" code={listViewSig} />
+
+| Value | Meaning |
+|---|---|
+| `activity` | The merged send/receive/deposit/exit activity feed. Default. |
+| `vtxos` | The live VTXO inventory. |
+| `onchain` | The on-chain transaction history (boarding, sweeps, leave outputs). |
+
+**`ActivityList`**
+
+<Signature title="walletdk-core.d.ts" code={activityListSig} />
+
+<ParamsTable rows={[
+  { name: 'entries', type: 'Entry[]', desc: 'The matching activity entries; see Entry.' },
+  { name: 'total', type: 'number', desc: 'The total number of matching entries (independent of limit/offset).' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="subscribe" kind="function">
+
+Subscribes a listener to runtime events.
+
+<Signature title="walletdk-core.d.ts" code={subscribeSig} />
+
+<ParamsTable rows={[
+  { name: 'listener', type: 'WalletDKListener', desc: 'Callback invoked with each WalletDKEvent.' },
+]} />
+
+<Returns type="() => void">
+An unsubscribe function; call it to stop receiving events on this listener.
+</Returns>
+
+**`WalletDKListener`**
+
+<Signature title="walletdk-core.d.ts" code={walletDKListenerSig} />
+
+See [`WalletDKEvent`](#WalletDKEvent) in the events section below for the
+event shapes delivered to a listener.
+
+</ApiSymbol>
+
+<ApiSymbol name="startActivity" kind="function">
+
+Opens the wallet activity stream and forwards each entry to subscribers as an
+`'activity'` event until [`stopActivity()`](#stopActivity) is called.
+
+<Signature title="walletdk-core.d.ts" code={startActivitySig} />
+
+<ParamsTable rows={[
+  { name: 'opts.includeExisting', type: 'boolean', desc: 'Optional. When true, immediately emits an activity event for every entry that already exists, in addition to future changes.' },
+]} />
+
+<Returns type="Promise<void>">
+Resolves once the activity stream is open.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="stopActivity" kind="function">
+
+Closes the activity stream opened by [`startActivity()`](#startActivity).
+
+<Signature title="walletdk-core.d.ts" code={stopActivitySig} />
+
+<Returns type="void">
+Nothing; stops emitting `'activity'` events synchronously.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="Entry" kind="type">
+
+A single row in the wallet activity feed, returned by [`list()`](#list) and
+streamed via [`startActivity()`](#startActivity) as `activity` events.
+
+<Signature title="walletdk-core.d.ts" code={entrySig} />
+
+<ParamsTable rows={[
+  { name: 'id', type: 'string', desc: 'The activity id. Not a payment hash; see SendResult.paymentHash for that.' },
+  { name: 'kind', type: 'EntryKind', desc: 'The user-visible activity category.' },
+  { name: 'status', type: 'EntryStatus', desc: 'The collapsed pending/complete/failed state. See the Phase vs Status note below.' },
+  { name: 'amountSat', type: 'number', desc: 'The activity amount, in sats.' },
+  { name: 'feeSat', type: 'number', desc: 'The fee associated with this activity, in sats.' },
+  { name: 'counterparty', type: 'string', desc: 'A human-readable counterparty label, when known.' },
+  { name: 'createdAt', type: 'string', desc: 'When the entry was created.' },
+  { name: 'updatedAt', type: 'string', desc: 'When the entry was last updated.' },
+  { name: 'note', type: 'string', desc: 'An optional note recorded with the activity.' },
+  { name: 'failureReason', type: 'string', desc: "Human-readable supplement to failureCode; populated only when status is 'failed'." },
+  { name: 'failureCode', type: 'EntryFailureCode', desc: "Stable, machine-readable classification of why the entry failed. Empty unless status is 'failed'." },
+  { name: 'progress', type: 'EntryProgress', desc: 'Optional. Lifecycle metadata the daemon normalized for this entry. Absent when the backing subsystem supplied no progress hint.' },
+  { name: 'request', type: 'EntryRequest', desc: 'Optional. The user-recognizable request that created the entry (an invoice, address, or Ark address). Absent when the backing subsystem did not persist one.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryProgress" kind="type">
+
+The wrapper-owned view of the lifecycle metadata the daemon computes for an
+[`Entry`](#Entry). Fields are populated on a best-effort basis by the backing
+subsystem; an empty field means not applicable or not yet known.
+
+<Signature title="walletdk-core.d.ts" code={entryProgressSig} />
+
+<ParamsTable rows={[
+  { name: 'phase', type: 'EntryPhase', desc: 'The coarse lifecycle phase for the entry.' },
+  { name: 'phaseLabel', type: 'string', desc: 'The short lowercase label the daemon emitted; render this directly instead of switching on phase if you prefer.' },
+  { name: 'paymentHash', type: 'string', desc: 'Populated for Lightning-backed send/receive entries.' },
+  { name: 'txid', type: 'string', desc: 'Populated when the backing ledger row has an on-chain txid.' },
+  { name: 'confirmationHeight', type: 'number', desc: 'Populated once the source records it.' },
+  { name: 'vTXOOutpoint', type: 'string', desc: 'Populated when a swap observes the Ark vHTLC output.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryRequest" kind="type">
+
+The wrapper-owned, flattened view of the request that created an
+[`Entry`](#Entry). Exactly one variant's fields are populated, named by
+`type`; read `type` first and treat the other fields as zero.
+
+<Signature title="walletdk-core.d.ts" code={entryRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'type', type: 'EntryRequestType', desc: 'Names the populated variant.' },
+  { name: 'lightningInvoice', type: 'string', desc: "The BOLT-11 payment request. Populated when type is 'lightning'." },
+  { name: 'paymentHash', type: 'string', desc: "Identifies the Lightning invoice and stays stable after the invoice is no longer convenient to display. Populated when type is 'lightning'." },
+  { name: 'onchainAddress', type: 'string', desc: "The bech32 on-chain address originally issued or targeted. Populated when type is 'onchain'." },
+  { name: 'arkAddress', type: 'string', desc: "The Ark address originally issued or targeted. Populated when type is 'ark'." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryKind" kind="type">
+
+The user-visible wallet activity category.
+
+<Signature title="walletdk-core.d.ts" code={entryKindSig} />
+
+| Value | Meaning |
+|---|---|
+| `send` | An outbound wallet payment. |
+| `receive` | An inbound Lightning-to-wallet receive. |
+| `deposit` | A boarding on-chain deposit. |
+| `exit` | A cooperative wallet-to-on-chain exit. |
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryStatus" kind="type">
+
+The collapsed wallet activity state.
+
+<Signature title="walletdk-core.d.ts" code={entryStatusSig} />
+
+| Value | Meaning |
+|---|---|
+| `pending` | The activity is still in flight. |
+| `complete` | The activity finished successfully. |
+| `failed` | The activity reached a terminal failure. |
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryPhase" kind="type">
+
+A coarse, wrapper-owned lifecycle phase for an [`Entry`](#Entry).
+
+<Signature title="walletdk-core.d.ts" code={entryPhaseSig} />
+
+| Value | Meaning |
+|---|---|
+| `unspecified` | The backing subsystem provided no lifecycle hint. |
+| `request_created` | The request was created but no payment has been observed yet. |
+| `waiting_for_payment` | The wallet is waiting for an inbound payment or swap funding. |
+| `payment_detected` | A payment was detected but is not yet settled. |
+| `settling` | The operation is settling through Ark, Lightning, or on-chain machinery. |
+| `confirmed` | The backing operation is confirmed or otherwise durably complete. |
+| `refunding` | The operation is currently refunding. |
+| `refunded` | The refund path completed. |
+| `failed` | The backing operation reached a terminal failed state. |
+| `waiting_for_confirmation` | An on-chain payment was detected and is waiting for block confirmation. |
+
+<Callout type="note" title="Phase vs. Status">
+`EntryStatus` answers only pending/complete/failed; `EntryPhase` explains the
+current backing-system step within that status (for example, a `pending`
+entry might be `waiting_for_payment` or `settling`). Use `status` for
+coarse UI state and `progress.phase` when you want to show the reader more
+detail about what is currently happening.
+</Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryFailureCode" kind="type">
+
+A wrapper-owned, stable classification of why a failed [`Entry`](#Entry)
+failed.
+
+<Signature title="walletdk-core.d.ts" code={entryFailureCodeSig} />
+
+| Value | Meaning |
+|---|---|
+| `timed_out` | The operation exceeded the wallet deadline before reaching a terminal state. |
+| `expired` | The swap expired before it was funded. |
+| `refunded` | An outbound payment was refunded back to the wallet. |
+| `needs_intervention` | The swap reached an anomalous state requiring manual recovery. |
+| `failed` | A generic terminal failure with no more specific classification. |
+
+</ApiSymbol>
+
+<ApiSymbol name="EntryRequestType" kind="type">
+
+Discriminates which request shape an [`EntryRequest`](#EntryRequest) carries.
+
+<Signature title="walletdk-core.d.ts" code={entryRequestTypeSig} />
+
+| Value | Meaning |
+|---|---|
+| `lightning` | A Lightning send/receive request; `lightningInvoice` and `paymentHash` are populated. |
+| `onchain` | A deposit/exit request; `onchainAddress` is populated. |
+| `ark` | A direct Ark send/receive request; `arkAddress` is populated. |
+
+</ApiSymbol>
+
+## Exiting Ark
+
+export const exitSig = `exit(req: ExitRequest): Promise<ExitResult>`;
+export const exitRequestSig = `type ExitRequest = {
+  outpoint: string;
+  destination?: string;
+};`;
+export const exitResultSig = `type ExitResult = {
+  path: ExitPath;
+  cooperative: boolean;
+  queuedOutpoints: string[];
+  created: boolean;
+  actorID: string;
+  cooperativeError: string;
+};`;
+export const exitPathSig = `type ExitPath = 'cooperative' | 'unilateral' | 'unilateral_fallback';`;
+
+export const exitStatusSig = `exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>`;
+export const exitStatusRequestSig = `type ExitStatusRequest = {
+  outpoint: string;
+};`;
+export const exitStatusResultSig = `type ExitStatusResult = {
+  found: boolean;
+  status: ExitJobStatus;
+  sweepTxid: string;
+  lastError: string;
+};`;
+export const exitJobStatusSig = `type ExitJobStatus =
+  | 'unspecified'
+  | 'pending'
+  | 'materializing'
+  | 'csv_pending'
+  | 'sweeping'
+  | 'completed'
+  | 'failed';`;
+
+export const getExitPlanSig = `getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>`;
+export const getExitPlanRequestSig = `type GetExitPlanRequest = {
+  outpoints: string[];
+  confTarget?: number;
+};`;
+export const getExitPlanResultSig = `type GetExitPlanResult = {
+  plans: ExitPlanEntry[];
+  feeRateSatPerVByte: number;
+  canStart: boolean;
+  totalFundingShortfallSat: number;
+  totalRecommendedFundingSat: number;
+};`;
+export const exitPlanEntrySig = `type ExitPlanEntry = {
+  outpoint: string;
+  fundingAddress: string;
+  requiredConfirmations: number;
+  requiredFeeUTXOCount: number;
+  usableFeeUTXOCount: number;
+  recommendedUTXOAmountSat: number;
+  recommendedTotalFundingSat: number;
+  fundingShortfallSat: number;
+  canStart: boolean;
+  exitJobFound: boolean;
+  exitStatus: ExitJobStatus;
+  sweepTxid: string;
+  lastError: string;
+  err: string;
+};`;
+
+export const sweepWalletSig = `sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>`;
+export const sweepWalletRequestSig = `type SweepWalletRequest = {
+  destinationAddress: string;
+  broadcast?: boolean;
+  feeRateSatPerVByte?: number;
+  confTarget?: number;
+};`;
+export const sweepWalletResultSig = `type SweepWalletResult = {
+  inputs: WalletSweepInput[];
+  totalInputSat: number;
+  estimatedFeeSat: number;
+  netAmountSat: number;
+  feeRateSatPerVByte: number;
+  canBroadcast: boolean;
+  txid: string;
+  failureReason: string;
+};`;
+export const walletSweepInputSig = `type WalletSweepInput = {
+  outpoint: string;
+  amountSat: number;
+};`;
+
+<Callout type="caution" title="Preview before you broadcast">
+`getExitPlan()` and `sweepWallet({ broadcast: false })` (the default) let you
+preview an exit or sweep, including required funding and fees, without moving
+any funds. Always show the preview to the user and get explicit confirmation
+before calling `sweepWallet({ broadcast: true })`, since that call moves
+funds and cannot be undone.
+</Callout>
+
+<ApiSymbol name="exit" kind="function">
+
+Exits a single outpoint, attempting a cooperative leave to the optional
+destination.
+
+<Signature title="walletdk-core.d.ts" code={exitSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'ExitRequest', desc: 'The outpoint to exit and an optional destination.' },
+]} />
+
+<Returns type="Promise<ExitResult>">
+The outcome, discriminated by `path`.
+</Returns>
+
+**`ExitRequest`**
+
+When `destination` is set, the SDK first attempts a cooperative leave with
+the leave output bound for that on-chain address; unilateral unroll is
+reached only through the daemon's explicit force-acknowledgement flow, which
+is not exposed as a plain SDK field.
+
+<Signature title="walletdk-core.d.ts" code={exitRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint to exit, in "txid:index" format.' },
+  { name: 'destination', type: 'string', desc: 'Optional. An on-chain address that receives the leave output when the cooperative path succeeds. Empty asks the daemon to generate a fresh backing-wallet destination internally.' },
+]} />
+
+**`ExitResult`**
+
+A tagged union over the three exit paths. Read `path` first and only inspect
+the variant fields associated with that path; the remaining fields are
+zero-valued.
+
+<Signature title="walletdk-core.d.ts" code={exitResultSig} />
+
+<ParamsTable rows={[
+  { name: 'path', type: 'ExitPath', desc: 'Discriminates between the three legal outcomes; switch on this before reading the variant fields below.' },
+  { name: 'cooperative', type: 'boolean', desc: "true iff path === 'cooperative'. Retained for backwards compatibility; prefer path." },
+  { name: 'queuedOutpoints', type: 'string[]', desc: "The outpoints the cooperative leave admitted into a round. Populated only when path === 'cooperative'." },
+  { name: 'created', type: 'boolean', desc: "Whether the unilateral-unroll path spawned a fresh job. Populated when path is 'unilateral' or 'unilateral_fallback'." },
+  { name: 'actorID', type: 'string', desc: "Identifies the durable unroll job that owns the unilateral path. Populated when path is 'unilateral' or 'unilateral_fallback'." },
+  { name: 'cooperativeError', type: 'string', desc: 'Retained for source compatibility with a prior SDK fallback shape; current daemon behavior returns cooperative failures directly rather than populating this.' },
+]} />
+
+**`ExitPath`**
+
+<Signature title="walletdk-core.d.ts" code={exitPathSig} />
+
+| Value | Meaning |
+|---|---|
+| `cooperative` | The cooperative leave was admitted by the operator; `queuedOutpoints` carries the round's selection echo. Round completion is asynchronous; subscribe to confirm terminal state. |
+| `unilateral` | The caller supplied the exact force acknowledgement and the daemon started unilateral unroll; `created` and `actorID` describe the job. |
+| `unilateral_fallback` | Retained for source compatibility with a prior SDK result shape. Current wallet RPC behavior never returns this path, since cooperative failures are surfaced directly. |
+
+</ApiSymbol>
+
+<ApiSymbol name="exitStatus" kind="function">
+
+Queries the status of an exit.
+
+<Signature title="walletdk-core.d.ts" code={exitStatusSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'ExitStatusRequest', desc: 'The outpoint whose exit status is queried.' },
+]} />
+
+<Returns type="Promise<ExitStatusResult>">
+Whether a job exists for the outpoint, and its current status.
+</Returns>
+
+**`ExitStatusRequest`**
+
+<Signature title="walletdk-core.d.ts" code={exitStatusRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint whose exit status is queried.' },
+]} />
+
+**`ExitStatusResult`**
+
+`found` is false when no job exists for the requested outpoint; that is not
+an error condition.
+
+<Signature title="walletdk-core.d.ts" code={exitStatusResultSig} />
+
+<ParamsTable rows={[
+  { name: 'found', type: 'boolean', desc: 'Whether an exit job exists for the requested outpoint.' },
+  { name: 'status', type: 'ExitJobStatus', desc: 'The job’s current status. Meaningful only when found is true.' },
+  { name: 'sweepTxid', type: 'string', desc: 'The sweep transaction id, once known.' },
+  { name: 'lastError', type: 'string', desc: 'The last error the job recorded, if any.' },
+]} />
+
+**`ExitJobStatus`**
+
+Collapses the underlying unroll job phases to a short wallet-facing string
+set.
+
+<Signature title="walletdk-core.d.ts" code={exitJobStatusSig} />
+
+| Value | Meaning |
+|---|---|
+| `unspecified` | No status hint available. |
+| `pending` | The job has been created but has not started materializing. |
+| `materializing` | The unilateral exit transaction is being built. |
+| `csv_pending` | Waiting on the CSV timelock before the sweep can broadcast. |
+| `sweeping` | The sweep transaction has been broadcast. |
+| `completed` | The exit finished successfully. |
+| `failed` | The job reached a terminal failure. |
+
+</ApiSymbol>
+
+<ApiSymbol name="getExitPlan" kind="function">
+
+Previews unilateral-exit readiness (and the backing-wallet funding required)
+for a set of VTXO outpoints, without moving funds.
+
+<Signature title="walletdk-core.d.ts" code={getExitPlanSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'GetExitPlanRequest', desc: 'The outpoints to plan an exit for.' },
+]} />
+
+<Returns type="Promise<GetExitPlanResult>">
+Per-outpoint funding plans plus aggregate totals.
+</Returns>
+
+**`GetExitPlanRequest`**
+
+<Signature title="walletdk-core.d.ts" code={getExitPlanRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'outpoints', type: 'string[]', desc: 'The VTXO outpoints to plan an exit for.' },
+  { name: 'confTarget', type: 'number', desc: 'Optional. A confirmation target (in blocks) used to estimate fees.' },
+]} />
+
+**`GetExitPlanResult`**
+
+Describes the combined backing-wallet funding plan for every previewed
+outpoint plus aggregate totals.
+
+<Signature title="walletdk-core.d.ts" code={getExitPlanResultSig} />
+
+<ParamsTable rows={[
+  { name: 'plans', type: 'ExitPlanEntry[]', desc: 'One entry per requested outpoint.' },
+  { name: 'feeRateSatPerVByte', type: 'number', desc: 'The fee rate used to compute the plan.' },
+  { name: 'canStart', type: 'boolean', desc: 'Whether every outpoint in the plan is ready to exit right now.' },
+  { name: 'totalFundingShortfallSat', type: 'number', desc: 'The combined backing-wallet funding still needed across all outpoints.' },
+  { name: 'totalRecommendedFundingSat', type: 'number', desc: 'The combined recommended backing-wallet funding across all outpoints.' },
+]} />
+
+**`ExitPlanEntry`**
+
+Describes how to fund the backing wallet before `exit()` for a single
+previewed VTXO outpoint.
+
+<Signature title="walletdk-core.d.ts" code={exitPlanEntrySig} />
+
+<ParamsTable rows={[
+  { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint this entry describes.' },
+  { name: 'fundingAddress', type: 'string', desc: 'The backing-wallet address to fund for this exit.' },
+  { name: 'requiredConfirmations', type: 'number', desc: 'Confirmations the funding UTXO(s) need before the exit can start.' },
+  { name: 'requiredFeeUTXOCount', type: 'number', desc: 'The number of fee UTXOs required.' },
+  { name: 'usableFeeUTXOCount', type: 'number', desc: 'The number of fee UTXOs currently usable.' },
+  { name: 'recommendedUTXOAmountSat', type: 'number', desc: 'The recommended amount per funding UTXO, in sats.' },
+  { name: 'recommendedTotalFundingSat', type: 'number', desc: 'The recommended total funding amount, in sats.' },
+  { name: 'fundingShortfallSat', type: 'number', desc: 'The funding still needed before this outpoint can exit, in sats.' },
+  { name: 'canStart', type: 'boolean', desc: 'Whether this outpoint is ready to exit right now.' },
+  { name: 'exitJobFound', type: 'boolean', desc: 'Whether an exit job already exists for this outpoint.' },
+  { name: 'exitStatus', type: 'ExitJobStatus', desc: 'The existing job’s status, when exitJobFound is true.' },
+  { name: 'sweepTxid', type: 'string', desc: 'The sweep transaction id, once known.' },
+  { name: 'lastError', type: 'string', desc: 'The last error the existing job recorded, if any.' },
+  { name: 'err', type: 'string', desc: 'A per-outpoint failure encountered while building this plan entry (empty on success).' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="sweepWallet" kind="function">
+
+Previews or broadcasts a sweep of the backing wallet. Call it with
+`broadcast: false` first to preview; `broadcast: true` moves funds.
+
+<Signature title="walletdk-core.d.ts" code={sweepWalletSig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'SweepWalletRequest', desc: 'The destination and broadcast flag for the sweep.' },
+]} />
+
+<Returns type="Promise<SweepWalletResult>">
+The selected inputs, fees, and (on broadcast) the resulting txid.
+</Returns>
+
+**`SweepWalletRequest`**
+
+<Signature title="walletdk-core.d.ts" code={sweepWalletRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'destinationAddress', type: 'string', desc: 'The on-chain address to sweep the backing wallet to.' },
+  { name: 'broadcast', type: 'boolean', desc: 'Optional. When true, broadcasts the sweep; when false (the default), only previews it.' },
+  { name: 'feeRateSatPerVByte', type: 'number', desc: 'Optional. An explicit fee rate, in sat/vByte.' },
+  { name: 'confTarget', type: 'number', desc: 'Optional. A confirmation target (in blocks) used to estimate fees.' },
+]} />
+
+**`SweepWalletResult`**
+
+<Signature title="walletdk-core.d.ts" code={sweepWalletResultSig} />
+
+<ParamsTable rows={[
+  { name: 'inputs', type: 'WalletSweepInput[]', desc: 'The backing-wallet UTXOs selected for this sweep.' },
+  { name: 'totalInputSat', type: 'number', desc: 'The combined amount of the selected inputs, in sats.' },
+  { name: 'estimatedFeeSat', type: 'number', desc: 'The estimated fee, in sats.' },
+  { name: 'netAmountSat', type: 'number', desc: 'The amount that will reach destinationAddress after fees, in sats.' },
+  { name: 'feeRateSatPerVByte', type: 'number', desc: 'The fee rate used, in sat/vByte.' },
+  { name: 'canBroadcast', type: 'boolean', desc: 'Whether the sweep is currently valid to broadcast.' },
+  { name: 'txid', type: 'string', desc: 'The broadcast transaction id. Populated only when broadcast was true and the sweep succeeded.' },
+  { name: 'failureReason', type: 'string', desc: 'A human-readable reason the sweep cannot broadcast, when canBroadcast is false.' },
+]} />
+
+**`WalletSweepInput`**
+
+Describes one backing-wallet UTXO selected by `sweepWallet()`.
+
+<Signature title="walletdk-core.d.ts" code={walletSweepInputSig} />
+
+<ParamsTable rows={[
+  { name: 'outpoint', type: 'string', desc: 'The UTXO outpoint.' },
+  { name: 'amountSat', type: 'number', desc: 'The UTXO amount, in sats.' },
+]} />
+
+</ApiSymbol>
+
+See the [leaving Ark guide](/concepts/leaving-ark/) for a walkthrough of the
+exit and sweep flow end to end.
+
+## Advanced: raw calls
+
+export const callRawSig = `callRaw<T = unknown>(method: string, params?: unknown): Promise<T>`;
+export const camelizeKeysSig = `function camelizeKeys<T = unknown>(value: unknown): T`;
+
+<ApiSymbol name="callRaw" kind="function">
+
+An advanced, unstable escape hatch: it invokes a daemon RPC verb by name,
+bypassing the typed methods documented above. Responses are camelCase-normalized
+the same way as every other method.
+
+<Signature title="walletdk-core.d.ts" code={callRawSig} />
+
+<ParamsTable rows={[
+  { name: 'method', type: 'string', desc: 'The daemon RPC verb name to invoke.' },
+  { name: 'params', type: 'unknown', desc: 'Optional. The raw request payload for that verb.' },
+]} />
+
+<Returns type="Promise<T>">
+The camelCase-normalized response, typed as `T` (unchecked; you assert the shape).
+</Returns>
+
+<Callout type="caution" title="Unstable wire contract">
+The verb names and payload shapes accepted by `callRaw()` are the raw daemon
+wire contract and may change between releases without notice. Prefer the
+typed methods documented above whenever one covers your use case; reach for
+`callRaw()` only when no typed method exists yet.
+</Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="camelizeKeys" kind="function">
+
+Maps a daemon PascalCase JSON response onto the SDK's camelCase shapes.
+Transports apply this at the response boundary so every method (including
+`callRaw()`) returns camelCase keys.
+
+<Signature title="walletdk-core.d.ts" code={camelizeKeysSig} />
+
+<ParamsTable rows={[
+  { name: 'value', type: 'unknown', desc: 'The raw daemon response (or any nested value) to camelize.' },
+]} />
+
+<Returns type="T">
+The same structure with every object key rewritten to camelCase. Arrays are
+walked recursively; primitives pass through unchanged.
+</Returns>
+
+</ApiSymbol>
+
+## Runtime state model
+
+export const walletStateSig = `const WalletState = {
+  None: 'none',
+  Locked: 'locked',
+  Ready: 'ready',
+  Syncing: 'syncing',
+} as const;
+
+type WalletState = typeof WalletState[keyof typeof WalletState];`;
+
+export const runtimePhaseSig = `type RuntimePhase =
+  | 'loading'
+  | 'runtimeReady'
+  | 'starting'
+  | 'needsWallet'
+  | 'locked'
+  | 'syncing'
+  | 'ready'
+  | 'stopping'
+  | 'stopped'
+  | 'error';`;
+
+export const phaseFromInfoSig = `function phaseFromInfo(info: {
+  walletState?: WalletState;
+  walletReady?: boolean;
+}): RuntimePhase`;
+
+export const normalizeInfoSig = `function normalizeInfo(raw: unknown): WalletInfo`;
+
+export const walletStateFromProtoSig = `function walletStateFromProto(
+  value: number | WalletState | undefined,
+): WalletState`;
+
+<ApiSymbol name="WalletState" kind="const">
+
+Wallet lifecycle state returned in `WalletInfo.walletState`. The daemon sends
+a numeric enum; the SDK maps it to these lowercase strings at the response
+boundary via [`walletStateFromProto()`](#walletStateFromProto).
+
+<Signature title="walletdk-core.d.ts" code={walletStateSig} />
+
+| Value | Meaning |
+|---|---|
+| `none` | No wallet exists yet; one must be created. |
+| `locked` | A wallet exists but is locked and must be unlocked. |
+| `ready` | The wallet is unlocked and ready to use. |
+| `syncing` | The wallet is unlocked and catching up with the chain. |
+
+</ApiSymbol>
+
+<ApiSymbol name="RuntimePhase" kind="type">
+
+Lifecycle phase a UI renders. Runtime phases (`loading`, `runtimeReady`,
+`starting`, `stopping`, `stopped`, `error`) are owned by the host start/stop
+flow. Wallet phases (`needsWallet`, `locked`, `syncing`, `ready`) are derived
+from `WalletInfo` via [`phaseFromInfo()`](#phaseFromInfo).
+
+<Signature title="walletdk-core.d.ts" code={runtimePhaseSig} />
+
+| Value | Owner | Meaning |
+|---|---|---|
+| `loading` | Host | The runtime assets have not finished loading. |
+| `runtimeReady` | Host | `ready()` resolved; the client is usable but the daemon has not started. |
+| `starting` | Host | `start()` has been called and has not yet resolved. |
+| `needsWallet` | Wallet | No wallet exists yet (`WalletState.None`). |
+| `locked` | Wallet | A wallet exists but is locked. |
+| `syncing` | Wallet | The wallet is unlocked and catching up with the chain. |
+| `ready` | Wallet | The wallet is unlocked and ready (`walletReady` or `WalletState.Ready`). |
+| `stopping` | Host | `stop()` has been called and has not yet resolved. |
+| `stopped` | Host | The daemon has stopped. |
+| `error` | Host | The host encountered an unrecoverable error starting or running the client. |
+
+</ApiSymbol>
+
+<ApiSymbol name="phaseFromInfo" kind="function">
+
+Derives the wallet-state phase from a `WalletInfo`-shaped value. Runtime
+phases are not represented here; the caller owns those.
+
+<Signature title="walletdk-core.d.ts" code={phaseFromInfoSig} />
+
+<ParamsTable rows={[
+  { name: 'info.walletState', type: 'WalletState', desc: 'Optional. The wallet lifecycle state to derive a phase from.' },
+  { name: 'info.walletReady', type: 'boolean', desc: 'Optional. When true, short-circuits directly to \'ready\' regardless of walletState.' },
+]} />
+
+<Returns type="RuntimePhase">
+`'ready'` when `walletReady` is true or `walletState === 'ready'`; otherwise
+`'locked'` or `'syncing'` matching `walletState`; otherwise `'needsWallet'`
+(the fallback for `'none'` or any unrecognized value).
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="normalizeInfo" kind="function">
+
+Maps a raw daemon `Info` payload (numeric `walletState`, no `walletReady`)
+onto the public `WalletInfo`: converts `walletState` to the string union via
+[`walletStateFromProto()`](#walletStateFromProto) and backfills `walletReady`
+(ready iff `walletState === 'ready'`), mirroring the daemon's
+`Info.WalletReady()` method. Transports apply this at the `getInfo()`
+boundary.
+
+<Signature title="walletdk-core.d.ts" code={normalizeInfoSig} />
+
+<ParamsTable rows={[
+  { name: 'raw', type: 'unknown', desc: 'The raw daemon Info payload (untrusted shape).' },
+]} />
+
+<Returns type="WalletInfo">
+The normalized `WalletInfo`, with `walletState` as the SDK string union and
+`walletReady` backfilled if the raw payload did not already carry it.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="walletStateFromProto" kind="function">
+
+Normalizes a raw daemon `walletState` (a proto number) to the SDK string
+union. Already-string values pass through unchanged.
+
+<Signature title="walletdk-core.d.ts" code={walletStateFromProtoSig} />
+
+<ParamsTable rows={[
+  { name: 'value', type: 'number | WalletState | undefined', desc: 'The raw walletState as a proto number, an SDK string, or undefined.' },
+]} />
+
+<Returns type="WalletState">
+`'none'` when `value` is `undefined` or the proto zero value; the matching
+string for a recognized proto number (`1` &rarr; `'none'`, `2` &rarr;
+`'locked'`, `3` &rarr; `'ready'`, `4` &rarr; `'syncing'`); otherwise the
+conservative fallback `'locked'` for an unrecognized non-zero value (a future
+or garbled daemon state), so it never drives the UI into offering wallet
+creation over an existing wallet.
+</Returns>
+
+</ApiSymbol>
+
+## Events and logging
+
+export const walletDKEventSig = `type WalletDKEvent =
+  | { type: 'runtimeReady' }
+  | { type: 'runtimeStopped' }
+  | { type: 'activity'; payload: Entry }
+  | { type: 'log'; payload: WalletDKLogPayload };`;
+
+export const walletDKEventTypeSig = `type WalletDKEventType = WalletDKEvent['type'];`;
+
+export const walletDKLogPayloadSig = `type WalletDKLogPayload = {
+  level: WalletDKLogLevel;
+  message: string;
+};`;
+
+export const walletDKLogLevelSig = `type WalletDKLogLevel = 'debug' | 'info' | 'warn' | 'error';`;
+
+<ApiSymbol name="WalletDKEvent" kind="type">
+
+Discriminated union of runtime events delivered to subscribers. Narrow on
+`type` to read the payload: `'activity'` carries the changed
+[`Entry`](#Entry), `'log'` carries a level and message, and the lifecycle
+events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
+
+<Signature title="walletdk-core.d.ts" code={walletDKEventSig} />
+
+| `type` | Payload | Meaning |
+|---|---|---|
+| `runtimeReady` | (none) | The runtime finished loading. |
+| `runtimeStopped` | (none) | The daemon stopped, including an unsolicited stop from a worker crash. |
+| `activity` | `Entry` | An activity entry changed; delivered while `startActivity()` is active. |
+| `log` | `WalletDKLogPayload` | A daemon log line. |
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletDKEventType" kind="type">
+
+The set of `WalletDKEvent` discriminants.
+
+<Signature title="walletdk-core.d.ts" code={walletDKEventTypeSig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletDKListener" kind="type">
+
+A subscriber callback invoked with each `WalletDKEvent`, passed to
+[`subscribe()`](#subscribe).
+
+<Signature title="walletdk-core.d.ts" code={walletDKListenerSig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletDKLogPayload" kind="type">
+
+The payload carried by a `'log'` event.
+
+<Signature title="walletdk-core.d.ts" code={walletDKLogPayloadSig} />
+
+<ParamsTable rows={[
+  { name: 'level', type: 'WalletDKLogLevel', desc: 'The severity of the log line.' },
+  { name: 'message', type: 'string', desc: 'The human-readable log message.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletDKLogLevel" kind="type">
+
+The severity of a `'log'` event emitted by the runtime.
+
+<Signature title="walletdk-core.d.ts" code={walletDKLogLevelSig} />
+
+| Value | Meaning |
+|---|---|
+| `debug` | Verbose diagnostic detail. |
+| `info` | Normal operational messages. |
+| `warn` | Recoverable but noteworthy conditions. |
+| `error` | Failures worth surfacing to a developer. |
+
+</ApiSymbol>
+
+## Errors
+
+export const walletDKErrorSig = `class WalletDKError extends Error {
+  readonly code: WalletDKErrorCode;
+  constructor(message: string, code?: WalletDKErrorCode, options?: { cause?: unknown });
+}`;
+
+export const errorCodeSig = `type WalletDKErrorCode =
+  | 'walletdk_error'
+  | 'runtime_not_ready'
+  | 'asset_load_failed'
+  | 'worker_error'
+  | (string & {});`;
+
+<ApiSymbol name="WalletDKError" kind="class">
+
+Base error class thrown by all WalletDK packages. Carries a machine-readable
+`code` alongside the human-readable message.
+
+<Signature title="walletdk-core.d.ts" code={walletDKErrorSig} />
+
+<ParamsTable rows={[
+  { name: 'message', type: 'string', desc: 'Human-readable description of what went wrong.' },
+  { name: 'code', type: 'WalletDKErrorCode', desc: 'Machine-readable error code. Defaults to walletdk_error.' },
+  { name: 'options.cause', type: 'unknown', desc: 'Optional. The underlying error or value that caused this one, forwarded to the native Error cause chain (options.cause) so it survives in stack traces and error inspection tools.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletDKErrorCode" kind="type">
+
+Stable, machine-readable error classification on `WalletDKError`. Named SDK
+codes are listed below; daemon-originated errors currently fall back to
+`walletdk_error`. The `(string & {})` arm keeps the union open for forward
+compatibility while still offering autocomplete on the known codes.
+
+<Signature title="walletdk-core.d.ts" code={errorCodeSig} />
+
+| Code | Thrown when |
+|---|---|
+| `walletdk_error` | The generic default: any SDK error without a more specific code, and all daemon-originated failures today. |
+| `runtime_not_ready` | A method is called before `ready()` has resolved, or after `dispose()`. |
+| `asset_load_failed` | `ready()` fails to load the runtime assets (wasm binary or its supporting files). |
+| `worker_error` | The worker transport's underlying Worker fails or crashes. |
+
+</ApiSymbol>
+
+## Passkeys
+
+export const walletKindSig = `type WalletKind = 'passkey' | 'password';`;
+export const passkeyAssertionSig = `type PasskeyAssertion = {
+  prfOutput: string;
+  credentialId: string;
+};`;
+export const passkeyCeremonySig = `type PasskeyCeremony = {
+  supportsPasskeyPrf(): Promise<boolean>;
+  registerPasskeyWallet(appName: string): Promise<PasskeyAssertion>;
+  assertPasskeyPrf(allowCredentialId?: string): Promise<PasskeyAssertion>;
+};`;
+
+<ApiSymbol name="WalletKind" kind="type">
+
+Labels how a local wallet is unlocked.
+
+<Signature title="walletdk-core.d.ts" code={walletKindSig} />
+
+| Value | Meaning |
+|---|---|
+| `passkey` | The wallet is unlocked by deriving key material from a passkey PRF assertion. |
+| `password` | The wallet is unlocked with a plain password via `unlockWallet()`. |
+
+</ApiSymbol>
+
+<ApiSymbol name="PasskeyAssertion" kind="type">
+
+A passkey ceremony result: the PRF output (hex) shared with the Go SDK, plus
+the credential id that produced it so callers can scope later assertions to
+the same passkey.
+
+<Signature title="walletdk-core.d.ts" code={passkeyAssertionSig} />
+
+<ParamsTable rows={[
+  { name: 'prfOutput', type: 'string', desc: 'The PRF output (hex) shared with the Go SDK. Pass this into OpenWalletFromPasskeyRequest.prfOutput.' },
+  { name: 'credentialId', type: 'string', desc: 'The credential id that produced the PRF output.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="PasskeyCeremony" kind="type">
+
+The per-platform passkey ceremony contract a host injects to drive
+[`openWalletFromPasskey()`](#openWalletFromPasskey). Injecting it keeps
+consumers of this contract free of any transport dependency:
+[`walletdk-web`](/web/reference/walletdk-web/) supplies the browser
+(WebAuthn/PRF) implementation as `webPasskeyCeremony`, and
+`walletdk-react`'s `usePasskeyWallet` hook drives whichever implementation
+you pass it. A native (e.g. mobile) transport supplies its own.
+
+<Signature title="walletdk-core.d.ts" code={passkeyCeremonySig} />
+
+<ParamsTable rows={[
+  { name: 'supportsPasskeyPrf', type: '() => Promise<boolean>', desc: 'Resolves true when the platform supports passkey PRF.' },
+  { name: 'registerPasskeyWallet', type: '(appName: string) => Promise<PasskeyAssertion>', desc: 'Registers a new passkey wallet and returns its assertion.' },
+  { name: 'assertPasskeyPrf', type: '(allowCredentialId?: string) => Promise<PasskeyAssertion>', desc: 'Asserts an existing passkey, optionally scoped to a credential id.' },
+]} />
+
+</ApiSymbol>

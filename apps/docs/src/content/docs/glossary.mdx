@@ -1,0 +1,60 @@
+---
+title: Glossary
+description: Definitions of key WalletDK, Ark, and Lightning Network terms used throughout the documentation.
+---
+
+### Batch swap
+
+A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. WalletDK may perform batch swaps automatically as part of routine wallet maintenance. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for how VTXO expiry fits into the lifecycle.
+
+### Boarding
+
+Boarding is how you enter Ark from the Bitcoin base layer. You spend an on-chain UTXO as an input to the operator's next batch transaction and receive one or more VTXOs in return. Once boarding completes, your funds live off-chain and can be sent, swapped, or withdrawn through Ark operations. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for the full boarding-to-VTXO flow.
+
+### Boarding address
+
+A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; WalletDK tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/web/guides/get-a-deposit-address/).
+
+### Cooperative leave
+
+Cooperative leave is the normal way to withdraw Ark funds to a standard on-chain Bitcoin address. You forfeit your VTXOs in an upcoming round and the operator includes a direct on-chain output paying your chosen destination in the batch transaction. It is faster and cheaper than unilateral exit because both you and the operator sign cooperatively. See [Leaving Ark](/concepts/leaving-ark/).
+
+### Esplora
+
+Esplora is a REST API for querying Bitcoin chain data and UTXOs. WalletDK's lightweight wallet backend uses an Esplora-compatible endpoint (configured as `esploraUrl`) to watch boarding deposits, fee estimates, and on-chain activity. The endpoint must implement the Esplora `/address/:addr/utxo` API (electrs or Blockstream-compatible) and is set via the `esploraUrl` field on `RuntimeConfig`. See [Networks & config](/concepts/networks-and-config/) and [System architecture](/introduction/system-architecture/).
+
+### In-swap
+
+An in-swap brings value into your Ark wallet over Lightning. When you create a Lightning invoice, the swap server and operator set up a vHTLC; once a payer settles the invoice, you claim the locked funds as Ark balance. In-swaps are the receive path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Receive a Lightning payment](/web/guides/receive-a-lightning-payment/).
+
+### Mailbox
+
+The mailbox is the operator's asynchronous message channel for events that the wallet cannot pull synchronously over a simple RPC. Swap notifications, round updates, and similar push-style events arrive through the mailbox edge, which shares the same REST gateway as the Ark operator (`arkServerUrl`). WalletDK polls and acknowledges mailbox messages as part of its background sync. See [Activity & events](/concepts/activity-and-events/) and [System architecture](/introduction/system-architecture/).
+
+### OOR (out-of-round)
+
+OOR (out-of-round) transfers move VTXOs between owners without waiting for the next batch round. They are the mechanism behind instant off-chain Ark payments and vHTLC funding or claiming. OOR is an advanced topic; WalletDK handles OOR transfers internally and detailed protocol coverage is deferred to a later docs pass. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) for how OOR funds and claims a vHTLC.
+
+### Operator (ASP)
+
+The operator, also called the Ark Service Provider (ASP), runs the Ark coordinator that constructs batch transactions, co-signs off-chain spends, and maintains the VTXO index. You trust the operator for availability and honest signing, but not for custody: you can always reclaim funds on-chain via unilateral exit if the operator stops cooperating. Configure the operator gateway as `arkServerUrl`. See [System architecture](/introduction/system-architecture/).
+
+### Out-swap
+
+An out-swap sends value from your Ark wallet over Lightning. You fund a vHTLC from your Ark balance; the swap server pays the destination invoice and claims the vHTLC once Lightning settlement reveals the preimage. Out-swaps are the send path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Send a payment](/web/guides/send-a-payment/).
+
+### Round
+
+A round is one cycle in which the operator collects participant requests, constructs a batch transaction, co-signs it with clients, and broadcasts it on-chain. Rounds run on a fixed periodic cadence, aggregating boarding inputs, leave requests, batch swaps, and new VTXO allocations into a single on-chain transaction. Your boarded deposit becomes spendable Ark balance once the round that includes it confirms.
+
+### Unilateral exit
+
+Unilateral exit is the emergency fallback for withdrawing Ark funds without operator cooperation. You broadcast the pre-signed virtual transaction tree path for your VTXO on-chain and claim it after a CSV timelock, without needing the operator's signature. It works even if the operator goes offline, but it is slower and more expensive than cooperative leave. See [Leaving Ark](/concepts/leaving-ark/).
+
+### vHTLC
+
+A vHTLC (virtual HTLC) is an Ark output whose taproot script encodes hashlock-and-timelock logic similar to a Lightning HTLC, but settled inside Ark rather than on the Bitcoin base layer. In-swaps and out-swaps both pivot on a vHTLC: the payer and receiver keys, operator key, payment hash, and timelocks determine who can claim or refund the output cooperatively off-chain or, as a last resort, unilaterally on-chain. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/).
+
+### VTXO
+
+A VTXO (Virtual Transaction Output) is an off-chain output that represents spendable bitcoin inside Ark. You hold VTXOs after boarding or receiving a payment; you spend them through cooperative off-chain transfers, batch swaps, cooperative leave, or unilateral exit. Each VTXO is backed by an on-chain batch output and carries a CSV-based expiry, after which you must refresh or exit. See [Balances & VTXOs](/concepts/balances-and-vtxos/).

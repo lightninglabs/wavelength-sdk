@@ -1,0 +1,98 @@
+---
+title: Data & persistence
+description: How WalletDK stores wallet data using OPFS or localStorage and how storage responsibilities are split between the main thread and the worker.
+---
+
+## OPFS vs localStorage
+
+The embedded daemon persists two kinds of browser-local data:
+
+1. **Encrypted seed and wallet metadata** (the wallet database).
+2. **SQLite state** for swap tracking and other daemon bookkeeping (via an
+   OPFS-backed VFS when available). Set **`swapDatabaseFileName`** in
+   `RuntimeConfig` to name this SQLite file explicitly; set **`disableSwaps`**
+   to turn off the Lightning swap subsystem (and its storage) entirely.
+
+**OPFS (Origin Private File System)** is the production path. Files live under
+the page origin in a private directory the page cannot enumerate from outside
+the API. The shipped WASM daemon stores the encrypted seed and SQLite databases
+in OPFS. Set **`dataDir`** in `RuntimeConfig` to choose a subdirectory (for
+example `'/my-wallet'`); when unset the daemon uses its default.
+
+**localStorage** is a window-only key/value store. It is **not available inside
+Web Workers**, so the default worker transport cannot use it for daemon storage.
+Main-thread mode can fall back to storage patterns that do not require OPFS, but
+you lose durable SQLite persistence and the UI thread blocks while the daemon
+runs.
+
+Your app may still use **localStorage for app-level markers** (for example
+recording whether a wallet was created with a passkey or storing a passkey
+credential id for scoped unlock). The reference demo does this; daemon state
+remains in OPFS.
+
+OPFS-backed SQLite requires **`SharedArrayBuffer`**, which browsers only expose
+on [cross-origin isolated](/web/get-started/cross-origin-isolation/) pages.
+Without isolation, OPFS persistence for the daemon will not come up cleanly.
+
+Request **persistent storage** (`navigator.storage.persist()`) if you want the
+browser to deprioritize eviction of origin data. It is best-effort and does not
+replace backing up the recovery phrase.
+
+```ts
+// Ask the browser to treat this origin's storage as persistent.
+const granted = await navigator.storage.persist();
+```
+
+Whether the browser grants the request depends on its own engagement
+heuristics (installed as a PWA, bookmarked, frequently visited, and similar
+signals). Do not rely on it being granted; treat it as best-effort.
+
+## Main thread vs worker
+
+`createWebClient()` accepts **`runtimeThread`**: `'worker'` (default) or
+`'main'`.
+
+| Mode | Thread | Storage | When to use |
+|---|---|---|---|
+| `'worker'` (default) | Dedicated Web Worker | OPFS | Production web apps. Keeps the UI responsive while the daemon runs. |
+| `'main'` | Page main thread | No OPFS SQLite path | Escape hatch when Workers are unavailable or you cannot set COOP/COEP headers. Expect UI jank. |
+
+Worker mode spawns the bundled `walletdk-worker.js` (override with
+`workerURL`). The worker receives **`runtimeBaseUrl`** on init so it can fetch
+`walletdk.wasm.gz`, `wasm_exec.js`, and the SQLite bridge from your hosted asset
+folder. Main-thread mode loads those scripts on the page directly.
+
+```ts title="client.ts"
+import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+
+// Default: worker + OPFS (requires cross-origin isolation).
+const workerClient = createWebClient({
+  runtimeBaseUrl: 'https://your-host/walletdk/',
+});
+
+// Escape hatch: main thread, no OPFS persistence.
+const mainClient = createWebClient({
+  runtimeThread: 'main',
+  runtimeBaseUrl: 'https://your-host/walletdk/',
+});
+
+// Choose a dataDir subdirectory for the daemon's on-disk tree.
+const config = defaultConfig('signet', { dataDir: '/my-wallet' });
+await workerClient.ready();
+await workerClient.start(config);
+```
+
+**Persistence requirements** for the default worker path:
+
+1. Serve **COOP/COEP headers** so `crossOriginIsolated` is true and
+   `SharedArrayBuffer` is available.
+2. Host the **runtime asset set** (`RUNTIME_ASSET_FILES`) at `runtimeBaseUrl`.
+3. Use a **secure context** (HTTPS or localhost) for WebAuthn passkeys.
+4. Pick a stable **`dataDir`** per wallet profile; changing it starts a fresh
+   on-disk tree.
+
+Wiping local wallet data means clearing both OPFS entries under your origin and
+any app-level localStorage keys you wrote. See the demo's wipe helper
+(`apps/web-wallet-demo/src/lib/wipeLocalData.ts`) for a reference pattern, and
+the [walletdk-web reference](/web/reference/walletdk-web/) for the client
+start/stop lifecycle.

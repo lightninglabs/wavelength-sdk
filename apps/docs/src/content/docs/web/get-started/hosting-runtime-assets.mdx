@@ -1,0 +1,78 @@
+---
+title: Hosting runtime assets
+description: How WalletDK loads its WebAssembly runtime - using the CDN default or overriding the asset base URL for self-hosted deployments.
+---
+
+## CDN default
+
+A versioned public CDN that `runtimeBaseUrl` defaults to is on the way. When it
+ships, `createWebClient()` with no options will resolve the daemon binaries from
+that CDN and you will not need to copy or host WASM files yourself.
+
+Until then, self-host the runtime asset set (see below). Point
+`runtimeBaseUrl` at the folder where the files live. If unset, assets resolve
+relative to the page URL in both worker and main-thread mode, so you can also
+just serve the runtime files alongside your app:
+
+```ts title="client.ts"
+import { createWebClient } from '@lightninglabs/walletdk-web';
+
+const client = createWebClient({
+  runtimeBaseUrl: 'https://cdn.example.com/walletdk/v0.1.0/',
+});
+```
+
+The worker entry (`walletdk-worker.js`) ships inside
+`@lightninglabs/walletdk-web` and is emitted by your bundler. Only the daemon
+binaries listed below need to be hosted at `runtimeBaseUrl`.
+
+## Self-hosting (override)
+
+The WASM runtime is a fixed set of files built from
+[darepo-client](https://github.com/lightninglabs/darepo-client). Import
+`RUNTIME_ASSET_FILES` from `@lightninglabs/walletdk-web` to see every filename
+that must be served together at one base URL. `RUNTIME_MANIFEST_VERSION`
+identifies the current asset set; it is currently a dev placeholder
+(`'0.0.0-dev'`) and will track the darepo-client release tag once one exists:
+
+```ts title="assets.ts"
+import { RUNTIME_ASSET_FILES } from '@lightninglabs/walletdk-web';
+
+console.log(RUNTIME_ASSET_FILES);
+// walletdk.wasm, walletdk.wasm.gz, wasm_exec.js, sqlite-bridge.js,
+// sqlite-worker.js, sqlite3.js, sqlite3.wasm, sqlite3-opfs-async-proxy.js
+```
+
+Host all of them under a single path (for example `/walletdk/` or your static
+asset root) and set `runtimeBaseUrl` to that directory. Trailing slashes are
+optional; the client normalizes the base URL. If unset, assets resolve
+relative to the page URL in both worker and main-thread mode, so you can also
+just serve the runtime files alongside your app.
+
+**Build and copy from darepo-client.** From a checkout of `darepo-client`, build
+the WASM wallet target and copy the output into your app's static folder:
+
+```bash title="Terminal"
+# Build the WASM runtime into darepo-client/bin/wasm/
+make -C /path/to/darepo-client wasm-wallet
+
+# Copy every runtime binary into your static host (example: Vite public/)
+for f in walletdk.wasm walletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
+         sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
+  cp "/path/to/darepo-client/bin/wasm/$f" ./public/
+done
+```
+
+The monorepo demo wraps the same steps in `pnpm --filter web-wallet-demo run
+wasm:local`, which builds from a sibling `darepo-client` checkout and stages
+files into `apps/web-wallet-demo/public/`. After `vite build`, those files land
+in `dist/` and are served from the app origin.
+
+**Version lock.** Runtime assets are version-locked to the embedded daemon inside
+`@lightninglabs/walletdk-web`. When you upgrade the SDK, rebuild and redeploy the
+matching WASM bundle. Mismatched versions can fail at load time or produce subtle
+runtime errors.
+
+**Compression.** The client prefers `walletdk.wasm.gz` when the browser supports
+`DecompressionStream` and falls back to the uncompressed `walletdk.wasm`. Host
+both files so every supported browser can load the runtime.

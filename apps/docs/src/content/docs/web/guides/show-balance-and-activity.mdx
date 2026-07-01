@@ -1,0 +1,125 @@
+---
+title: Show balance & activity
+description: How to read the WalletDK balance and subscribe to the activity stream to display transaction history in your UI, with a live example.
+pageLayout: guide
+related:
+  - web/guides/send-a-payment
+  - web/guides/receive-a-lightning-payment
+  - web/guides/get-a-deposit-address
+---
+
+This guide assumes your app already renders inside a `WalletDKProvider` with a
+wallet unlocked and ready. See [Create a wallet](/web/guides/create-a-wallet/).
+
+## Read the balance
+
+The `useWalletBalance()` hook returns the current `Balance` and a `busy` flag
+while a refresh is in flight. Re-renders are triggered automatically whenever
+the balance changes, for example after a payment settles.
+
+Display `confirmedSat` as spendable balance. Add `pendingInSat` and
+`pendingOutSat` when you want to show in-flight funds.
+
+```tsx title="balance.tsx"
+import { useWalletBalance } from '@lightninglabs/walletdk-react';
+
+function Balance() {
+  const { balance, busy } = useWalletBalance();
+
+  if (busy && !balance) return <p>Loading...</p>;
+  if (!balance) return <p>No balance yet.</p>;
+
+  return (
+    <p>
+      {balance.confirmedSat.toLocaleString()} sats available
+    </p>
+  );
+}
+```
+
+## Subscribe to activity
+
+`useWalletActivity()` returns the full transaction history. Each `Entry` has
+`id`, `kind` (`send`, `receive`, `deposit`, or `exit`), `amountSat`, `status`
+(`pending`, `complete`, or `failed`), and timestamps. It also carries `feeSat`,
+`counterparty`, `note`, and `failureReason` (a human-readable message set when
+`status` is `failed`).
+
+The provider stays live: new entries arrive through the activity stream and
+pending entries update in place when they settle. This live-update behavior
+comes from the `WalletDKProvider` wrapping your app; see
+[Create a wallet](/web/guides/create-a-wallet/) for how it is set up. No
+polling or manual refresh is needed.
+
+```tsx title="balance.tsx"
+import { useWalletActivity } from '@lightninglabs/walletdk-react';
+
+function ActivityFeed() {
+  const { activity, busy } = useWalletActivity();
+
+  if (busy && activity.length === 0) return <p>Loading activity...</p>;
+
+  return (
+    <ul>
+      {activity.map(entry => (
+        <li key={entry.id}>
+          <span>{entry.kind}</span>
+          <span>
+            {entry.kind === 'receive' || entry.kind === 'deposit' ? '+' : ''}
+            {entry.kind === 'send' || entry.kind === 'exit' ? '-' : ''}
+            {entry.amountSat} sats
+          </span>
+          <span>
+            {entry.status}
+            {entry.status === 'failed' && entry.failureReason
+              ? `: ${entry.failureReason}`
+              : ''}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+`busy` and `error` on both `useWalletBalance()` and `useWalletActivity()`
+reflect the same shared `refresh` operation, so they toggle together whenever
+either balance or activity data is being refreshed.
+
+## Filter and group
+
+Filter `activity` with standard array methods to build tab views or summary
+cards. Use each entry's `kind` to determine direction (`receive` and `deposit`
+are inbound; `send` and `exit` are outbound). `amountSat` is a plain magnitude
+in satoshis. Filter on `status === 'pending'` to surface in-flight payments
+that need user attention.
+
+All filtering happens in memory, so you can derive multiple views from the
+same hook call without additional network requests.
+
+```tsx title="balance.tsx"
+import { useWalletActivity } from '@lightninglabs/walletdk-react';
+
+function FilteredFeed() {
+  const { activity } = useWalletActivity();
+
+  const sends = activity.filter(entry => entry.kind === 'send');
+  const receives = activity.filter(entry => entry.kind === 'receive');
+  const pending = activity.filter(entry => entry.status === 'pending');
+
+  return (
+    <div>
+      <p>Pending: {pending.length}</p>
+      <p>Received: {receives.length} txs</p>
+      <p>Sent: {sends.length} txs</p>
+    </div>
+  );
+}
+```
+
+## What's next
+
+Now that your UI can show balance and activity, try
+[Send a payment](/web/guides/send-a-payment/),
+[Receive a Lightning payment](/web/guides/receive-a-lightning-payment/), or
+[Get a deposit address](/web/guides/get-a-deposit-address/).

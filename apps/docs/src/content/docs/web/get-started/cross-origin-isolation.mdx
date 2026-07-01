@@ -1,0 +1,112 @@
+---
+title: Cross-origin isolation
+description: Why WalletDK's WebAssembly runtime requires cross-origin isolation and how to set the COOP/COEP headers on your server.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## Why
+
+WalletDK's default transport runs the wallet daemon in a Web Worker and stores
+encrypted wallet data in OPFS-backed SQLite. Both the worker's WASM module and
+the SQLite stack use `SharedArrayBuffer` for efficient memory sharing.
+
+Browsers gate `SharedArrayBuffer` behind **cross-origin isolation**: the page
+must be served with headers that prevent other origins from reading its memory.
+Without isolation, `SharedArrayBuffer` is unavailable, OPFS persistence fails,
+and the worker transport cannot start.
+
+Cross-origin isolation is a web-only concern. It applies to every route in your
+app that loads WalletDK, including embedded demo or playground pages on the
+docs site.
+
+## COOP/COEP headers
+
+Send these response headers on wallet routes (and on your dev server while
+testing locally):
+
+```http title="Response headers"
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+`Cross-Origin-Opener-Policy: same-origin` keeps other browsing contexts from
+holding a reference to your page's global object.
+
+`Cross-Origin-Embedder-Policy: require-corp` requires every subresource
+(script, stylesheet, image, font, WASM) to either be same-origin or explicitly
+opt in with `Cross-Origin-Resource-Policy: cross-origin` (or be loaded with
+`crossorigin` where applicable). Same-origin assets need no extra attribute.
+
+**Scope headers to embed routes.** If only part of your site runs the wallet
+(for example `/web/playground/*` on the docs site), apply COOP/COEP on those
+paths rather than the entire domain. Hosts like Netlify and Cloudflare Pages read
+a `_headers` file:
+
+```text title="public/_headers"
+/web/playground/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+```
+
+For Vite during local development, set the same headers on the dev and preview
+servers:
+
+```ts title="vite.config.ts"
+const crossOriginIsolation = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+};
+
+export default defineConfig({
+  server: { headers: crossOriginIsolation },
+  preview: { headers: crossOriginIsolation },
+});
+```
+
+**Self-host third-party assets.** Cross-origin Google Fonts, analytics scripts,
+and similar embeds are blocked under `require-corp`. Bundle fonts locally (for
+example with `@fontsource`) or serve them from the same origin as your app.
+
+<Callout type="note">
+If you set `runtimeBaseUrl` to point the daemon runtime binaries
+(`walletdk.wasm.gz`, `wasm_exec.js`, `sqlite-*.js`) at a different origin, such
+as a CDN, that origin must also send
+`Cross-Origin-Resource-Policy: cross-origin` on those asset responses.
+Otherwise `require-corp` blocks them from loading. See
+[Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for details.
+</Callout>
+
+**Optional: `credentialless` COEP.** Some teams use
+`Cross-Origin-Embedder-Policy: credentialless` as a lighter alternative. It is
+not supported uniformly across browsers (Safari in particular). WalletDK targets
+`require-corp` because every major engine supports it today. The key
+difference: `credentialless` drops credentials (cookies, client certificates)
+on cross-origin requests instead of requiring the target origin to opt in with
+`Cross-Origin-Resource-Policy`.
+
+**Verify with curl.** After deploying, confirm the headers are present:
+
+```bash title="Terminal"
+curl -sI https://your-app.example/web/playground/ | grep -i cross-origin
+```
+
+You should see both `Cross-Origin-Opener-Policy: same-origin` and
+`Cross-Origin-Embedder-Policy: require-corp` (or `credentialless` if you chose
+that mode).
+
+In the browser, open DevTools and check that
+`crossOriginIsolated` is `true`:
+
+```js title="Browser console"
+console.log(crossOriginIsolated); // true
+```
+
+If isolation is missing, the wallet will fail to initialize the OPFS database.
+See [Troubleshooting](/web/support/troubleshooting/) for common fixes.
+
+## See also
+
+- [Requirements](/web/get-started/requirements/)
+- [Hosting runtime assets](/web/get-started/hosting-runtime-assets/)

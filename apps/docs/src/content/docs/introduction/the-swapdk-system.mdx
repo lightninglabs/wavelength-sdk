@@ -1,0 +1,77 @@
+---
+title: The SwapDK system
+description: How SwapDK turns self-custodial Bitcoin and Lightning payments into a few API calls, and where WalletDK, the client you run, fits into the larger system.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## What SwapDK is
+
+SwapDK adds self-custodial Bitcoin and Lightning payments to any app with a handful of API calls. Your users get a real wallet that can send and receive over the Lightning Network, and you never run a Lightning node, open channels, or source liquidity to make it work. If you can call an API, you can accept Bitcoin. (Stablecoin support is on the way through Taproot Assets, over the same wallet surface.)
+
+The value is in what you do **not** have to run. Accepting Lightning payments has traditionally meant operating a node, balancing channels, sourcing liquidity, and keeping all of that healthy around the clock. SwapDK runs that machinery and gives you a small, friendly wallet surface in its place, so the capability (instant, global, low-fee payments) is available without the operational burden.
+
+<Callout type="note" title="This does not replace running your own node">
+Lightning has always offered a fully self-sovereign path where you run your own node and channels, and that path is not going anywhere. SwapDK is for everyone who would rather not run infrastructure at all, without giving up control of their funds.
+</Callout>
+
+## What you run vs. what is managed
+
+You run **WalletDK**, the self-custodial client (compiled from [darepo-client](https://github.com/lightninglabs/darepo-client)). It holds the user's keys, tracks their balance, and builds and signs their payments. Everything the wallet talks to is managed for you.
+
+```
+   Your app
+      │  calls the wallet API
+      ▼
+   ┌───────────────────────────────────────────────┐
+   │  WalletDK   the client you run                 │   browser · server · SDK · MCP
+   │  holds keys, tracks balances, signs payments   │
+   └───────────────┬───────────────────┬───────────┘
+        exit       │                   │  BOLT 11
+        ▼          │                   ▼
+   ┌───────────┐   │   ┌───────────────────────────┐
+   │  Bitcoin  │◀──┘   │  SwapDK   managed for you  │
+   │ on-chain  │       │  coordination + settlement │
+   └───────────┘       │  deep liquidity via Loop   │
+                       └───────────────┬───────────┘
+                                       ▼
+                       ┌───────────────────────────┐
+                       │    The Lightning Network   │
+                       └───────────────────────────┘
+```
+
+| Piece | Who runs it | What it does |
+|---|---|---|
+| **WalletDK** (the client) | You | Holds keys, tracks balances, builds and signs payments. Runs in the browser (these docs), as a standalone server, embedded as an SDK, or as an MCP server for agents. |
+| **Coordination + settlement** | SwapDK | An Ark-like layer that batches off-chain transfers instantly and cheaply. It settles between users but never takes unilateral control of anyone's funds. |
+| **Liquidity via Loop** | SwapDK | Deep Lightning liquidity through Loop, so payments route reliably without you sourcing, funding, or managing channels. |
+| **The Lightning Network** | Open network | Everything speaks BOLT 11, so you can pay and be paid by any wallet, exchange, or app already on Lightning. |
+
+## Self-custodial, exit anytime
+
+Users hold their own keys. The coordination service settles transfers but never has unilateral control of anyone's money, and a user can always move their balance back to the Bitcoin blockchain on their own, at any time, without anyone's cooperation. The wallet exposes this directly through an `exit` command. You get the convenience of a managed payments experience with the trust guarantees of holding your own Bitcoin. See [Leaving Ark](/concepts/leaving-ark/) for how exits work in practice.
+
+## One invoice for everything
+
+Every payment you send and receive is a BOLT 11 invoice, the standard Lightning format. There is a single payment format to learn, and your wallet works with the entire Lightning Network the moment you integrate it. A normal Bitcoin address only shows up at the edges, when funding a wallet or moving funds back to the chain. See [Lightning payments are swaps](/concepts/lightning-payments-are-swaps/) for how a Lightning payment maps to an Ark swap under the hood.
+
+## Ways to integrate
+
+SwapDK meets you where you build:
+
+- **In the browser** - the WebAssembly package runs the wallet in a browser tab. This is what these docs cover; start with the [Quickstart](/web/get-started/quickstart/).
+- **As a standalone client** - a single self-contained process driven over a gRPC and REST API.
+- **Embedded** - pull the SDK into your app to put a wallet directly inside it.
+- **For agents** - run the MCP server so an AI agent can drive the wallet as typed tool calls. Wallet creation and unlock stay off the agent channel, so seeds and passwords are never exposed to a model.
+
+These docs focus on the browser SDK. The other surfaces share the same wallet commands and are documented separately.
+
+## Networks
+
+SwapDK runs on signet and testnet by default, and both are open to everyone. These test networks let you build and exercise the full payment flow with coins that have no real value. Mainnet access is available by application and is gated behind an explicit opt-in, with amount caps during alpha. See [Networks and config](/concepts/networks-and-config/) for the details.
+
+## Where to go next
+
+- [What is WalletDK?](/introduction/what-is-walletdk/) - the client you run, and the three packages it ships as.
+- [Quickstart](/web/get-started/quickstart/) - a running wallet in a few minutes.
+- [System architecture](/introduction/system-architecture/) - how the in-browser daemon connects to the backend gateways.

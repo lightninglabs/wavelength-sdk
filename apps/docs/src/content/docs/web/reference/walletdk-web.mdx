@@ -1,0 +1,424 @@
+---
+title: walletdk-web
+description: Browser SDK factory, configuration, and passkey ceremony API for WalletDK web apps.
+pageLayout: reference
+---
+
+import ApiSymbol from '~/components/mdx/ApiSymbol.astro';
+import Signature from '~/components/mdx/Signature.astro';
+import ParamsTable from '~/components/mdx/ParamsTable.astro';
+import Returns from '~/components/mdx/Returns.astro';
+import Callout from '~/components/mdx/Callout.astro';
+
+`@lightninglabs/walletdk-web` is the browser/wasm transport for WalletDK: it
+runs the embedded daemon as WebAssembly, either in a dedicated Web Worker (the
+default) or on the page's main thread, and exposes it as a standard
+[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient). It also ships the
+browser (WebAuthn/PRF) passkey ceremony.
+
+<Callout type="tip" title="One import for the client and every type">
+This package re-exports the entire [`@lightninglabs/walletdk-core`](/reference/walletdk-core/)
+public surface (`export * from '@lightninglabs/walletdk-core'`). You only need
+to import from `@lightninglabs/walletdk-web` to get the client factory, every
+request/result type, every enum, and `defaultConfig()`. There is no need to
+also depend on `@lightninglabs/walletdk-core` directly.
+</Callout>
+
+export const createWebClientSig = `function createWebClient(
+  options?: WebClientOptions,
+): WalletDKClient`;
+
+export const webClientOptionsSig = `type WebClientOptions = {
+  workerURL?: string;
+  runtimeBaseUrl?: string;
+  runtimeThread?: RuntimeThread;
+  debug?: boolean;
+};`;
+
+export const runtimeThreadSig = `type RuntimeThread = 'main' | 'worker';`;
+
+export const mainThreadWalletDKClientSig = `class MainThreadWalletDKClient implements WalletDKClient {
+  constructor(options?: WebClientOptions);
+}`;
+
+export const runtimeAssetFilesSig = `const RUNTIME_ASSET_FILES: readonly string[];`;
+
+export const runtimeAssetsSig = `const RUNTIME_ASSETS: {
+  wasm: string;
+  wasmGz: string;
+  wasmExec: string;
+  sqliteBridge: string;
+  sqliteWorker: string;
+  sqlite: string;
+  sqliteWasm: string;
+  sqliteOpfsProxy: string;
+};`;
+
+export const runtimeManifestVersionSig = `const RUNTIME_MANIFEST_VERSION: string;`;
+
+export const passkeyCeremonySig = `const webPasskeyCeremony: PasskeyCeremony;`;
+
+export const supportsPasskeyPrfSig = `function supportsPasskeyPrf(): Promise<boolean>;`;
+
+export const registerPasskeyWalletSig = `function registerPasskeyWallet(
+  appName: string,
+): Promise<PasskeyAssertion>;`;
+
+export const assertPasskeyPrfSig = `function assertPasskeyPrf(
+  allowCredentialId?: string,
+): Promise<PasskeyAssertion>;`;
+
+export const passkeyAssertionSig = `type PasskeyAssertion = {
+  prfOutput: string;
+  credentialId: string;
+};`;
+
+export const sendRequestSig = `type SendRequest =
+  | {
+      invoice: string;
+      amountSat?: number;
+      note?: string;
+      maxFeeSat?: number;
+    }
+  | {
+      onchainAddress: string;
+      amountSat?: number;
+      sweepAll?: boolean;
+      note?: string;
+      maxFeeSat?: number;
+    };`;
+
+export const receiveRequestSig = `type ReceiveRequest = {
+  amountSat: number;
+  memo?: string;
+};`;
+
+## Creating a client
+
+<ApiSymbol name="createWebClient" kind="function">
+
+Creates and returns a `WalletDKClient` that runs the embedded daemon in the
+browser. Call once at application startup, then pass the client to
+`WalletDKProvider` or call `start(defaultConfig(network))` directly. Defaults
+to the Web Worker transport ([`WorkerWalletDKClient`](#transports)); pass
+`runtimeThread: 'main'` to run on the page's main thread instead.
+
+<Signature title="walletdk-web.d.ts" code={createWebClientSig} />
+
+<ParamsTable rows={[
+  { name: 'options', type: 'WebClientOptions', desc: 'Optional browser-specific settings. Defaults to worker-thread mode with page-relative runtime assets.' },
+]} />
+
+<Returns type="WalletDKClient">
+A live client instance. Call `ready()` to wait for the WASM runtime to load, then `start(config)` to boot the daemon.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="WebClientOptions" kind="type">
+
+Browser-specific options for `createWebClient`. The config passed to
+`client.start()` is separate: use `defaultConfig(network)` from
+walletdk-core.
+
+<Signature title="walletdk-web.d.ts" code={webClientOptionsSig} />
+
+<ParamsTable rows={[
+  { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("./walletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
+  { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (walletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
+  { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWalletDKClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
+  { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs callRaw calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="RuntimeThread" kind="type">
+
+Selects which thread the wasm runtime runs on: `'worker'` (default) in a
+dedicated Web Worker that keeps the UI thread free, or `'main'` on the page's
+main thread as an escape hatch (for example, environments without Worker
+support).
+
+<Signature title="walletdk-web.d.ts" code={runtimeThreadSig} />
+
+</ApiSymbol>
+
+## Transports
+
+<ApiSymbol name="MainThreadWalletDKClient" kind="class">
+
+Runs the wasm runtime on the page's main thread. It implements
+[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient) directly and is
+the escape hatch for environments without Web Worker support (or where
+main-thread execution is preferred for another reason). Unlike worker mode it
+blocks rendering while the runtime is busy.
+
+<Signature title="walletdk-web.d.ts" code={mainThreadWalletDKClientSig} />
+
+<ParamsTable rows={[
+  { name: 'options', type: 'WebClientOptions', desc: 'Same options accepted by createWebClient. runtimeThread is ignored here since the constructor already picks the main thread.' },
+]} />
+
+Prefer `createWebClient({ runtimeThread: 'main' })` over constructing this
+class directly; only reach for the class import when you need to branch
+construction logic yourself (for example, feature-detecting Worker support at
+runtime).
+
+</ApiSymbol>
+
+`WorkerWalletDKClient` is the default transport returned by `createWebClient()`
+(when `runtimeThread` is unset or `'worker'`). It is not exported directly,
+select it via `createWebClient()`. Worker mode requires a daemon that stores
+the encrypted seed in OPFS rather than `localStorage` (which is window-only
+and unavailable inside a Worker); the daemon shipped with this package already
+does this. See the [browser support guide](/web/support/browser-support/) for
+which browsers provide OPFS and the other APIs worker mode depends on.
+
+## Runtime assets and hosting
+
+<ApiSymbol name="RUNTIME_ASSETS" kind="const">
+
+The canonical set of daemon runtime binaries the wasm client loads at
+runtime, resolved against `runtimeBaseUrl`. `RUNTIME_ASSET_FILES` is just
+`Object.values(RUNTIME_ASSETS)`. This set is built by darepo-client (`make
+wasm-wallet`) and version-locked to the embedded walletdk daemon, so the
+files must be hosted side by side at one base URL.
+
+<Signature title="walletdk-web.d.ts" code={runtimeAssetsSig} />
+
+The values are fixed filenames, not just string-typed placeholders:
+
+| Key | Filename |
+|---|---|
+| `wasm` | `walletdk.wasm` |
+| `wasmGz` | `walletdk.wasm.gz` |
+| `wasmExec` | `wasm_exec.js` |
+| `sqliteBridge` | `sqlite-bridge.js` |
+| `sqliteWorker` | `sqlite-worker.js` |
+| `sqlite` | `sqlite3.js` |
+| `sqliteWasm` | `sqlite3.wasm` |
+| `sqliteOpfsProxy` | `sqlite3-opfs-async-proxy.js` |
+
+</ApiSymbol>
+
+<ApiSymbol name="RUNTIME_ASSET_FILES" kind="const">
+
+Flat list of every runtime binary that must be hosted together at
+`runtimeBaseUrl`: `walletdk.wasm`, `walletdk.wasm.gz`, `wasm_exec.js`,
+`sqlite-bridge.js`, `sqlite-worker.js`, `sqlite3.js`, `sqlite3.wasm`,
+`sqlite3-opfs-async-proxy.js` (that is, `Object.values(RUNTIME_ASSETS)`). Host
+these files and point `runtimeBaseUrl` at them before calling
+`client.ready()`.
+
+<Signature title="walletdk-web.d.ts" code={runtimeAssetFilesSig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="RUNTIME_MANIFEST_VERSION" kind="const">
+
+Identifies this runtime asset set. The current value is `'0.0.0-dev'`, a
+placeholder; it is bumped whenever the daemon wasm or go-wasmsqlite stack
+changes, so hosted assets and the client stay in lockstep. It will track the
+darepo-client release tag once one exists.
+
+<Signature title="walletdk-web.d.ts" code={runtimeManifestVersionSig} />
+
+</ApiSymbol>
+
+### Asset resolution and loading
+
+`runtimeBaseUrl` controls where each file in `RUNTIME_ASSETS` is fetched
+from:
+
+- **Trailing slash:** a base URL is normalized by appending a trailing slash
+  if missing before resolving each asset name against it, so
+  `https://cdn.example.com/walletdk` and `https://cdn.example.com/walletdk/`
+  behave the same.
+- **Unset base:** with no `runtimeBaseUrl`, the bare filename is used and
+  resolves relative to the document. In worker mode the worker cannot resolve
+  page-relative paths itself, so the client computes the document's base URL
+  (`document.baseURI`) on the main thread and forwards it to the worker as
+  part of its `$init` message, keeping worker mode and main-thread mode
+  page-relative in the same way.
+- **Compressed-first wasm loading:** the client prefers the gzip-compressed
+  `walletdk.wasm.gz` binary, inflating it through a `DecompressionStream` and
+  instantiating the resulting bytes, when the browser supports
+  `DecompressionStream`. If that path fails (or the API is unavailable), it
+  falls back to fetching the uncompressed `walletdk.wasm` and instantiating
+  it via `WebAssembly.instantiateStreaming`.
+- **Streaming-to-ArrayBuffer fallback:** `instantiateStreaming` requires the
+  server to serve the wasm response with an `application/wasm` content type.
+  If the host is misconfigured and omits it, streaming instantiation throws
+  and the client retries by reading the same response into an `ArrayBuffer`
+  and calling `WebAssembly.instantiate` on the bytes directly, so a
+  misconfigured MIME type does not break self-hosted runtimes.
+- **Worker entry resolution:** the worker script itself (unlike the daemon
+  binaries above) ships inside `@lightninglabs/walletdk-web` and is emitted
+  by your bundler via `new URL('../walletdk-worker.js', import.meta.url)`, so
+  it versions with the SDK and needs no separate hosting. `runtimeBaseUrl` is
+  still forwarded to the worker (via its `$init` message) even when you
+  override the worker entry point with `workerURL`, since the two settings
+  are independent: `workerURL` only changes where the worker script itself
+  loads from.
+
+See the [hosting runtime assets guide](/web/get-started/hosting-runtime-assets/)
+for a complete self-hosting walkthrough.
+
+## Passkeys (browser)
+
+<ApiSymbol name="webPasskeyCeremony" kind="const">
+
+Browser (WebAuthn/PRF) implementation of the
+[`PasskeyCeremony`](/reference/walletdk-core/#PasskeyCeremony) contract. It is
+literally the three standalone functions below grouped into one object; pass
+it to `usePasskeyWallet` from walletdk-react, or call the functions directly.
+
+<Signature title="walletdk-web.d.ts" code={passkeyCeremonySig} />
+
+```ts
+const webPasskeyCeremony: PasskeyCeremony = {
+  supportsPasskeyPrf,
+  registerPasskeyWallet,
+  assertPasskeyPrf,
+};
+```
+
+</ApiSymbol>
+
+<ApiSymbol name="supportsPasskeyPrf" kind="function">
+
+Reports whether a user-verifying platform authenticator is available, which
+is a prerequisite for WebAuthn PRF.
+
+<Signature title="walletdk-web.d.ts" code={supportsPasskeyPrfSig} />
+
+<Returns type="Promise<boolean>">
+`true` when a platform authenticator that can perform user verification is available.
+</Returns>
+
+<Callout type="caution" title="Not a guarantee">
+`supportsPasskeyPrf() === true` does not guarantee the PRF ceremony will
+succeed. There is no synchronous PRF-detection API, so a browser can report
+`true` here yet still fail to return a PRF result during
+`registerPasskeyWallet` or `assertPasskeyPrf`. Always handle rejection from
+those calls even after a `true` check.
+</Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="registerPasskeyWallet" kind="function">
+
+Creates a new platform passkey and returns its PRF output and credential id.
+Some browsers do not surface the PRF result from `create()`, so this falls
+back to an assertion scoped to the just-created credential to read it
+reliably without prompting a chooser.
+
+<Signature title="walletdk-web.d.ts" code={registerPasskeyWalletSig} />
+
+<ParamsTable rows={[
+  { name: 'appName', type: 'string', desc: 'Used as both the WebAuthn relying-party name (rp.name) and the account display name shown by the platform passkey UI.' },
+]} />
+
+<Returns type="Promise<PasskeyAssertion>">
+The new credential's PRF output and credential id. Rejects if registration is cancelled.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="assertPasskeyPrf" kind="function">
+
+Authenticates with a passkey and returns its PRF output plus the credential
+id used.
+
+<Signature title="walletdk-web.d.ts" code={assertPasskeyPrfSig} />
+
+<ParamsTable rows={[
+  { name: 'allowCredentialId', type: 'string', desc: 'Optional. When set, the assertion is scoped to that one credential (base64url id from a prior PasskeyAssertion.credentialId) so the OS unlocks it directly without a chooser. When omitted, the assertion is discoverable (an empty allowCredentials list) so a synced passkey can be offered even on a device that has never seen this wallet.' },
+]} />
+
+<Returns type="Promise<PasskeyAssertion>">
+The asserted credential's PRF output and credential id. Rejects if authentication is cancelled.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="PasskeyAssertion" kind="type">
+
+Result of a passkey registration or assertion ceremony. Defined in
+[`@lightninglabs/walletdk-core`](/reference/walletdk-core/#PasskeyAssertion)
+and surfaced here through the re-export (see the callout at the top of this
+page); shown in full because it is the return type of the two functions
+above.
+
+<Signature title="walletdk-core.d.ts" code={passkeyAssertionSig} />
+
+<ParamsTable rows={[
+  { name: 'prfOutput', type: 'string', desc: 'The WebAuthn PRF extension output, as a lower-case hex string.' },
+  { name: 'credentialId', type: 'string', desc: 'The base64url-encoded WebAuthn credential id. Safe to persist and pass back into assertPasskeyPrf(allowCredentialId) to scope a later assertion to this credential.' },
+]} />
+
+**Reproducibility.** Both functions evaluate the PRF extension against a
+fixed salt, `SHA-256("walletdk-passkey:v1")`, the same namespace the Go SDK
+uses (`PasskeyPRFNamespace`). Using the same fixed salt on every
+device/platform is what makes the derived wallet reproducible: asserting the
+same passkey anywhere yields the same `prfOutput`, and therefore the same
+derived wallet.
+
+**Discoverable vs. scoped assertions.** `assertPasskeyPrf()` called with no
+argument performs a *discoverable* assertion (empty `allowCredentials`),
+letting the platform's passkey chooser surface any matching synced passkey,
+including on a device that has never seen this wallet before. Passing
+`allowCredentialId` instead performs a *scoped* assertion limited to that one
+credential, which lets the OS unlock it directly without showing a chooser.
+
+</ApiSymbol>
+
+## Re-exported from walletdk-core
+
+Types like `SendRequest` and `ReceiveRequest` referenced by
+[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient) methods
+(`send`, `prepareSend`, `receive`, and so on) originate in
+[`@lightninglabs/walletdk-core`](/reference/walletdk-core/) and are available
+here only because `walletdk-web` re-exports the entire core package (see the
+callout at the top of this page). The `.d.ts` filename shown in each
+signature below is illustrative of the shape, not of which package physically
+declares the type.
+
+<ApiSymbol name="SendRequest" kind="type">
+
+Parameters accepted by `prepareSend()` and `send()`. `SendRequest` is a
+discriminated union: provide `invoice` for a Lightning send, or
+`onchainAddress` for an on-chain send. The two branches are mutually
+exclusive; `sweepAll` exists only on the on-chain branch.
+
+<Signature title="walletdk-web.d.ts" code={sendRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'invoice', type: 'string', desc: 'BOLT11 lightning invoice to pay. Mutually exclusive with onchainAddress.' },
+  { name: 'onchainAddress', type: 'string', desc: 'Bech32 Bitcoin address for an on-chain send. Mutually exclusive with invoice.' },
+  { name: 'amountSat', type: 'number', desc: "Required at runtime for on-chain sends unless sweepAll is true; the TypeScript type does not enforce this." },
+  { name: 'note', type: 'string', desc: 'Optional memo stored with the activity entry.' },
+  { name: 'maxFeeSat', type: 'number', desc: 'Optional fee ceiling for the send.' },
+  { name: 'sweepAll', type: 'boolean', desc: 'Drain every live VTXO to onchainAddress. Only present on the on-chain branch.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="ReceiveRequest" kind="type">
+
+Parameters accepted by `receive()`.
+
+<Signature title="walletdk-web.d.ts" code={receiveRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'amountSat', type: 'number', desc: 'Invoice amount in satoshis.' },
+  { name: 'memo', type: 'string', desc: 'Optional description embedded in the invoice.' },
+]} />
+
+</ApiSymbol>
+
+## See also
+
+- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
+- [walletdk-react reference](/web/reference/walletdk-react/) for `WalletDKProvider` and the hooks that consume a client created here.
+- [Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for a full self-hosting walkthrough of the files listed above.

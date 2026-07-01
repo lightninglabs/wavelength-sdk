@@ -1,0 +1,49 @@
+---
+title: Demo app
+description: An overview of the WalletDK reference integration app - what it demonstrates and how to run it locally.
+---
+
+## The reference integration
+
+The **`web-wallet-demo`** app in the WalletDK monorepo is a full React
+integration you can read, run, and copy patterns from. It is not a separate
+product; it exercises the same `@lightninglabs/walletdk-web` and
+`@lightninglabs/walletdk-react` packages your app would use.
+
+What it demonstrates:
+
+- **`WalletDKProvider`** with an injected `createWebClient()` instance
+  (self-hosted runtime assets, worker mode, optional RPC debug logging).
+- **Phase-based routing** from `useWalletDK()`: connect, create/unlock, backup,
+  syncing, ready, stopped, and error screens driven by `phase` and `info`.
+- **Password and passkey onboarding** via `createWallet` / `unlockWallet` and
+  `usePasskeyWallet(webPasskeyCeremony)`, including credential id persistence
+  in localStorage for scoped unlock.
+- **Core wallet flows**: deposit address, Lightning receive, send (prepare and
+  confirm), balance and activity, settings, and runtime configuration forms.
+- **Network presets** for signet, testnet, and regtest (`runtime-config.ts`
+  mirrors public gateway URLs and local arktest ports).
+- **Production-like hosting concerns**: COOP/COEP headers in `vite.config.ts`,
+  self-hosted WASM binaries under `public/`, persistent storage request, and a
+  local wipe path that clears OPFS and app markers.
+
+Treat the demo as the source of truth for wiring details that docs summarize.
+Key entry points: `src/main.tsx` (client bootstrap), `src/App.tsx` (orchestration),
+and `src/lib/runtime-config.ts` (gateway defaults).
+
+## How to run it
+
+Clone the monorepo, install dependencies, and start the demo dev server. Step-by-step
+commands (including `wasm:local` for a fresh WASM build and regtest/testnet
+overrides) live on the dedicated run page:
+
+**[Run the demo app](/web/get-started/run-the-demo-app/)**
+
+Out of the box the demo boots a **signet** wallet against Lightning Labs public
+gateways. No local backend is required for signet. For regtest, start
+[arktest](https://github.com/lightninglabs/darepo-client) locally and point the
+runtime form at the ports it prints.
+
+The demo ships with runtime assets committed under `public/` so `pnpm dev` works
+immediately. After upgrading the SDK or rebuilding WASM from `darepo-client`, run
+`pnpm --filter web-wallet-demo run wasm:local` to refresh those binaries.
