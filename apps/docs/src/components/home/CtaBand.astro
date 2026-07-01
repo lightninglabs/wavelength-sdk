@@ -1,0 +1,133 @@
+---
+/**
+ * CtaBand.astro - "Ready to build?" call-to-action band.
+ * Centred layout with squares cluster motif + two CTA buttons.
+ * Styled per r4-final/home.html .cta-band.
+ */
+---
+
+<section class="wdk-cta" aria-labelledby="wdk-cta-heading">
+  <div class="wdk-cta__inner">
+    <!-- Squares cluster motif. -->
+    <div class="wdk-cta__squares" aria-hidden="true">
+      <div class="wdk-cta__sq wdk-cta__sq--violet"></div>
+      <div class="wdk-cta__sq wdk-cta__sq--teal"></div>
+      <div class="wdk-cta__sq wdk-cta__sq--lime"></div>
+      <div class="wdk-cta__sq wdk-cta__sq--orange"></div>
+      <div class="wdk-cta__sq wdk-cta__sq--sky"></div>
+    </div>
+
+    <h2 id="wdk-cta-heading" class="wdk-cta__heading">Ready to build?</h2>
+    <p class="wdk-cta__body">Integrate WalletDK in minutes. Read the quickstart, then explore the guides to go further.</p>
+
+    <div class="wdk-cta__actions">
+      <a href="/web/get-started/quickstart/" class="wdk-cta__btn wdk-cta__btn--primary">Start the quickstart</a>
+      <a href="/web/get-started/quickstart/" class="wdk-cta__btn wdk-cta__btn--ghost">
+        <span aria-hidden="true">&#9654;</span> Try it live
+      </a>
+      <a href="/web/guides/create-a-wallet/" class="wdk-cta__btn wdk-cta__btn--ghost">Browse guides</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .wdk-cta {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 90px 80px;
+    text-align: center;
+  }
+
+  .wdk-cta__inner {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Squares cluster. */
+  .wdk-cta__squares {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 28px;
+  }
+
+  .wdk-cta__sq {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+  }
+  .wdk-cta__sq--violet { background: var(--violet); }
+  .wdk-cta__sq--teal   { background: var(--teal); }
+  .wdk-cta__sq--lime   { background: var(--lime); }
+  .wdk-cta__sq--orange { background: var(--orange); }
+  .wdk-cta__sq--sky    { background: var(--sky); }
+
+  .wdk-cta__heading {
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .wdk-cta__body {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    line-height: 1.65;
+  }
+
+  .wdk-cta__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Shared button base. */
+  .wdk-cta__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 11px 28px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .wdk-cta__btn--primary {
+    background: var(--teal);
+    color: #0d0d10;
+    border-color: var(--teal);
+  }
+  .wdk-cta__btn--primary:hover {
+    background: #12ccb0;
+    border-color: #12ccb0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(21, 224, 194, 0.25);
+  }
+
+  .wdk-cta__btn--ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .wdk-cta__btn--ghost:hover {
+    color: var(--text);
+    border-color: var(--border-2);
+    background: var(--surface-2);
+  }
+
+  /* Mobile: tighter padding. */
+  @media (max-width: 768px) {
+    .wdk-cta { padding: 60px 20px; }
+  }
+</style>

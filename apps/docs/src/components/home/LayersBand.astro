@@ -1,0 +1,208 @@
+---
+/**
+ * LayersBand.astro - "One SDK. Three payment layers." section.
+ * Three cards: Bitcoin on-chain, Lightning via swaps, Ark scaling.
+ * Styled per r4-final/home.html .layers-band + .layers-grid.
+ */
+---
+
+<section class="wdk-layers" aria-labelledby="wdk-layers-heading">
+  <div class="wdk-layers__eyebrow">
+    <div class="wdk-layers__eyebrow-sq" aria-hidden="true"></div>
+    <span class="wdk-layers__eyebrow-text">3 Layers</span>
+    <div class="wdk-layers__eyebrow-line" aria-hidden="true"></div>
+  </div>
+  <h2 id="wdk-layers-heading" class="wdk-layers__heading">One SDK. Three payment layers.</h2>
+  <p class="wdk-layers__sub">One coherent API over Bitcoin, Lightning, and Ark, with the same familiar invoice for every payment.</p>
+
+  <div class="wdk-layers__grid">
+    <div class="wdk-layer wdk-layer--btc">
+      <div class="wdk-layer__number" aria-hidden="true">01</div>
+      <div class="wdk-layer__badge wdk-layer__badge--btc">
+        <span class="wdk-layer__badge-sq"></span>
+        Bitcoin
+      </div>
+      <h3 class="wdk-layer__title">On-chain BTC</h3>
+      <p class="wdk-layer__desc">Full custody. Receive to a native segwit address. Broadcast transactions. Trustless and final - the bedrock layer.</p>
+    </div>
+
+    <div class="wdk-layer wdk-layer--ln">
+      <div class="wdk-layer__number" aria-hidden="true">02</div>
+      <div class="wdk-layer__badge wdk-layer__badge--ln">
+        <span class="wdk-layer__badge-sq"></span>
+        Lightning
+      </div>
+      <h3 class="wdk-layer__title">Lightning via swaps</h3>
+      <p class="wdk-layer__desc">Instant payments via atomic swaps. No channels to manage. Pay any Lightning invoice directly from your Ark balance.</p>
+    </div>
+
+    <div class="wdk-layer wdk-layer--ark">
+      <div class="wdk-layer__number" aria-hidden="true">03</div>
+      <div class="wdk-layer__badge wdk-layer__badge--ark">
+        <span class="wdk-layer__badge-sq"></span>
+        Ark
+      </div>
+      <h3 class="wdk-layer__title">Ark scaling</h3>
+      <p class="wdk-layer__desc">VTXOs: virtual UTXOs that settle on-chain in batches. Fast, cheap, and still self-custodial. The scaling layer.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .wdk-layers {
+    padding: 100px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Eyebrow. */
+  .wdk-layers__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .wdk-layers__eyebrow-sq {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--orange);
+    flex-shrink: 0;
+  }
+  .wdk-layers__eyebrow-text {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .wdk-layers__eyebrow-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    max-width: 60px;
+  }
+
+  .wdk-layers__heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .wdk-layers__sub {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    line-height: 1.65;
+  }
+
+  /* Three-column grid. */
+  .wdk-layers__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  /* Layer cards. */
+  .wdk-layer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .wdk-layer:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Coloured top accent line. */
+  .wdk-layer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  .wdk-layer--btc::before { background: var(--orange); }
+  .wdk-layer--ln::before  { background: var(--violet); }
+  .wdk-layer--ark::before { background: var(--teal); }
+
+  /* Ghost large number. */
+  .wdk-layer__number {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 20px;
+    opacity: 0.07;
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    color: var(--text);
+  }
+
+  /* Badge pill. */
+  .wdk-layer__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+
+  .wdk-layer__badge--btc {
+    color: var(--orange);
+    background: rgba(247, 146, 14, 0.12);
+  }
+  .wdk-layer__badge--ln {
+    color: var(--violet);
+    background: rgba(122, 47, 242, 0.12);
+  }
+  .wdk-layer__badge--ark {
+    color: var(--teal);
+    background: rgba(21, 224, 194, 0.10);
+  }
+
+  .wdk-layer__badge-sq {
+    width: 6px;
+    height: 6px;
+    border-radius: 1.5px;
+    flex-shrink: 0;
+    background: currentColor;
+  }
+
+  .wdk-layer__title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+
+  .wdk-layer__desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Mobile: single-column stack, tighter padding. */
+  @media (max-width: 768px) {
+    .wdk-layers { padding: 60px 20px; }
+    .wdk-layers__grid { grid-template-columns: 1fr; }
+  }
+</style>
