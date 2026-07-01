@@ -34,20 +34,21 @@ import { DEMO_APP_URL } from '~/config/site';
   // client-side (view transition) navigation; module scripts do not re-run on
   // client nav. The per-element guard prevents double-binding on re-init.
   function setupCodeRail() {
-    const rail = document.querySelector('[data-code-rail]');
-    if (!rail || rail.dataset.wdkBound) return;
+    const railEl = document.querySelector('[data-code-rail]');
+    if (!(railEl instanceof HTMLElement) || railEl.dataset.wdkBound) return;
+    const rail = railEl;
     rail.dataset.wdkBound = '1';
     const sections = Array.from(document.querySelectorAll('[data-guide-section]'));
     const panels = new Map();
     for (const sec of sections) {
       const code = sec.querySelector('[data-guide-code]');
-      if (!code) continue;
+      if (!(code instanceof HTMLElement)) continue;
       code.hidden = false;
       code.classList.add('wdk-rail__panel');
       rail.appendChild(code);             // move code out of the reading flow
       panels.set(sec.id, code);
     }
-    function activate(id) {
+    function activate(id: string) {
       panels.forEach((el, key) => el.classList.toggle('is-active', key === id));
       document.querySelectorAll('[data-guide-toc] a').forEach((a) =>
         a.toggleAttribute('aria-current', a.getAttribute('href') === '#' + id));
@@ -61,11 +62,13 @@ import { DEMO_APP_URL } from '~/config/site';
     if (sections[0]) activate(sections[0].id);
 
     // Scroll-progress line over the reading column.
-    const bar = document.querySelector('[data-guide-progress]');
+    const barEl = document.querySelector('[data-guide-progress]');
     function onScroll() {
       const doc = document.documentElement;
       const p = doc.scrollTop / (doc.scrollHeight - doc.clientHeight || 1);
-      if (bar) bar.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
+      if (barEl instanceof HTMLElement) {
+        barEl.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`;
+      }
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();

@@ -61,15 +61,24 @@ const isActive = (slug: string) => pathname === `/${slug}/` || pathname === `/${
   // (view transition) navigation, so the drawer is rebound to the fresh DOM
   // each time. A per-element guard avoids double-binding.
   function setupDrawer() {
-    const toggle = document.querySelector('.wdk-menu-toggle');
-    const drawer = document.getElementById('wdk-mobile-drawer');
-    const backdrop = document.querySelector('[data-drawer-backdrop]');
+    const toggleEl = document.querySelector('.wdk-menu-toggle');
+    const drawerEl = document.getElementById('wdk-mobile-drawer');
+    const backdropEl = document.querySelector('[data-drawer-backdrop]');
     const closeBtn = document.querySelector('[data-drawer-close]');
-    if (!toggle || !drawer || !backdrop) return;
+    if (
+      !(toggleEl instanceof HTMLElement) ||
+      !(drawerEl instanceof HTMLElement) ||
+      !(backdropEl instanceof HTMLElement)
+    ) {
+      return;
+    }
+    const toggle = toggleEl;
+    const drawer = drawerEl;
+    const backdrop = backdropEl;
     if (toggle.dataset.wdkBound) return;
     toggle.dataset.wdkBound = '1';
 
-    function onKey(e) {
+    function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') closeDrawer();
     }
     function openDrawer() {

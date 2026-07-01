@@ -97,8 +97,9 @@ const accent = accentForSlug(entry.id);
   // not re-run on client nav, so the astro:page-load listener is required
   // (same pattern as CodeRail.astro).
   function setupStepper() {
-    const list = document.querySelector('[data-stepper]');
-    if (!list || list.dataset.wdkBound) return;
+    const listEl = document.querySelector('[data-stepper]');
+    if (!(listEl instanceof HTMLElement) || listEl.dataset.wdkBound) return;
+    const list = listEl;
     list.dataset.wdkBound = '1';
 
     const sections = Array.from(document.querySelectorAll('[data-step]'));
@@ -106,7 +107,10 @@ const accent = accentForSlug(entry.id);
 
     // Build one <li> per section and insert into the stepper rail.
     sections.forEach((sec, idx) => {
-      const title = sec.dataset.stepTitle ?? sec.querySelector('h2')?.textContent ?? `Step ${idx + 1}`;
+      const title =
+        (sec instanceof HTMLElement ? sec.dataset.stepTitle : undefined) ??
+        sec.querySelector('h2')?.textContent ??
+        `Step ${idx + 1}`;
       const li = document.createElement('li');
       li.className = 'wdk-qs__step-item';
       li.dataset.stepItem = '';
@@ -123,7 +127,7 @@ const accent = accentForSlug(entry.id);
     const items = Array.from(list.querySelectorAll('[data-step-item]'));
     const total = sections.length;
 
-    function activate(index) {
+    function activate(index: number) {
       items.forEach((el, i) => {
         el.classList.remove('is-active', 'is-done');
         if (i < index) el.classList.add('is-done');
@@ -141,7 +145,7 @@ const accent = accentForSlug(entry.id);
       const label = document.querySelector('[data-qs-progress-label]');
       const pctEl = document.querySelector('[data-qs-progress-pct]');
       const pb = document.querySelector('[data-qs-progress]');
-      if (fill) fill.style.width = `${pct}%`;
+      if (fill instanceof HTMLElement) fill.style.width = `${pct}%`;
       if (label) label.textContent = `Step ${index + 1} of ${total}`;
       if (pctEl) pctEl.textContent = `${pct}%`;
       if (pb) {

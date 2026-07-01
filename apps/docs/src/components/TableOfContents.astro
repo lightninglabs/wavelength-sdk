@@ -56,8 +56,9 @@ const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
   // on re-init. Matches the lifecycle pattern in CodeRail.astro and
   // ScrollProgress.astro.
   function setupTocSpy() {
-    const nav = document.querySelector('[data-toc-spy]');
-    if (!(nav instanceof HTMLElement) || nav.dataset.wdkBound) return;
+    const navEl = document.querySelector('[data-toc-spy]');
+    if (!(navEl instanceof HTMLElement) || navEl.dataset.wdkBound) return;
+    const nav = navEl;
 
     // The in-content headings live in the doc or guide reading column.
     const content = document.querySelector('.wdk-doc__content, .wdk-guide__content');
@@ -76,7 +77,7 @@ const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
 
     // Exactly one link is active at a time: clear every link, then mark the
     // one matching the given heading id.
-    function activate(id) {
+    function activate(id: string) {
       links.forEach((a, key) => {
         if (key === id) {
           a.setAttribute('aria-current', 'true');

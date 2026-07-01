@@ -103,8 +103,9 @@ const pathname = Astro.url.pathname;
   // on astro:page-load with a per-element guard (the MobileNav / CodeRail
   // discipline) to avoid double-binding on re-init.
   function wireSearchButton() {
-    const btn = document.querySelector('[data-search-trigger]');
-    if (!btn || btn.dataset.wdkBound) return;
+    const btnEl = document.querySelector('[data-search-trigger]');
+    if (!(btnEl instanceof HTMLElement) || btnEl.dataset.wdkBound) return;
+    const btn = btnEl;
     btn.dataset.wdkBound = '1';
     btn.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('wdk:open-search'));

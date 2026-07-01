@@ -1,4 +1,5 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
+import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
 
 const docs = defineCollection({
@@ -9,7 +10,7 @@ const docs = defineCollection({
     pageLayout: z.enum(['doc', 'guide', 'quickstart', 'reference', 'home']).default('doc'),
     sidebar: z
       .object({ label: z.string().optional(), order: z.number().optional(), hidden: z.boolean().default(false) })
-      .default({}),
+      .default({ hidden: false }),
     related: z.array(z.string()).default([]),
     tableOfContents: z.boolean().default(true),
     draft: z.boolean().default(false),

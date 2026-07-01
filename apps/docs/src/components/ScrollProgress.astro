@@ -24,8 +24,9 @@
 
 <script>
   function setupScrollProgress() {
-    const bar = document.querySelector('.wdk-scroll-progress');
-    if (!(bar instanceof HTMLElement) || bar.dataset.wdkBound) return;
+    const barEl = document.querySelector('.wdk-scroll-progress');
+    if (!(barEl instanceof HTMLElement) || barEl.dataset.wdkBound) return;
+    const bar = barEl;
     bar.dataset.wdkBound = '1';
 
     function onScroll() {

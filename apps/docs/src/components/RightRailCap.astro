@@ -19,8 +19,9 @@
     const hasRail = document.querySelector('.wdk-toc, .wdk-ref__rail, .wdk-qs__stepper');
     if (!hasRail) return;
 
-    const footer = document.querySelector('.wdk-footer');
-    if (!(footer instanceof HTMLElement)) return;
+    const footerEl = document.querySelector('.wdk-footer');
+    if (!(footerEl instanceof HTMLElement)) return;
+    const footer = footerEl;
 
     const root = document.documentElement;
     if (root.dataset.wdkRailCapBound) return;
