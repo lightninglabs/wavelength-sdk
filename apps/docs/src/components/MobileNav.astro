@@ -1,0 +1,258 @@
+---
+/**
+ * MobileNav.astro - off-canvas navigation drawer for narrow viewports.
+ * Rendered by Header.astro; toggled by the .wdk-menu-toggle button there.
+ * Mirrors the Sidebar's NAV groups (accent dots + per-section labels) so
+ * mobile users get the full documentation navigation, which the fixed
+ * desktop sidebar hides below 768px.
+ */
+import { NAV, SECTION_ACCENT } from '~/config/nav';
+
+const pathname = Astro.url.pathname;
+// A link is active when its slug matches the current path (with or without trailing slash).
+const isActive = (slug: string) => pathname === `/${slug}/` || pathname === `/${slug}`;
+---
+
+<div class="wdk-drawer-backdrop" data-drawer-backdrop hidden></div>
+
+<aside id="wdk-mobile-drawer" class="wdk-drawer" aria-label="Site navigation" aria-hidden="true">
+  <div class="wdk-drawer__head">
+    <a href="/" class="wdk-drawer__brand" aria-label="WalletDK home">
+      <span class="wdk-drawer__squares" aria-hidden="true">
+        <span class="wdk-drawer__sq" style="background: var(--violet)"></span>
+        <span class="wdk-drawer__sq" style="background: var(--teal)"></span>
+        <span class="wdk-drawer__sq" style="background: var(--lime)"></span>
+        <span class="wdk-drawer__sq" style="background: var(--orange)"></span>
+        <span class="wdk-drawer__sq" style="background: var(--sky)"></span>
+      </span>
+      <span class="wdk-drawer__wordmark">Wallet<span>DK</span></span>
+    </a>
+    <button type="button" class="wdk-drawer__close" aria-label="Close navigation menu" data-drawer-close>
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden="true">
+        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <nav class="wdk-drawer__nav" aria-label="Documentation">
+    {NAV.map((group) => {
+      const accent = SECTION_ACCENT[group.section] ?? 'violet';
+      return (
+        <div class="wdk-drawer__section">
+          <div class="wdk-drawer__label">
+            <span class="wdk-drawer__dot" style={`background: var(--${accent})`}></span>
+            {group.label}
+          </div>
+          {group.items.map((item) => (
+            <a
+              href={`/${item.slug}/`}
+              class:list={['wdk-drawer__link', isActive(item.slug) && 'wdk-drawer__link--active']}
+              aria-current={isActive(item.slug) ? 'page' : undefined}
+            >{item.label}</a>
+          ))}
+        </div>
+      );
+    })}
+  </nav>
+</aside>
+
+<script>
+  // astro:page-load fires on the initial load and after every client-side
+  // (view transition) navigation, so the drawer is rebound to the fresh DOM
+  // each time. A per-element guard avoids double-binding.
+  function setupDrawer() {
+    const toggle = document.querySelector('.wdk-menu-toggle');
+    const drawer = document.getElementById('wdk-mobile-drawer');
+    const backdrop = document.querySelector('[data-drawer-backdrop]');
+    const closeBtn = document.querySelector('[data-drawer-close]');
+    if (!toggle || !drawer || !backdrop) return;
+    if (toggle.dataset.wdkBound) return;
+    toggle.dataset.wdkBound = '1';
+
+    function onKey(e) {
+      if (e.key === 'Escape') closeDrawer();
+    }
+    function openDrawer() {
+      backdrop.hidden = false;
+      // Next frame so the slide/fade runs from the closed state.
+      requestAnimationFrame(() => {
+        drawer.classList.add('is-open');
+        backdrop.classList.add('is-open');
+      });
+      toggle.setAttribute('aria-expanded', 'true');
+      drawer.setAttribute('aria-hidden', 'false');
+      document.documentElement.style.overflow = 'hidden';
+      document.addEventListener('keydown', onKey);
+    }
+    function closeDrawer() {
+      drawer.classList.remove('is-open');
+      backdrop.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      drawer.setAttribute('aria-hidden', 'true');
+      document.documentElement.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+      function onEnd() {
+        backdrop.hidden = true;
+        backdrop.removeEventListener('transitionend', onEnd);
+      }
+      backdrop.addEventListener('transitionend', onEnd);
+    }
+
+    toggle.addEventListener('click', () =>
+      drawer.classList.contains('is-open') ? closeDrawer() : openDrawer()
+    );
+    backdrop.addEventListener('click', closeDrawer);
+    closeBtn?.addEventListener('click', closeDrawer);
+    drawer.querySelectorAll('a').forEach((a) => a.addEventListener('click', closeDrawer));
+  }
+
+  document.addEventListener('astro:page-load', setupDrawer);
+</script>
+
+<style>
+  /* Dim backdrop behind the drawer. */
+  .wdk-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 150;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+  .wdk-drawer-backdrop.is-open {
+    opacity: 1;
+  }
+
+  /* Off-canvas drawer. */
+  .wdk-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 290px;
+    max-width: 85vw;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 32px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .wdk-drawer.is-open {
+    transform: translateX(0);
+  }
+
+  /* Drawer header: brand + close. */
+  .wdk-drawer__head {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .wdk-drawer__brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+  }
+  .wdk-drawer__squares {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .wdk-drawer__sq {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .wdk-drawer__wordmark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .wdk-drawer__wordmark span {
+    color: var(--teal);
+  }
+  .wdk-drawer__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .wdk-drawer__close:hover {
+    color: var(--text);
+    border-color: var(--border-2);
+  }
+
+  /* Nav groups - mirrors the desktop sidebar. */
+  .wdk-drawer__nav {
+    padding: 8px 0 0;
+  }
+  .wdk-drawer__section {
+    margin-top: 2px;
+  }
+  .wdk-drawer__label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 16px 18px 6px;
+  }
+  .wdk-drawer__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 1.75px;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+  .wdk-drawer__link {
+    display: block;
+    padding: 9px 18px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    border-left: 2px solid transparent;
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+  }
+  .wdk-drawer__link:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .wdk-drawer__link--active {
+    color: var(--sl-accent, var(--teal));
+    background: color-mix(in srgb, var(--sl-accent, var(--teal)) 12%, transparent);
+    border-left-color: var(--sl-accent, var(--teal));
+    font-weight: 500;
+  }
+
+  /* The drawer only exists for narrow viewports. */
+  @media (min-width: 769px) {
+    .wdk-drawer,
+    .wdk-drawer-backdrop {
+      display: none;
+    }
+  }
+</style>

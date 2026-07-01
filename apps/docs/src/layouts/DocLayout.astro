@@ -1,0 +1,123 @@
+---
+/**
+ * DocLayout.astro - Three-column documentation page layout.
+ * Wraps Sidebar + content + TableOfContents inside BaseLayout.
+ * Sets data-accent on <html> from accentForSlug so per-section accent
+ * colors are available to CSS before paint.
+ *
+ * Props:
+ *   entry    - the content collection entry (has .id, .data.title, etc.)
+ *   headings - from render(entry), passed through to TableOfContents.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Sidebar from '~/components/Sidebar.astro';
+import TableOfContents from '~/components/TableOfContents.astro';
+import PrevNext from '~/components/PrevNext.astro';
+import RelatedGuides from '~/components/RelatedGuides.astro';
+import { accentForSlug } from '~/config/nav';
+
+interface Props {
+  entry: {
+    id: string;
+    data: {
+      title: string;
+      description?: string;
+      tableOfContents: boolean;
+      related: string[];
+    };
+  };
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { entry, headings } = Astro.props;
+const accent = accentForSlug(entry.id);
+const hasToc = entry.data.tableOfContents;
+---
+
+<BaseLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  accent={accent}
+  footerInsetLeft
+>
+  <div class="wdk-doc">
+    <Sidebar currentSlug={entry.id} />
+    <div class:list={['wdk-doc__main', hasToc && 'wdk-doc__main--with-toc']}>
+      <div class="wdk-doc__inner">
+        <main class="wdk-doc__content" data-pagefind-body>
+          <h1 class="wdk-doc__title">{entry.data.title}</h1>
+          <slot />
+          <PrevNext slug={entry.id} />
+          <RelatedGuides related={entry.data.related} />
+        </main>
+        {hasToc && <TableOfContents headings={headings} />}
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /*
+   * Three-column doc layout: sidebar (fixed, handled by Sidebar.astro) |
+   * main content | TOC right rail.
+   * Mirrors .page-with-sidebar / .page-main / .page-content-rail pattern
+   * from design-mockups/r4-final/styles.css and guide.html.
+   */
+
+  /* Outer wrapper - full height, flex row. */
+  .wdk-doc {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Main area pushed right of the fixed sidebar. */
+  .wdk-doc__main {
+    margin-left: var(--sidebar-w, 256px);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  /* When the TOC rail renders, it is a fixed full-height column pinned to the
+     right screen edge (see TableOfContents.astro), so the content needs a
+     matching right margin to avoid being overlapped. */
+  .wdk-doc__main--with-toc {
+    margin-right: var(--toc-w, 240px);
+  }
+
+  /* Inner flex row for the content column. */
+  .wdk-doc__inner {
+    display: flex;
+    gap: 40px;
+    padding: 48px 40px 80px;
+    max-width: 1200px;
+    width: 100%;
+  }
+
+  /* Prose content column. */
+  .wdk-doc__content {
+    flex: 1;
+    min-width: 0;
+    max-width: 760px;
+  }
+
+  /* Page title - h1 injected by DocLayout (content MDX bodies start at ##). */
+  .wdk-doc__title {
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 24px;
+    line-height: 1.15;
+    color: var(--text);
+  }
+
+  /* Mobile: single column - hide the fixed sidebar + TOC, content full-width.
+     The TOC rail hides itself (see TableOfContents.astro's own media query);
+     here we just drop the right margin that made room for it. */
+  @media (max-width: 768px) {
+    .wdk-doc__main { margin-left: 0; }
+    .wdk-doc__main--with-toc { margin-right: 0; }
+    .wdk-doc__inner { padding: 32px 20px 60px; gap: 0; }
+    .wdk-doc__content { max-width: 100%; }
+  }
+</style>
