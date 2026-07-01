@@ -8,6 +8,9 @@
  * This is the single source of truth for the (future) CDN publish step and the
  * self-host instructions. The standalone worker (walletdk-worker.js) cannot
  * import this module, so it mirrors these names literally; keep the two in sync.
+ *
+ * The version of the asset set (RUNTIME_MANIFEST_VERSION) lives in core, next
+ * to the generated daemon types it is paired with.
  */
 export const RUNTIME_ASSETS = {
   wasm: 'walletdk.wasm',
@@ -26,11 +29,3 @@ export const RUNTIME_ASSETS = {
  */
 export const RUNTIME_ASSET_FILES: readonly string[] =
   Object.values(RUNTIME_ASSETS);
-
-/**
- * RUNTIME_MANIFEST_VERSION identifies this runtime asset set. Bump it whenever
- * the daemon wasm or the go-wasmsqlite stack changes so hosted assets and the
- * client stay in lockstep. Wire this to the darepo-client release tag once it
- * ships.
- */
-export const RUNTIME_MANIFEST_VERSION = '0.0.0-dev';

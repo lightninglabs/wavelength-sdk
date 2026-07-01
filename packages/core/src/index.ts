@@ -80,6 +80,10 @@ export type {
   WalletKind,
 } from './passkey';
 
+// The daemon build this SDK release is paired with (generated types and
+// runtime assets alike).
+export { RUNTIME_MANIFEST_VERSION } from './version';
+
 // camelizeKeys maps a daemon PascalCase JSON response to the SDK's camelCase
 // shapes; packages/web applies it at the response boundary.
 export { camelizeKeys } from './casing';
