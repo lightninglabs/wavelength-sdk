@@ -1,0 +1,73 @@
+---
+import '~/styles/fonts.css';
+import '~/styles/theme.css';
+import { ClientRouter } from 'astro:transitions';
+import Header from '~/components/Header.astro';
+import Footer from '~/components/Footer.astro';
+import ScrollProgress from '~/components/ScrollProgress.astro';
+import RightRailCap from '~/components/RightRailCap.astro';
+interface Props {
+  title: string;
+  description?: string;
+  accent?: string;
+  // Inset the footer to clear the fixed left Sidebar. Page-level right rails
+  // (TOC, stepper, symbol list) stop at the footer top instead, so the footer
+  // stays full-width on the right. Home and other sidebar-less pages leave
+  // this false.
+  footerInsetLeft?: boolean;
+}
+const {
+  title,
+  description,
+  accent = 'violet',
+  footerInsetLeft = false,
+} = Astro.props;
+
+// Canonical URL: absolute URL of this page without query or hash.
+const canonical = new URL(Astro.url.pathname, Astro.site);
+
+// The page title string as it appears in <title>, reused for og:title.
+const pageTitle = title === 'WalletDK' ? title : `${title} | WalletDK`;
+---
+<!doctype html>
+<html lang="en" data-accent={accent}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
+    <!-- Open Graph meta tags for social sharing. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={pageTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <!-- Twitter card meta tags. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- No-flash theme: apply before paint, and re-apply after each client-side
+         (view transition) swap, which resets the <html> element's attributes. -->
+    <script is:inline>
+      (function () {
+        function applyTheme() {
+          var stored = localStorage.getItem('wdk-theme');
+          var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = stored || (dark ? 'dark' : 'light');
+        }
+        applyTheme();
+        if (!window.__wdkThemeBound) {
+          window.__wdkThemeBound = true;
+          document.addEventListener('astro:after-swap', applyTheme);
+        }
+      })();
+    </script>
+    <ClientRouter />
+    <slot name="head" />
+  </head>
+  <body>
+    <Header />
+    <ScrollProgress />
+    <RightRailCap />
+    <slot />
+    <Footer insetLeft={footerInsetLeft} />
+  </body>
+</html>

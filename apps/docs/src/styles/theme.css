@@ -1,0 +1,504 @@
+/* apps/docs/src/styles/theme.css
+   Light + dark palettes ported from design mockups.
+   Dark base: design-mockups/r4-final/styles.css
+   Light base: design-mockups/r2-6-light-classic/styles.css
+*/
+
+/* -------------------------------------------------------
+   Dark palette (default)
+   ------------------------------------------------------- */
+:root {
+  --bg:        #141417;
+  --surface:   #1c1c21;
+  --surface-2: #24242a;
+  --surface-3: #2c2c33;
+  --border:    #303037;
+  --border-2:  #44444d;
+
+  --text:      #f5f5f7;
+  --text-muted:#b6b6c0;
+  --text-dim:  #8c8c96;
+  --text-code: #e8e8ed;
+  --link-prose: #6dd4c4;
+
+  /* Named accent tokens (per-section, keyed by data-accent). */
+  --accent-violet: #7a2ff2;
+  --accent-teal:   #15e0c2;
+  --accent-lime:   #c9f000;
+  --accent-orange: #f7920e;
+  --accent-sky:    #56c7f2;
+
+  /* Short aliases used by Task 1 mdx components (Callout, Card).
+     These mirror the accent tokens so components theme correctly
+     without needing edits to their var() references. */
+  --violet: var(--accent-violet);
+  --teal:   var(--accent-teal);
+  --lime:   var(--accent-lime);
+  --orange: var(--accent-orange);
+  --sky:    var(--accent-sky);
+
+  --font-display: 'Work Sans', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* Layout dimension tokens shared by Header, Sidebar, DocLayout, and
+     QuickstartLayout. Single source of truth - update here to reflow layout. */
+  --header-height: 56px;
+  --sidebar-w:     256px;
+  --toc-w:         240px;
+  /* Distance from the viewport bottom to page-level right rails (TOC,
+     stepper, symbol list). Updated by RightRailCap.astro when the footer
+     enters view; 0 while the footer is below the fold. */
+  --rail-bottom:   0;
+
+  /* Pink accent used for JSX syntax tokens in the hero code window. */
+  --accent-pink: #f472b6;
+
+  /* Rail surface - distinct from the content column's --bg so the left
+     sidebar and right rails (TOC, symbol list) read as a different surface
+     than the content. Lifted relative to --bg in both palettes. */
+  --rail-bg: var(--surface);
+}
+
+/* -------------------------------------------------------
+   Light palette
+   ------------------------------------------------------- */
+:root[data-theme='light'] {
+  --bg:        #ffffff;
+  --surface:   #f7f7f8;
+  --surface-2: #ffffff;
+  --surface-3: #f0f0f3;
+  --border:    #e6e6e9;
+  --border-2:  #d4d4d8;
+
+  --text:      #0a0a0b;
+  --text-muted:#52525b;
+  --text-dim:  #8b8d94;
+  --text-code: #3f3f46;
+  --link-prose: #0a8f7a;
+
+  /* Accents are adjusted for light mode: fills/dots keep their original hue, but
+     lime used as text or a rule on a white surface is too low-contrast at #c9f000
+     (estimated contrast ratio ~1.3:1). Use a darker variant for text/rule only;
+     the fill alias --lime still resolves to the bright value so squares/dots are
+     unchanged. Violet and sky are also darkened so they read against white. */
+  --accent-violet: #5a1fd6;
+  --accent-teal:   #0cb09a;
+  --accent-lime:   #5a7000;
+  --accent-orange: #d4720a;
+  --accent-sky:    #2a8fb8;
+  --accent-pink:   #c4367a;
+
+  /* Fill aliases: keep the bright original hues so dots/squares look vivid. */
+  --violet: var(--accent-violet);
+  --teal:   var(--accent-teal);
+  --lime:   #c9f000;
+  --orange: var(--accent-orange);
+  --sky:    var(--accent-sky);
+
+  /* Rail surface - light gray, distinct from the white content column. */
+  --rail-bg: var(--surface);
+}
+
+/* -------------------------------------------------------
+   Per-section accent resolution (data-accent attribute)
+   ------------------------------------------------------- */
+:root[data-accent='violet'] { --sl-accent: var(--accent-violet); }
+:root[data-accent='teal']   { --sl-accent: var(--accent-teal); }
+:root[data-accent='lime']   { --sl-accent: var(--accent-lime); }
+:root[data-accent='orange'] { --sl-accent: var(--accent-orange); }
+:root[data-accent='sky']    { --sl-accent: var(--accent-sky); }
+
+/* -------------------------------------------------------
+   Base element styles
+   ------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  background:  var(--bg);
+  color:       var(--text);
+  font-family: var(--font-body);
+  font-size:   16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background:  var(--bg);
+  color:       var(--text);
+  font-family: var(--font-body);
+  font-size:   0.9375rem; /* 15px */
+  line-height: 1.7;
+  min-height:  100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+img, svg { display: block; }
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+}
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+}
+
+/* -------------------------------------------------------
+   Theme toggle button
+   ------------------------------------------------------- */
+.wdk-theme-toggle {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 6px 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wdk-theme-toggle:hover {
+  border-color: var(--border-2);
+  background: var(--surface);
+}
+
+/* -------------------------------------------------------
+   Doc + guide prose styles - scoped to the reading columns
+   (.wdk-doc__content and .wdk-guide__content) via :is().
+   Ported from: the orphaned apps/docs/src/styles/custom.css
+   (.sl-markdown-content rules) and design-mockups/r4-final/styles.css
+   (.prose rules). Scoping ensures home and chrome are unaffected.
+   ------------------------------------------------------- */
+
+/* Paragraphs and lists - spacing rhythm from r4-final .prose. */
+:is(.wdk-doc__content, .wdk-guide__content) p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) ul,
+:is(.wdk-doc__content, .wdk-guide__content) ol {
+  color: var(--text-muted);
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) li {
+  margin-bottom: 0.4rem;
+  font-size: 0.9375rem;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* In-content headings - sizes from custom.css, margins from r4-final .prose. */
+:is(.wdk-doc__content, .wdk-guide__content) h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) h3 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 1.75rem 0 0.5rem;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 1.5rem 0 0.4rem;
+}
+
+/* Signature accent h2 underline motif - ported from custom.css
+   (.sl-markdown-content h2::after), color keyed to per-section accent
+   via --sl-accent defined in the per-section block above. Scoped to
+   .wdk-doc__content only: the guide layout uses the numbered step circle
+   below (.wdk-guide__content h2::before) instead of this underline. */
+.wdk-doc__content h2::after {
+  content: '';
+  display: block;
+  width: 3rem;
+  height: 3px;
+  margin-top: 0.4rem;
+  border-radius: 2px;
+  background: var(--sl-accent);
+}
+
+/* Numbered steps - the guide layout's key visual. A CSS counter scoped to
+   .wdk-guide__content increments on each in-content h2 and renders the number
+   in a small accent circle via ::before, so MDX bodies stay clean (authors
+   write plain ## headings; the layout does the numbering). Ported from the
+   .step-num style in design-mockups/r4-final/guide.html: a 26px circle with a
+   translucent accent fill, accent text, and an accent-tinted border. */
+.wdk-guide__content {
+  counter-reset: wdk-step;
+}
+.wdk-guide__content h2 {
+  counter-increment: wdk-step;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wdk-guide__content h2::before {
+  content: counter(wdk-step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sl-accent);
+  background: color-mix(in srgb, var(--sl-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sl-accent) 25%, transparent);
+}
+
+/* Links - muted prose color, underline on hover. Nav chrome (prev/next,
+   related cards) keeps its own hover treatment. */
+:is(.wdk-doc__content, .wdk-guide__content) a {
+  color: var(--link-prose);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) a:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) a.wdk-prevnext__link,
+:is(.wdk-doc__content, .wdk-guide__content) a.wdk-related__card {
+  color: inherit;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) a.wdk-prevnext__link:hover,
+:is(.wdk-doc__content, .wdk-guide__content) a.wdk-related__card:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Inline code - from r4-final :not(pre) > code. */
+:is(.wdk-doc__content, .wdk-guide__content) :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  color: var(--text-code);
+}
+
+/* Blockquotes - neutral left border; callouts handle emphasis. */
+:is(.wdk-doc__content, .wdk-guide__content) blockquote {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-2);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  margin: 1.25rem 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Tables - from r4-final .params-table. */
+:is(.wdk-doc__content, .wdk-guide__content) table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) th {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  vertical-align: top;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Search modal (SearchModal.tsx) ─────────────────────────────────────────
+   A Cmd/Ctrl-K command-palette over the Pagefind index. Surfaces, borders and
+   text all read from theme tokens, so light and dark both work without any
+   hardcoded colors. The look extends the header's .wdk-search-btn treatment. */
+
+/* Full-viewport backdrop; clicking it (outside the dialog) closes the modal. */
+.wdk-search {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh 16px 16px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* The command palette panel. */
+.wdk-search__dialog {
+  width: 100%;
+  max-width: 580px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+/* Search row: icon, input, Esc hint. */
+.wdk-search__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wdk-search__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.wdk-search__input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.wdk-search__input::placeholder {
+  color: var(--text-dim);
+}
+/* Hide the native clear control so the row stays on-theme. */
+.wdk-search__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.wdk-search__esc {
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+/* Scrollable results region. */
+.wdk-search__results {
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.wdk-search__empty,
+.wdk-search__hint {
+  margin: 0;
+  padding: 18px 14px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* Section grouping. */
+.wdk-search__group + .wdk-search__group {
+  margin-top: 4px;
+}
+.wdk-search__group-label {
+  padding: 10px 12px 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* A single result row. */
+.wdk-search__hit {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-muted);
+}
+.wdk-search__hit.is-active {
+  background: color-mix(in srgb, var(--sl-accent, var(--teal)) 14%, transparent);
+}
+
+.wdk-search__hit-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.wdk-search__hit-excerpt {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Pagefind wraps matched terms in <mark>; tint them in the section accent. */
+.wdk-search__hit-excerpt mark {
+  background: transparent;
+  color: var(--sl-accent, var(--teal));
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .wdk-search {
+    padding: 8vh 12px 12px;
+  }
+  .wdk-search__dialog {
+    max-height: 80vh;
+  }
+}
