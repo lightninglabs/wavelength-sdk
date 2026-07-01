@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 // representative pages. These are server-rendered head tags; crawlers rely on
 // them without executing JavaScript.
 
-const BASE_URL = 'https://docs.walletdk.dev';
+const BASE_URL = 'https://dadocs.lightning.engineering';
 
 const pages = [
   { path: '/', label: 'home' },

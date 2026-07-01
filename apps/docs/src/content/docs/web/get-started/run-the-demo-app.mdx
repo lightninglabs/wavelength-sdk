@@ -3,6 +3,10 @@ title: Run the demo app
 description: How to clone, install, and run the WalletDK demo app locally against regtest, testnet, or a custom backend.
 ---
 
+import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
+
+<LiveDemoCallout />
+
 ## Clone & install
 
 The reference integration lives in the WalletDK monorepo at
@@ -10,16 +14,24 @@ The reference integration lives in the WalletDK monorepo at
 and build the workspace packages:
 
 ```bash title="Terminal"
-git clone https://github.com/lightninglabs/walletdk.git
-cd walletdk
+git clone https://github.com/lightninglabs/dawallet.git
+cd dawallet
 pnpm install
 pnpm build
 ```
 
 The demo depends on the workspace packages `@lightninglabs/walletdk-web` and
-`@lightninglabs/walletdk-react`. Runtime WASM binaries are already committed
-under `apps/web-wallet-demo/public/` so you can run against signet without
-building darepo-client first.
+`@lightninglabs/walletdk-react`. The `apps/web-wallet-demo/public/` folder is
+gitignored and ephemeral, so before running the demo you need to populate it
+with the runtime WASM binaries:
+
+```bash title="Terminal"
+pnpm --filter web-wallet-demo run wasm:local
+```
+
+See [Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for
+details on what this stages and how to point the demo at a different asset
+source.
 
 ## Run
 
@@ -31,11 +43,14 @@ pnpm --filter web-wallet-demo dev
 
 Open the URL Vite prints (typically `http://localhost:5173`). The demo boots a
 **signet** wallet out of the box: choose signet on the connect screen and the
-app calls `defaultConfig('signet')` with Lightning Labs public gateways. No
-local backend is required.
+app boots with its own signet preset (`signetDefaults` in
+`src/lib/runtime-config.ts`), which mirrors the same public gateway URLs
+`defaultConfig('signet')` would produce. No local backend is required.
 
 Cross-origin isolation headers are configured in the demo's Vite config so
-OPFS persistence works in every supported browser:
+OPFS persistence works in every supported browser. See
+[Cross-origin isolation](/web/get-started/cross-origin-isolation/) for why
+these headers are required and how to configure them outside of Vite:
 
 ```ts title="vite.config.ts"
 const crossOriginIsolation = {
@@ -94,8 +109,10 @@ At a high level the full local workflow is:
    `wasm:local` if you changed the daemon)
 3. Browser: select regtest, start the runtime, create or unlock a wallet
 
-**Testnet.** Select testnet on the connect screen to use the public testnet
-preset (`defaultConfig('testnet')` gateway URLs). No arktest instance is needed.
+**Testnet.** Select testnet on the connect screen to boot with its own
+testnet preset (`testnetDefaults` in `src/lib/runtime-config.ts`), which
+mirrors the same public gateway URLs `defaultConfig('testnet')` would
+produce. No arktest instance is needed.
 
 **Troubleshooting OPFS.** If wallet persistence fails in the browser, confirm
 COOP/COEP headers are present:
@@ -105,5 +122,7 @@ curl -sI http://localhost:5173 | grep -i cross-origin
 ```
 
 Both `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` must
-appear in the response. For a longer walkthrough of arktest plus web testing,
-see the [WalletDK testing guide](https://gist.github.com/sputn1ck/b65014747d0896cfbafbf9040d25dc4e).
+appear in the response. See
+[Troubleshooting / FAQ](/web/support/troubleshooting/) for more fixes, and the
+[web guides](/web/guides/create-a-wallet/) for end-to-end wallet flows built
+on top of this demo.

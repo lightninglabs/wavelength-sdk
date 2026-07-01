@@ -3,6 +3,10 @@ title: Demo app
 description: An overview of the WalletDK reference integration app - what it demonstrates and how to run it locally.
 ---
 
+import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
+
+<LiveDemoCallout />
+
 ## The reference integration
 
 The **`web-wallet-demo`** app in the WalletDK monorepo is a full React
@@ -18,18 +22,23 @@ What it demonstrates:
   syncing, ready, stopped, and error screens driven by `phase` and `info`.
 - **Password and passkey onboarding** via `createWallet` / `unlockWallet` and
   `usePasskeyWallet(webPasskeyCeremony)`, including credential id persistence
-  in localStorage for scoped unlock.
+  in localStorage for scoped unlock (see `src/lib/walletKind.ts`).
 - **Core wallet flows**: deposit address, Lightning receive, send (prepare and
   confirm), balance and activity, settings, and runtime configuration forms.
 - **Network presets** for signet, testnet, and regtest (`runtime-config.ts`
   mirrors public gateway URLs and local arktest ports).
 - **Production-like hosting concerns**: COOP/COEP headers in `vite.config.ts`,
   self-hosted WASM binaries under `public/`, persistent storage request, and a
-  local wipe path that clears OPFS and app markers.
+  local wipe path that clears OPFS and app markers (`src/lib/wipeLocalData.ts`).
 
 Treat the demo as the source of truth for wiring details that docs summarize.
 Key entry points: `src/main.tsx` (client bootstrap), `src/App.tsx` (orchestration),
 and `src/lib/runtime-config.ts` (gateway defaults).
+
+See also: [`createWebClient`](/web/reference/walletdk-web/#createWebClient),
+[`useWalletDK`](/web/reference/walletdk-react/#useWalletDK), and
+[`usePasskeyWallet`](/web/reference/walletdk-react/#usePasskeyWallet) in the
+API reference for details behind each of these bullets.
 
 ## How to run it
 

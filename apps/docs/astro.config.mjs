@@ -7,7 +7,7 @@ import pagefind from 'astro-pagefind';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://docs.walletdk.dev',
+  site: 'https://dadocs.lightning.engineering',
   integrations: [
     expressiveCode({
       themes: ['vitesse-dark', 'vitesse-light'],

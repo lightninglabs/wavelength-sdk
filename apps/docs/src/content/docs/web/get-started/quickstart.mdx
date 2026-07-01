@@ -5,6 +5,7 @@ pageLayout: quickstart
 ---
 
 import Step from '~/components/mdx/Step.astro';
+import { DEMO_APP_URL } from '~/config/site';
 
 <Step title="Install">
 
@@ -52,6 +53,8 @@ export function App() {
 }
 ```
 
+`defaultConfig(network, overrides?)` returns a `RuntimeConfig` preloaded with public gateway endpoints for that network, merged with any overrides you pass. See [Networks & config](/concepts/networks-and-config/) for the full list of `RuntimeConfig` fields.
+
 Use `defaultConfig('mainnet')` only after you have key-backup UX in place and set `allowMainnet: true`.
 
 </Step>
@@ -80,17 +83,19 @@ function Onboard() {
 }
 ```
 
+Once `createWallet` resolves, `phase` from `useWalletRuntime` automatically becomes `'ready'`, so any component watching `phase` updates without extra wiring.
+
 </Step>
 
 <Step title="Try it">
 
-Call `send` with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and on-chain sends through cooperative leave.
+Call `send` with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
 
 ```tsx title="SendButton.tsx"
 import { useSend } from '@lightninglabs/walletdk-react';
 
 function SendButton() {
-  const { send, operations } = useSend();
+  const { send, busy } = useSend();
 
   const handleSend = async () => {
     const result = await send({
@@ -100,7 +105,7 @@ function SendButton() {
   };
 
   return (
-    <button onClick={handleSend} disabled={operations.send.busy}>
+    <button onClick={handleSend} disabled={busy}>
       Send
     </button>
   );
@@ -113,6 +118,9 @@ import Card from '~/components/mdx/Card.astro';
 import CardGrid from '~/components/mdx/CardGrid.astro';
 
 <CardGrid>
+  <Card title="Try the live demo" href={DEMO_APP_URL} cta="Open the demo →">
+    Run a signet wallet in your browser, no install required.
+  </Card>
   <Card title="Create a wallet" href="/web/guides/create-a-wallet/">
     Full walkthrough of wallet creation, key backup, and passkey registration.
   </Card>

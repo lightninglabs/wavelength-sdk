@@ -4,6 +4,7 @@
  * Centred layout with squares cluster motif + two CTA buttons.
  * Styled per r4-final/home.html .cta-band.
  */
+import { DEMO_APP_URL } from '~/config/site';
 ---
 
 <section class="wdk-cta" aria-labelledby="wdk-cta-heading">
@@ -18,11 +19,11 @@
     </div>
 
     <h2 id="wdk-cta-heading" class="wdk-cta__heading">Ready to build?</h2>
-    <p class="wdk-cta__body">Integrate WalletDK in minutes. Read the quickstart, then explore the guides to go further.</p>
+    <p class="wdk-cta__body">Bitcoin payments used to mean standing up infrastructure. Now they are an API call. Start with the quickstart, then explore the guides.</p>
 
     <div class="wdk-cta__actions">
       <a href="/web/get-started/quickstart/" class="wdk-cta__btn wdk-cta__btn--primary">Start the quickstart</a>
-      <a href="/web/get-started/quickstart/" class="wdk-cta__btn wdk-cta__btn--ghost">
+      <a href={DEMO_APP_URL} class="wdk-cta__btn wdk-cta__btn--ghost">
         <span aria-hidden="true">&#9654;</span> Try it live
       </a>
       <a href="/web/guides/create-a-wallet/" class="wdk-cta__btn wdk-cta__btn--ghost">Browse guides</a>

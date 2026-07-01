@@ -12,17 +12,18 @@
  * Styling ported from design-mockups/r4-final/guide.html
  * (.guide-rail / .rail-code-panel-guide / .rail-code-pane-guide).
  */
+import { DEMO_APP_URL } from '~/config/site';
 ---
 <aside class="wdk-rail" aria-label="Code examples for the current section">
   <div class="wdk-rail__sticky">
     <div class="wdk-rail__panels" data-code-rail role="region" aria-label="Code example for the current section"></div>
 
-    <!-- Try it live: links to the quickstart (no live playground in scope). -->
-    <a href="/web/get-started/quickstart/" class="wdk-rail__cta">
+    <!-- Try it live: opens the deployed signet demo app. -->
+    <a href={DEMO_APP_URL} class="wdk-rail__cta">
       <span class="wdk-rail__cta-icon" aria-hidden="true">&#9654;</span>
       <span class="wdk-rail__cta-text">
         <span class="wdk-rail__cta-title">Try it live</span>
-        <span class="wdk-rail__cta-sub">Run a real signet wallet in the quickstart</span>
+        <span class="wdk-rail__cta-sub">Run a real signet wallet in your browser</span>
       </span>
     </a>
   </div>

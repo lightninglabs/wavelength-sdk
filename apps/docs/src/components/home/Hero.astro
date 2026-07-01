@@ -7,6 +7,7 @@
  * by home.spec.js).
  * No gridlines background - subtle radial glow only.
  */
+import { DEMO_APP_URL } from '~/config/site';
 ---
 
 <section class="wdk-hero" aria-labelledby="wdk-hero-heading">
@@ -48,8 +49,9 @@
       </h1>
 
       <p class="wdk-hero__tagline">
-        A self-custodial Bitcoin, Lightning, and Ark wallet that runs entirely
-        in the browser. One SDK. No servers. Your users hold their own keys.
+        Add self-custodial Bitcoin and Lightning payments to your app, running
+        entirely in the browser. No node to run, no channels to manage, no
+        liquidity to source. Your users hold their own keys.
       </p>
 
       <div class="wdk-hero__ctas">
@@ -60,7 +62,7 @@
           </svg>
         </a>
         <a href="/introduction/what-is-walletdk/" class="wdk-btn wdk-btn--ghost">Read the docs</a>
-        <a href="/web/get-started/quickstart/" class="wdk-btn wdk-btn--ghost">
+        <a href={DEMO_APP_URL} class="wdk-btn wdk-btn--ghost">
           <span aria-hidden="true">&#9654;</span> Try it live
         </a>
       </div>
@@ -79,11 +81,14 @@
           <span class="wdk-hero__install-prompt">$</span>
           <code>npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react</code>
         </div>
-        <pre class="wdk-hero__code-body"><span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ WalletDKProvider, createWebClient, defaultConfig }'}</span>
+        <pre class="wdk-hero__code-body"><span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ createWebClient, defaultConfig }'}</span>
   <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-web'</span><span class="wdk-tok-punct">;</span>
+<span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ WalletDKProvider }'}</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-react'</span><span class="wdk-tok-punct">;</span>
 
-<span class="wdk-tok-cm">// Browser wallet. No servers. Self-custodial.</span>
-<span class="wdk-tok-kw">const</span> <span class="wdk-tok-id">client</span> <span class="wdk-tok-punct">=</span> <span class="wdk-tok-fn">createWebClient</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-fn">defaultConfig</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-str">'signet'</span><span class="wdk-tok-punct">));</span>
+<span class="wdk-tok-cm">// Self-custodial wallet. No node, no channels.</span>
+<span class="wdk-tok-kw">const</span> <span class="wdk-tok-id">client</span> <span class="wdk-tok-punct">=</span> <span class="wdk-tok-fn">createWebClient</span><span class="wdk-tok-punct">();</span>
+<span class="wdk-tok-kw">await</span> <span class="wdk-tok-id">client</span><span class="wdk-tok-punct">.</span><span class="wdk-tok-fn">start</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-fn">defaultConfig</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-str">'signet'</span><span class="wdk-tok-punct">));</span>
 
 <span class="wdk-tok-kw">export</span> <span class="wdk-tok-kw">function</span> <span class="wdk-tok-fn">App</span><span class="wdk-tok-punct">() {'{'}</span>
   <span class="wdk-tok-kw">return</span> <span class="wdk-tok-punct">(</span>

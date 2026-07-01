@@ -7,14 +7,16 @@ interface Props {
   title: string;
   href?: string;
   icon?: string;
+  /** Link foot CTA copy when href is set. */
+  cta?: string;
 }
-const { title, href } = Astro.props;
+const { title, href, cta = 'Read the guide \u2192' } = Astro.props;
 const Tag = href ? 'a' : 'article';
 ---
 <Tag class="wdk-card" {...(href ? { href } : {})}>
   <h3 class="wdk-card__title">{title}</h3>
   <div class="wdk-card__body"><slot /></div>
-  {href && <span class="wdk-card__cta">Read the guide &rarr;</span>}
+  {href && <span class="wdk-card__cta">{cta}</span>}
 </Tag>
 
 <style>
