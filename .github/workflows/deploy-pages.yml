@@ -21,7 +21,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       VITE_BASE_PATH: /demo/
-      # Public GCS (or CDN) directory containing RUNTIME_ASSET_FILES.
+      # Public GCS (or CDN) root hosting one RUNTIME_ASSET_FILES directory per
+      # version, e.g. <root>/<RUNTIME_MANIFEST_VERSION>/walletdk.wasm. Set the
+      # unversioned root here; the fetch script appends the version pinned in
+      # packages/core/src/version.ts.
       # Set in repo Settings → Secrets and variables → Actions → Variables.
       RUNTIME_ASSETS_BASE_URL: ${{ vars.RUNTIME_ASSETS_BASE_URL }}
     steps:
@@ -44,6 +47,17 @@ jobs:
           pnpm --filter web-wallet-demo run wasm:fetch
       - run: pnpm --filter @lightninglabs/walletdk-docs run build
       - run: pnpm --filter web-wallet-demo run build
+
+      # The app requests runtime/<version>/ and the fetch script stages it;
+      # nothing else ties the two together, so assert the built demo actually
+      # contains the versioned asset set before publishing.
+      - name: Verify versioned runtime assets in demo dist
+        run: |
+          VERSION="$(node scripts/runtime-version.mjs)"
+          if [ ! -f "apps/web-wallet-demo/dist/runtime/$VERSION/walletdk.wasm" ]; then
+            echo "::error::demo dist is missing runtime/$VERSION/walletdk.wasm; the staged asset path and the app's runtimeBaseUrl have drifted."
+            exit 1
+          fi
 
       - name: Assemble site
         run: |
