@@ -35,36 +35,11 @@ export default defineConfig({
         },
       },
     }),
-    expressiveCode({
-      themes: ['vitesse-dark', 'vitesse-light'],
-      styleOverrides: {
-        borderRadius: '0.5rem',
-        codeFontFamily: "'JetBrains Mono', ui-monospace, monospace",
-        // Frame headers (the filename bar above titled code blocks, and the
-        // terminal titlebar above shell blocks) use the site's surface and
-        // border tokens instead of the Shiki theme's editor chrome colors,
-        // so they match the `.rail-code-header-guide` look from the design
-        // mockup (design-mockups/r4-final/styles.css `.rail-code-header`)
-        // in both the dark and light site themes.
-        frames: {
-          frameBoxShadowCssValue: 'none',
-          // Editor frame (titled code, e.g. ```ts title="App.tsx"`).
-          editorTabBarBackground: 'var(--surface-2)',
-          editorTabBarBorderColor: 'var(--border)',
-          editorTabBarBorderBottomColor: 'var(--border)',
-          editorActiveTabBackground: 'var(--surface-2)',
-          editorActiveTabForeground: 'var(--text-muted)',
-          editorActiveTabBorderColor: 'transparent',
-          editorActiveTabIndicatorTopColor: 'transparent',
-          editorActiveTabIndicatorBottomColor: 'transparent',
-          // Terminal frame (bash/sh blocks render as a terminal window).
-          terminalTitlebarBackground: 'var(--surface-2)',
-          terminalTitlebarForeground: 'var(--text-muted)',
-          terminalTitlebarBorderBottomColor: 'var(--border)',
-          terminalTitlebarDotsForeground: 'var(--text-dim)',
-        },
-      },
-    }),
+    // Options live in ec.config.mjs (project root), not inline here: one of
+    // them (themeCssSelector) is a function, and Expressive Code requires
+    // its config to be JSON-serializable when passed to the integration
+    // directly, since the runtime <Code> component also needs to load it.
+    expressiveCode(),
     mdx(),
     react(),
     // Pagefind indexes the built dist/ at build time and serves the runtime at
