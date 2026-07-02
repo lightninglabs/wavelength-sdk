@@ -121,3 +121,25 @@ test('--accent-pink token is darkened in light mode (readable on white)', async 
   // Light mode uses the darker variant - not the vivid #f472b6.
   expect(normHex(val)).not.toBe('#f472b6');
 });
+
+// ---- Dark mode accent contrast tests ---------------------------------------
+// --accent-violet and --accent-orange were raised to #a78bfa and #ffa733 for
+// WCAG contrast against the dark --bg (#141417): violet was 3.08:1 (AA
+// failure), orange was borderline readable. Pin the lightened values so a
+// future edit can't silently regress readability.
+
+test('--accent-violet in dark mode is not the low-contrast original #7a2ff2', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+  const val = await cssVar(page, '--accent-violet');
+  expect(normHex(val)).not.toBe('#7a2ff2');
+  expect(normHex(val)).toBe('#a78bfa');
+});
+
+test('--accent-orange in dark mode is not the original #f7920e', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+  const val = await cssVar(page, '--accent-orange');
+  expect(normHex(val)).not.toBe('#f7920e');
+  expect(normHex(val)).toBe('#ffa733');
+});

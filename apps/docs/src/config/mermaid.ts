@@ -7,7 +7,7 @@ export const mermaidThemeVariables = {
   primaryBorderColor: '#15e0c2',
   secondaryColor: '#24242a',
   secondaryTextColor: '#f5f5f7',
-  secondaryBorderColor: '#7a2ff2',
+  secondaryBorderColor: '#a78bfa',
   tertiaryColor: '#1c1c21',
   tertiaryTextColor: '#b6b6c0',
   tertiaryBorderColor: '#56c7f2',
@@ -44,8 +44,8 @@ export const mermaidInitDirective = `%%{init: ${JSON.stringify({
 export const mermaidClassDefs = `
   classDef lime fill:#2c2c33,stroke:#c9f000,stroke-width:2px,color:#f5f5f7
   classDef teal fill:#2c2c33,stroke:#15e0c2,stroke-width:2px,color:#f5f5f7
-  classDef violet fill:#2c2c33,stroke:#7a2ff2,stroke-width:2px,color:#f5f5f7
+  classDef violet fill:#2c2c33,stroke:#a78bfa,stroke-width:2px,color:#f5f5f7
   classDef sky fill:#2c2c33,stroke:#56c7f2,stroke-width:2px,color:#f5f5f7
-  classDef orange fill:#2c2c33,stroke:#f7920e,stroke-width:2px,color:#f5f5f7
+  classDef orange fill:#2c2c33,stroke:#ffa733,stroke-width:2px,color:#f5f5f7
   classDef muted fill:#1c1c21,stroke:#44444d,stroke-width:1.5px,color:#e8e8ed
 `;
