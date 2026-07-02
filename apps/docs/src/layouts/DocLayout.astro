@@ -24,6 +24,7 @@ interface Props {
       description?: string;
       tableOfContents: boolean;
       related: string[];
+      sidebar: { hidden: boolean };
     };
   };
   headings: { depth: number; slug: string; text: string }[];
@@ -32,6 +33,7 @@ interface Props {
 const { entry, headings } = Astro.props;
 const accent = accentForSlug(entry.id);
 const hasToc = entry.data.tableOfContents;
+const hasSidebar = !entry.data.sidebar.hidden;
 ---
 
 <BaseLayout
@@ -41,8 +43,14 @@ const hasToc = entry.data.tableOfContents;
   footerInsetLeft
 >
   <div class="wdk-doc">
-    <Sidebar currentSlug={entry.id} />
-    <div class:list={['wdk-doc__main', hasToc && 'wdk-doc__main--with-toc']}>
+    {hasSidebar && <Sidebar currentSlug={entry.id} />}
+    <div
+      class:list={[
+        'wdk-doc__main',
+        !hasSidebar && 'wdk-doc__main--no-sidebar',
+        hasToc && 'wdk-doc__main--with-toc',
+      ]}
+    >
       <div class="wdk-doc__inner">
         <main class="wdk-doc__content" data-pagefind-body>
           <h1 class="wdk-doc__title">{entry.data.title}</h1>
@@ -76,6 +84,11 @@ const hasToc = entry.data.tableOfContents;
     flex: 1;
     min-width: 0;
     display: flex;
+  }
+
+  /* No sidebar rendered: reclaim the left margin. */
+  .wdk-doc__main--no-sidebar {
+    margin-left: 0;
   }
 
   /* When the TOC rail renders, it is a fixed full-height column pinned to the

@@ -116,7 +116,7 @@ export const NAV: NavGroup[] = [
   },
 ];
 
-export type SliceKey = 'sdk' | 'api' | 'cli';
+export type SliceKey = 'sdk' | 'api' | 'cli' | 'agents';
 
 /** One top-level documentation slice, switched via the header tabs. */
 export interface Slice {
@@ -232,6 +232,17 @@ export const CLI_NAV: NavGroup[] = [
   },
 ];
 
+/** Agents slice sidebar: a single hub page for agent-assisted integration. */
+export const AGENTS_NAV: NavGroup[] = [
+  {
+    label: 'Agents',
+    section: 'agents',
+    items: [
+      { slug: 'agents', label: 'Build with agents', section: 'agents' },
+    ],
+  },
+];
+
 export const SLICES: Slice[] = [
   {
     key: 'sdk',
@@ -242,6 +253,7 @@ export const SLICES: Slice[] = [
   },
   { key: 'api', label: 'API', href: '/api/', prefixes: ['/api'], nav: API_NAV },
   { key: 'cli', label: 'CLI', href: '/cli/', prefixes: ['/cli'], nav: CLI_NAV },
+  { key: 'agents', label: 'Agents', href: '/agents/', prefixes: ['/agents'], nav: AGENTS_NAV },
 ];
 
 /** Returns the slice owning a pathname; the SDK slice is the fallback. */
@@ -280,6 +292,7 @@ export const SECTION_ACCENT: Record<string, Accent> = {
   'cli-wallet': 'teal',
   'cli-daemon': 'orange',
   'cli-advanced': 'sky',
+  agents: 'sky',
 };
 
 /**
