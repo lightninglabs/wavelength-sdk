@@ -72,7 +72,7 @@ if (related && related.length > 0) {
 ---
 
 {cards.length > 0 && (
-  <aside class="wdk-related" data-related aria-label="Related guides">
+  <aside class="wdk-related" data-related data-pagefind-ignore aria-label="Related guides">
     <p class="wdk-related__heading" role="heading" aria-level="2">Related guides</p>
     <div class="wdk-related__grid">
       {cards.map(({ slug, title, section }) => (

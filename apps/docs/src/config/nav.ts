@@ -285,7 +285,7 @@ export const SECTION_ACCENT: Record<string, Accent> = {
 /**
  * Returns a flat list of nav items in depth-first order.
  * Each item carries its slug, display label, and section key.
- * Defaults to the SDK slice's nav so existing callers are unaffected.
+ * Defaults to the full NAV; pass a subset of groups to flatten only those.
  */
 export function flattenNav(groups: NavGroup[] = NAV): NavItem[] {
   const result: NavItem[] = [];
