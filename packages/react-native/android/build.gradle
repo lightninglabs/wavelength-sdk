@@ -1,0 +1,35 @@
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+react {
+  jsRootDir = file("../src")
+  libraryName = "Walletdk"
+  codegenJavaPackageName = "engineering.lightning.walletdk.reactnative"
+}
+
+android {
+  namespace "engineering.lightning.walletdk.reactnative"
+  compileSdkVersion rootProject.hasProperty("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 35
+
+  defaultConfig {
+    // The gomobile bindings are built with -androidapi 21; RN itself floors
+    // higher, so inherit the app's minSdk when present.
+    minSdkVersion rootProject.hasProperty("minSdkVersion") ? rootProject.ext.minSdkVersion : 24
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = "17"
+  }
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+  // The gomobile-generated bindings, staged by scripts/fetch-bindings.sh.
+  api files("libs/Walletdk.aar")
+}
