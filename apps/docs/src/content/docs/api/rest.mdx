@@ -1,0 +1,83 @@
+---
+title: REST conventions
+description: The request, error, and streaming shape shared by every wallet API route.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+The REST gateway is a grpc-gateway HTTP/JSON proxy in front of the same `WalletService` and `WalletInspectionService` gRPC methods. Every route follows the same conventions described here; the individual method pages only document what differs (route, request fields, response fields).
+
+## Route shape
+
+Every method is a `POST` under `/v1/wallet/...`, regardless of whether the underlying RPC is a read or a write:
+
+```
+POST /v1/wallet/create
+POST /v1/wallet/status
+POST /v1/wallet/prepare-send
+POST /v1/wallet/subscribe
+POST /v1/wallet/inspect/activity
+```
+
+Request bodies are JSON objects whose field names match the proto field names exactly, in `snake_case` (not the `camelCase` you would see in a hand-written REST API). Methods whose request message has no fields, such as `Status`, still take a request body: an empty JSON object.
+
+```sh
+curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
+```
+
+## Error shape
+
+On failure, the gateway returns a JSON body shaped like a `google.rpc.Status` message, with an HTTP status code derived from the underlying gRPC status:
+
+```json
+{
+  "code": 3,
+  "message": "amt_sat must be positive",
+  "details": []
+}
+```
+
+- `code` is the numeric **gRPC** status code (for example `3` for `INVALID_ARGUMENT`), not the HTTP status code. The gateway also sets the HTTP status header using its own mapping from gRPC code to HTTP status (`INVALID_ARGUMENT` becomes `400`, `NOT_FOUND` becomes `404`, and so on), so check both if you branch on error type.
+- `message` is the human-readable error string from the RPC.
+- `details` carries any structured error detail messages attached to the gRPC status; it is usually empty.
+
+This is the grpc-gateway default error handler: the daemon does not install a custom error mapper, so every route shares this exact shape.
+
+## Streaming
+
+`SubscribeWallet` is the one server-streaming method (`POST /v1/wallet/subscribe`). Unlike the other 14 routes, the response is not a single JSON object: the gateway keeps the HTTP connection open and writes one JSON-encoded `WalletEntry` per line as wallet activity happens, for as long as the client stays connected.
+
+<Callout type="note" title="No write timeout on this connection">
+The gateway's HTTP server disables its write timeout entirely so long-lived streaming responses are not cut off mid-stream. This applies to the gateway server as a whole, and matters most for `/v1/wallet/subscribe`: expect the connection to stay open until you close it client-side.
+</Callout>
+
+See [SubscribeWallet](/api/wallet/subscribe-wallet/) for the full `WalletEntry` shape.
+
+## Field mapping example
+
+Proto messages map to JSON bodies field-for-field, using the proto field name rather than a camelCased variant. `PrepareSendRequest` is a representative example: a `oneof` for the destination, plus scalar fields.
+
+```protobuf title="wallet.proto (excerpt)"
+message PrepareSendRequest {
+    oneof destination {
+        string invoice = 1;
+        string onchain_address = 2;
+    }
+    uint64 amt_sat = 3;
+    string note = 4;
+    uint64 max_fee_sat = 5;
+    bool sweep_all = 6;
+}
+```
+
+```json title="POST /v1/wallet/prepare-send"
+{
+  "invoice": "lnbc1500n1p...",
+  "amt_sat": "0",
+  "note": "coffee",
+  "max_fee_sat": "50",
+  "sweep_all": false
+}
+```
+
+Only one of `invoice` or `onchain_address` is set per call, matching the proto `oneof`. `amt_sat` and `max_fee_sat` are `uint64` fields, so the JSON gateway encodes them as strings to avoid precision loss in JSON's number type; fields you omit take their proto zero value. See [PrepareSend](/api/wallet/prepare-send/) for the full request and response reference.
