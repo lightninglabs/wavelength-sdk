@@ -31,12 +31,17 @@ const { name, kind } = Astro.props;
 
 <style>
   /* Scroll-margin keeps the heading clear of the sticky header when jumping
-     from a symbol-list link. */
+     from a symbol-list link. Unconditional top margin so the very first
+     symbol on a page (which has no preceding sibling to trigger the adjacent
+     divider rule below) still gets space below the page's lead prose,
+     instead of butting directly against it. */
   .wdk-symbol {
     scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+    margin-top: 40px;
   }
 
-  /* Separator between consecutive symbols. */
+  /* Separator between consecutive symbols: a larger gap plus a divider rule,
+     overriding the plain top margin above. */
   .wdk-symbol + .wdk-symbol {
     margin-top: 64px;
     padding-top: 64px;

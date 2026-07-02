@@ -1,0 +1,53 @@
+---
+title: schema
+description: Dump machine-readable method schemas as JSON so an agent can self-serve the CLI surface at runtime.
+---
+
+Returns the full method signature for a CLI command as machine-readable JSON:
+parameters, types, required fields, enum values, and the request and response
+proto type names. Agents use this to self-serve API documentation at runtime
+rather than relying on static docs baked into a system prompt.
+
+Called with no arguments it lists the available method names. Pass a method name
+to dump one schema, or `--all` to dump every method schema at once.
+
+```bash title="Terminal"
+darepocli schema
+darepocli schema balance
+darepocli schema --all
+```
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--all` | `false` | Dump all method schemas. |
+
+## Example
+
+```bash title="Terminal"
+darepocli schema balance
+```
+
+```json
+{
+  "method": "balance",
+  "description": "Display wallet balance",
+  "params": null,
+  "request_type": "BalanceRequest",
+  "response_type": "BalanceResponse",
+  "json_input": false,
+  "mcp_tool": true
+}
+```
+
+Each schema entry reports whether the command supports `--dry-run` / `--dry_run`,
+whether it accepts `--json` raw input (`json_input`), and whether it is exposed
+as an MCP tool (`mcp_tool`). An unknown method name exits `1` with a
+`METHOD_NOT_FOUND` envelope.
+
+## Underlying RPC
+
+`schema` reads from an in-process method registry; it makes no RPC call. The
+[`dev`](/cli/dev/) command tree exposes the equivalent per-method schema for the
+generated low-level RPC surface via its `--describe` flag.

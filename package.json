@@ -6,6 +6,8 @@
     "build": "pnpm -r --filter \"./packages/*\" run build",
     "typecheck": "pnpm -r run typecheck && tsc -p scripts/tsconfig.json",
     "gen:types": "node scripts/gen-types.mts",
+    "gen:api-docs": "node scripts/gen-api-docs.mts",
+    "test:api-docs": "node --test scripts/api-docs/extract.test.mts",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish"
@@ -13,6 +15,8 @@
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
     "@types/node": "^24.0.0",
-    "typescript": "^5.7.2"
+    "protobufjs": "^7.4.0",
+    "typescript": "^5.7.2",
+    "yaml": "^2.6.0"
   }
 }

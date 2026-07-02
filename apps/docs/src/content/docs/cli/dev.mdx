@@ -1,0 +1,81 @@
+---
+title: dev
+description: Generated low-level access to every daemon gRPC method, built automatically from the daemon proto descriptors.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+`dev` is a generated low-level command tree that exposes every daemon gRPC
+method directly. Unlike the curated wallet verbs, its structure is not
+hand-written: it is built at startup from the daemon proto descriptors compiled
+into the binary (the `devrpc` registry), so it always mirrors the exact RPC
+surface the daemon ships. Method flags are generated from each request message's
+fields, and each leaf accepts `--json` for a raw request payload.
+
+Run `dev` with no arguments to print a JSON summary of the available services
+and their methods. The command tree is three levels deep:
+`dev <grpc_service> <call>`, where the service is a fully-qualified proto name
+(with a short alias) and the call is a method on that service.
+
+```bash title="Terminal"
+darepocli dev
+darepocli dev daemonrpc.DaemonService GetInfo
+darepocli dev daemon get-info --describe
+```
+
+<Callout type="note" title="Prefer schema for the everyday surface">
+For the curated CLI surface, [`schema`](/cli/schema/) is the friendlier
+introspection command: it lists the everyday methods with their parameters,
+required fields, and enum values. `dev --describe` is the equivalent for a
+generated RPC method: it emits that method's input-field schema as JSON without
+dispatching the call.
+</Callout>
+
+## Flags
+
+`dev` itself takes no bespoke flags beyond `--help` and the global connection
+flags (`--rpcserver`, `--tlscertpath`, `--no-tls`); each generated method leaf
+takes flags derived from its own request message, or `--json` for a raw
+payload.
+
+## Example
+
+Run with no arguments to print a JSON summary of the available services:
+
+```bash title="Terminal"
+darepocli dev
+```
+
+## Services
+
+The generated tree currently exposes these proto services (each has a short
+alias for terser invocation):
+
+- `daemonrpc.DaemonService` (alias `daemon`): the daemon's own API (info, wallet
+  init, VTXO and round operations, sends, sweeps, fees, recovery).
+- `swapclientrpc.SwapClientService`: the Lightning swap client service.
+- `walletdkrpc.WalletService` and `walletdkrpc.WalletInspectionService`: the
+  wallet API the curated verbs are built on.
+- `walletrpc.VersionService` and `walletrpc.WalletService`: the embedded
+  backing-wallet services.
+
+```bash title="Terminal"
+darepocli dev daemon
+```
+
+Running a service with no call prints a JSON summary of its methods, each with
+its request and response proto type and whether it is server-streaming.
+
+## Invoking a method
+
+Each method leaf takes flags generated from its request message fields, or a
+`--json` raw payload. Server-streaming methods print one JSON object per
+message until the stream ends; client-streaming methods are not supported.
+
+```bash title="Terminal"
+darepocli dev daemonrpc.DaemonService GetInfo
+darepocli dev daemonrpc.DaemonService GetInfo --describe
+```
+
+`--describe` short-circuits dispatch and dumps the method's input-field schema,
+teaching an agent the exact request shape before the first real call.

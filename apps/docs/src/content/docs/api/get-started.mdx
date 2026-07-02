@@ -1,0 +1,61 @@
+---
+title: Get started
+description: Build darepod with the wallet API enabled and make your first call over gRPC or REST.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+## Build darepod with the wallet API
+
+`WalletService` and `WalletInspectionService` are compiled into `darepod` only when the daemon is built with the `walletdkrpc` build tag. That tag requires `swapruntime` transitively: building with `walletdkrpc` but without `swapruntime` is a deliberate compile error, and a default `make build` includes neither, so the wallet API is off unless you opt in.
+
+Build both `darepod` and `darepocli` with the tag using the provided make target:
+
+```sh
+make build-walletdkrpc
+```
+
+This produces `bin/darepod` and `bin/darepocli` with the wallet RPC surface registered. `make install-walletdkrpc` does the same via `go install`, landing the binaries in `$GOPATH/bin`.
+
+<Callout type="note" title="Default builds omit the API">
+Without the `walletdkrpc` tag, `WalletService` and `WalletInspectionService` are compiled out entirely and never registered. A call against a default build fails with gRPC's standard unknown-service error, which surfaces as the `Unimplemented` status code. If a call fails that way, rebuild with `make build-walletdkrpc`.
+</Callout>
+
+## Endpoints
+
+`darepod` starts two listeners by default:
+
+| Protocol | Default address | Notes |
+|---|---|---|
+| gRPC | `localhost:10029` | The daemon's own RPC server. |
+| REST | `localhost:10031` | An HTTP/JSON gateway in front of the same RPCs, enabled by default. |
+
+Every `WalletService` and `WalletInspectionService` method is reachable on both listeners with the same request and response shape, modulo JSON encoding. See [REST conventions](/api/rest/) for the route and body shape used by the gateway.
+
+<Callout type="caution" title="No TLS on the gRPC listener yet">
+The daemon's gRPC server does not currently wire up TLS credentials: it constructs a plain `grpc.NewServer` with no transport credentials, so connections are plaintext today. Treat `localhost:10029` and `localhost:10031` as loopback-only until TLS support lands, and do not expose either listener directly to an untrusted network.
+</Callout>
+
+## Your first call
+
+With `darepod` running a `walletdkrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
+
+Over REST:
+
+```sh
+curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
+```
+
+Over the CLI, the equivalent is:
+
+```sh
+darepocli getinfo --no-tls
+```
+
+`getinfo` talks to the daemon's own `DaemonService` rather than `WalletService.Status` directly, but it is the fastest way to confirm `darepocli` can reach `darepod` at all before you start scripting `WalletService` calls. `--no-tls` matches the plaintext gRPC listener described above; it is the right flag for local and regtest use today.
+
+## Where to go next
+
+- Walk the method reference starting with [Create](/api/wallet/create/) and [Unlock](/api/wallet/unlock/) to bring up a wallet, then [PrepareSend](/api/wallet/prepare-send/) and [Send](/api/wallet/send/) to move funds.
+- Read [REST conventions](/api/rest/) for the full request, error, and streaming shape shared by every route.
+- Explore the same surface from a terminal in the [CLI](/cli/) slice: `darepocli` wraps every `WalletService` method as a subcommand.

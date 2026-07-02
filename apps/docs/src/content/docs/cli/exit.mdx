@@ -1,0 +1,92 @@
+---
+title: exit
+description: Cooperatively exit a VTXO to an on-chain address, or start a forced unilateral unroll.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+Queues the specified VTXO outpoint for cooperative leave. If
+`--onchain-address` is omitted the daemon generates a fresh backing-wallet
+destination. Unilateral unroll is only started when `--force-unroll-ack` is
+exactly `I_KNOW_WHAT_I_AM_DOING`.
+
+```bash title="Terminal"
+darepocli exit --outpoint TXID:VOUT
+darepocli exit --outpoint TXID:VOUT --onchain-address bcrt1...
+```
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | Required. VTXO outpoint to exit, as `txid:vout`. |
+| `--onchain-address` | (none) | Cooperative leave destination. Omitted means a fresh wallet-owned address. Cannot be combined with `--force-unroll-ack`. |
+| `--force-unroll-ack` | (none) | Exact acknowledgement (`I_KNOW_WHAT_I_AM_DOING`) required to force unilateral unroll. |
+| `--dry-run` | `false` | Validate inputs locally and print the preview without dispatching to the daemon. |
+
+## Example
+
+```bash title="Terminal"
+darepocli --no-tls exit --outpoint 4b2e9f1a7c3d5e6f...:0
+```
+
+```json
+{
+  "created": false,
+  "actor_id": "",
+  "mode": "EXIT_MODE_COOPERATIVE",
+  "queued_outpoints": [
+    "4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0"
+  ],
+  "onchain_address": "bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+}
+```
+
+## Subcommands
+
+### `exit status`
+
+Returns the current phase of a forced unroll job for one outpoint: job phase,
+sweep txid, and any errors.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | Required. VTXO outpoint to check, as `txid:vout`. |
+
+Calls [`WalletService.ExitStatus`](/api/wallet/exit-status/).
+
+```bash title="Terminal"
+darepocli exit status --outpoint TXID:VOUT
+```
+
+### `exit plan`
+
+Previews the backing-wallet funding readiness for one or more outpoints,
+without dispatching an exit.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | Required. VTXO outpoint to preview, as `txid:vout`; repeatable. |
+
+Calls [`WalletService.GetExitPlan`](/api/wallet/get-exit-plan/).
+
+```bash title="Terminal"
+darepocli exit plan --outpoint TXID:VOUT
+```
+
+## Exit codes
+
+With `--dry-run` the command validates the request locally and prints the
+preview without dispatching; a valid preview exits `10` (`DRY_RUN_OK`), a
+validation failure exits non-zero.
+
+<Callout type="caution" title="Unilateral unroll is expensive">
+A forced unroll pays on-chain fees and cannot be combined with a custom
+`--onchain-address`. Reach for it only when cooperative leave is unavailable.
+</Callout>
+
+## Underlying RPC
+
+The default cooperative path calls [`WalletService.Exit`](/api/wallet/exit/).
+The subcommands call [`WalletService.ExitStatus`](/api/wallet/exit-status/) and
+[`WalletService.GetExitPlan`](/api/wallet/get-exit-plan/).

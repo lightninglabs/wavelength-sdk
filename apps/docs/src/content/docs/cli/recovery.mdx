@@ -1,0 +1,100 @@
+---
+title: recovery
+description: Advanced control-plane commands for daemon-owned vHTLC recovery rows, to inspect, escalate, or cancel already-armed recoveries.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+`recovery` manages already-armed vHTLC recovery rows. Automatic swap execution
+arms recovery early and escalates it only when policy says on-chain recovery is
+needed; this subtree lets an operator inspect or override that decision for a
+specific recovery id. Normal swap clients should let the swap state machine arm
+and cancel recovery automatically.
+
+<Callout type="caution" title="Operator tooling">
+These are manual escalation and intervention commands. Escalating a recovery
+starts costly on-chain unroll; prefer letting the swap FSM drive recovery unless
+you have a specific reason to intervene.
+</Callout>
+
+## Flags
+
+`recovery` itself takes no bespoke flags; it dispatches to one of the
+subcommands below. Every subcommand accepts `--help` and the global connection
+flags (`--rpcserver`, `--tlscertpath`, `--no-tls`).
+
+## Example
+
+`recovery` alone prints usage and exits; pick a subcommand, for example:
+
+```bash title="Terminal"
+darepocli recovery list
+```
+
+## Subcommands
+
+### `recovery list`
+
+Lists vHTLC recovery rows from the daemon. ARMED rows are dormant: funds are not
+being unrolled unless an operator escalates, or auto-escalation is enabled by
+policy.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--include-terminal` | `false` | Include completed, cancelled, and failed recovery rows. |
+
+Calls the daemon `ListVHTLCRecoveries` RPC.
+
+```bash title="Terminal"
+darepocli recovery list
+```
+
+### `recovery status`
+
+Shows one vHTLC recovery row and its current unroll status.
+
+| Flag | Default | Description |
+|---|---|---|
+| `<recovery_id>` | (none) | Required. The recovery id to query. |
+
+Calls the daemon `GetVHTLCRecoveryStatus` RPC.
+
+```bash title="Terminal"
+darepocli recovery status <recovery_id>
+```
+
+### `recovery escalate`
+
+Manually starts on-chain recovery for one previously armed vHTLC. Requires
+explicit consent: on non-interactive stdin you must pass `--yes` or the command
+exits `INVALID_ARGS`.
+
+| Flag | Default | Description |
+|---|---|---|
+| `<recovery_id>` | (none) | Required. The armed recovery id to escalate. |
+| `--reason` | `"manual client escalation"` | Operator-facing reason stored with the escalation. |
+| `--claim-preimage-hex` | (none) | Optional 32-byte claim preimage for claim recoveries. |
+| `--yes` | `false` | Skip the interactive confirmation before starting on-chain recovery. |
+
+Calls the daemon `EscalateVHTLCRecovery` RPC.
+
+```bash title="Terminal"
+darepocli recovery escalate <recovery_id> --yes
+```
+
+### `recovery cancel`
+
+Records that cooperative settlement won and the armed recovery row is no longer
+needed.
+
+| Flag | Default | Description |
+|---|---|---|
+| `<recovery_id>` | (none) | Required. The armed recovery id to cancel. |
+| `--reason` | `"manual client cancellation"` | Operator-facing reason stored with the cancellation. |
+| `--cooperative-txid` | (none) | Optional cooperative OOR txid / session id that won. |
+
+Calls the daemon `CancelVHTLCRecovery` RPC.
+
+```bash title="Terminal"
+darepocli recovery cancel <recovery_id>
+```

@@ -1,0 +1,43 @@
+---
+title: getinfo
+description: Display daemon status, including version, network, wallet state, block height, and identity pubkey.
+---
+
+Returns version, network, wallet state, block height, and identity pubkey from
+the running daemon. It is the first call to make when checking that the daemon
+is reachable and which state the wallet is in.
+
+```bash title="Terminal"
+darepocli getinfo
+```
+
+## Flags
+
+`getinfo` takes no bespoke flags beyond the global connection flags.
+
+## Example
+
+```bash title="Terminal"
+darepocli --no-tls getinfo
+```
+
+```json
+{
+  "version": "0.1.0",
+  "commit": "abcd1234",
+  "network": "regtest",
+  "lnd_identity_pubkey": "",
+  "block_height": 214,
+  "server_connected": true,
+  "lnd_alias": "",
+  "wallet_type": "lwwallet",
+  "wallet_state": "WALLET_STATE_READY",
+  "identity_pubkey": "02a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+}
+```
+
+## Underlying RPC
+
+Calls the daemon's `GetInfo` RPC on `DaemonService`. This is a daemon-level
+method with no `WalletService` equivalent, so it has no API reference page in
+the [wallet API](/api/).

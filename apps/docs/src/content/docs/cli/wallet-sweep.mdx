@@ -1,0 +1,54 @@
+---
+title: wallet-sweep
+description: Preview or broadcast a sweep of every confirmed backing-wallet UTXO to a single destination address.
+---
+
+Previews, or with `--broadcast` publishes, a sweep of every confirmed
+backing-wallet UTXO to a single destination address. Boarding outputs are
+excluded; use [`ark sweep`](/cli/ark/) for those. Without `--broadcast` the
+command returns a preview of the selected inputs, fee, and net amount without
+leasing inputs or broadcasting.
+
+```bash title="Terminal"
+darepocli wallet-sweep --destination bcrt1...
+darepocli wallet-sweep --destination bcrt1... --broadcast
+```
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--destination` | (none) | Required. On-chain destination address for the swept funds. |
+| `--broadcast` | `false` | Publish the sweep. Omitted means preview only. |
+| `--fee-rate` | `0` | Explicit fee rate in sat/vByte. `0` estimates from the chain backend at `--conf-target`. |
+| `--conf-target` | `0` | Confirmation target for fee estimation when `--fee-rate` is `0`. |
+
+## Example
+
+```bash title="Terminal"
+darepocli --no-tls wallet-sweep --destination bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+```
+
+```json
+{
+  "inputs": [
+    {
+      "outpoint": "4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0",
+      "amount_sat": 100000
+    }
+  ],
+  "total_input_sat": 100000,
+  "estimated_fee_sat": 480,
+  "net_amount_sat": 99520,
+  "fee_rate_sat_per_vbyte": 2,
+  "can_broadcast": true,
+  "txid": "",
+  "failure_reason": ""
+}
+```
+
+When run with `--broadcast`, `txid` carries the published sweep transaction id.
+
+## Underlying RPC
+
+Calls [`WalletService.SweepWallet`](/api/wallet/sweep-wallet/).

@@ -21,7 +21,7 @@
  * Uses only CSS custom properties so light and dark themes both work without
  * any hardcoded color values.
  */
-import { prevNext, flattenNav, NAV } from '~/config/nav';
+import { prevNext, flattenNav, sliceForSlug, SLICES } from '~/config/nav';
 
 interface Props {
   slug: string;
@@ -29,19 +29,24 @@ interface Props {
 
 const { slug } = Astro.props;
 const pn = prevNext(slug);
+const sliceNav = sliceForSlug(slug).nav;
 
 /**
  * Returns the human-readable group label for a given section key.
- * Falls back to the raw key if no matching group is found.
+ * Searches every slice's nav so the label resolves regardless of which
+ * slice owns the section. Falls back to the raw key if no group matches.
  */
 function labelForSection(section: string): string {
-  const group = NAV.find((g) => g.section === section);
-  return group ? group.label : section;
+  for (const slice of SLICES) {
+    const group = slice.nav.find((g) => g.section === section);
+    if (group) return group.label;
+  }
+  return section;
 }
 
 // Derive the 1-based step within the current section (not the global flat
 // nav position) so it lines up with `total`, which counts section members.
-const sectionItems = flattenNav().filter((i) => i.section === pn.section);
+const sectionItems = flattenNav(sliceNav).filter((i) => i.section === pn.section);
 const stepInSection = sectionItems.findIndex((i) => i.slug === slug) + 1;
 const progressLabel = `Step ${stepInSection} of ${pn.total} · ${labelForSection(pn.section)}`;
 const progressPercent = pn.total > 0 ? Math.round((stepInSection / pn.total) * 100) : 0;

@@ -9,8 +9,5 @@ apps/*/public/
 !apps/docs/public/
 !apps/docs/public/_headers
 
-# Local Claude session tooling (not project source).
-.claude/
-
 # Superpowers SDD scratch (briefs, reports, ledger, review diffs).
 .superpowers/

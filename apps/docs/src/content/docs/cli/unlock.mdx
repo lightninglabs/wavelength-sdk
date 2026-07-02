@@ -1,0 +1,38 @@
+---
+title: unlock
+description: Unlock an existing wallet by decrypting its on-disk seed and starting the wallet subsystem.
+---
+
+Decrypts the on-disk wallet seed and starts the wallet subsystem, making the
+wallet RPCs usable. Like `create`, the password is never accepted on the
+command line: it is read from stdin, the `DAREPOD_WALLET_PASSWORD` environment
+variable, or `--wallet_password_file`.
+
+```bash title="Terminal"
+echo -n 'hunter2hunter2' | darepocli unlock
+```
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--wallet_password_file` | (none) | Path to a file containing the wallet password. |
+
+## Example
+
+```bash title="Terminal"
+echo -n 'hunter2hunter2' | darepocli --no-tls unlock
+```
+
+```json
+{
+  "identity_pubkey": "02a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+}
+```
+
+A wrong password exits with code `3` (auth failure) and a `WALLET_LOCKED` error
+envelope on stderr.
+
+## Underlying RPC
+
+Calls [`WalletService.Unlock`](/api/wallet/unlock/).

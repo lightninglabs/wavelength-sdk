@@ -1,0 +1,37 @@
+---
+title: balance
+description: Display the unified wallet balance across confirmed, in-flight inbound, and in-flight outbound amounts.
+---
+
+Returns the unified wallet balance: confirmed spendable VTXOs
+(`confirmed_sat`), in-flight inbound (`pending_in_sat`: boarding plus receive),
+and in-flight outbound (`pending_out_sat`: send plus exit), all in satoshis. The
+response also carries the server-authoritative credit balances.
+
+```bash title="Terminal"
+darepocli balance
+```
+
+## Flags
+
+`balance` takes no bespoke flags beyond the global connection flags.
+
+## Example
+
+```bash title="Terminal"
+darepocli --no-tls balance
+```
+
+```json
+{
+  "confirmed_sat": 125000,
+  "pending_in_sat": 25000,
+  "pending_out_sat": 0,
+  "credit_available_sat": 0,
+  "credit_reserved_sat": 0
+}
+```
+
+## Underlying RPC
+
+Calls [`WalletService.Balance`](/api/wallet/balance/).

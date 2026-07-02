@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package fixturepkg;
+
+// FixtureService exercises every extraction path.
+service FixtureService {
+    // Ping checks liveness.
+    rpc Ping (PingRequest) returns (PingResponse);
+
+    // WatchThings streams events.
+    rpc WatchThings (WatchRequest) returns (stream Event);
+}
+
+// PingRequest asks for an echo.
+message PingRequest {
+    // text is echoed back.
+    string text = 1;
+
+    // mode selects the echo mode.
+    Mode mode = 2;
+
+    // shout is an optional emphasis flag.
+    optional string shout = 3;
+}
+
+// PingResponse carries the echo.
+message PingResponse {
+    // detail is the nested payload.
+    Detail detail = 1;
+}
+
+// Detail is a nested payload.
+message Detail {
+    // count of echoes so far.
+    uint64 count = 1;
+
+    // tags attached to the echo.
+    repeated string tags = 2;
+}
+
+// WatchRequest opens a stream.
+message WatchRequest {
+    // target selects the watch target. Exactly one variant must be set.
+    oneof target {
+        // id watches one entry.
+        string id = 1;
+
+        // all watches everything.
+        bool all = 2;
+    }
+}
+
+// Event is one stream element.
+message Event {
+    // kind describes the event.
+    string kind = 1;
+}
+
+// Mode selects echo behavior.
+enum Mode {
+    // MODE_PLAIN echoes verbatim.
+    MODE_PLAIN = 0;
+
+    // MODE_LOUD echoes uppercased.
+    MODE_LOUD = 1;
+}

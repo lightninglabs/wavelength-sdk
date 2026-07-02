@@ -19,37 +19,6 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** Primary header links (desktop top bar). Get started stays a separate CTA. */
-export interface TopNavItem {
-  label: string;
-  slug: string;
-  /** Path prefixes that mark this top-nav item active. */
-  prefixes: string[];
-}
-
-export const TOP_NAV: TopNavItem[] = [
-  {
-    label: 'Docs',
-    slug: 'introduction/what-is-walletdk',
-    prefixes: ['/introduction', '/web/get-started', '/web/integrations', '/web/runtime', '/web/support'],
-  },
-  {
-    label: 'Guides',
-    slug: 'web/guides/create-a-wallet',
-    prefixes: ['/web/guides'],
-  },
-  {
-    label: 'Reference',
-    slug: 'reference/walletdk-core',
-    prefixes: ['/reference', '/web/reference'],
-  },
-  {
-    label: 'Concepts',
-    slug: 'concepts/balances-and-vtxos',
-    prefixes: ['/concepts', '/glossary'],
-  },
-];
-
 /**
  * NAV sidebar order: journey-first (learn, build, reference, operations).
  * URLs are unchanged; only display order and grouping differ from the IA tree.
@@ -147,6 +116,147 @@ export const NAV: NavGroup[] = [
   },
 ];
 
+export type SliceKey = 'sdk' | 'api' | 'cli';
+
+/** One top-level documentation slice, switched via the header tabs. */
+export interface Slice {
+  key: SliceKey;
+  /** Header tab label. */
+  label: string;
+  /** Landing URL for the header tab. */
+  href: string;
+  /** Path prefixes that mark this slice active. The SDK slice is the catch-all. */
+  prefixes: string[];
+  nav: NavGroup[];
+}
+
+/** API slice sidebar. RPC grouping is curated here, never inferred. */
+export const API_NAV: NavGroup[] = [
+  {
+    label: 'Overview',
+    section: 'api-overview',
+    items: [
+      { slug: 'api', label: 'API overview', section: 'api-overview' },
+      { slug: 'api/get-started', label: 'Get started', section: 'api-overview' },
+      { slug: 'api/rest', label: 'REST conventions', section: 'api-overview' },
+    ],
+  },
+  {
+    label: 'Wallet lifecycle',
+    section: 'api-lifecycle',
+    items: [
+      { slug: 'api/wallet/create', label: 'Create', section: 'api-lifecycle' },
+      { slug: 'api/wallet/unlock', label: 'Unlock', section: 'api-lifecycle' },
+      { slug: 'api/wallet/status', label: 'Status', section: 'api-lifecycle' },
+    ],
+  },
+  {
+    label: 'Sending',
+    section: 'api-send',
+    items: [
+      { slug: 'api/wallet/prepare-send', label: 'PrepareSend', section: 'api-send' },
+      { slug: 'api/wallet/send', label: 'Send', section: 'api-send' },
+    ],
+  },
+  {
+    label: 'Receiving',
+    section: 'api-receive',
+    items: [
+      { slug: 'api/wallet/recv', label: 'Recv', section: 'api-receive' },
+      { slug: 'api/wallet/deposit', label: 'Deposit', section: 'api-receive' },
+    ],
+  },
+  {
+    label: 'Balance and activity',
+    section: 'api-activity',
+    items: [
+      { slug: 'api/wallet/balance', label: 'Balance', section: 'api-activity' },
+      { slug: 'api/wallet/list', label: 'List', section: 'api-activity' },
+      { slug: 'api/wallet/subscribe-wallet', label: 'SubscribeWallet', section: 'api-activity' },
+      { slug: 'api/wallet/inspect-activity', label: 'InspectActivity', section: 'api-activity' },
+    ],
+  },
+  {
+    label: 'Exit and sweep',
+    section: 'api-exit',
+    items: [
+      { slug: 'api/wallet/get-exit-plan', label: 'GetExitPlan', section: 'api-exit' },
+      { slug: 'api/wallet/exit', label: 'Exit', section: 'api-exit' },
+      { slug: 'api/wallet/exit-status', label: 'ExitStatus', section: 'api-exit' },
+      { slug: 'api/wallet/sweep-wallet', label: 'SweepWallet', section: 'api-exit' },
+    ],
+  },
+];
+
+/** CLI slice sidebar: one page per top-level darepocli command. */
+export const CLI_NAV: NavGroup[] = [
+  {
+    label: 'Overview',
+    section: 'cli-overview',
+    items: [
+      { slug: 'cli', label: 'darepocli', section: 'cli-overview' },
+    ],
+  },
+  {
+    label: 'Wallet',
+    section: 'cli-wallet',
+    items: [
+      { slug: 'cli/create', label: 'create', section: 'cli-wallet' },
+      { slug: 'cli/unlock', label: 'unlock', section: 'cli-wallet' },
+      { slug: 'cli/send', label: 'send', section: 'cli-wallet' },
+      { slug: 'cli/recv', label: 'recv', section: 'cli-wallet' },
+      { slug: 'cli/activity', label: 'activity', section: 'cli-wallet' },
+      { slug: 'cli/balance', label: 'balance', section: 'cli-wallet' },
+      { slug: 'cli/exit', label: 'exit', section: 'cli-wallet' },
+      { slug: 'cli/wallet-sweep', label: 'wallet-sweep', section: 'cli-wallet' },
+    ],
+  },
+  {
+    label: 'Daemon',
+    section: 'cli-daemon',
+    items: [
+      { slug: 'cli/getinfo', label: 'getinfo', section: 'cli-daemon' },
+      { slug: 'cli/schema', label: 'schema', section: 'cli-daemon' },
+      { slug: 'cli/mcp', label: 'mcp', section: 'cli-daemon' },
+    ],
+  },
+  {
+    label: 'Advanced',
+    section: 'cli-advanced',
+    items: [
+      { slug: 'cli/ark', label: 'ark', section: 'cli-advanced' },
+      { slug: 'cli/recovery', label: 'recovery', section: 'cli-advanced' },
+      { slug: 'cli/swap', label: 'swap', section: 'cli-advanced' },
+      { slug: 'cli/dev', label: 'dev', section: 'cli-advanced' },
+    ],
+  },
+];
+
+export const SLICES: Slice[] = [
+  {
+    key: 'sdk',
+    label: 'SDK',
+    href: '/introduction/what-is-walletdk/',
+    prefixes: [],
+    nav: NAV,
+  },
+  { key: 'api', label: 'API', href: '/api/', prefixes: ['/api'], nav: API_NAV },
+  { key: 'cli', label: 'CLI', href: '/cli/', prefixes: ['/cli'], nav: CLI_NAV },
+];
+
+/** Returns the slice owning a pathname; the SDK slice is the fallback. */
+export function sliceForPath(pathname: string): Slice {
+  const match = SLICES.find((s) =>
+    s.prefixes.some((p) => pathname === p || pathname === `${p}/` || pathname.startsWith(`${p}/`)),
+  );
+  return match ?? SLICES[0];
+}
+
+/** Returns the slice owning a content slug (no leading or trailing slash). */
+export function sliceForSlug(slug: string): Slice {
+  return sliceForPath(`/${slug}/`);
+}
+
 /**
  * Maps section keys (matching path prefixes) to their accent color.
  */
@@ -160,15 +270,26 @@ export const SECTION_ACCENT: Record<string, Accent> = {
   reference: 'orange',
   runtime: 'orange',
   support: 'sky',
+  'api-overview': 'violet',
+  'api-lifecycle': 'teal',
+  'api-send': 'lime',
+  'api-receive': 'sky',
+  'api-activity': 'orange',
+  'api-exit': 'violet',
+  'cli-overview': 'violet',
+  'cli-wallet': 'teal',
+  'cli-daemon': 'orange',
+  'cli-advanced': 'sky',
 };
 
 /**
- * Returns a flat list of all nav items in depth-first order.
+ * Returns a flat list of nav items in depth-first order.
  * Each item carries its slug, display label, and section key.
+ * Defaults to the SDK slice's nav so existing callers are unaffected.
  */
-export function flattenNav(): NavItem[] {
+export function flattenNav(groups: NavGroup[] = NAV): NavItem[] {
   const result: NavItem[] = [];
-  for (const group of NAV) {
+  for (const group of groups) {
     for (const item of group.items) {
       result.push(item);
     }
@@ -181,10 +302,11 @@ export function flattenNav(): NavItem[] {
  * Falls back to violet when no match is found.
  */
 export function accentForSlug(slug: string): Accent {
-  const flat = flattenNav();
-  const item = flat.find((i) => i.slug === slug);
-  if (item) {
-    return SECTION_ACCENT[item.section] ?? 'violet';
+  for (const slice of SLICES) {
+    const item = flattenNav(slice.nav).find((i) => i.slug === slug);
+    if (item) {
+      return SECTION_ACCENT[item.section] ?? 'violet';
+    }
   }
   // Path-prefix fallback mirrors the inline head script logic.
   if (slug.startsWith('concepts/') || slug === 'glossary' || slug.startsWith('glossary/')) {
@@ -225,7 +347,7 @@ export interface PrevNext {
  * - prev/next: adjacent items in the full flattened order.
  */
 export function prevNext(slug: string): PrevNext {
-  const flat = flattenNav();
+  const flat = flattenNav(sliceForSlug(slug).nav);
   const index = flat.findIndex((i) => i.slug === slug);
   if (index === -1) {
     return { index: -1, total: 0, section: '' };
@@ -240,11 +362,4 @@ export function prevNext(slug: string): PrevNext {
     total,
     section,
   };
-}
-
-/** True when pathname matches any prefix on a top-nav item. */
-export function isTopNavActive(pathname: string, item: TopNavItem): boolean {
-  return item.prefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
 }

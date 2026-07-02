@@ -21,11 +21,17 @@
   --text-code: #e8e8ed;
   --link-prose: #6dd4c4;
 
-  /* Named accent tokens (per-section, keyed by data-accent). */
-  --accent-violet: #7a2ff2;
+  /* Named accent tokens (per-section, keyed by data-accent). Violet and
+     orange are lightened from their original hues (#7a2ff2, #f7920e):
+     used as text/border color against --bg (#141417) or --surface
+     (#1c1c21), the originals sat at ~2.8-3.1:1 contrast, below the WCAG AA
+     minimum of 4.5:1 for text. These values land at ~6.2-6.8:1 (violet)
+     and ~7.3-9.5:1 (orange), matching the other three accents (teal, lime,
+     sky), which were already all above 9:1. */
+  --accent-violet: #a78bfa;
   --accent-teal:   #15e0c2;
   --accent-lime:   #c9f000;
-  --accent-orange: #f7920e;
+  --accent-orange: #ffa733;
   --accent-sky:    #56c7f2;
 
   /* Short aliases used by Task 1 mdx components (Callout, Card).
@@ -673,12 +679,19 @@ code, pre, kbd {
   line-height: 1.6;
 }
 
-/* Tables - from r4-final .params-table. */
+/* Tables - from r4-final .params-table. Scrolls horizontally instead of
+   wrapping cell text, so identifiers like flag names never break mid-word. */
 :is(.wdk-doc__content, .wdk-guide__content) table {
+  display: block;
+  overflow-x: auto;
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
   margin: 1rem 0;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) td code {
+  white-space: nowrap;
 }
 
 :is(.wdk-doc__content, .wdk-guide__content) th {
