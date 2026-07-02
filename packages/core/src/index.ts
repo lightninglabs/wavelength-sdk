@@ -70,7 +70,7 @@ export type {
 export type { WalletDKClient } from './client';
 
 // The SDK error type and its machine-readable codes.
-export { WalletDKError } from './errors';
+export { WalletDKError, errorMessage } from './errors';
 export type { WalletDKErrorCode } from './errors';
 
 // Passkey contract types and the wallet-kind label.
@@ -79,6 +79,17 @@ export type {
   PasskeyCeremony,
   WalletKind,
 } from './passkey';
+
+// The daemon facade protocol shared by every transport: the flat Start config
+// and the Go-shaped request mappers. Transport implementers use these; app
+// code normally does not.
+export {
+  base64FromUtf8,
+  toGoCreateWalletReq,
+  toGoUnlockWalletReq,
+  toMobileConfig,
+} from './facade';
+export type { MobileConfig, ServerTransport } from './facade';
 
 // The daemon build this SDK release is paired with (generated types and
 // runtime assets alike).

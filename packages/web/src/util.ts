@@ -5,6 +5,7 @@ import {
   WalletDKEventType,
   WalletDKLogPayload,
 } from '@lightninglabs/walletdk-core';
+export { errorMessage } from '@lightninglabs/walletdk-core';
 
 /**
  * A single in-flight RPC awaiting its worker response, keyed by request id in
@@ -25,28 +26,6 @@ export type ActivityHandle = {
   next: () => Promise<unknown>;
   close: () => unknown;
 };
-
-/**
- * Extracts a human-readable message from an unknown thrown value. Prefers an
- * Error's message, falls back to the value itself when it is a string, and
- * otherwise serializes it to JSON.
- */
-export function errorMessage(err: unknown): string {
-  if (err instanceof Error && err.message) {
-    return err.message;
-  }
-  if (typeof err === 'string') {
-    return err;
-  }
-
-  try {
-    return JSON.stringify(err);
-  } catch {
-    // JSON.stringify throws on circular structures or BigInt; fall back to a
-    // plain string so the error path never throws a new error.
-    return String(err);
-  }
-}
 
 /**
  * Formats the current time as "YYYY-MM-DD HH:MM:SS" to prefix debug logs.

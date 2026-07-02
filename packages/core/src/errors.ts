@@ -32,3 +32,25 @@ export class WalletDKError extends Error {
     this.name = 'WalletDKError';
   }
 }
+
+/**
+ * Extracts a human-readable message from an unknown thrown value. Prefers an
+ * Error's message, falls back to the value itself when it is a string, and
+ * otherwise serializes it to JSON.
+ */
+export function errorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  if (typeof err === 'string') {
+    return err;
+  }
+
+  try {
+    return JSON.stringify(err);
+  } catch {
+    // JSON.stringify throws on circular structures or BigInt; fall back to a
+    // plain string so the error path never throws a new error.
+    return String(err);
+  }
+}

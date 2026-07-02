@@ -30,12 +30,10 @@ import {
   WalletInfo,
   WalletStatus,
   normalizeInfo,
-} from '@lightninglabs/walletdk-core';
-import {
   toGoCreateWalletReq,
   toGoUnlockWalletReq,
   toMobileConfig,
-} from '../mobile-config';
+} from '@lightninglabs/walletdk-core';
 
 /**
  * Implements the transport-agnostic half of {@link WalletDKClient}: every RPC
@@ -59,7 +57,7 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
   // client fetches getInfo afterwards; the old bridge returned info inline and
   // the React provider derives the runtime phase from it.
   async start(config: RuntimeConfig): Promise<WalletInfo> {
-    await this.callRaw('start', toMobileConfig(config));
+    await this.callRaw('start', toMobileConfig(config, 'rest'));
 
     return this.getInfo();
   }
