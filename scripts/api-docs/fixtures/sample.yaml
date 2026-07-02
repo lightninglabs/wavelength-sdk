@@ -1,0 +1,11 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+    - selector: fixturepkg.FixtureService.Ping
+      post: /v1/fixture/ping
+      body: "*"
+    - selector: fixturepkg.FixtureService.WatchThings
+      post: /v1/fixture/watch
+      body: "*"

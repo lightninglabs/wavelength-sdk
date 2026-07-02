@@ -1,0 +1,2717 @@
+{
+  "source": "rpc/walletdkrpc/wallet.proto",
+  "package": "walletdkrpc",
+  "services": [
+    {
+      "name": "WalletService",
+      "comment": "WalletService exposes a simplified, swap-vocabulary-free wallet API on top\nof the running daemon. It composes the underlying swap subsystem, ark VTXO\noperations, boarding deposits, cooperative leave (VTXO-to-onchain), and\nunilateral exit behind one small surface: the seven core verbs that map\n1:1 to what a user actually does day-to-day - create, unlock, send, recv,\nlist, balance, exit - plus a few additional methods (Deposit, Status,\nSubscribeWallet) used internally and by recv --onchain. The service is\nregistered only when the daemon is built with the walletdkrpc build tag\n(which also requires swapruntime).",
+      "methods": [
+        "Create",
+        "Unlock",
+        "PrepareSend",
+        "Send",
+        "Recv",
+        "List",
+        "Deposit",
+        "Balance",
+        "Status",
+        "GetExitPlan",
+        "SweepWallet",
+        "Exit",
+        "ExitStatus",
+        "SubscribeWallet"
+      ]
+    },
+    {
+      "name": "WalletInspectionService",
+      "comment": "WalletInspectionService exposes technical drill-downs for wallet activity.\nUnlike WalletService.List, this surface may include internal correlators and\nledger rows so operators can explain how a user-facing entry was executed.",
+      "methods": [
+        "InspectActivity"
+      ]
+    }
+  ],
+  "methods": [
+    {
+      "name": "Create",
+      "slug": "create",
+      "service": "WalletService",
+      "comment": "Create initializes a new wallet from a freshly generated aezeed\nmnemonic. The daemon generates the seed, encrypts it with the\nsupplied password, and returns the mnemonic so the caller can record\nit. For recovery flows the caller MAY supply an existing mnemonic in\nthe request; in that case the same mnemonic is echoed back. Proxies\ndaemonrpc.GenSeed + daemonrpc.InitWallet server-side.",
+      "requestType": "CreateRequest",
+      "responseType": "CreateResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/create"
+      },
+      "referencedTypes": []
+    },
+    {
+      "name": "Unlock",
+      "slug": "unlock",
+      "service": "WalletService",
+      "comment": "Unlock decrypts the on-disk wallet seed using the supplied password\nand starts the wallet subsystem. Proxies daemonrpc.UnlockWallet.",
+      "requestType": "UnlockRequest",
+      "responseType": "UnlockResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/unlock"
+      },
+      "referencedTypes": []
+    },
+    {
+      "name": "PrepareSend",
+      "slug": "prepare-send",
+      "service": "WalletService",
+      "comment": "PrepareSend validates and previews an outbound payment without\nmoving funds. The response carries a short-lived send_intent_id\nthat must be consumed by Send.",
+      "requestType": "PrepareSendRequest",
+      "responseType": "PrepareSendResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/prepare-send"
+      },
+      "referencedTypes": [
+        "SendRail",
+        "SendQuoteStatus",
+        "CreditPreview"
+      ]
+    },
+    {
+      "name": "Send",
+      "slug": "send",
+      "service": "WalletService",
+      "comment": "Send dispatches a previously prepared outbound payment. The\nrequest is intentionally intent-only: callers must use\nPrepareSend first so they can present amount, rail, fee, and\ntotal-outflow details before funds move.",
+      "requestType": "SendRequest",
+      "responseType": "SendResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/send"
+      },
+      "referencedTypes": [
+        "WalletEntry",
+        "EntryKind",
+        "EntryStatus",
+        "WalletEntryRequest",
+        "LightningInvoiceRequest",
+        "OnchainAddressRequest",
+        "ArkAddressRequest",
+        "WalletEntryProgress",
+        "WalletEntryPhase",
+        "EntryFailureCode"
+      ]
+    },
+    {
+      "name": "Recv",
+      "slug": "recv",
+      "service": "WalletService",
+      "comment": "Recv asks the daemon for a Lightning invoice the caller can hand\nout. Internally this opens a swap-in via the daemon-owned swap\nsubsystem; the invoice is signed with a daemon-managed key, not an\nephemeral process-local key.",
+      "requestType": "RecvRequest",
+      "responseType": "RecvResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/recv"
+      },
+      "referencedTypes": [
+        "WalletEntry",
+        "EntryKind",
+        "EntryStatus",
+        "WalletEntryRequest",
+        "LightningInvoiceRequest",
+        "OnchainAddressRequest",
+        "ArkAddressRequest",
+        "WalletEntryProgress",
+        "WalletEntryPhase",
+        "EntryFailureCode",
+        "CreditReceive"
+      ]
+    },
+    {
+      "name": "List",
+      "slug": "list",
+      "service": "WalletService",
+      "comment": "List returns the unified wallet view selected by ListRequest.view:\nACTIVITY (default) is the merged WalletEntry stream; VTXOS is the\nlive VTXO inventory; ONCHAIN is the boarding-plus-sweep on-chain\nhistory. The body oneof on ListResponse discriminates the typed\nresult so agents see a tagged union, not a polymorphic blob.",
+      "requestType": "ListRequest",
+      "responseType": "ListResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/list"
+      },
+      "referencedTypes": [
+        "ListView",
+        "EntryKind",
+        "ActivityList",
+        "WalletEntry",
+        "EntryStatus",
+        "WalletEntryRequest",
+        "LightningInvoiceRequest",
+        "OnchainAddressRequest",
+        "ArkAddressRequest",
+        "WalletEntryProgress",
+        "WalletEntryPhase",
+        "EntryFailureCode",
+        "VTXOInventory",
+        "WalletVTXO",
+        "OnchainHistory",
+        "OnchainTx"
+      ]
+    },
+    {
+      "name": "Deposit",
+      "slug": "deposit",
+      "service": "WalletService",
+      "comment": "Deposit returns a boarding onchain address the caller can fund. The\ndaemon rolls the boarding output into a VTXO during the next round.\nSurfaced internally and via `recv --onchain`; not a top-level CLI\nverb.",
+      "requestType": "DepositRequest",
+      "responseType": "DepositResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/deposit"
+      },
+      "referencedTypes": [
+        "WalletEntry",
+        "EntryKind",
+        "EntryStatus",
+        "WalletEntryRequest",
+        "LightningInvoiceRequest",
+        "OnchainAddressRequest",
+        "ArkAddressRequest",
+        "WalletEntryProgress",
+        "WalletEntryPhase",
+        "EntryFailureCode"
+      ]
+    },
+    {
+      "name": "Balance",
+      "slug": "balance",
+      "service": "WalletService",
+      "comment": "Balance returns the unified balance across confirmed VTXOs and\nin-flight inbound and outbound amounts.",
+      "requestType": "BalanceRequest",
+      "responseType": "BalanceResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/balance"
+      },
+      "referencedTypes": []
+    },
+    {
+      "name": "Status",
+      "slug": "status",
+      "service": "WalletService",
+      "comment": "Status returns a wallet-level readiness summary: daemon readiness,\nwallet-unlocked state, balance summary, pending-entry count. Kept in\nthe proto for programmatic callers; not surfaced as a CLI verb (the\n`getinfo` CLI verb covers the human-facing readiness view).",
+      "requestType": "StatusRequest",
+      "responseType": "StatusResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/status"
+      },
+      "referencedTypes": [
+        "BalanceResponse"
+      ]
+    },
+    {
+      "name": "GetExitPlan",
+      "slug": "get-exit-plan",
+      "service": "WalletService",
+      "comment": "GetExitPlan previews unilateral-exit readiness for one VTXO. The\nresponse includes CPFP fee input requirements and, when funding is\nneeded, a backing-wallet address callers can fund before forced unroll.",
+      "requestType": "GetExitPlanRequest",
+      "responseType": "GetExitPlanResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/exit-plan"
+      },
+      "referencedTypes": [
+        "ExitPlanEntry",
+        "ExitJobStatus"
+      ]
+    },
+    {
+      "name": "SweepWallet",
+      "slug": "sweep-wallet",
+      "service": "WalletService",
+      "comment": "SweepWallet previews or broadcasts a normal backing-wallet sweep to a\ncaller-supplied Bitcoin address. This sweeps wallet-managed funds left\nafter CPFP/change/unroll proceeds and does not sweep boarding outputs.",
+      "requestType": "SweepWalletRequest",
+      "responseType": "SweepWalletResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/sweep-wallet"
+      },
+      "referencedTypes": [
+        "WalletSweepInput"
+      ]
+    },
+    {
+      "name": "Exit",
+      "slug": "exit",
+      "service": "WalletService",
+      "comment": "Exit queues a cooperative leave for the specified VTXO outpoint by\ndefault. When the caller supplies force_unroll_ack exactly, the daemon\nstarts a unilateral unroll instead after checking that the outpoint is\npresent in the local backing wallet's UTXO set.",
+      "requestType": "ExitRequest",
+      "responseType": "ExitResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/exit"
+      },
+      "referencedTypes": [
+        "ExitMode"
+      ]
+    },
+    {
+      "name": "ExitStatus",
+      "slug": "exit-status",
+      "service": "WalletService",
+      "comment": "ExitStatus reports the current phase of an unroll job for the\nspecified VTXO outpoint, including recovery chain progress and\nsweep state. Proxies daemonrpc.GetUnrollStatus.",
+      "requestType": "ExitStatusRequest",
+      "responseType": "ExitStatusResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/exit-status"
+      },
+      "referencedTypes": [
+        "ExitJobStatus"
+      ]
+    },
+    {
+      "name": "SubscribeWallet",
+      "slug": "subscribe-wallet",
+      "service": "WalletService",
+      "comment": "SubscribeWallet streams normalized WalletEntry updates as they\nhappen. When include_existing is set, the daemon emits the current\nsnapshot before live updates.",
+      "requestType": "SubscribeWalletRequest",
+      "responseType": "WalletEntry",
+      "requestStream": false,
+      "responseStream": true,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/subscribe"
+      },
+      "referencedTypes": [
+        "EntryKind",
+        "EntryStatus",
+        "WalletEntryRequest",
+        "LightningInvoiceRequest",
+        "OnchainAddressRequest",
+        "ArkAddressRequest",
+        "WalletEntryProgress",
+        "WalletEntryPhase",
+        "EntryFailureCode"
+      ]
+    },
+    {
+      "name": "InspectActivity",
+      "slug": "inspect-activity",
+      "service": "WalletInspectionService",
+      "comment": "InspectActivity returns a technical trace for one WalletEntry id.",
+      "requestType": "InspectActivityRequest",
+      "responseType": "InspectActivityResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/inspect/activity"
+      },
+      "referencedTypes": [
+        "WalletEntry",
+        "EntryKind",
+        "EntryStatus",
+        "WalletEntryRequest",
+        "LightningInvoiceRequest",
+        "OnchainAddressRequest",
+        "ArkAddressRequest",
+        "WalletEntryProgress",
+        "WalletEntryPhase",
+        "EntryFailureCode",
+        "ActivitySwapTrace",
+        "ActivityVTXOTrace",
+        "ActivityLedgerTrace"
+      ]
+    }
+  ],
+  "messages": {
+    "CreateRequest": {
+      "name": "CreateRequest",
+      "comment": "CreateRequest carries the parameters for WalletService.Create: the\nencryption password, optional seed material, and recovery options.",
+      "fields": [
+        {
+          "name": "wallet_password",
+          "type": "bytes",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "wallet_password is the password used to encrypt the on-disk seed.\nMust be at least 8 bytes. The password is consumed and zeroed by\nthe daemon after wallet initialization."
+        },
+        {
+          "name": "seed_passphrase",
+          "type": "bytes",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "seed_passphrase is the optional aezeed passphrase (BIP39-style\n25th-word) protecting the mnemonic itself. Distinct from\nwallet_password."
+        },
+        {
+          "name": "mnemonic",
+          "type": "string",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "mnemonic is the 24-word aezeed mnemonic to import. Empty means\n\"generate a fresh seed\"; non-empty means \"recover from this\nmnemonic\". When non-empty the response echoes the same mnemonic\nback unchanged."
+        },
+        {
+          "name": "recover_state",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recover_state asks the daemon to scan deterministic Ark wallet keys\nafter importing mnemonic and rebuild local Ark state from chain and\nindexer data."
+        },
+        {
+          "name": "recovery_window",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovery_window is the number of key indexes to scan per recovery key\nfamily. Zero uses the daemon wallet.recoverywindow config value."
+        }
+      ]
+    },
+    "CreateResponse": {
+      "name": "CreateResponse",
+      "comment": "CreateResponse returns the wallet mnemonic and identity, plus a summary of\nany Ark-state recovery performed during Create.",
+      "fields": [
+        {
+          "name": "mnemonic",
+          "type": "string",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "mnemonic is the 24-word aezeed mnemonic for the wallet. For fresh\nwallets (request mnemonic empty) this is the newly generated\nseed and the caller MUST persist it offline before any unlock\nsequence - losing it makes the wallet unrecoverable. For recovery\nflows (request mnemonic supplied) this is the same mnemonic echoed\nback for confirmation."
+        },
+        {
+          "name": "identity_pubkey",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "identity_pubkey is the hex-encoded daemon wallet identity public\nkey derived from the newly created wallet."
+        },
+        {
+          "name": "recovery_ran",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovery_ran is true when Create attempted Ark-state recovery."
+        },
+        {
+          "name": "recovered_boarding_addresses",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovered_boarding_addresses is the number of boarding addresses\nrebuilt and persisted from deterministic keys."
+        },
+        {
+          "name": "recovered_boarding_utxos",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovered_boarding_utxos is the number of confirmed wallet UTXOs found\nat recovered boarding addresses during the recovery scan."
+        },
+        {
+          "name": "recovered_vtxos",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovered_vtxos is the number of indexed VTXOs restored into local\nwallet state."
+        },
+        {
+          "name": "recovered_oor_receive_scripts",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovered_oor_receive_scripts is the number of registered OOR receive\nscripts matched and restored into local ownership metadata."
+        },
+        {
+          "name": "recovered_oor_events",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recovered_oor_events is the number of OOR recipient events processed\nduring recovery."
+        }
+      ]
+    },
+    "UnlockRequest": {
+      "name": "UnlockRequest",
+      "comment": "UnlockRequest carries the password used to decrypt the on-disk seed for\nWalletService.Unlock.",
+      "fields": [
+        {
+          "name": "wallet_password",
+          "type": "bytes",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "wallet_password is the password used to decrypt the on-disk seed."
+        }
+      ]
+    },
+    "UnlockResponse": {
+      "name": "UnlockResponse",
+      "comment": "UnlockResponse returns the identity of the wallet unlocked by\nWalletService.Unlock.",
+      "fields": [
+        {
+          "name": "identity_pubkey",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "identity_pubkey is the hex-encoded daemon wallet identity public\nkey of the unlocked wallet."
+        }
+      ]
+    },
+    "PrepareSendRequest": {
+      "name": "PrepareSendRequest",
+      "comment": "PrepareSendRequest describes the outbound payment to validate and preview\nvia WalletService.PrepareSend, before any funds move.",
+      "fields": [
+        {
+          "name": "invoice",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": "destination",
+          "comment": "invoice is a BOLT-11 Lightning invoice. The daemon opens an\nout-swap; the swap server picks same-Ark p2p vs real Lightning\ntransparently."
+        },
+        {
+          "name": "onchain_address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": "destination",
+          "comment": "onchain_address is a bech32 onchain destination. The daemon\nsubmits a LeaveVTXOs request covering amt_sat plus fees."
+        },
+        {
+          "name": "amt_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amt_sat is required for onchain sends. For onchain sends amt_sat\nmust be strictly positive unless sweep_all is set, in which case\nit must be zero. For invoice sends amt_sat is ignored: v1 requires\nan amount-bearing BOLT-11 invoice; amountless invoices are rejected\nat the wallet layer until plumbing for caller-supplied amounts\nlands in the swap subserver."
+        },
+        {
+          "name": "note",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "note is an optional caller-supplied label persisted alongside the\nentry. It is never interpreted by the daemon."
+        },
+        {
+          "name": "max_fee_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "max_fee_sat is the optional caller cap on routing or sweep fees.\nZero means use daemon defaults."
+        },
+        {
+          "name": "sweep_all",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "sweep_all signals an explicit wallet-emptying onchain send: every\nlive VTXO is swept to the destination, less fees. The caller must\nset amt_sat = 0 when this flag is true and a strictly positive\namt_sat otherwise. This makes \"drain the wallet\" structurally\ndistinct from \"amt_sat defaulted to zero\" so a typo cannot empty\nthe wallet by accident. Ignored on the invoice path."
+        }
+      ]
+    },
+    "PrepareSendResponse": {
+      "name": "PrepareSendResponse",
+      "comment": "PrepareSendResponse is the preview of a prepared send: the single-use\nintent token plus the amount, fee, rail, and quote detail a caller should\nconfirm before calling Send.",
+      "fields": [
+        {
+          "name": "send_intent_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "send_intent_id is a short-lived, single-use token consumed by Send."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the destination principal amount."
+        },
+        {
+          "name": "expected_fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "expected_fee_sat is meaningful only when fee_known is true."
+        },
+        {
+          "name": "fee_known",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_known is false when a required remote quote API is missing."
+        },
+        {
+          "name": "expected_total_outflow_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "expected_total_outflow_sat is meaningful only when\ntotal_outflow_known is true."
+        },
+        {
+          "name": "total_outflow_known",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_outflow_known is false when the final outflow depends on a\nremote quote that is not available yet."
+        },
+        {
+          "name": "rail",
+          "type": "SendRail",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "rail is the settlement rail the prepared send is expected to take,\nderived from the swap server's quote. It is\nSEND_RAIL_OFFCHAIN_UNKNOWN when the invoice parsed locally but no\nremote quote distinguished same-Ark from Lightning settlement."
+        },
+        {
+          "name": "quote_status",
+          "type": "SendQuoteStatus",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "quote_status describes how complete the prepare-time quote is:\nCOMPLETE when every amount and fee is backed by a remote quote, or\nLOCAL_ONLY when the wallet validated locally but a remote quote API\nwas unavailable."
+        },
+        {
+          "name": "destination_summary",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "destination_summary is a short display string suitable for CLI and\nUI confirmation prompts."
+        },
+        {
+          "name": "invoice_description",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "invoice_description is the BOLT-11 description when present."
+        },
+        {
+          "name": "payment_hash",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "payment_hash is the invoice payment hash when available."
+        },
+        {
+          "name": "expires_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "expires_at_unix is the unix timestamp after which Send rejects the\nprepared intent."
+        },
+        {
+          "name": "selected_outpoints",
+          "type": "string",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "selected_outpoints is populated for onchain sends so Send can spend\nexactly the VTXO set previewed to the user."
+        },
+        {
+          "name": "warning",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "warning carries a concise human-facing caveat for local-only\npreviews."
+        },
+        {
+          "name": "credit_preview",
+          "type": "CreditPreview",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_preview is populated when the invoice send will or can use\nsat-native server credits."
+        }
+      ]
+    },
+    "CreditPreview": {
+      "name": "CreditPreview",
+      "comment": "CreditPreview describes how server-side sat-native credits factor into a\nprepared send. It is populated on PrepareSendResponse when the invoice\nsend will or can draw on credits.",
+      "fields": [
+        {
+          "name": "must_use_credit",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "must_use_credit is true when the invoice amount cannot be\nrepresented by the normal vHTLC path and the send must be settled\nfrom the credit balance."
+        },
+        {
+          "name": "credit_applied_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_applied_sat is the credit balance in satoshis the quote\nexpects to reserve for this send."
+        },
+        {
+          "name": "credit_shortfall_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_shortfall_sat is the additional credit in satoshis needed\nbefore this payment can be admitted."
+        },
+        {
+          "name": "credit_topup_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_topup_sat is the Ark top-up amount in satoshis required to\ncover the shortfall. It is rounded up and dust-limited by the server."
+        },
+        {
+          "name": "ark_funding_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "ark_funding_sat is the amount in satoshis the client must still fund\nthrough the normal vHTLC path."
+        }
+      ]
+    },
+    "SendRequest": {
+      "name": "SendRequest",
+      "comment": "SendRequest dispatches a previously prepared send by consuming the\nsingle-use intent token returned by PrepareSend.",
+      "fields": [
+        {
+          "name": "send_intent_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "send_intent_id is returned by PrepareSend and may be consumed once."
+        }
+      ]
+    },
+    "SendResponse": {
+      "name": "SendResponse",
+      "comment": "SendResponse returns the initial WalletEntry for a dispatched send and the\nactual amount that will leave the wallet.",
+      "fields": [
+        {
+          "name": "entry",
+          "type": "WalletEntry",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "entry is the initial WalletEntry persisted for this send. The\ncaller can poll List or SubscribeWallet for subsequent status\ntransitions."
+        },
+        {
+          "name": "actual_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "actual_amount_sat is the real amount that will leave the wallet\nfor this operation. For invoice sends it matches the caller's\namt_sat (or the invoice amount for amount-bearing invoices). For a\nbounded onchain send it matches the requested amt_sat: the\nseal-time fee handshake returns a change VTXO rather than sweeping\nwhole VTXOs. For a sweep_all onchain send it reflects the SUM of\nthe swept VTXOs (the whole-wallet drain). CLI and UI surfaces\nSHOULD echo this back to the user before treating the send as\nconfirmed."
+        }
+      ]
+    },
+    "WalletEntry": {
+      "name": "WalletEntry",
+      "comment": "WalletEntry is the single flat row type returned by the ACTIVITY view of\nList and by SubscribeWallet. The shape is deliberately minimal: display\nclients should be able to render kind/status/amount/fee/phase directly\nwithout parsing daemon-specific swap or ledger internals. Power-user detail\nbelongs in WalletInspectionService.InspectActivity.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "id is the stable identifier for this entry. Concretely it is the\nLightning payment_hash for swap rows, the leave_job_id (or sweep\ntxid) for exits, the boarding outpoint or txid for deposits."
+        },
+        {
+          "name": "kind",
+          "type": "EntryKind",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "kind is the user-visible category."
+        },
+        {
+          "name": "status",
+          "type": "EntryStatus",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "status is the coarse user-facing outcome: PENDING, COMPLETE, or\nFAILED. It mirrors the backing source's durable state and should\nnot be reinterpreted by display clients."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is signed: positive values are incoming to the wallet,\nnegative values are outgoing."
+        },
+        {
+          "name": "fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_sat is the absolute fee paid (or pending) for this\noperation."
+        },
+        {
+          "name": "counterparty",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "counterparty is a short, display-friendly identifier of the other\nside: a truncated invoice for Lightning, an ark peer address for\nOOR, a bech32 onchain address for exits, or \"boarding\" for\ndeposits."
+        },
+        {
+          "name": "created_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "created_at_unix is the local creation timestamp in unix seconds."
+        },
+        {
+          "name": "updated_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "updated_at_unix is the last persisted update timestamp in unix\nseconds. List ACTIVITY and SubscribeWallet sort by this field,\ndescending."
+        },
+        {
+          "name": "note",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "note is the caller-supplied label captured at submit time, if\nany."
+        },
+        {
+          "name": "failure_reason",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "failure_reason is populated only when status is FAILED. It is a\nsingle human-readable string, never a coded enum tree."
+        },
+        {
+          "name": "request",
+          "type": "WalletEntryRequest",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "request is the original payment request or destination associated\nwith the entry, when the backing subsystem persists it. This is\nuseful for expanded views and inspection; compact clients should\nnot need to parse it to explain status or lifecycle."
+        },
+        {
+          "name": "progress",
+          "type": "WalletEntryProgress",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "progress carries lifecycle-specific metadata already normalized by the\nwallet service. Clients can render phase_label directly or switch on\nphase without inferring meaning from swap/ledger internals."
+        },
+        {
+          "name": "failure_code",
+          "type": "EntryFailureCode",
+          "repeated": false,
+          "optional": true,
+          "oneof": null,
+          "comment": "failure_code is a stable, machine-readable classification of why a\nFAILED entry failed. It is set ONLY on FAILED entries; a non-failed\nentry omits the field entirely (presence-tracked), so its absence is the\ncanonical \"no failure\" signal and ENTRY_FAILURE_CODE_UNSPECIFIED is never\nsent on the wire. failure_reason remains the human-readable supplement."
+        }
+      ]
+    },
+    "WalletEntryRequest": {
+      "name": "WalletEntryRequest",
+      "comment": "WalletEntryRequest describes the user-recognizable request that created a\nWalletEntry. It is a oneof because each operation is backed by exactly one\nrequest shape.",
+      "fields": [
+        {
+          "name": "lightning_invoice",
+          "type": "LightningInvoiceRequest",
+          "repeated": false,
+          "optional": false,
+          "oneof": "request",
+          "comment": "lightning_invoice is populated for Lightning send and receive\nentries."
+        },
+        {
+          "name": "onchain_address",
+          "type": "OnchainAddressRequest",
+          "repeated": false,
+          "optional": false,
+          "oneof": "request",
+          "comment": "onchain_address is populated for deposit and exit entries."
+        },
+        {
+          "name": "ark_address",
+          "type": "ArkAddressRequest",
+          "repeated": false,
+          "optional": false,
+          "oneof": "request",
+          "comment": "ark_address is populated for direct Ark send or receive entries."
+        }
+      ]
+    },
+    "LightningInvoiceRequest": {
+      "name": "LightningInvoiceRequest",
+      "comment": "LightningInvoiceRequest captures the Lightning request associated with an\nactivity entry.",
+      "fields": [
+        {
+          "name": "invoice",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "invoice is the BOLT-11 payment request."
+        },
+        {
+          "name": "payment_hash",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "payment_hash identifies the invoice and remains stable after the\ninvoice itself is no longer convenient to display."
+        }
+      ]
+    },
+    "OnchainAddressRequest": {
+      "name": "OnchainAddressRequest",
+      "comment": "OnchainAddressRequest captures the onchain address associated with an\nactivity entry.",
+      "fields": [
+        {
+          "name": "address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "address is the bech32 onchain address originally issued or targeted."
+        }
+      ]
+    },
+    "ArkAddressRequest": {
+      "name": "ArkAddressRequest",
+      "comment": "ArkAddressRequest captures the Ark address associated with an activity entry.",
+      "fields": [
+        {
+          "name": "address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "address is the Ark address originally issued or targeted."
+        }
+      ]
+    },
+    "WalletEntryProgress": {
+      "name": "WalletEntryProgress",
+      "comment": "WalletEntryProgress carries lifecycle metadata normalized by the wallet\nservice.",
+      "fields": [
+        {
+          "name": "phase",
+          "type": "WalletEntryPhase",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "phase is the coarse lifecycle phase for this entry."
+        },
+        {
+          "name": "phase_label",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "phase_label is a short lowercase label that clients can render as-is\nwhile they migrate to enum-based presentation."
+        },
+        {
+          "name": "payment_hash",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "payment_hash is populated for Lightning-backed send/recv entries."
+        },
+        {
+          "name": "txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "txid is populated when the backing ledger row has an onchain txid."
+        },
+        {
+          "name": "confirmation_height",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "confirmation_height is populated once the source records it."
+        },
+        {
+          "name": "vtxo_outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "vtxo_outpoint is populated when a swap observes the Ark vHTLC output."
+        },
+        {
+          "name": "preimage",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "preimage is the hex-encoded Lightning payment preimage once the swap\nrevealed it. For a completed Lightning-backed send this is the proof of\npayment for the paid invoice (sha256(preimage) == payment_hash); it is\nempty until the preimage is durably known and for non-Lightning entries."
+        }
+      ]
+    },
+    "RecvRequest": {
+      "name": "RecvRequest",
+      "comment": "RecvRequest describes the inbound receive to open via WalletService.Recv.",
+      "fields": [
+        {
+          "name": "amt_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amt_sat is the amount the caller wants to receive in satoshis."
+        },
+        {
+          "name": "memo",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "memo is the optional human-readable memo to embed in the invoice."
+        }
+      ]
+    },
+    "RecvResponse": {
+      "name": "RecvResponse",
+      "comment": "RecvResponse returns the BOLT-11 invoice to hand out and the initial\nWalletEntry tracking the pending receive.",
+      "fields": [
+        {
+          "name": "invoice",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "invoice is the BOLT-11 payment request the caller hands out to\nthe payer."
+        },
+        {
+          "name": "entry",
+          "type": "WalletEntry",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "entry is the initial WalletEntry persisted for this receive."
+        },
+        {
+          "name": "credit_receive",
+          "type": "CreditReceive",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_receive is populated when the receive is backed by server credits\nrather than a client-claimable vHTLC."
+        }
+      ]
+    },
+    "CreditReceive": {
+      "name": "CreditReceive",
+      "comment": "CreditReceive describes a receive backed by server credits rather than a\nclient-claimable vHTLC. It is populated on RecvResponse for the credit\npath.",
+      "fields": [
+        {
+          "name": "operation_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "operation_id is the durable credit-subsystem operation id tracking\nthis receive. It correlates to the pending WalletEntry.id so the row\ncan be reconciled after the credit settles."
+        },
+        {
+          "name": "amount_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the amount in satoshis the caller asked to receive,\ncredited to the wallet account once the server-owned invoice settles."
+        },
+        {
+          "name": "payment_hash",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "payment_hash is the hex-encoded payment hash of the server-owned\nreceive invoice."
+        }
+      ]
+    },
+    "ListRequest": {
+      "name": "ListRequest",
+      "comment": "ListRequest selects the wallet view and filters for WalletService.List.",
+      "fields": [
+        {
+          "name": "view",
+          "type": "ListView",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "view selects which slice of wallet state to return. The default\n(LIST_VIEW_UNSPECIFIED) is treated as LIST_VIEW_ACTIVITY.\n\nWIRE-BREAKING CHANGE: this message intentionally renumbers the\nPR #440 fields (pending_only/kinds/limit/offset). walletdkrpc has\nno deployed external consumers yet, so the cleaner shape with\n`view` at field 1 is preferred over a backwards-compatible\nappend. Any binary built against PR #440's ListRequest must be\nrecompiled."
+        },
+        {
+          "name": "pending_only",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "pending_only filters the returned entries to those still in\nflight. Applies to the ACTIVITY view; ignored for VTXOS and\nONCHAIN."
+        },
+        {
+          "name": "kinds",
+          "type": "EntryKind",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "kinds optionally narrows the response to specific entry\ncategories. Applies to the ACTIVITY view; ignored for VTXOS and\nONCHAIN. When empty, all kinds are returned."
+        },
+        {
+          "name": "limit",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "limit caps the response size. Zero means use the daemon default."
+        },
+        {
+          "name": "offset",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "offset is the pagination offset within the chosen view."
+        }
+      ]
+    },
+    "ListResponse": {
+      "name": "ListResponse",
+      "comment": "ListResponse carries the typed result of WalletService.List as a oneof\ndiscriminated by the requested view.",
+      "fields": [
+        {
+          "name": "activity",
+          "type": "ActivityList",
+          "repeated": false,
+          "optional": false,
+          "oneof": "body",
+          "comment": "activity is set when the request view is ACTIVITY (the default):\nthe merged, time-sorted WalletEntry stream."
+        },
+        {
+          "name": "vtxos",
+          "type": "VTXOInventory",
+          "repeated": false,
+          "optional": false,
+          "oneof": "body",
+          "comment": "vtxos is set when the request view is VTXOS: the live spendable\nVTXO inventory."
+        },
+        {
+          "name": "onchain",
+          "type": "OnchainHistory",
+          "repeated": false,
+          "optional": false,
+          "oneof": "body",
+          "comment": "onchain is set when the request view is ONCHAIN: the on-chain\ntransaction history."
+        }
+      ]
+    },
+    "ActivityList": {
+      "name": "ActivityList",
+      "comment": "ActivityList is the ACTIVITY-view body of ListResponse: the merged,\ntime-sorted WalletEntry stream.",
+      "fields": [
+        {
+          "name": "entries",
+          "type": "WalletEntry",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "entries are the unified, time-sorted wallet operations."
+        },
+        {
+          "name": "total",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total is the total number of entries matching the filter before\nlimit and offset are applied."
+        }
+      ]
+    },
+    "VTXOInventory": {
+      "name": "VTXOInventory",
+      "comment": "VTXOInventory is the VTXOS-view body of ListResponse: the live spendable\nVTXO inventory.",
+      "fields": [
+        {
+          "name": "vtxos",
+          "type": "WalletVTXO",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "vtxos are the live spendable VTXOs in the wallet. Order is\nunspecified."
+        },
+        {
+          "name": "total",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total is the count of all live VTXOs before limit/offset."
+        }
+      ]
+    },
+    "WalletVTXO": {
+      "name": "WalletVTXO",
+      "comment": "WalletVTXO is the wallet-facing view of one VTXO. Internal lifecycle\ndetail (forfeiting flow, chain depth, etc.) is hidden; power-users can\nreach the full shape via `ark vtxos list`.",
+      "fields": [
+        {
+          "name": "outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoint is the VTXO's outpoint in \"txid:index\" format."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the value of the VTXO in satoshis."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "status is a short lowercase string: \"live\", \"pending_forfeit\",\n\"forfeiting\", \"spending\", \"unilateral_exit\". Internal terminal\nstates (forfeited / spent / failed) are filtered out of the\nwallet view."
+        },
+        {
+          "name": "batch_expiry",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "batch_expiry is the absolute block height at which the batch-level\ntimelock expires."
+        },
+        {
+          "name": "relative_expiry",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "relative_expiry is the CSV delay (in blocks) for the unilateral\nexit path."
+        },
+        {
+          "name": "commitment_txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "commitment_txid is the hex-encoded txid of the on-chain commitment\ntransaction anchoring this VTXO's tree."
+        }
+      ]
+    },
+    "OnchainHistory": {
+      "name": "OnchainHistory",
+      "comment": "OnchainHistory is the ONCHAIN-view body of ListResponse: the on-chain\ntransaction history.",
+      "fields": [
+        {
+          "name": "txs",
+          "type": "OnchainTx",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "txs are the on-chain transaction history rows: boarding deposits,\nboarding sweeps, leave outputs, round commitment txs that touched\nthis wallet. Sorted newest first."
+        },
+        {
+          "name": "total",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total is the count of matching rows before limit/offset."
+        },
+        {
+          "name": "has_more",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "has_more is true when another page is available."
+        }
+      ]
+    },
+    "OnchainTx": {
+      "name": "OnchainTx",
+      "comment": "OnchainTx is the wallet-facing view of one on-chain transaction. It\nflattens the daemon's richer TransactionHistoryEntry shape to the fields\na wallet user actually needs.",
+      "fields": [
+        {
+          "name": "txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "txid is the hex-encoded transaction id, when known. Some ledger\nrows (e.g. fee_paid) do not carry a txid; those entries surface\nwith txid=\"\" and the row is still informative."
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "kind is the high-level transaction type: \"boarding\", \"sweep\",\n\"round\", \"oor\", or \"fee\"."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the signed transaction amount in satoshis. Positive\nvalues are credits to this wallet; negative values are debits."
+        },
+        {
+          "name": "fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_sat is the absolute fee paid (or pending) for this\ntransaction, when known."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "status is a short lowercase string: \"confirmed\", \"pending\",\n\"recorded\", or a backing-specific lifecycle value."
+        },
+        {
+          "name": "confirmation_height",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "confirmation_height is set when the source records a chain\nconfirmation height."
+        },
+        {
+          "name": "created_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "created_at_unix is the local creation timestamp in unix seconds."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "description is a human-readable local note."
+        }
+      ]
+    },
+    "DepositRequest": {
+      "name": "DepositRequest",
+      "comment": "DepositRequest asks WalletService.Deposit for a fresh boarding address.",
+      "fields": [
+        {
+          "name": "amt_sat_hint",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amt_sat_hint is an optional caller hint about the expected deposit\namount. The daemon may use it to size internal accounting; the\nreturned boarding address is not amount-bound."
+        }
+      ]
+    },
+    "DepositResponse": {
+      "name": "DepositResponse",
+      "comment": "DepositResponse returns a fresh boarding address and the initial\nDEPOSIT-kind WalletEntry tracking the pending boarding operation.",
+      "fields": [
+        {
+          "name": "onchain_address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "onchain_address is a fresh boarding address the caller should\nfund. The daemon monitors it and rolls the boarding output into\nthe next round."
+        },
+        {
+          "name": "entry",
+          "type": "WalletEntry",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "entry is the initial DEPOSIT-kind WalletEntry persisted to track\nthe pending boarding operation."
+        }
+      ]
+    },
+    "BalanceRequest": {
+      "name": "BalanceRequest",
+      "comment": "BalanceRequest is the empty request for WalletService.Balance.",
+      "fields": []
+    },
+    "BalanceResponse": {
+      "name": "BalanceResponse",
+      "comment": "BalanceResponse is the unified balance summary returned by\nWalletService.Balance across confirmed, in-flight, and credit amounts.",
+      "fields": [
+        {
+          "name": "confirmed_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "confirmed_sat is the total spendable VTXO amount in satoshis."
+        },
+        {
+          "name": "pending_in_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "pending_in_sat is the total in-flight inbound amount (boarding\nplus receive operations)."
+        },
+        {
+          "name": "pending_out_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "pending_out_sat is the total in-flight outbound amount (send plus\nexit operations)."
+        },
+        {
+          "name": "credit_available_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_available_sat is the server-authoritative available credit\nbalance for the wallet identity."
+        },
+        {
+          "name": "credit_reserved_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_reserved_sat is the server-authoritative in-flight credit\nreservation amount."
+        }
+      ]
+    },
+    "StatusRequest": {
+      "name": "StatusRequest",
+      "comment": "StatusRequest is the empty request for WalletService.Status.",
+      "fields": []
+    },
+    "StatusResponse": {
+      "name": "StatusResponse",
+      "comment": "StatusResponse is the wallet-level readiness summary returned by\nWalletService.Status.",
+      "fields": [
+        {
+          "name": "ready",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "ready is true when the daemon and its dependencies are up."
+        },
+        {
+          "name": "unlocked",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "unlocked is a legacy wallet-exists signal: true once a wallet\nseed exists on disk or is loaded in memory. Use ready to check\nwhether wallet RPCs are currently usable."
+        },
+        {
+          "name": "network",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "network is the bitcoin network the daemon is configured for, for\nexample \"mainnet\", \"testnet\", \"signet\", or \"regtest\"."
+        },
+        {
+          "name": "balance",
+          "type": "BalanceResponse",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "balance is the unified balance summary at the time of the call."
+        },
+        {
+          "name": "pending_count",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "pending_count is the number of WalletEntry rows in PENDING\nstatus."
+        }
+      ]
+    },
+    "GetExitPlanRequest": {
+      "name": "GetExitPlanRequest",
+      "comment": "GetExitPlanRequest lists the VTXO outpoints to preview for unilateral exit\nvia WalletService.GetExitPlan.",
+      "fields": [
+        {
+          "name": "outpoints",
+          "type": "string",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoints are the VTXO outpoints to preview, each \"txid:index\"."
+        },
+        {
+          "name": "conf_target",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "conf_target selects the fee-estimation target in blocks. Zero uses\nthe daemon's default unroll confirmation target."
+        }
+      ]
+    },
+    "GetExitPlanResponse": {
+      "name": "GetExitPlanResponse",
+      "comment": "GetExitPlanResponse returns one ExitPlanEntry per requested outpoint, plus\nthe batch-level fee estimate and aggregate funding verdict.",
+      "fields": [
+        {
+          "name": "plans",
+          "type": "ExitPlanEntry",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "plans holds one entry per requested outpoint, in request order.\nEntries are evaluated against a running wallet allocation: each\nfeasible exit reserves its fee inputs before the next entry is\nplanned, so a per-entry verdict reflects the wallet left after the\nearlier entries in the batch notionally start."
+        },
+        {
+          "name": "fee_rate_sat_per_vbyte",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_rate_sat_per_vbyte is the shared chain fee estimate used for all\nentries."
+        },
+        {
+          "name": "can_start",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "can_start is the AND over every entry that has no per-outpoint error.\nBecause entries draw from a shared wallet via the running allocation\nabove, it is true only when every requested exit can be funded\nsimultaneously, not merely one at a time."
+        },
+        {
+          "name": "total_funding_shortfall_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_funding_shortfall_sat is the summed shortfall across entries\nunder simultaneous funding, so it already accounts for fee inputs two\noutpoints would otherwise both claim."
+        },
+        {
+          "name": "total_recommended_funding_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_recommended_funding_sat is the summed recommended funding across\nentries."
+        }
+      ]
+    },
+    "ExitPlanEntry": {
+      "name": "ExitPlanEntry",
+      "comment": "ExitPlanEntry is the per-outpoint unilateral-exit readiness preview: the\nbacking-wallet fee requirements and, when an unroll job already exists,\nits current state.",
+      "fields": [
+        {
+          "name": "outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoint is the previewed VTXO outpoint, formatted as \"txid:index\"."
+        },
+        {
+          "name": "funding_address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "funding_address is empty when can_start is true (no shortfall, so no\naddress is allocated)."
+        },
+        {
+          "name": "required_confirmations",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "required_confirmations is the number of confirmations a\nbacking-wallet UTXO must have before it can fund the unroll CPFP."
+        },
+        {
+          "name": "required_fee_utxo_count",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "required_fee_utxo_count is the number of distinct confirmed wallet\nUTXOs the exit needs to fund CPFP fees, one per unroll ancestry path."
+        },
+        {
+          "name": "usable_fee_utxo_count",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "usable_fee_utxo_count is the number of confirmed wallet UTXOs large\nenough to each fund a CPFP child on their own."
+        },
+        {
+          "name": "recommended_utxo_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recommended_utxo_amount_sat is the suggested value in satoshis for\neach fee-funding UTXO the caller provisions."
+        },
+        {
+          "name": "recommended_total_funding_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "recommended_total_funding_sat is the suggested total backing-wallet\nfunding in satoshis: recommended_utxo_amount_sat times the required\nfee UTXO count."
+        },
+        {
+          "name": "funding_shortfall_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "funding_shortfall_sat is the additional backing-wallet funding in\nsatoshis needed before this exit can start. Zero when can_start is\ntrue."
+        },
+        {
+          "name": "can_start",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "can_start is true when the backing wallet already has the fee inputs\nand balance to fund this exit's forced unroll."
+        },
+        {
+          "name": "exit_job_found",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "exit_job_found is true when an unroll job already exists for this\noutpoint, in which case exit_status, sweep_txid, and last_error\ndescribe it."
+        },
+        {
+          "name": "exit_status",
+          "type": "ExitJobStatus",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "exit_status is the current phase of the existing unroll job, when\nexit_job_found is true."
+        },
+        {
+          "name": "sweep_txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "sweep_txid is the hex-encoded txid of the existing job's sweep\ntransaction, set once it has been broadcast."
+        },
+        {
+          "name": "last_error",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "last_error is the failure reason of the existing unroll job, when it\nis in a failed state."
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "error is a per-outpoint failure (e.g. VTXO not found) so one bad\noutpoint does not fail the whole batch. Empty on success."
+        }
+      ]
+    },
+    "SweepWalletRequest": {
+      "name": "SweepWalletRequest",
+      "comment": "SweepWalletRequest describes a backing-wallet sweep to preview or broadcast\nvia WalletService.SweepWallet.",
+      "fields": [
+        {
+          "name": "destination_address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "destination_address is the Bitcoin address that receives the backing\nwallet funds after fees."
+        },
+        {
+          "name": "broadcast",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "broadcast controls whether the sweep is only previewed or also signed\nand published."
+        },
+        {
+          "name": "fee_rate_sat_per_vbyte",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_rate_sat_per_vbyte overrides chain fee estimation when positive."
+        },
+        {
+          "name": "conf_target",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "conf_target selects the fee-estimation target in blocks when\nfee_rate_sat_per_vbyte is unset. Zero uses the daemon's default unroll\nconfirmation target."
+        }
+      ]
+    },
+    "SweepWalletResponse": {
+      "name": "SweepWalletResponse",
+      "comment": "SweepWalletResponse is the preview or broadcast result of\nWalletService.SweepWallet.",
+      "fields": [
+        {
+          "name": "inputs",
+          "type": "WalletSweepInput",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "inputs are the confirmed backing-wallet UTXOs selected for the sweep."
+        },
+        {
+          "name": "total_input_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_input_sat is the gross value in satoshis of every selected\ninput."
+        },
+        {
+          "name": "estimated_fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "estimated_fee_sat is the absolute miner fee in satoshis for the\naggregate sweep transaction at the resolved fee rate."
+        },
+        {
+          "name": "net_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "net_amount_sat is total_input_sat minus estimated_fee_sat: the amount\nin satoshis paid to the destination address."
+        },
+        {
+          "name": "fee_rate_sat_per_vbyte",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_rate_sat_per_vbyte is the (capped) fee rate used to build the\nsweep transaction."
+        },
+        {
+          "name": "can_broadcast",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "can_broadcast is true when the preview cleared the dust floor and the\nsweep can be published."
+        },
+        {
+          "name": "txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "txid is the hex-encoded sweep transaction id, set only when the sweep\nwas broadcast."
+        },
+        {
+          "name": "failure_reason",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "failure_reason is populated when the sweep cannot broadcast (no\nconfirmed inputs, dust after fees) or the broadcast failed after\npreview."
+        }
+      ]
+    },
+    "WalletSweepInput": {
+      "name": "WalletSweepInput",
+      "comment": "WalletSweepInput is one backing-wallet UTXO selected for a sweep.",
+      "fields": [
+        {
+          "name": "outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoint is the selected backing-wallet UTXO, formatted as\n\"txid:index\"."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the value of the selected UTXO in satoshis."
+        }
+      ]
+    },
+    "ExitRequest": {
+      "name": "ExitRequest",
+      "comment": "ExitRequest identifies the VTXO to exit and selects the exit path for\nWalletService.Exit: cooperative leave by default, or unilateral unroll\nwhen force_unroll_ack is supplied.",
+      "fields": [
+        {
+          "name": "outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoint is the VTXO outpoint to exit, formatted as \"txid:index\"."
+        },
+        {
+          "name": "onchain_address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "onchain_address is the cooperative leave destination. Empty asks the\ndaemon to generate a fresh backing-wallet address internally."
+        },
+        {
+          "name": "force_unroll_ack",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "force_unroll_ack must be exactly \"I_KNOW_WHAT_I_AM_DOING\" to bypass\ncooperative leave and start unilateral unroll. It cannot be combined\nwith onchain_address, and the server requires at least one confirmed\nlocal backing-wallet UTXO before admitting forced unroll."
+        }
+      ]
+    },
+    "ExitResponse": {
+      "name": "ExitResponse",
+      "comment": "ExitResponse reports the exit path the daemon took and its per-path detail\nfor WalletService.Exit.",
+      "fields": [
+        {
+          "name": "created",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "created indicates whether a new unilateral exit job was spawned.\nFalse if an existing job already covers this target. Cooperative\nexits leave this unset."
+        },
+        {
+          "name": "actor_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "actor_id is the identifier of the durable unilateral exit job actor."
+        },
+        {
+          "name": "mode",
+          "type": "ExitMode",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "mode identifies the branch the daemon took."
+        },
+        {
+          "name": "queued_outpoints",
+          "type": "string",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "queued_outpoints lists the outpoints accepted into cooperative leave."
+        },
+        {
+          "name": "onchain_address",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "onchain_address is the cooperative leave destination used by the\ndaemon. It may be caller-supplied or daemon-generated."
+        }
+      ]
+    },
+    "ExitStatusRequest": {
+      "name": "ExitStatusRequest",
+      "comment": "ExitStatusRequest identifies the VTXO whose exit job to query via\nWalletService.ExitStatus.",
+      "fields": [
+        {
+          "name": "outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoint is the VTXO outpoint to query, formatted as\n\"txid:index\"."
+        }
+      ]
+    },
+    "ExitStatusResponse": {
+      "name": "ExitStatusResponse",
+      "comment": "ExitStatusResponse reports the current phase of an unroll job for\nWalletService.ExitStatus.",
+      "fields": [
+        {
+          "name": "found",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "found is true if an exit job exists for the requested outpoint."
+        },
+        {
+          "name": "status",
+          "type": "ExitJobStatus",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "status is the current high-level phase of the exit job."
+        },
+        {
+          "name": "sweep_txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "sweep_txid is the txid of the sweep transaction, set once the\nsweep has been broadcast."
+        },
+        {
+          "name": "last_error",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "last_error contains the failure reason if the job is in FAILED\nstatus."
+        }
+      ]
+    },
+    "SubscribeWalletRequest": {
+      "name": "SubscribeWalletRequest",
+      "comment": "SubscribeWalletRequest configures the WalletService.SubscribeWallet stream.",
+      "fields": [
+        {
+          "name": "include_existing",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "include_existing instructs the daemon to emit the current\nsnapshot before the live subscription is registered."
+        },
+        {
+          "name": "kinds",
+          "type": "EntryKind",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "kinds optionally narrows the live stream to specific entry\ncategories. When empty, all kinds are streamed."
+        }
+      ]
+    },
+    "InspectActivityRequest": {
+      "name": "InspectActivityRequest",
+      "comment": "InspectActivityRequest identifies the activity entry to inspect.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "id is the WalletEntry.id to inspect.\nInspectActivity searches the daemon's current activity window, which is\ncapped by the daemon maximum list limit."
+        },
+        {
+          "name": "ledger_limit",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "ledger_limit caps how many ledger rows are scanned for correlation.\nZero means use the daemon's maximum list limit."
+        }
+      ]
+    },
+    "InspectActivityResponse": {
+      "name": "InspectActivityResponse",
+      "comment": "InspectActivityResponse contains the friendly activity row plus the\nlower-level records that explain how the daemon derived it.",
+      "fields": [
+        {
+          "name": "entry",
+          "type": "WalletEntry",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "entry is the user-facing activity row being inspected."
+        },
+        {
+          "name": "swap",
+          "type": "ActivitySwapTrace",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "swap is populated when the entry is backed by a pay or receive swap."
+        },
+        {
+          "name": "vtxos",
+          "type": "ActivityVTXOTrace",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "vtxos contains best-effort VTXO movements correlated to this\nactivity. Rows are derived from local swap summaries and ledger\naccounting, so ids may be OOR session/output ids when a full VTXO\noutpoint is not persisted by the source row."
+        },
+        {
+          "name": "ledger_rows",
+          "type": "ActivityLedgerTrace",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "ledger_rows are the local accounting rows used to build the trace,\nincluding rows hidden from the friendly activity feed."
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "notes contains plain-English caveats about best-effort correlation."
+        }
+      ]
+    },
+    "ActivitySwapTrace": {
+      "name": "ActivitySwapTrace",
+      "comment": "ActivitySwapTrace is the swap-service snapshot correlated to one wallet\nactivity entry.",
+      "fields": [
+        {
+          "name": "payment_hash",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "payment_hash is the Lightning payment hash that identifies the\nswap-backed activity."
+        },
+        {
+          "name": "direction",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "direction is the raw swapclientrpc.SwapDirection enum name, kept as a\nstring so this debug surface can expose swap state without importing the\nswap service proto into the wallet proto."
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "state is the raw swapclientrpc.SwapState enum name at inspection time."
+        },
+        {
+          "name": "pending",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "pending is true while the backing swap state machine is still active."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the swap amount in satoshis using the swap service's\nunsigned amount convention."
+        },
+        {
+          "name": "fee_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_sat is the fee reported by the swap service for this swap."
+        },
+        {
+          "name": "invoice",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "invoice is the BOLT-11 invoice associated with the swap when known."
+        },
+        {
+          "name": "vhtlc_outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "vhtlc_outpoint is the Ark vHTLC output observed for the swap when known."
+        },
+        {
+          "name": "vhtlc_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "vhtlc_amount_sat is the amount held by vhtlc_outpoint when known."
+        },
+        {
+          "name": "funding_session_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "funding_session_id is the OOR session that funded the swap when known."
+        },
+        {
+          "name": "claim_session_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "claim_session_id is the OOR session that claimed the swap when known."
+        },
+        {
+          "name": "refund_session_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "refund_session_id is the OOR session that refunded the swap when known."
+        },
+        {
+          "name": "terminal_reason",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "terminal_reason is the swap service's terminal reason string when the\nswap reached a failed or intervention state."
+        },
+        {
+          "name": "created_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "created_at_unix is the swap creation timestamp in unix seconds."
+        },
+        {
+          "name": "updated_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "updated_at_unix is the last swap update timestamp in unix seconds."
+        },
+        {
+          "name": "deadline_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "deadline_unix is the swap deadline in unix seconds when the swap service\nexposes one."
+        },
+        {
+          "name": "refund_locktime",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "refund_locktime is the absolute locktime after which the swap can be\nrefunded."
+        },
+        {
+          "name": "settlement_type",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "settlement_type is the raw swapclientrpc.SwapSettlementType enum name\nwhen known."
+        },
+        {
+          "name": "sender_pubkey",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "sender_pubkey is the compressed SEC-encoded vHTLC sender key when known."
+        },
+        {
+          "name": "preimage",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "preimage is the hex-encoded Lightning payment preimage once the swap\nrevealed it. For a completed pay swap this is the proof of payment for\nthe paid invoice; it is empty until the preimage is durably known."
+        }
+      ]
+    },
+    "ActivityVTXOTrace": {
+      "name": "ActivityVTXOTrace",
+      "comment": "ActivityVTXOTrace describes one VTXO movement correlated to a wallet activity\nentry.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "id is the best available identifier. It is an outpoint when the\nsource has one, otherwise an OOR session/output identifier."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the VTXO amount in satoshis."
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "role is a short technical label such as \"spent_input\",\n\"change_output\", \"materialized_output\", or \"vhtlc_output\"."
+        },
+        {
+          "name": "ours",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "ours is true when the row represents wallet-owned funds."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "source names the local source used to derive the row, such as\n\"ledger\" or \"swap\"."
+        },
+        {
+          "name": "session_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "session_id is the OOR session/correlation id when known."
+        },
+        {
+          "name": "output_index",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "output_index is set when the source names a specific OOR output\nindex."
+        }
+      ]
+    },
+    "ActivityLedgerTrace": {
+      "name": "ActivityLedgerTrace",
+      "comment": "ActivityLedgerTrace describes one local ledger row correlated to a wallet\nactivity entry.",
+      "fields": [
+        {
+          "name": "source",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "source names the subsystem that produced the row, such as \"ledger\" or\n\"boarding_sweep\"."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "type is the broad transaction group used by the wallet history query."
+        },
+        {
+          "name": "subtype",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "subtype is the ledger event type or sweep state."
+        },
+        {
+          "name": "amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "amount_sat is the row amount in satoshis using the ledger sign\nconvention."
+        },
+        {
+          "name": "fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_sat is the row's fee contribution in satoshis when the history query\ncan derive one."
+        },
+        {
+          "name": "created_at_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "created_at_unix is the row creation timestamp in unix seconds."
+        },
+        {
+          "name": "confirmation_status",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "confirmation_status is the best-known chain confirmation state for the\nrow, for example \"pending\", \"confirmed\", or \"recorded\"."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "description is the local ledger description persisted with the row."
+        },
+        {
+          "name": "entry_id",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "entry_id is the local ledger row id when the source is the ledger."
+        },
+        {
+          "name": "txid",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "txid is the associated chain transaction id when known."
+        },
+        {
+          "name": "debit_account",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "debit_account is the local accounting debit account."
+        },
+        {
+          "name": "credit_account",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "credit_account is the local accounting credit account."
+        },
+        {
+          "name": "round_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "round_id is the Ark round id associated with the row when known."
+        },
+        {
+          "name": "session_id",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "session_id is the OOR session/correlation id associated with the row when\nknown."
+        },
+        {
+          "name": "confirmation_height",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "confirmation_height is the confirmed block height when known."
+        },
+        {
+          "name": "hidden_from_activity",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "hidden_from_activity is true when WalletService.List suppresses the\nrow because it is an internal execution leg."
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "role is the inspection role inferred for this row."
+        },
+        {
+          "name": "output_index",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "output_index is the transaction output index associated with txid.\nA negative value means the source has no output index."
+        }
+      ]
+    }
+  },
+  "enums": {
+    "SendRail": {
+      "name": "SendRail",
+      "comment": "SendRail identifies the expected settlement rail for a prepared send.",
+      "values": [
+        {
+          "name": "SEND_RAIL_UNSPECIFIED",
+          "value": 0,
+          "comment": "SEND_RAIL_UNSPECIFIED is the proto zero value used when no rail\nhas been determined."
+        },
+        {
+          "name": "SEND_RAIL_OFFCHAIN_UNKNOWN",
+          "value": 1,
+          "comment": "SEND_RAIL_OFFCHAIN_UNKNOWN is used when the wallet can parse the\ninvoice locally but the swapserver has not supplied a quote that\ndistinguishes same-Ark settlement from Lightning settlement."
+        },
+        {
+          "name": "SEND_RAIL_IN_ARK",
+          "value": 2,
+          "comment": "SEND_RAIL_IN_ARK is same-Ark peer-to-peer settlement, where the\npayment never touches Lightning."
+        },
+        {
+          "name": "SEND_RAIL_LIGHTNING",
+          "value": 3,
+          "comment": "SEND_RAIL_LIGHTNING is settlement over the real Lightning network."
+        },
+        {
+          "name": "SEND_RAIL_ONCHAIN",
+          "value": 4,
+          "comment": "SEND_RAIL_ONCHAIN is an on-chain send via a cooperative leave to\nthe destination address."
+        },
+        {
+          "name": "SEND_RAIL_CREDIT",
+          "value": 5,
+          "comment": "SEND_RAIL_CREDIT is settlement drawn from the wallet's\nserver-side credit balance."
+        },
+        {
+          "name": "SEND_RAIL_MIXED",
+          "value": 6,
+          "comment": "SEND_RAIL_MIXED is settlement that combines credit with the\nnormal vHTLC path."
+        }
+      ]
+    },
+    "SendQuoteStatus": {
+      "name": "SendQuoteStatus",
+      "comment": "SendQuoteStatus describes how complete the prepare-time quote is.",
+      "values": [
+        {
+          "name": "SEND_QUOTE_STATUS_UNSPECIFIED",
+          "value": 0,
+          "comment": "SEND_QUOTE_STATUS_UNSPECIFIED is the proto zero value; quote\ncompleteness was not reported."
+        },
+        {
+          "name": "SEND_QUOTE_STATUS_COMPLETE",
+          "value": 1,
+          "comment": "SEND_QUOTE_STATUS_COMPLETE means every user-visible amount and fee\nfield is backed by a remote quote."
+        },
+        {
+          "name": "SEND_QUOTE_STATUS_LOCAL_ONLY",
+          "value": 2,
+          "comment": "SEND_QUOTE_STATUS_LOCAL_ONLY means the wallet performed local\nvalidation and selection but one or more remote quote APIs are not\navailable yet."
+        }
+      ]
+    },
+    "EntryKind": {
+      "name": "EntryKind",
+      "comment": "EntryKind tags each WalletEntry with the user-visible category of the\nunderlying operation. Internal subtypes (same-Ark p2p vs real Lightning,\nOOR session correlators, round IDs) are deliberately not surfaced.",
+      "values": [
+        {
+          "name": "ENTRY_KIND_UNSPECIFIED",
+          "value": 0,
+          "comment": "ENTRY_KIND_UNSPECIFIED is the proto zero value used when the\noperation category is unknown."
+        },
+        {
+          "name": "ENTRY_KIND_SEND",
+          "value": 1,
+          "comment": "ENTRY_KIND_SEND is an outbound payment over any rail (Lightning,\nsame-Ark, onchain, or credit)."
+        },
+        {
+          "name": "ENTRY_KIND_RECV",
+          "value": 2,
+          "comment": "ENTRY_KIND_RECV is an inbound receive."
+        },
+        {
+          "name": "ENTRY_KIND_DEPOSIT",
+          "value": 3,
+          "comment": "ENTRY_KIND_DEPOSIT is a boarding deposit rolled into a VTXO."
+        },
+        {
+          "name": "ENTRY_KIND_EXIT",
+          "value": 4,
+          "comment": "ENTRY_KIND_EXIT is a cooperative leave or unilateral exit to\non-chain funds."
+        }
+      ]
+    },
+    "EntryStatus": {
+      "name": "EntryStatus",
+      "comment": "EntryStatus collapses every backing FSM into the three states user-facing\nsurfaces actually need.",
+      "values": [
+        {
+          "name": "ENTRY_STATUS_UNSPECIFIED",
+          "value": 0,
+          "comment": "ENTRY_STATUS_UNSPECIFIED is the proto zero value used when the\nbacking state has not been mapped yet."
+        },
+        {
+          "name": "ENTRY_STATUS_PENDING",
+          "value": 1,
+          "comment": "ENTRY_STATUS_PENDING means the operation is still in flight."
+        },
+        {
+          "name": "ENTRY_STATUS_COMPLETE",
+          "value": 2,
+          "comment": "ENTRY_STATUS_COMPLETE means the operation reached a durable\nsuccess state."
+        },
+        {
+          "name": "ENTRY_STATUS_FAILED",
+          "value": 3,
+          "comment": "ENTRY_STATUS_FAILED means the operation reached a terminal\nfailure state."
+        }
+      ]
+    },
+    "WalletEntryPhase": {
+      "name": "WalletEntryPhase",
+      "comment": "WalletEntryPhase is a coarse, wallet-facing lifecycle phase. It is not a\nreplacement for status; status answers whether the operation is pending,\ncomplete, or failed, while phase explains the current backing-system step.",
+      "values": [
+        {
+          "name": "WALLET_ENTRY_PHASE_UNSPECIFIED",
+          "value": 0,
+          "comment": "WALLET_ENTRY_PHASE_UNSPECIFIED is the proto zero value used when the\nbacking subsystem has no lifecycle hint."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_REQUEST_CREATED",
+          "value": 1,
+          "comment": "WALLET_ENTRY_PHASE_REQUEST_CREATED means the request was created but no\npayment has been observed."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_WAITING_FOR_PAYMENT",
+          "value": 2,
+          "comment": "WALLET_ENTRY_PHASE_WAITING_FOR_PAYMENT means the wallet is waiting for an\ninbound payment or swap funding."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_PAYMENT_DETECTED",
+          "value": 3,
+          "comment": "WALLET_ENTRY_PHASE_PAYMENT_DETECTED means the backing subsystem has\ndetected a payment but it is not yet settled."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_SETTLING",
+          "value": 4,
+          "comment": "WALLET_ENTRY_PHASE_SETTLING means the operation is being settled through\nArk, Lightning, or onchain machinery."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_CONFIRMED",
+          "value": 5,
+          "comment": "WALLET_ENTRY_PHASE_CONFIRMED means the backing operation is confirmed or\notherwise durably complete."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_REFUNDING",
+          "value": 6,
+          "comment": "WALLET_ENTRY_PHASE_REFUNDING means the operation is currently refunding."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_REFUNDED",
+          "value": 7,
+          "comment": "WALLET_ENTRY_PHASE_REFUNDED means the refund path completed."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_FAILED",
+          "value": 8,
+          "comment": "WALLET_ENTRY_PHASE_FAILED means the backing operation reached a terminal\nfailed state."
+        },
+        {
+          "name": "WALLET_ENTRY_PHASE_WAITING_FOR_CONFIRMATION",
+          "value": 9,
+          "comment": "WALLET_ENTRY_PHASE_WAITING_FOR_CONFIRMATION means an onchain payment has\nbeen detected and is waiting for block confirmation."
+        }
+      ]
+    },
+    "EntryFailureCode": {
+      "name": "EntryFailureCode",
+      "comment": "EntryFailureCode is a stable, machine-readable classification of why a FAILED\nWalletEntry failed. It complements the free-text failure_reason so clients\ncan branch on failure cause without string matching.",
+      "values": [
+        {
+          "name": "ENTRY_FAILURE_CODE_UNSPECIFIED",
+          "value": 0,
+          "comment": "ENTRY_FAILURE_CODE_UNSPECIFIED is the zero value used for non-failed\nentries or when the cause is unknown."
+        },
+        {
+          "name": "ENTRY_FAILURE_CODE_TIMED_OUT",
+          "value": 1,
+          "comment": "ENTRY_FAILURE_CODE_TIMED_OUT means the operation exceeded the wallet\ndeadline before reaching a terminal state."
+        },
+        {
+          "name": "ENTRY_FAILURE_CODE_EXPIRED",
+          "value": 2,
+          "comment": "ENTRY_FAILURE_CODE_EXPIRED means the swap expired before it was funded."
+        },
+        {
+          "name": "ENTRY_FAILURE_CODE_REFUNDED",
+          "value": 3,
+          "comment": "ENTRY_FAILURE_CODE_REFUNDED means an outbound payment was refunded back\nto the wallet."
+        },
+        {
+          "name": "ENTRY_FAILURE_CODE_NEEDS_INTERVENTION",
+          "value": 4,
+          "comment": "ENTRY_FAILURE_CODE_NEEDS_INTERVENTION means the swap reached an anomalous\nstate requiring manual recovery."
+        },
+        {
+          "name": "ENTRY_FAILURE_CODE_FAILED",
+          "value": 5,
+          "comment": "ENTRY_FAILURE_CODE_FAILED is a generic terminal failure with no more\nspecific classification."
+        }
+      ]
+    },
+    "ListView": {
+      "name": "ListView",
+      "comment": "ListView selects which slice of wallet state List returns. The default\n(LIST_VIEW_UNSPECIFIED) is treated as LIST_VIEW_ACTIVITY for backwards\nfeel: callers that don't care about the new shape keep getting the\nactivity stream.",
+      "values": [
+        {
+          "name": "LIST_VIEW_UNSPECIFIED",
+          "value": 0,
+          "comment": "LIST_VIEW_UNSPECIFIED is the proto zero value; List treats it as\nLIST_VIEW_ACTIVITY."
+        },
+        {
+          "name": "LIST_VIEW_ACTIVITY",
+          "value": 1,
+          "comment": "LIST_VIEW_ACTIVITY returns the merged WalletEntry stream (send /\nrecv / deposit / exit) across the swap subsystem, OOR sessions, the\nboarding ledger, and the unroll registry."
+        },
+        {
+          "name": "LIST_VIEW_VTXOS",
+          "value": 2,
+          "comment": "LIST_VIEW_VTXOS returns the live VTXO inventory (one row per\nspendable VTXO)."
+        },
+        {
+          "name": "LIST_VIEW_ONCHAIN",
+          "value": 3,
+          "comment": "LIST_VIEW_ONCHAIN returns the on-chain transaction history\n(boarding deposits, boarding sweeps, leave outputs, round\ncommitment txs that confirmed against this wallet)."
+        }
+      ]
+    },
+    "ExitJobStatus": {
+      "name": "ExitJobStatus",
+      "comment": "ExitJobStatus collapses the underlying unroll job phases to a short\nwallet-facing string set.",
+      "values": [
+        {
+          "name": "EXIT_JOB_STATUS_UNSPECIFIED",
+          "value": 0,
+          "comment": "EXIT_JOB_STATUS_UNSPECIFIED - the proto zero value; no job phase\nhas been reported."
+        },
+        {
+          "name": "EXIT_JOB_STATUS_PENDING",
+          "value": 1,
+          "comment": "EXIT_JOB_STATUS_PENDING - job created but recovery transactions\nnot yet materialized."
+        },
+        {
+          "name": "EXIT_JOB_STATUS_MATERIALIZING",
+          "value": 2,
+          "comment": "EXIT_JOB_STATUS_MATERIALIZING - recovery transactions are being\nbroadcast and confirmed on-chain."
+        },
+        {
+          "name": "EXIT_JOB_STATUS_CSV_PENDING",
+          "value": 3,
+          "comment": "EXIT_JOB_STATUS_CSV_PENDING - recovery transactions confirmed,\nwaiting for the CSV delay to expire."
+        },
+        {
+          "name": "EXIT_JOB_STATUS_SWEEPING",
+          "value": 4,
+          "comment": "EXIT_JOB_STATUS_SWEEPING - CSV delay expired, sweep transaction\nis being broadcast/confirmed."
+        },
+        {
+          "name": "EXIT_JOB_STATUS_COMPLETED",
+          "value": 5,
+          "comment": "EXIT_JOB_STATUS_COMPLETED - terminal: the sweep confirmed and the\nfunds are in the on-chain wallet."
+        },
+        {
+          "name": "EXIT_JOB_STATUS_FAILED",
+          "value": 6,
+          "comment": "EXIT_JOB_STATUS_FAILED - terminal: an unrecoverable error\noccurred."
+        }
+      ]
+    },
+    "ExitMode": {
+      "name": "ExitMode",
+      "comment": "ExitMode identifies whether Exit queued a cooperative leave or started a\nforced unilateral unroll.",
+      "values": [
+        {
+          "name": "EXIT_MODE_UNSPECIFIED",
+          "value": 0,
+          "comment": "EXIT_MODE_UNSPECIFIED is the proto zero value used when the exit\npath was not reported."
+        },
+        {
+          "name": "EXIT_MODE_COOPERATIVE",
+          "value": 1,
+          "comment": "EXIT_MODE_COOPERATIVE means Exit queued a cooperative leave\n(VTXO-to-onchain)."
+        },
+        {
+          "name": "EXIT_MODE_UNILATERAL",
+          "value": 2,
+          "comment": "EXIT_MODE_UNILATERAL means Exit started a forced unilateral\nunroll."
+        }
+      ]
+    }
+  }
+}
