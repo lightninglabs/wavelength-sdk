@@ -51,3 +51,13 @@ test('method pages use the api sidebar and highlight the active item', async ({ 
   await expect(page.locator('.wdk-sidebar a[aria-current="page"]')).toHaveText('Create');
   await expect(page.locator('.wdk-sidebar').getByText('Wallet lifecycle')).toBeVisible();
 });
+
+test('the on-this-page rail shortens to the footer top instead of overlapping it', async ({ page }) => {
+  await page.goto('/api/wallet/prepare-send/');
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(async () => {
+    const railBottom = await page.locator('.wdk-api__rail').evaluate((el) => el.getBoundingClientRect().bottom);
+    const footerTop = await page.locator('.wdk-footer').evaluate((el) => el.getBoundingClientRect().top);
+    expect(railBottom).toBeCloseTo(footerTop, 0);
+  }).toPass({ timeout: 3000 });
+});
