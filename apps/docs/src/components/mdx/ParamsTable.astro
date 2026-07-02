@@ -106,7 +106,9 @@ const hasRows = rows && rows.length > 0;
     color: var(--text-muted);
   }
 
-  /* Parameter name column: monospaced, slightly prominent. */
+  /* Parameter name column: monospaced, slightly prominent. Nowrap so
+     identifiers never break mid-word; the table-wrap container scrolls
+     horizontally instead. */
   .param-name code {
     font-family: var(--font-code, 'JetBrains Mono', monospace);
     font-size: 0.85em;
@@ -114,6 +116,7 @@ const hasRows = rows && rows.length > 0;
     color: var(--text);
     background: none;
     padding: 0;
+    white-space: nowrap;
   }
 
   /* Type column: accent-tinted monospaced text. */
@@ -125,6 +128,7 @@ const hasRows = rows && rows.length > 0;
     border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 20%, transparent);
     border-radius: 3px;
     padding: 0.05em 0.3em;
+    white-space: nowrap;
   }
 
   /* Description column: lighter prose text. */

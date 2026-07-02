@@ -673,12 +673,19 @@ code, pre, kbd {
   line-height: 1.6;
 }
 
-/* Tables - from r4-final .params-table. */
+/* Tables - from r4-final .params-table. Scrolls horizontally instead of
+   wrapping cell text, so identifiers like flag names never break mid-word. */
 :is(.wdk-doc__content, .wdk-guide__content) table {
+  display: block;
+  overflow-x: auto;
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
   margin: 1rem 0;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content) td code {
+  white-space: nowrap;
 }
 
 :is(.wdk-doc__content, .wdk-guide__content) th {
