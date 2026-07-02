@@ -1,11 +1,7 @@
 ---
 title: ark
 description: Advanced, low-level Ark protocol commands over the raw daemon RPC, covering VTXO inventory and lifecycle, round state, out-of-round sessions, boarding, sweeps, fees, and raw sends.
-pageLayout: reference
 ---
-
-import ApiSymbol from '~/components/mdx/ApiSymbol.astro';
-import ParamsTable from '~/components/mdx/ParamsTable.astro';
 
 `ark` is the power-user entry point. It surfaces the raw daemon RPC methods that
 underlie the everyday wallet verbs, for inspection, debugging, and operator
@@ -18,174 +14,365 @@ List-shaped subcommands accept two shared output modifiers: `--fields`
 per item, newline-delimited). These give agents context-window discipline over
 large responses.
 
-<ApiSymbol name="vtxos" kind="const">
+## Flags
 
-VTXO operations: `list`, `refresh`, and `leave`.
+`ark` itself takes no bespoke flags; it dispatches to one of the subcommand
+groups below. Every subcommand accepts `--help` and the global connection
+flags (`--rpcserver`, `--tlscertpath`, `--no-tls`).
 
-- **`ark vtxos list`** returns VTXOs known to the wallet, optionally filtered.
-  Flags: `--status` (one of `live`, `pending_forfeit`, `forfeiting`,
-  `forfeited`, `spent`, `unilateral_exit`, `failed`, `spending`), `--min_amount`
-  (sats, default `0`), plus `--fields` / `--ndjson`. Calls `ListVTXOs`.
-- **`ark vtxos refresh`** queues VTXOs for refresh and joins the next round,
-  extending their expiry. Flags: `--outpoint` (repeatable), `--all`, `--dry_run`,
-  `--no_join` (skip the implicit `ark rounds join` so multiple intents batch
-  into one round). Calls `RefreshVTXOs`.
-- **`ark vtxos leave`** queues VTXOs for cooperative leave and joins the next
-  round. Flags: `--outpoint`, `--all`, `--address`, `--pk_script`,
-  `--destination` (per-outpoint override), `--dry_run`, `--yes`, `--no_join`.
-  Calls `LeaveVTXOs`.
+## Example
 
-```bash
+`ark` alone prints usage and exits; pick a subcommand, for example:
+
+```bash title="Terminal"
 darepocli ark vtxos list --status live
+```
+
+## `vtxos`
+
+VTXO inventory and lifecycle: `list`, `refresh`, `leave`.
+
+### `vtxos list`
+
+Returns VTXOs known to the wallet, optionally filtered by status and minimum
+amount.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--status` | (none) | Filter by status: live, pending_forfeit, forfeiting, forfeited, spent, unilateral_exit, failed, spending. |
+| `--min_amount` | `0` | Minimum amount in sats. |
+| `--fields` | (none) | Comma-separated field names to include in the response. |
+| `--ndjson` | `false` | Emit one JSON object per VTXO, newline-delimited. |
+
+Calls the daemon `ListVTXOs` RPC.
+
+```bash title="Terminal"
+darepocli ark vtxos list --status live
+```
+
+### `vtxos refresh`
+
+Queues one or more VTXOs for refresh, then commits the queued intents to the
+next round, extending their expiry. By default this also issues `ark rounds
+join` on the caller's behalf, so refresh is a one-shot operation; pass
+`--no_join` to batch multiple refresh or leave intents into the same round and
+join explicitly afterward.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | VTXO outpoint(s) to refresh (txid:index); repeatable. Required unless --all is set. |
+| `--all` | `false` | Refresh all live VTXOs. |
+| `--dry_run` | `false` | Validate without queuing. |
+| `--no_join` | `false` | Skip the implicit `ark rounds join` follow-up so this refresh can batch with other queued intents. |
+
+Calls the daemon `RefreshVTXOs` RPC.
+
+```bash title="Terminal"
 darepocli ark vtxos refresh --all
 ```
 
-</ApiSymbol>
+### `vtxos leave`
 
-<ApiSymbol name="rounds" kind="const">
+Queues one or more VTXOs for cooperative leave, then commits the queued
+intents to the next round. Each forfeited VTXO pays out its amount, minus the
+operator fee, to the specified on-chain destination. Auto-joins the next round
+like `vtxos refresh` unless `--no_join` is set.
 
-Inspect and drive round participation: `get`, `join`, `list`, `watch`.
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | VTXO outpoint(s) to leave (txid:index); repeatable. Required unless --all is set. |
+| `--all` | `false` | Leave all live VTXOs. |
+| `--address` | (none) | Default on-chain destination address. Mutually exclusive with --pk_script. |
+| `--pk_script` | (none) | Default destination pk_script, hex-encoded. Mutually exclusive with --address. |
+| `--destination` | (none) | Per-outpoint destination override: `outpoint=address` or `outpoint=script:<hex>`. Not supported with --all. |
+| `--dry_run` | `false` | Validate without queuing. |
+| `--yes` | `false` | Skip the interactive confirmation required for --all. |
+| `--no_join` | `false` | Skip the implicit `ark rounds join` follow-up so this leave can batch with other queued intents. |
 
-- **`ark rounds get`** fetches one round status by `--round-id`. Calls `GetRound`.
-- **`ark rounds join`** commits queued refresh or leave intents and joins the
-  next round. `ark vtxos refresh` and `ark vtxos leave` invoke it automatically;
-  call it directly only after passing `--no_join` to batch intents. Calls
-  `JoinNextRound`.
-- **`ark rounds list`** lists round FSM states. Flags: `--persisted-only`,
-  `--page-size`, `--page-token`, `--state` (for example `confirmed`, `failed`),
-  `--created-after`, `--created-before`, plus `--fields` / `--ndjson`. Calls
-  `ListRounds`.
-- **`ark rounds watch`** opens a server stream that prints round state
-  transitions as they occur. Calls `WatchRounds`.
+Calls the daemon `LeaveVTXOs` RPC.
 
-```bash
+```bash title="Terminal"
+darepocli ark vtxos leave --outpoint abcd...:0 --address bcrt1...
+```
+
+## `rounds`
+
+Round participation: `get`, `join`, `list`, `watch`.
+
+### `rounds get`
+
+Fetches one round's status by its server-assigned id.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--round-id` | (none) | Server-assigned round id to fetch. |
+
+Calls the daemon `GetRound` RPC.
+
+```bash title="Terminal"
+darepocli ark rounds get --round-id r-1234
+```
+
+### `rounds join`
+
+Commits currently queued round intents (refresh or leave) and emits a join
+request to the operator. `ark vtxos refresh` and `ark vtxos leave` invoke this
+automatically; call it directly only after passing `--no_join` to one of those
+commands, to batch multiple intents into the same round.
+
+Calls the daemon `JoinNextRound` RPC.
+
+```bash title="Terminal"
+darepocli ark rounds join
+```
+
+### `rounds list`
+
+Lists round FSM states, optionally filtered.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--persisted-only` | `false` | Only show persisted rounds, skipping in-memory pending ones. |
+| `--page-size` | `0` | Maximum number of persisted rounds to return; 0 uses the daemon default. |
+| `--page-token` | (none) | Cursor from a previous response, for pagination. |
+| `--state` | (none) | Optional state filter, for example confirmed or failed. |
+| `--created-after` | `0` | Only show rounds created at or after this Unix time; 0 is unbounded. |
+| `--created-before` | `0` | Only show rounds created before this Unix time; 0 is unbounded. |
+| `--fields` | (none) | Comma-separated field names to include in the response. |
+| `--ndjson` | `false` | Emit one JSON object per round, newline-delimited. |
+
+Calls the daemon `ListRounds` RPC.
+
+```bash title="Terminal"
 darepocli ark rounds list --state confirmed
+```
+
+### `rounds watch`
+
+Opens a server-streaming connection that prints round state transitions as
+they occur. Press Ctrl-C to stop.
+
+Calls the daemon `WatchRounds` RPC.
+
+```bash title="Terminal"
 darepocli ark rounds watch
 ```
 
-</ApiSymbol>
-
-<ApiSymbol name="oor" kind="const">
+## `oor`
 
 Out-of-round session operations: `get`, `list`, `receive`.
 
-- **`ark oor get`** fetches one OOR session by `--session-id`. Calls
-  `GetOORSession`.
-- **`ark oor list`** lists OOR session statuses. Flags: `--direction`
-  (`all`, `outgoing`, `incoming`), `--status` (`all`, `pending`, `completed`,
-  `failed`), `--page-size`, `--page-token`, plus `--fields` / `--ndjson`. Calls
-  `ListOORSessions`.
-- **`ark oor receive`** allocates a fresh receive script and registers it with
-  the indexer. Flag: `--label`. Calls `NewReceiveScript`.
+### `oor get`
 
-```bash
+Fetches one out-of-round session's status by its id.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--session-id` | (none) | OOR session id to fetch. |
+
+Calls the daemon `GetOORSession` RPC.
+
+```bash title="Terminal"
+darepocli ark oor get --session-id s-1234
+```
+
+### `oor list`
+
+Lists out-of-round session statuses, optionally filtered.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--direction` | `all` | Direction filter: all, outgoing, or incoming. |
+| `--status` | `all` | Status filter: all, pending, completed, or failed. |
+| `--page-size` | `0` | Maximum number of sessions to return; 0 uses the daemon default. |
+| `--page-token` | (none) | Cursor from a previous response, for pagination. |
+| `--fields` | (none) | Comma-separated field names to include in the response. |
+| `--ndjson` | `false` | Emit one JSON object per session, newline-delimited. |
+
+Calls the daemon `ListOORSessions` RPC.
+
+```bash title="Terminal"
 darepocli ark oor list --direction incoming
+```
+
+### `oor receive`
+
+Allocates a fresh wallet key, registers the matching taproot receive script
+with the indexer, and prints the resulting destination details.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--label` | (none) | Optional label stored with the receive-script registration. |
+
+Calls the daemon `NewReceiveScript` RPC.
+
+```bash title="Terminal"
 darepocli ark oor receive --label "invoice-42"
 ```
 
-</ApiSymbol>
+## `board`
 
-<ApiSymbol name="board" kind="const">
+Triggers the client to join the next round with any confirmed boarding UTXOs.
+The resulting VTXO set replaces the on-chain boarding balance. By default the
+whole balance boards into one VTXO.
 
-Boards confirmed boarding UTXOs into VTXOs by joining the next round. By default
-the whole balance boards into one VTXO.
+| Flag | Default | Description |
+|---|---|---|
+| `--target-vtxo-count` | `0` | Number of VTXOs to fan the boarded balance into; 0 boards into a single VTXO. |
+| `--no-persist` | `false` | Opt out of restart-safe Board replay: do not persist the Board intent, so a daemon restart between admission and round seal silently drops it. |
 
-<ParamsTable rows={[
-  { name: '--target-vtxo-count', type: 'uint32', desc: 'Number of VTXOs to fan the boarded balance into. Default: 0 (a single VTXO).' },
-  { name: '--no-persist', type: 'bool', desc: 'Opt out of restart-safe Board replay: do not persist the Board intent. Default: false.' },
-]} />
+Calls the daemon `Board` RPC.
 
-Calls `Board`.
-
-```bash
+```bash title="Terminal"
 darepocli ark board
 ```
 
-</ApiSymbol>
+## `sweep`
 
-<ApiSymbol name="sweep" kind="const">
+Boarding UTXO recovery: `sweep` (broadcast) and `sweep list`.
 
-Sweeps expired boarding UTXOs through their unilateral timeout path. Scans
-matured boarding outputs and prints the recoverable amount, estimated fee, and
-net amount; `--broadcast` publishes one aggregate sweep transaction.
+### `sweep`
 
-<ParamsTable rows={[
-  { name: '--outpoint', type: 'stringSlice', desc: 'Boarding UTXO outpoint to sweep (txid:index); repeatable.' },
-  { name: '--broadcast', type: 'bool', desc: 'Broadcast the aggregate sweep and track it until confirmed. Default: false.' },
-  { name: '--fee-rate-sat-per-vbyte', type: 'int64', desc: 'Fee-rate override in sat/vByte; 0 estimates by conf target. Default: 0.' },
-  { name: '--conf-target', type: 'uint32', desc: 'Confirmation target for fee estimation; 0 uses the default. Default: 0.' },
-  { name: '--sweep-address', type: 'string', desc: 'Sweep destination; empty uses a fresh wallet address.' },
-]} />
+Scans boarding UTXOs whose CSV timeout path has matured and prints the
+recoverable amount, estimated fee, and net amount. Pass `--broadcast` to
+publish one aggregate sweep transaction; without it the command only previews.
 
-Calls `SweepBoardingUTXOs`. The `ark sweep list` subcommand lists tracked
-boarding sweeps (`--status`, `--page-size`, `--page-token`, plus `--fields` /
-`--ndjson`) and calls `ListBoardingSweeps`.
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | Boarding UTXO outpoint to sweep (txid:index); repeatable. |
+| `--broadcast` | `false` | Broadcast the aggregate sweep and track it until confirmed. |
+| `--fee-rate-sat-per-vbyte` | `0` | Fee-rate override in sat/vByte; zero estimates by conf target. |
+| `--conf-target` | `0` | Confirmation target for fee estimation; zero uses the daemon default. |
+| `--sweep-address` | (none) | Sweep destination. Empty uses a fresh wallet address. |
 
-```bash
-darepocli ark sweep
+Calls the daemon `SweepBoardingUTXOs` RPC.
+
+```bash title="Terminal"
+darepocli ark sweep --broadcast
+```
+
+### `sweep list`
+
+Lists aggregate boarding sweep transactions persisted by the daemon, including
+their lifecycle status, fee, confirmation height, and per-input spend state.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--status` | (none) | Optional status filter: pending, published, confirmed, external_resolved, or failed. |
+| `--page-size` | `0` | Maximum tracked sweeps to return; zero uses the daemon default. |
+| `--page-token` | (none) | Page token returned by a previous sweep list response. |
+| `--fields` | (none) | Comma-separated field names to include in the response. |
+| `--ndjson` | `false` | Emit one JSON object per sweep, newline-delimited. |
+
+Calls the daemon `ListBoardingSweeps` RPC.
+
+```bash title="Terminal"
 darepocli ark sweep list --status pending
 ```
 
-</ApiSymbol>
+## `fees`
 
-<ApiSymbol name="fees" kind="const">
+Fee estimation and history: `estimate`, `history`.
 
-Fee estimation and history: `estimate` and `history`.
+### `fees estimate`
 
-- **`ark fees estimate`** returns an itemized, advisory fee estimate for a VTXO
-  operation. Flags: `--amount` (sats, required and positive), `--boarding`
-  (`true` for boarding, `false` for refresh; CLI default `true`),
-  `--remaining-blocks` (required when `--boarding=false`). Calls `EstimateFee`.
-- **`ark fees history`** returns paginated fee ledger entries. Flags: `--limit`
-  (default `50`), `--offset` (default `0`). Calls `GetFeeHistory`.
+Returns an itemized, advisory fee estimate for a given amount at the
+operator's current rates and treasury utilization. The value is advisory: the
+binding per-round fee is set by the server-issued quote at seal time and may
+differ from this estimate.
 
-```bash
+| Flag | Default | Description |
+|---|---|---|
+| `--amount` | (none) | VTXO amount in satoshis to estimate fees for. Required and must be positive. |
+| `--boarding` | `true` | Estimate for boarding (true) or refresh (false). |
+| `--remaining-blocks` | `0` | Remaining VTXO lifetime in blocks. Refresh only; required when --boarding=false. |
+
+Calls the daemon `EstimateFee` RPC.
+
+```bash title="Terminal"
 darepocli ark fees estimate --amount 50000
+```
+
+### `fees history`
+
+Returns paginated fee ledger entries from the client's local accounting
+database, including total fees paid.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--limit` | `50` | Maximum number of entries. |
+| `--offset` | `0` | Number of entries to skip. |
+
+Calls the daemon `GetFeeHistory` RPC.
+
+```bash title="Terminal"
 darepocli ark fees history --limit 20
 ```
 
-</ApiSymbol>
+## `listtransactions`
 
-<ApiSymbol name="listtransactions" kind="const">
+Returns the daemon's unfiltered local transaction history (ledger plus
+boarding sweeps) with full internal correlators. The everyday `activity` view
+composes the same data with the internal correlators stripped.
 
-Returns the daemon's unfiltered local transaction history (ledger plus boarding
-sweeps) with full internal correlators. The everyday `activity` view composes
-the same data with the internal correlators stripped.
+| Flag | Default | Description |
+|---|---|---|
+| `--from` | (none) | Only include entries at or after this ISO 8601 time (or date). |
+| `--to` | (none) | Only include entries at or before this ISO 8601 time (or date). |
+| `--limit` | `50` | Maximum number of entries. |
+| `--offset` | `0` | Number of filtered entries to skip. |
+| `--type` | (none) | Optional type filter: boarding, round, oor, or sweep. |
+| `--fields` | (none) | Comma-separated field names to include in the response. |
+| `--ndjson` | `false` | Emit one JSON object per entry, newline-delimited. |
 
-<ParamsTable rows={[
-  { name: '--from', type: 'string', desc: 'Only include entries at or after this ISO 8601 time (or date).' },
-  { name: '--to', type: 'string', desc: 'Only include entries at or before this ISO 8601 time (or date).' },
-  { name: '--limit', type: 'uint32', desc: 'Maximum number of entries. Default: 50.' },
-  { name: '--offset', type: 'uint32', desc: 'Number of filtered entries to skip. Default: 0.' },
-  { name: '--type', type: 'string', desc: 'Optional type filter: boarding, round, oor, or sweep.' },
-]} />
+Calls the daemon `ListTransactions` RPC.
 
-Also accepts `--fields` / `--ndjson`. Calls `ListTransactions`.
-
-```bash
+```bash title="Terminal"
 darepocli ark listtransactions --type round --limit 25
 ```
 
-</ApiSymbol>
+## `send`
 
-<ApiSymbol name="send" kind="const">
+Raw in-round and out-of-round transfer: `inround`, `oor`.
 
-Raw in-round and out-of-round transfer subcommands. The everyday `send` verb
-composes the same paths via the wallet service; this parent surfaces the raw
-daemon RPC methods for callers who need them.
+### `send inround`
 
-- **`ark send inround`** submits a refresh request to the round coordinator; the
-  transfer completes when the next round commits. Flags: `--to` (bech32m
-  address, repeatable), `--pubkey` (x-only pubkey hex, repeatable), `--amount`
-  (one per recipient, in `--to` then `--pubkey` order), `--dry_run`. Calls
-  `SendVTXO`.
-- **`ark send oor`** initiates an out-of-round transfer directly between client
-  and operator, without waiting for a round. Flags: `--to` or `--pubkey`
-  (mutually exclusive), `--amount`, `--dry_run`, `--idempotency_key`. Calls
-  `SendOOR`.
+Initiates an in-round transfer by submitting a refresh request to the round
+coordinator; the transfer completes when the next round commits. Pass `--to`
+for bech32m addresses, `--pubkey` for recipient x-only pubkeys, or both.
+Recipients pair with `--amount` positionally in the order they appear, with
+`--to` entries before `--pubkey` entries. The everyday `send` verb composes
+the same path via `WalletService.Send`; reach for this only when you need the
+raw daemon RPC directly.
 
-```bash
-darepocli ark send oor --to bcrt1... --amount 10000
+| Flag | Default | Description |
+|---|---|---|
+| `--to` | (none) | Recipient bech32m taproot address(es); repeatable. |
+| `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex; repeatable, paired after any --to entries. |
+| `--amount` | (none) | Amount(s) in sats, one per recipient, in --to then --pubkey order. |
+| `--dry_run` | `false` | Validate without submitting. |
+
+Calls the daemon `SendVTXO` RPC.
+
+```bash title="Terminal"
+darepocli ark send inround --to bcrt1... --amount 10000
 ```
 
-</ApiSymbol>
+### `send oor`
+
+Initiates an out-of-round transfer directly between the client and operator,
+without waiting for a round.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--to` | (none) | Recipient address. Mutually exclusive with --pubkey. |
+| `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex. Mutually exclusive with --to. |
+| `--amount` | (none) | Amount in sats. |
+| `--dry_run` | `false` | Validate without initiating. |
+| `--idempotency_key` | (none) | Caller-provided key for retrying the same OOR send intent. |
+
+Calls the daemon `SendOOR` RPC.
+
+```bash title="Terminal"
+darepocli ark send oor --to bcrt1... --amount 10000
+```

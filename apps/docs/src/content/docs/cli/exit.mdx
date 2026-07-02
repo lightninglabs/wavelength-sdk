@@ -44,12 +44,35 @@ darepocli --no-tls exit --outpoint 4b2e9f1a7c3d5e6f...:0
 
 ## Subcommands
 
-- **`exit status --outpoint TXID:VOUT`** returns the current phase of a forced
-  unroll job for one outpoint (job phase, sweep txid, and any errors). Calls
-  [`WalletService.ExitStatus`](/api/wallet/exit-status/).
-- **`exit plan --outpoint TXID:VOUT`** previews the backing-wallet funding
-  readiness for one or more outpoints (`--outpoint` is repeatable) without
-  dispatching an exit. Calls [`WalletService.GetExitPlan`](/api/wallet/get-exit-plan/).
+### `exit status`
+
+Returns the current phase of a forced unroll job for one outpoint: job phase,
+sweep txid, and any errors.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | Required. VTXO outpoint to check, as `txid:vout`. |
+
+Calls [`WalletService.ExitStatus`](/api/wallet/exit-status/).
+
+```bash title="Terminal"
+darepocli exit status --outpoint TXID:VOUT
+```
+
+### `exit plan`
+
+Previews the backing-wallet funding readiness for one or more outpoints,
+without dispatching an exit.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--outpoint` | (none) | Required. VTXO outpoint to preview, as `txid:vout`; repeatable. |
+
+Calls [`WalletService.GetExitPlan`](/api/wallet/get-exit-plan/).
+
+```bash title="Terminal"
+darepocli exit plan --outpoint TXID:VOUT
+```
 
 ## Exit codes
 
