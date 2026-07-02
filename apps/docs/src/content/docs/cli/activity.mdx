@@ -1,0 +1,76 @@
+---
+title: activity
+description: Show the merged wallet activity feed, and inspect a single entry with its correlated swap, VTXO, and ledger detail.
+---
+
+`activity` shows the wallet's user-facing feed of sends, receives, deposits, and
+exits. The `activity inspect` subcommand drills into one entry and correlates
+its swap, VTXO, and ledger detail.
+
+```bash title="Terminal"
+darepocli activity
+darepocli activity --pending --kind send,recv
+darepocli activity --format json
+```
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--pending` | `false` | Only show entries still in flight. |
+| `--kind` | (none) | Filter by kind (send, recv, deposit, exit); repeatable. |
+| `--limit` | `0` | Page size; 0 uses the daemon default. |
+| `--offset` | `0` | Pagination offset. |
+| `--format` | `table` | Output format: table, expanded, x, or json. |
+
+## Example
+
+By default `activity` renders a compact table to stdout, with columns
+`LAST UPDATE`, `KIND`, `STATUS`, `AMOUNT`, `FEE`, `PHASE`, `ID`, `NOTE`.
+`--format json` emits the raw response for pipelines instead:
+
+```bash title="Terminal"
+darepocli activity --format json
+```
+
+```json
+{
+  "activity": {
+    "entries": [
+      {
+        "id": "a1b2c3d4e5f60718293a4b5c6d7e8f9",
+        "kind": "ENTRY_KIND_SEND",
+        "status": "ENTRY_STATUS_COMPLETE",
+        "amount_sat": -25000,
+        "fee_sat": 12,
+        "note": "coffee run",
+        "updated_at_unix": 1751328000
+      }
+    ]
+  }
+}
+```
+
+## Subcommands
+
+### `activity inspect`
+
+Inspects one activity entry by id and shows correlated swap, VTXO, and ledger
+detail. Renders the expanded view by default; `--format json` emits the raw
+inspection response.
+
+| Flag | Default | Description |
+|---|---|---|
+| `<id>` | (none) | Required. The activity entry id to inspect. |
+| `--ledger-limit` | `0` | Maximum ledger rows to scan; 0 uses the daemon maximum. |
+| `--format` | `expanded` | Output format: expanded, x, or json. |
+
+```bash title="Terminal"
+darepocli activity inspect <id>
+```
+
+## Underlying RPC
+
+`activity` calls [`WalletService.List`](/api/wallet/list/) with the activity
+view. `activity inspect` calls
+[`WalletInspectionService.InspectActivity`](/api/wallet/inspect-activity/).

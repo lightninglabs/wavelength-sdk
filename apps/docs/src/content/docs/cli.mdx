@@ -1,7 +1,125 @@
 ---
-title: CLI
-description: Automate the wallet daemon from the command line with darepocli.
+title: darepocli
+description: The command-line client for the wallet daemon. It issues gRPC calls to a running darepod and prints structured JSON suitable for humans and agents.
 ---
 
-`darepocli` is the command line client for the wallet daemon. Full command
-reference pages are coming in this docs area.
+import Callout from '~/components/mdx/Callout.astro';
+
+`darepocli` is the command-line client for the wallet daemon (`darepod`). It
+issues gRPC calls to a running daemon and prints structured JSON to stdout,
+suitable for both human and agent consumption. The everyday surface is a small
+set of wallet verbs (create, unlock, send, recv, activity, balance, exit); a
+handful of daemon-introspection commands and advanced subtrees round it out.
+
+This slice documents the CLI itself. If you are integrating over gRPC or REST
+from your own code, see the [API reference](/api/) for the underlying
+`WalletService` and `WalletInspectionService`.
+
+## Connecting
+
+Every command talks to a running daemon over gRPC. The connection is
+configured with four persistent flags, available on every command:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--rpcserver` | `localhost:10029` | Daemon gRPC server address (`host:port`). |
+| `--tlscertpath` | (none) | Path to the daemon TLS certificate. |
+| `--no-tls` | `false` | Disable TLS for the daemon connection (development and regtest). |
+| `--json` | (none) | Raw JSON request payload that maps directly to the RPC request proto. When set, the command's bespoke flags are ignored. |
+
+The `--json` flag is the raw-request escape hatch: pass a JSON object shaped
+like the method's request proto and it is sent verbatim, so an agent can drive
+any command from a single serialized payload instead of assembling flags. It is
+distinct from the per-command `--format json` output selector.
+
+<Callout type="note" title="Regtest quickstart">
+A local regtest daemon typically runs without TLS on the default address, so
+disable TLS and keep the default server. Export the connection flags once, for
+example via a shell alias, so you do not repeat them on every call.
+</Callout>
+
+## Output conventions
+
+Successful commands print a structured JSON object to **stdout**. Proto-backed
+responses are marshaled with proto field names (snake_case) and unpopulated
+fields emitted, so the shape is stable across calls. Human-oriented views (the
+`activity` table, confirmation prompts, the generated seed on `create`) and
+progress lines go to **stderr**, keeping stdout a clean JSON stream for
+pipelines.
+
+On failure the command writes a JSON error envelope to **stderr** and exits
+non-zero:
+
+```json
+{
+  "error": {
+    "code": "WALLET_LOCKED",
+    "message": "wallet is locked; run `darepocli unlock`",
+    "details": ""
+  }
+}
+```
+
+`code` is a stable machine-readable string (for example `INVALID_ARGS`,
+`WALLET_LOCKED`, `NOT_FOUND`, `METHOD_NOT_FOUND`, `DRY_RUN_OK`), `message` is a
+human-facing description, and `details` carries optional diagnostic context
+(such as the wrapping RPC call chain).
+
+## Exit codes
+
+The exit code lets an agent or shell branch on the failure category without
+parsing prose. The codes are semantic:
+
+| Exit code | Name | Meaning |
+|---|---|---|
+| `0` | success | The command completed. Set implicitly when the command returns without error. |
+| `1` | generic error | Catch-all failure not covered by a more specific code. |
+| `2` | invalid arguments | The invocation was rejected before reaching the daemon: a missing required flag, a malformed outpoint, conflicting `--offchain`/`--onchain`, and similar. |
+| `3` | auth failure | Wallet authentication failed: a wrong password, or a locked wallet on a verb that requires it. |
+| `4` | not found | A queried resource does not exist on the daemon (an unknown round id, a missing exit job). |
+| `10` | dry-run OK | A `--dry-run` invocation passed all local validation; no RPC was dispatched. |
+
+Daemon-side gRPC failures are mapped onto the same table: `InvalidArgument`,
+`OutOfRange`, and `FailedPrecondition` map to exit code `2`; `Unauthenticated`
+and `PermissionDenied` to `3`; `NotFound` to `4`; everything else to `1`.
+
+## Command index
+
+### Wallet
+
+The everyday verbs. They call `WalletService` (and, for inspection,
+`WalletInspectionService`) and cross-link to the matching
+[API reference](/api/) page.
+
+| Command | What it does |
+|---|---|
+| [`create`](/cli/create/) | Create a new wallet from a fresh seed. |
+| [`unlock`](/cli/unlock/) | Unlock an existing wallet. |
+| [`send`](/cli/send/) | Send a Lightning or on-chain payment. |
+| [`recv`](/cli/recv/) | Receive a payment: a Lightning invoice or a boarding address. |
+| [`activity`](/cli/activity/) | Show wallet activity, and inspect a single entry. |
+| [`balance`](/cli/balance/) | Display the unified wallet balance. |
+| [`exit`](/cli/exit/) | Cooperatively exit a VTXO, or start a forced unroll. |
+| [`wallet-sweep`](/cli/wallet-sweep/) | Sweep the backing wallet to a destination address. |
+
+### Daemon
+
+Introspection and integration surfaces that live at the root.
+
+| Command | What it does |
+|---|---|
+| [`getinfo`](/cli/getinfo/) | Display daemon status information. |
+| [`schema`](/cli/schema/) | Dump machine-readable method schemas as JSON. |
+| [`mcp`](/cli/mcp/) | Run a Model Context Protocol server over stdio. |
+
+### Advanced
+
+Power-user subtrees over the raw daemon RPC. Most integrations never need
+these.
+
+| Command | What it does |
+|---|---|
+| [`ark`](/cli/ark/) | Low-level Ark protocol commands (VTXOs, rounds, OOR, boarding, sweeps, fees). |
+| [`recovery`](/cli/recovery/) | Manage daemon-owned vHTLC recovery rows. |
+| [`swap`](/cli/swap/) | Lightning swap session operations (build-tag gated). |
+| [`dev`](/cli/dev/) | Generated low-level access to every daemon gRPC method. |

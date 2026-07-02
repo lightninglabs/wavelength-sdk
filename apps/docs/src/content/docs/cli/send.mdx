@@ -1,0 +1,84 @@
+---
+title: send
+description: Send an outbound payment over Lightning (a BOLT-11 invoice) or on-chain (a bech32 address).
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+Dispatches an outbound payment. With `--offchain` (the default) the positional
+destination is treated as a BOLT-11 Lightning invoice and routed through the
+swap subsystem, which transparently picks a same-Ark peer-to-peer transfer or
+real Lightning. With `--onchain` the destination is a bech32 address: the daemon
+lands exactly `--amt` sats there and returns the residual to the wallet as a
+change VTXO. Use `--sweep-all` with `--amt 0` to drain every live VTXO instead.
+
+Direction is always explicit. The CLI never sniffs the destination string, so
+an agent cannot accidentally dispatch an on-chain send by passing what it thinks
+is an invoice; the daemon performs the authoritative parse.
+
+```bash title="Terminal"
+darepocli send <invoice-or-onchain-address>
+```
+
+By default `send` prepares, dispatches, and then waits until the payment
+reaches a terminal state, printing each lifecycle phase to stderr. A completed
+Lightning send prints the payment preimage as proof of payment.
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--offchain` | `false` | Force offchain (BOLT-11 invoice) dispatch. Default when neither `--offchain` nor `--onchain` is set. |
+| `--onchain` | `false` | Force onchain dispatch. |
+| `--amt` | `0` | Amount in satoshis. Required for on-chain sends unless `--sweep-all`; ignored for amount-bearing invoices. |
+| `--max_fee` | `0` | Max swap fee in satoshis for invoice sends. `0` lets the daemon cap the fee at roughly 1% of the amount. |
+| `--note` | (none) | Caller-supplied label attached to the entry. |
+| `--sweep-all` | `false` | On-chain only: drain the wallet to the destination. `--amt` must be `0`. |
+| `--dry-run` | `false` | Prepare and print the preview without dispatching funds. |
+| `--force` | `false` | Skip the interactive confirmation after prepare. |
+| `--yes` | `false` | Alias for `--force`. |
+| `--no-wait` | `false` | Return as soon as the send is dispatched instead of blocking until a terminal state. |
+| `--wait-timeout` | `5m` | While waiting, give up after this long and return the last observed status. `0` waits indefinitely. |
+| `--wait-poll-interval` | `200ms` | While waiting, how often to poll the daemon for status updates. |
+
+<Callout type="note" title="Non-interactive sends need --force">
+On non-interactive stdin (an agent or pipeline) `send` refuses to prompt for
+confirmation. Pass `--force` or `--yes`, or the command exits with `INVALID_ARGS`.
+</Callout>
+
+## Example
+
+```bash title="Terminal"
+darepocli --no-tls send lnbcrt250u1p3xyz... --offchain --force
+```
+
+Phase transitions stream to stderr; stdout receives the compact settled
+summary:
+
+```json
+{
+  "status": "COMPLETE",
+  "kind": "SEND",
+  "amount_sat": -25000,
+  "fee_sat": 12,
+  "settlement": "LIGHTNING",
+  "destination": "lnbcrt250u1p3xyz...",
+  "payment_hash": "9a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9",
+  "preimage": "3f9c2a7b8e1d45608192a3b4c5d6e7f80112233445566778899aabbccddeeff0",
+  "id": "a1b2c3d4e5f60718293a4b5c6d7e8f9"
+}
+```
+
+## Exit codes
+
+With `--dry-run` the command runs prepare-time validation only, prints the
+preview, and exits `10` (`DRY_RUN_OK`) without dispatching any funds. A failed
+Lightning send exits non-zero with a `SEND_FAILED` envelope; a timeout while
+waiting emits the pending receipt on stdout and a `WAIT_TIMEOUT` envelope.
+
+## Underlying RPC
+
+Calls [`WalletService.PrepareSend`](/api/wallet/prepare-send/) to build and
+preview the send, then [`WalletService.Send`](/api/wallet/send/) to dispatch the
+prepared intent. When waiting for settlement it polls
+[`WalletInspectionService.InspectActivity`](/api/wallet/inspect-activity/).

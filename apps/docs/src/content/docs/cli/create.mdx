@@ -1,0 +1,63 @@
+---
+title: create
+description: Create a new wallet from a fresh seed, or recover an existing wallet from a mnemonic.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+Initializes a new wallet. The daemon generates a 24-word aezeed mnemonic,
+prints it to stderr so you can record it offline, and encrypts the seed with
+the supplied password. Pass `--recover` with a `--mnemonic-file` to import an
+existing mnemonic and rebuild Ark wallet state instead.
+
+The wallet password is never read from the command line. It comes from stdin,
+the `DAREPOD_WALLET_PASSWORD` environment variable, or `--wallet_password_file`;
+the interactive prompt asks for confirmation. The optional aezeed seed
+passphrase comes from `DAREPOD_SEED_PASSPHRASE` or `--seed_passphrase_file`.
+
+```bash title="Terminal"
+echo -n 'hunter2hunter2' | darepocli create
+```
+
+<Callout type="caution" title="The mnemonic is shown once">
+On a fresh create the 24-word mnemonic is written to stderr exactly once and is
+NOT included in the JSON response on stdout. Capture it from stderr, or pass
+`--print-mnemonic-json` to opt into the machine-consumable form. Losing it makes
+the wallet unrecoverable.
+</Callout>
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--wallet_password_file` | (none) | Path to a file containing the wallet password. |
+| `--seed_passphrase_file` | (none) | Path to a file containing the optional aezeed passphrase. |
+| `--print-mnemonic-json` | `false` | Include the mnemonic in the JSON response on stdout (default: stderr only). |
+| `--recover` | `false` | Import an existing mnemonic and recover Ark wallet state. |
+| `--mnemonic-file` | (none) | Path to a file containing an existing 24-word aezeed mnemonic. Requires `--recover`. |
+| `--recovery-window` | `0` | Number of key indexes to scan per recovery family. Requires `--recover`; `0` uses the daemon default. |
+
+## Example
+
+```bash title="Terminal"
+echo -n 'hunter2hunter2' | darepocli --no-tls create
+```
+
+The mnemonic goes to stderr; stdout carries the identity and recovery summary:
+
+```json
+{
+  "identity_pubkey": "02a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "recovery_ran": false,
+  "recovered_boarding_addresses": 0,
+  "recovered_boarding_utxos": 0,
+  "recovered_vtxos": 0,
+  "recovered_oor_receive_scripts": 0,
+  "recovered_oor_events": 0
+}
+```
+
+## Underlying RPC
+
+Calls [`WalletService.Create`](/api/wallet/create/), which proxies the daemon's
+seed generation and wallet initialization.

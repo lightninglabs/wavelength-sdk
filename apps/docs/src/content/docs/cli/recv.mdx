@@ -1,0 +1,62 @@
+---
+title: recv
+description: Materialize an inbound payment surface, either a Lightning invoice or a fresh on-chain boarding address.
+---
+
+Asks the daemon to materialize an inbound payment surface. With `--offchain`
+(the default) the daemon opens a swap-in and returns a BOLT-11 Lightning invoice
+signed with a daemon-managed key; `--amt` is required. With `--onchain` the
+daemon returns a fresh boarding address: fund it, and the daemon rolls the
+boarding output into the next round.
+
+```bash title="Terminal"
+darepocli recv --offchain --amt 5000 --memo "coffee"
+darepocli recv --onchain
+```
+
+## Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--offchain` | `false` | Force offchain (Lightning invoice) recv. Default when neither `--offchain` nor `--onchain` is set. |
+| `--onchain` | `false` | Force onchain (boarding address) recv. |
+| `--amt` | `0` | Amount in satoshis. Required for `--offchain`. |
+| `--memo` | (none) | Optional human-readable memo embedded in the offchain invoice. |
+| `--amt_hint` | `0` | Optional expected amount for `--onchain` (accounting only). |
+
+## Example
+
+```bash title="Terminal"
+darepocli --no-tls recv --offchain --amt 25000 --memo "invoice for coffee run"
+```
+
+```json
+{
+  "invoice": "lnbcrt250u1p3xyz...",
+  "entry": {
+    "id": "b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f901",
+    "kind": "ENTRY_KIND_RECV",
+    "status": "ENTRY_STATUS_PENDING",
+    "amount_sat": 25000
+  },
+  "credit_receive": null
+}
+```
+
+An `--onchain` recv returns a fresh boarding address instead:
+
+```json
+{
+  "onchain_address": "bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  "entry": {
+    "id": "c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9012a",
+    "kind": "ENTRY_KIND_DEPOSIT",
+    "status": "ENTRY_STATUS_PENDING"
+  }
+}
+```
+
+## Underlying RPC
+
+The `--offchain` path calls [`WalletService.Recv`](/api/wallet/recv/); the
+`--onchain` path calls [`WalletService.Deposit`](/api/wallet/deposit/).

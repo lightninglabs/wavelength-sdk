@@ -1,0 +1,55 @@
+---
+title: mcp
+description: Run a Model Context Protocol server over stdio that exposes each daemon RPC as a typed tool call.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+`mcp` hosts a Model Context Protocol (MCP) server that exposes the daemon RPC as
+typed tool calls over stdio. Agents invoke tools with structured JSON
+parameters and receive raw proto-JSON responses from the daemon. The parent
+`mcp` command is a group; the work happens in `mcp serve`.
+
+## Flags
+
+`mcp` itself takes no bespoke flags; it dispatches to `mcp serve` below. The
+subcommand accepts `--help` and the global connection flags (`--rpcserver`,
+`--tlscertpath`, `--no-tls`).
+
+## Example
+
+`mcp` alone prints usage and exits; the subcommand does the work:
+
+```bash title="Terminal"
+darepocli mcp serve
+```
+
+## Subcommands
+
+### `mcp serve`
+
+Starts an MCP server on stdio that exposes each daemon RPC as a typed tool call.
+The server runs until the client disconnects. It registers the everyday
+wallet-verb tools first (so an agent listing tools sees the day-to-day surface
+first), then the legacy daemon tools, then the swap tools when the daemon was
+built with the matching build tag.
+
+`mcp serve` takes no bespoke flags beyond the global connection flags; it reuses
+the same TLS, `--no-tls`, and `--tlscertpath` handling as every other command
+so the MCP surface honors the daemon connection settings.
+
+```bash title="Terminal"
+darepocli mcp serve
+```
+
+<Callout type="note" title="create and unlock are intentionally omitted">
+Wallet setup verbs that handle secret material (create, unlock, seed
+generation) are never registered as MCP tools: passwords and seed phrases must
+not transit the MCP protocol, where they could leak into agent logs or provider
+APIs. Use the CLI directly for wallet setup.
+</Callout>
+
+Registered tools include the everyday `balance`, `getinfo`, and send surfaces
+plus the advanced `ark.*` namespace (for example `ark.vtxos.list`,
+`ark.vtxos.refresh`, `ark.vtxos.leave`, `ark.oor.receive`, `ark.send.inround`,
+`ark.send.oor`) and, in swapruntime builds, the `swap.*` tools.
