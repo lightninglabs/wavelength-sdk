@@ -1,7 +1,10 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { WalletDKProvider } from "@lightninglabs/walletdk-react";
-import { createWebClient } from "@lightninglabs/walletdk-web";
+import {
+  createWebClient,
+  RUNTIME_MANIFEST_VERSION,
+} from "@lightninglabs/walletdk-web";
 import { App } from "./App";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { consumePendingWipe } from "./lib/wipeLocalData";
@@ -29,13 +32,19 @@ async function boot() {
   void requestPersistentStorage();
 
   // The runtime defaults to a Web Worker, keeping the UI thread free. The demo
-  // self-hosts the daemon binaries next to the app bundle and points
-  // runtimeBaseUrl at Vite's base URL (./ locally, /demo/ in production).
+  // self-hosts the daemon binaries next to the app bundle under
+  // runtime/<RUNTIME_MANIFEST_VERSION>/ (staged there by wasm:local and
+  // wasm:fetch), so every asset set gets a unique URL and a browser can never
+  // reuse a stale cached runtime after a version bump. The path is resolved
+  // against Vite's base URL (./ locally, /demo/ in production).
   // debug logs every RPC request/response to the console for local diagnosis.
   // The client is built here and injected into the provider, which is
   // transport-agnostic.
   const client = createWebClient({
-    runtimeBaseUrl: new URL(import.meta.env.BASE_URL, window.location.href).href,
+    runtimeBaseUrl: new URL(
+      `runtime/${RUNTIME_MANIFEST_VERSION}/`,
+      new URL(import.meta.env.BASE_URL, window.location.href),
+    ).href,
     debug: true,
   });
 

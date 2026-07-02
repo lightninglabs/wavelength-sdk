@@ -32,8 +32,7 @@ The WASM runtime is a fixed set of files built from
 [darepo-client](https://github.com/lightninglabs/darepo-client). Import
 `RUNTIME_ASSET_FILES` from `@lightninglabs/walletdk-web` to see every filename
 that must be served together at one base URL. `RUNTIME_MANIFEST_VERSION`
-identifies the current asset set; it is currently a dev placeholder
-(`'0.0.0-dev'`) and will track the darepo-client release tag once one exists:
+identifies the daemon build the SDK is paired with:
 
 ```ts title="assets.ts"
 import { RUNTIME_ASSET_FILES } from '@lightninglabs/walletdk-web';
@@ -43,11 +42,14 @@ console.log(RUNTIME_ASSET_FILES);
 // sqlite-worker.js, sqlite3.js, sqlite3.wasm, sqlite3-opfs-async-proxy.js
 ```
 
-Host all of them under a single path (for example `/walletdk/` or your static
-asset root) and set `runtimeBaseUrl` to that directory. Trailing slashes are
-optional; the client normalizes the base URL. If unset, assets resolve
-relative to the page URL in both worker and main-thread mode, so you can also
-just serve the runtime files alongside your app.
+Host all of them under a single path and set `runtimeBaseUrl` to that
+directory. Prefer a path that includes `RUNTIME_MANIFEST_VERSION` (for example
+`/walletdk/<version>/`): every asset set then gets a unique URL, so browsers
+pick up new assets on an SDK upgrade instead of serving stale cached copies,
+and you can cache the files aggressively. Trailing slashes are optional; the
+client normalizes the base URL. If unset, assets resolve relative to the page
+URL in both worker and main-thread mode, so you can also just serve the
+runtime files alongside your app.
 
 **Build and copy from darepo-client.** From a checkout of `darepo-client`, build
 the WASM wallet target and copy the output into your app's static folder:
@@ -56,17 +58,20 @@ the WASM wallet target and copy the output into your app's static folder:
 # Build the WASM runtime into darepo-client/bin/wasm/
 make -C /path/to/darepo-client wasm-wallet
 
-# Copy every runtime binary into your static host (example: Vite public/)
+# Copy every runtime binary into a directory named after
+# RUNTIME_MANIFEST_VERSION (example: Vite public/)
+mkdir -p "./public/walletdk/<version>"
 for f in walletdk.wasm walletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
          sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
-  cp "/path/to/darepo-client/bin/wasm/$f" ./public/
+  cp "/path/to/darepo-client/bin/wasm/$f" "./public/walletdk/<version>/"
 done
 ```
 
 The monorepo demo wraps the same steps in `pnpm --filter web-wallet-demo run
 wasm:local`, which builds from a sibling `darepo-client` checkout and stages
-files into `apps/web-wallet-demo/public/`. After `vite build`, those files land
-in `dist/` and are served from the app origin.
+files into `apps/web-wallet-demo/public/runtime/<version>/`, the versioned
+path the demo's `runtimeBaseUrl` points at. After `vite build`, those files
+land in `dist/` and are served from the app origin.
 
 **Version lock.** Runtime assets are version-locked to the embedded daemon inside
 `@lightninglabs/walletdk-web`. When you upgrade the SDK, rebuild and redeploy the

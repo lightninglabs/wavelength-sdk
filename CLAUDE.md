@@ -20,7 +20,7 @@ pnpm --filter @lightninglabs/walletdk-web exec node --test src/passkey.test.ts  
 ### Demo + end-to-end smoke test
 
 ```sh
-# 1. Build the wasm runtime into apps/web-wallet-demo/public/ (gitignored, ephemeral).
+# 1. Build the wasm runtime into apps/web-wallet-demo/public/runtime/<version>/ (gitignored, ephemeral).
 #    Needs Go + the sibling ../darepo-client checkout.
 DAREPO_DIR="$(cd ../darepo-client && pwd)" pnpm --filter web-wallet-demo run wasm:local
 pnpm --filter web-wallet-demo run build     # vite build; copies public/ -> dist/
@@ -45,7 +45,7 @@ The design has **two orthogonal axes**: *transport* (how you reach the wallet da
 Cross-cutting:
 - Daemon JSON is normalized at the transport boundary: PascalCase → camelCase (`camelizeKeys`), and the proto-numeric `WalletState` → a lowercase string union (`normalizeInfo` / `walletStateFromProto`).
 - Passkey ceremonies are injected (`PasskeyCeremony` contract in `core`, `webPasskeyCeremony` in `web`); `usePasskeyWallet(ceremony)` takes it as an argument so `react` stays transport-free.
-- The wasm runtime assets in `apps/web-wallet-demo/public/` are gitignored and rebuilt from `../darepo-client`. A versioned CDN default for `runtimeBaseUrl` is planned but not yet wired, so self-host for now.
+- The wasm runtime assets in `apps/web-wallet-demo/public/runtime/<version>/` are gitignored and rebuilt from `../darepo-client`. The version segment is `RUNTIME_MANIFEST_VERSION` (`packages/core/src/version.ts`), the darepo-client revision the SDK is paired with; bump it together with regenerating types and publishing new hosted assets, and the versioned URLs bust browser caches. A versioned CDN default for `runtimeBaseUrl` is planned but not yet wired, so self-host for now.
 
 ## Conventions and preferences
 

@@ -1,11 +1,16 @@
-// Stage the wasm runtime binaries into public/runtime/ for self-hosted local
-// dev (the fallback until the RFC's CDN hosting lands). Source order:
+// Stage the wasm runtime binaries into public/runtime/<version>/ for
+// self-hosted local dev (the fallback until the RFC's CDN hosting lands). The
+// version segment is RUNTIME_MANIFEST_VERSION from packages/core, matching the
+// versioned layout the demo app uses. Source order:
 //   1. DAREPO_DIR/bin/wasm (a darepo-client checkout), if set;
-//   2. the demo's already-staged apps/web-wallet-demo/public/.
-// Mirrors RUNTIME_ASSET_FILES in packages/web/src/runtime-manifest.ts.
+//   2. the demo's already-staged apps/web-wallet-demo/public/runtime/<version>/.
+// Keep the file list in sync with packages/web/src/runtime-manifest.ts
+// (RUNTIME_ASSET_FILES) and the demo's fetch-runtime-assets.sh and
+// wasm-local.sh.
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runtimeVersion } from '../../../scripts/runtime-version.mjs';
 
 const ASSETS = [
   'walletdk.wasm',
@@ -19,11 +24,15 @@ const ASSETS = [
 ];
 
 const here = dirname(fileURLToPath(import.meta.url));
-const dest = join(here, '..', 'public', 'runtime');
+
+// The pinned daemon version.
+const version = runtimeVersion();
+
+const dest = join(here, '..', 'public', 'runtime', version);
 const darepo = process.env.DAREPO_DIR
   ? join(process.env.DAREPO_DIR, 'bin', 'wasm')
   : null;
-const demo = join(here, '..', '..', 'web-wallet-demo', 'public');
+const demo = join(here, '..', '..', 'web-wallet-demo', 'public', 'runtime', version);
 const source = darepo && existsSync(darepo) ? darepo : demo;
 
 mkdirSync(dest, { recursive: true });

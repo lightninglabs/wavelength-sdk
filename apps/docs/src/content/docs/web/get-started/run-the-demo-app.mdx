@@ -79,7 +79,8 @@ pnpm --filter web-wallet-demo run wasm:local
 ```
 
 This runs `make wasm-wallet` in darepo-client and copies the full
-`RUNTIME_ASSET_FILES` set into `public/`.
+`RUNTIME_ASSET_FILES` set into `public/runtime/<RUNTIME_MANIFEST_VERSION>/`,
+the versioned path the demo's `runtimeBaseUrl` points at.
 
 **Regtest with arktest.** To exercise deposits, swaps, and exits against a local
 chain, run [arktest](https://github.com/lightninglabs/darepo-client) in a
