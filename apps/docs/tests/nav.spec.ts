@@ -36,10 +36,11 @@ test('reference group includes all three packages', () => {
 });
 
 test('slices resolve by path prefix, SDK is the catch-all', () => {
-  expect(SLICES.map((s) => s.label)).toEqual(['SDK', 'API', 'CLI']);
+  expect(SLICES.map((s) => s.label)).toEqual(['SDK', 'API', 'CLI', 'Agents']);
   expect(sliceForPath('/api/wallet/send/').key).toBe('api');
   expect(sliceForPath('/api/').key).toBe('api');
   expect(sliceForPath('/cli/balance/').key).toBe('cli');
+  expect(sliceForPath('/agents/').key).toBe('agents');
   expect(sliceForPath('/web/guides/send-a-payment/').key).toBe('sdk');
   expect(sliceForPath('/').key).toBe('sdk');
 });
@@ -74,7 +75,7 @@ test('every nav item has an accent', () => {
 test('header shows slice tabs with the active slice highlighted', async ({ page }) => {
   await page.goto('/api/');
   const tabs = page.locator('.wdk-topnav a');
-  await expect(tabs).toHaveText(['SDK', 'API', 'CLI']);
+  await expect(tabs).toHaveText(['SDK', 'API', 'CLI', 'Agents']);
   await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveText('API');
   await page.goto('/web/get-started/quickstart/');
   await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveText('SDK');

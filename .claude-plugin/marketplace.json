@@ -1,0 +1,15 @@
+{
+  "name": "walletdk",
+  "description": "Skills for building with WalletDK: embed a self-custodial Lightning wallet in a web app, integrate against the wallet daemon API, and automate with the CLI.",
+  "owner": {
+    "name": "Lightning Labs",
+    "url": "https://github.com/lightninglabs"
+  },
+  "plugins": [
+    {
+      "name": "walletdk",
+      "source": "./",
+      "description": "Skills for building with WalletDK: embed a self-custodial Lightning wallet in a web app, integrate against the wallet daemon API, and automate with the CLI."
+    }
+  ]
+}

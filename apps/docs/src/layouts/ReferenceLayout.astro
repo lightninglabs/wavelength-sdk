@@ -23,6 +23,7 @@
  */
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Sidebar from '~/components/Sidebar.astro';
+import PageActions from '~/components/PageActions.astro';
 import { accentForSlug } from '~/config/nav';
 
 interface Props {
@@ -55,7 +56,10 @@ const accent = accentForSlug(entry.id);
       <!-- Prose content column. -->
       <main class="wdk-ref__content" data-pagefind-body>
         <div class="wdk-ref__accent" aria-hidden="true"></div>
-        <h1 class="wdk-ref__title">{entry.data.title}</h1>
+        <div class="wdk-ref__head">
+          <h1 class="wdk-ref__title">{entry.data.title}</h1>
+          <PageActions />
+        </div>
         {entry.data.description && (
           <p class="wdk-ref__desc">{entry.data.description}</p>
         )}
@@ -214,12 +218,20 @@ const accent = accentForSlug(entry.id);
     margin-bottom: 16px;
   }
 
+  /* Title row: h1 grows, PageActions floats at the right, same baseline. */
+  .wdk-ref__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 0 0 20px;
+  }
+
   /* Page h1 - symbol sections begin below this. */
   .wdk-ref__title {
     font-size: clamp(2.1rem, 4vw, 3rem);
     font-weight: 700;
     letter-spacing: -0.02em;
-    margin: 0 0 12px;
     line-height: 1.15;
     color: var(--text);
   }
@@ -389,5 +401,6 @@ const accent = accentForSlug(entry.id);
     .wdk-ref__main { margin-left: 0; margin-right: 0; flex-direction: column; }
     .wdk-ref__content { max-width: 100%; padding: 32px 20px 60px; }
     .wdk-ref__rail { display: none; }
+    .wdk-ref__head { flex-direction: column; align-items: flex-start; gap: 14px; }
   }
 </style>

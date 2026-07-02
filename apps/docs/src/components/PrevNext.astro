@@ -53,7 +53,7 @@ const progressPercent = pn.total > 0 ? Math.round((stepInSection / pn.total) * 1
 ---
 
 {(pn.prev || pn.next) && (
-  <nav class="wdk-prevnext" data-prevnext aria-label="Page navigation">
+  <nav class="wdk-prevnext" data-prevnext data-pagefind-ignore aria-label="Page navigation">
     <div class="wdk-prevnext__progress" data-prevnext-progress>
       <span class="wdk-prevnext__progress-label">{progressLabel}</span>
       <div

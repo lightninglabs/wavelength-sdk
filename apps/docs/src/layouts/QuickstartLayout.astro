@@ -25,6 +25,7 @@
  */
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Sidebar from '~/components/Sidebar.astro';
+import PageActions from '~/components/PageActions.astro';
 import { accentForSlug } from '~/config/nav';
 
 interface Props {
@@ -56,7 +57,10 @@ const accent = accentForSlug(entry.id);
     <div class="wdk-qs__main">
       <main class="wdk-qs__content" data-pagefind-body>
         <div class="wdk-qs__accent" aria-hidden="true"></div>
-        <h1 class="wdk-qs__title">{entry.data.title}</h1>
+        <div class="wdk-qs__head">
+          <h1 class="wdk-qs__title">{entry.data.title}</h1>
+          <PageActions />
+        </div>
         <slot />
       </main>
 
@@ -441,12 +445,20 @@ const accent = accentForSlug(entry.id);
     margin-bottom: 16px;
   }
 
+  /* Title row: h1 grows, PageActions floats at the right, same baseline. */
+  .wdk-qs__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 0 0 36px;
+  }
+
   /* Page h1 injected by the layout (Step sections start at h2). */
   .wdk-qs__title {
     font-size: clamp(2.1rem, 4vw, 3rem);
     font-weight: 700;
     letter-spacing: -0.02em;
-    margin: 0 0 36px;
     line-height: 1.15;
     color: var(--text);
   }
@@ -464,6 +476,11 @@ const accent = accentForSlug(entry.id);
     }
     .wdk-qs__stepper {
       display: none;
+    }
+    .wdk-qs__head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
     }
   }
 </style>

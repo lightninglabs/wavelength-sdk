@@ -62,9 +62,20 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p deploy/demo
-          cp -r apps/docs/dist/* deploy/
-          cp -r apps/web-wallet-demo/dist/* deploy/demo/
+          # Use the dot-form (dist/.) rather than a glob (dist/*): bash globs
+          # skip dot-entries, so a glob here would silently drop
+          # dist/.well-known/ (the /.well-known/skills/ catalog) from the
+          # published site.
+          cp -r apps/docs/dist/. deploy/
+          cp -r apps/web-wallet-demo/dist/. deploy/demo/
           touch deploy/.nojekyll
+
+      - name: Verify well-known skills catalog in assembled site
+        run: |
+          if [ ! -f deploy/.well-known/skills/index.json ]; then
+            echo "::error::deploy/.well-known/skills/index.json is missing; the assemble step dropped dot paths from apps/docs/dist."
+            exit 1
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:

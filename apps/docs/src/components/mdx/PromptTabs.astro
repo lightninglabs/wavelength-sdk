@@ -1,0 +1,152 @@
+---
+/**
+ * PromptTabs.astro renders its children (one per tab) behind a tab strip.
+ * Tabs are labeled via the data-label attribute on each direct child.
+ * Panels hide with hidden attributes so the markdown mirror keeps all three
+ * prompts (the converter unwraps them as regular content).
+ */
+---
+<div class="wdk-prompt-tabs">
+  <div class="wdk-prompt-tabs__strip" role="tablist"></div>
+  <div class="wdk-prompt-tabs__panels"><slot /></div>
+</div>
+<script>
+  // Builds the tab strip from the panels' data-label attributes and toggles
+  // panel visibility on click. Initialise on astro:page-load so this runs on
+  // first load AND after every client-side (view transition) navigation;
+  // module scripts do not re-run on client nav. The per-element guard
+  // (data-wdk-bound) prevents double-binding on re-init, matching the
+  // lifecycle pattern in Header.astro / CodeRail.astro.
+  function setupPromptTabs() {
+    document.querySelectorAll<HTMLElement>('.wdk-prompt-tabs').forEach((root) => {
+      if (root.dataset.wdkBound) return;
+      root.dataset.wdkBound = '1';
+      const strip = root.querySelector('.wdk-prompt-tabs__strip')!;
+      const panels = Array.from(root.querySelectorAll<HTMLElement>(':scope > .wdk-prompt-tabs__panels > [data-label]'));
+      panels.forEach((panel, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.role = 'tab';
+        btn.textContent = panel.dataset.label ?? `Tab ${i + 1}`;
+        btn.setAttribute('aria-selected', String(i === 0));
+        if (i > 0) panel.hidden = true;
+        btn.addEventListener('click', () => {
+          panels.forEach((p, j) => { p.hidden = j !== i; });
+          strip.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-selected', String(j === i)));
+        });
+        strip.appendChild(btn);
+      });
+    });
+  }
+  document.addEventListener('astro:page-load', setupPromptTabs);
+</script>
+
+<style is:global>
+  /* Global, not scoped: the tab-strip <button> elements are created at
+     runtime by the script above, so they never receive Astro's
+     data-astro-cid-* scoping attribute. Class names are namespaced
+     (wdk-prompt-tabs__*) so this is safe alongside the rest of the site's
+     scoped component styles.
+     Glassy chrome shell, consistent with the search modal and header's
+     blurred-surface treatment (theme.css .wdk-search__dialog, Header.astro). */
+  .wdk-prompt-tabs {
+    margin: 1.5rem 0;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Tab strip: horizontally scrollable on narrow viewports, each button gets
+     an accent underline on selection rather than a filled pill, echoing the
+     h2 underline motif used elsewhere in doc prose. */
+  .wdk-prompt-tabs__strip {
+    display: flex;
+    gap: 2px;
+    padding: 6px 6px 0;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .wdk-prompt-tabs__strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wdk-prompt-tabs__strip button {
+    flex: none;
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    padding: 9px 16px 11px;
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--text-dim);
+    white-space: nowrap;
+    position: relative;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .wdk-prompt-tabs__strip button::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--sl-accent, var(--teal));
+    opacity: 0;
+    transform: scaleX(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .wdk-prompt-tabs__strip button:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface-3) 60%, transparent);
+  }
+
+  .wdk-prompt-tabs__strip button[aria-selected='true'] {
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  .wdk-prompt-tabs__strip button[aria-selected='true']::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .wdk-prompt-tabs__strip button:focus-visible {
+    outline: 2px solid var(--sl-accent, var(--teal));
+    outline-offset: -2px;
+  }
+
+  .wdk-prompt-tabs__panels {
+    background: var(--surface);
+  }
+
+  /* Panels hold a fenced code block (via Expressive Code); strip the code
+     block's own outer margin so it sits flush inside the tab shell. */
+  .wdk-prompt-tabs__panels > [data-label] {
+    padding: 14px;
+  }
+
+  .wdk-prompt-tabs__panels > [data-label] .expressive-code {
+    margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    .wdk-prompt-tabs__strip button {
+      padding: 8px 12px 10px;
+      font-size: 0.75rem;
+    }
+    .wdk-prompt-tabs__panels > [data-label] {
+      padding: 10px;
+    }
+  }
+</style>

@@ -7,9 +7,11 @@
     "dev": "astro dev",
     "prebuild": "node scripts/copy-runtime-assets.mjs",
     "build": "astro build",
+    "postbuild": "node scripts/agent-artifacts/index.ts",
     "preview": "astro preview",
     "typecheck": "astro check",
-    "test": "playwright test"
+    "test": "pnpm test:unit && playwright test",
+    "test:unit": "node --test scripts/agent-artifacts/convert.test.ts scripts/agent-artifacts/paths.test.ts scripts/agent-artifacts/llms.test.ts scripts/agent-artifacts/skills.test.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.0",
@@ -28,11 +30,22 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@playwright/test": "^1.61.1",
+    "@types/hast": "^3.0.4",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "astro-pagefind": "^2.0.0",
+    "hast-util-select": "^6.0.4",
+    "hast-util-to-text": "^4.0.2",
+    "rehype-parse": "^9.0.1",
+    "rehype-remark": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-stringify": "^11.0.0",
     "sharp": "^0.35.2",
     "typescript": "^6.0.3",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
+    "yaml": "^2.8.0",
     "zod": "^3.24.0"
   }
 }
