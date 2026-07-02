@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { BaseWalletDKClient } from './base-client.ts';
+import type { WalletDKEvent } from './events.ts';
+
+// A fake transport that records every callRaw and replays canned responses,
+// so the verb mapping is testable without any runtime. Per the transport
+// contract, callRaw resolves already-camelized values, so the canned
+// responses below use camelCase keys.
+class FakeClient extends BaseWalletDKClient {
+  protected readonly serverTransport = 'grpc' as const;
+  calls: Array<{ method: string; params: unknown }> = [];
+  responses = new Map<string, unknown>();
+
+  ready(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+    this.calls.push({ method, params });
+    return Promise.resolve((this.responses.get(method) ?? {}) as T);
+  }
+
+  startActivity(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  stopActivity(): void {}
+}
+
+describe('BaseWalletDKClient', () => {
+  it('start maps the config through the transport knob and fetches info', async () => {
+    const client = new FakeClient();
+    client.responses.set('getInfo', { walletState: 2 });
+    await client.start({ network: 'regtest', arkServerUrl: 'h:7070' });
+
+    const start = client.calls[0];
+    assert.equal(start.method, 'start');
+    const cfg = start.params as { server_transport?: string; server_address?: string };
+    assert.equal(cfg.server_transport, 'grpc');
+    assert.equal(cfg.server_address, 'h:7070');
+    assert.equal(client.calls[1].method, 'getInfo');
+  });
+
+  it('createWallet sends the Go-shaped request with a base64 password', async () => {
+    const client = new FakeClient();
+    await client.createWallet({ password: 'pw' });
+    const req = client.calls[0].params as { WalletPassword?: string };
+    assert.equal(req.WalletPassword, Buffer.from('pw', 'utf8').toString('base64'));
+  });
+
+  it('sendPrepared folds the prepare-time paymentHash into the result', async () => {
+    const client = new FakeClient();
+    client.responses.set('sendPrepared', {});
+    const result = await client.sendPrepared({
+      sendIntentId: 'i1',
+      paymentHash: 'ph',
+    } as never);
+    assert.equal(result.paymentHash, 'ph');
+  });
+
+  it('stop emits runtimeStopped to subscribers', async () => {
+    const client = new FakeClient();
+    const events: WalletDKEvent[] = [];
+    client.subscribe((e) => events.push(e));
+    await client.stop();
+    assert.deepEqual(events, [{ type: 'runtimeStopped' }]);
+  });
+
+  it('dispose clears subscribers', async () => {
+    const client = new FakeClient();
+    const events: WalletDKEvent[] = [];
+    client.subscribe((e) => events.push(e));
+    client.dispose();
+    await client.stop();
+    assert.equal(events.length, 0);
+  });
+});

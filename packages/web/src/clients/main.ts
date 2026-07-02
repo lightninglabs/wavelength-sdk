@@ -1,10 +1,10 @@
 import {
+  BaseWalletDKClient,
   camelizeKeys,
   Entry,
   WalletDKError,
 } from '@lightninglabs/walletdk-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
-import { BaseWalletDKClient } from './base';
 import type { WebClientOptions } from '../index';
 import {
   instantiateWasm,
@@ -22,6 +22,7 @@ import { ActivityHandle, debugTs, errorMessage } from '../util';
  * worker mode it blocks rendering while the runtime is busy.
  */
 export class MainThreadWalletDKClient extends BaseWalletDKClient {
+  protected readonly serverTransport = 'rest' as const;
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
   private readonly runtimeBaseUrl: string | undefined;

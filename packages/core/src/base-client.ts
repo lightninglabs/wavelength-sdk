@@ -1,47 +1,46 @@
-import {
-  Balance,
+import type {
   CreateWalletRequest,
-  CreateWalletResult,
   DepositRequest,
-  DepositResult,
   ExitRequest,
-  ExitResult,
   ExitStatusRequest,
-  ExitStatusResult,
   GetExitPlanRequest,
-  GetExitPlanResult,
-  SweepWalletRequest,
-  SweepWalletResult,
   ListRequest,
-  ListResult,
   OpenWalletFromPasskeyRequest,
+  ReceiveRequest,
+  SendRequest,
+  SweepWalletRequest,
+  UnlockWalletRequest,
+} from './requests.ts';
+import type {
+  Balance,
+  CreateWalletResult,
+  DepositResult,
+  ExitResult,
+  ExitStatusResult,
+  GetExitPlanResult,
+  ListResult,
   OpenWalletFromPasskeyResult,
   PrepareSendResult,
-  ReceiveRequest,
   ReceiveResult,
-  RuntimeConfig,
-  SendRequest,
   SendResult,
-  UnlockWalletRequest,
+  SweepWalletResult,
   UnlockWalletResult,
-  WalletDKClient,
-  WalletDKEvent,
-  WalletDKListener,
-  WalletInfo,
-  WalletStatus,
-  normalizeInfo,
-  toGoCreateWalletReq,
-  toGoUnlockWalletReq,
-  toMobileConfig,
-} from '@lightninglabs/walletdk-core';
+} from './results.ts';
+import type { RuntimeConfig } from './config.ts';
+import type { WalletDKClient } from './client.ts';
+import type { WalletDKEvent, WalletDKListener } from './events.ts';
+import type { WalletInfo, WalletStatus } from './state.ts';
+import type { ServerTransport } from './facade.ts';
+import { toGoCreateWalletReq, toGoUnlockWalletReq, toMobileConfig } from './facade.ts';
+import { normalizeInfo } from './state.ts';
 
 /**
  * Implements the transport-agnostic half of {@link WalletDKClient}: every RPC
- * verb is expressed in terms of the abstract callRaw, so the main-thread and
- * worker transports differ only in callRaw, ready, and the activity-stream
- * plumbing. The shared subscribe/emit listener machinery lives here too. Each
- * verb was previously duplicated across both clients; keeping them in one place
- * means a new RPC is added once.
+ * verb is expressed in terms of the abstract callRaw, so a transport (web
+ * wasm, React Native gomobile, or a future one) supplies only the pipe:
+ * callRaw, ready, the activity-stream plumbing, and its {@link ServerTransport}
+ * flavor. The shared subscribe/emit listener machinery lives here too. Each
+ * verb is defined once here, so a new RPC is added in exactly one place.
  */
 export abstract class BaseWalletDKClient implements WalletDKClient {
   protected readonly listeners = new Set<WalletDKListener>();
@@ -51,13 +50,15 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
   abstract callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
   abstract startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
   abstract stopActivity(): void;
+  /** How this transport's daemon dials the Ark and swap servers. */
+  protected abstract readonly serverTransport: ServerTransport;
 
   // start boots the embedded daemon and returns the post-boot WalletInfo. The
-  // wasm bridge's start verb resolves null (it only calls mobile.Start), so the
-  // client fetches getInfo afterwards; the old bridge returned info inline and
-  // the React provider derives the runtime phase from it.
+  // facade's start verb resolves nothing useful on its own, so the client
+  // fetches getInfo afterwards; the React provider derives the runtime phase
+  // from it.
   async start(config: RuntimeConfig): Promise<WalletInfo> {
-    await this.callRaw('start', toMobileConfig(config, 'rest'));
+    await this.callRaw('start', toMobileConfig(config, this.serverTransport));
 
     return this.getInfo();
   }

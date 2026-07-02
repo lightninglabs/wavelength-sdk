@@ -1,5 +1,5 @@
-import type { RuntimeConfig } from './config';
-import type { CreateWalletRequest, UnlockWalletRequest } from './requests';
+import type { RuntimeConfig } from './config.ts';
+import type { CreateWalletRequest, UnlockWalletRequest } from './requests.ts';
 
 /**
  * Selects how the embedded daemon dials the Ark operator and swap server. The
@@ -23,10 +23,10 @@ export type MobileConfig = {
   wallet_type?: string;
   wallet_esplora_url?: string;
   server_address?: string;
-  server_transport?: string;
+  server_transport?: ServerTransport;
   server_insecure?: boolean;
   swap_server_address?: string;
-  swap_server_transport?: string;
+  swap_server_transport?: ServerTransport;
   swap_server_insecure?: boolean;
   swap_database_file_name?: string;
 };

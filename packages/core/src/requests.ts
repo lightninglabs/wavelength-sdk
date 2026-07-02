@@ -2,7 +2,7 @@
 // (e.g. a plain password the client base64-encodes into the Go []byte field), so
 // packages/web keeps explicit request mappers for them.
 
-import type { ListView } from './generated';
+import type { ListView } from './generated.ts';
 
 /**
  * Parameters for creating a new wallet.
