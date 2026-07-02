@@ -1,13 +1,14 @@
 // Post-build entry point: converts every built page to a markdown mirror and
 // assembles the llms indexes and the skills catalog. Runs via the docs app's
 // postbuild hook, so `pnpm build` always produces current artifacts.
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { glob } from 'node:fs/promises';
 import { convertPageHtml } from './convert.ts';
 import { pageRoute, mirrorFilesFor } from './paths.ts';
 import { buildLlmsTxt, buildLlmsFullTxt } from './llms.ts';
+import { readSkills, buildCatalog } from './skills.ts';
 import { SITE_URL } from '../../src/config/site.ts';
 
 export interface PageRecord {
@@ -73,6 +74,15 @@ async function main(): Promise<void> {
   if (full.length > 500 * 1024) {
     console.warn('agent-artifacts: llms-full.txt exceeds 500 KB; consider size tiers.');
   }
+  const repoRoot = join(here, '..', '..', '..', '..');
+  const skills = readSkills(repoRoot);
+  const wellKnown = join(distDir, '.well-known', 'skills');
+  mkdirSync(wellKnown, { recursive: true });
+  writeFileSync(join(wellKnown, 'index.json'), buildCatalog(skills));
+  for (const skill of skills) {
+    cpSync(join(repoRoot, skill.dir), join(wellKnown, skill.name), { recursive: true });
+  }
+  console.log(`agent-artifacts: published ${skills.length} skills to /.well-known/skills/.`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

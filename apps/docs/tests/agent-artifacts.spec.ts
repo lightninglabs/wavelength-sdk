@@ -33,6 +33,22 @@ test('every nav page has both markdown mirrors', async ({ request }) => {
   }
 });
 
+test('well-known skills catalog and files are served', async ({ request }) => {
+  const res = await request.get('/.well-known/skills/index.json');
+  expect(res.status()).toBe(200);
+  const catalog = await res.json();
+  expect(catalog.skills.map((s: { name: string }) => s.name).sort()).toEqual([
+    'walletdk-api',
+    'walletdk-cli',
+    'walletdk-web',
+  ]);
+  for (const s of catalog.skills) {
+    const file = await request.get(`/.well-known/skills/${s.name}/SKILL.md`);
+    expect(file.status(), s.name).toBe(200);
+    expect(await file.text()).toContain(`name: ${s.name}`);
+  }
+});
+
 test('mirrors contain converted content, not html', async ({ request }) => {
   const res = await request.get('/web/guides/use-a-passkey.md');
   const body = await res.text();
