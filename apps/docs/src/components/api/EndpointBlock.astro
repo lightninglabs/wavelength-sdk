@@ -1,0 +1,113 @@
+---
+/**
+ * EndpointBlock renders the gRPC signature and the REST route for one RPC,
+ * stacked as two labeled rows near the top of every API method page. It reads
+ * like a small patch bay: a fixed-width protocol label on the left, the
+ * machine-readable signature or route on the right. The REST verb is tinted in
+ * the page accent so the mutating POST reads at a glance.
+ */
+import type { MethodDoc } from '~/data/api/schema';
+
+interface Props {
+  method: MethodDoc;
+}
+const { method } = Astro.props;
+const signature =
+  `rpc ${method.name}(${method.requestType}) returns ` +
+  `(${method.responseStream ? 'stream ' : ''}${method.responseType})`;
+---
+<div class="wdk-endpoint">
+  <div class="wdk-endpoint__row">
+    <span class="wdk-endpoint__label">gRPC</span>
+    <code class="wdk-endpoint__code">{signature}</code>
+  </div>
+  <div class="wdk-endpoint__row">
+    <span class="wdk-endpoint__label">REST</span>
+    <code class="wdk-endpoint__code"
+      ><span class="wdk-endpoint__verb">{method.rest.method}</span
+      ><span class="wdk-endpoint__path">{method.rest.path}</span></code
+    >
+  </div>
+</div>
+
+<style>
+  /* A single surface panel holding the two protocol rows, with an accent
+     hairline on the left edge that ties it to the page accent. */
+  .wdk-endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .wdk-endpoint::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--sl-accent, var(--orange));
+    opacity: 0.85;
+  }
+
+  /* One protocol row: label column + code. Rows are divided by a hairline. */
+  .wdk-endpoint__row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px 14px 20px;
+  }
+
+  .wdk-endpoint__row + .wdk-endpoint__row {
+    border-top: 1px solid var(--border);
+  }
+
+  /* Protocol label: fixed-width uppercase eyebrow so the two codes align. */
+  .wdk-endpoint__label {
+    flex-shrink: 0;
+    width: 42px;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* The signature / route, monospace, allowed to wrap on narrow widths. */
+  .wdk-endpoint__code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-code);
+    word-break: break-word;
+  }
+
+  /* REST verb pill: accent-tinted so the POST reads as the action. */
+  .wdk-endpoint__verb {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 30%, transparent);
+  }
+
+  .wdk-endpoint__path {
+    color: var(--text);
+  }
+
+  @media (max-width: 560px) {
+    .wdk-endpoint__row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+  }
+</style>

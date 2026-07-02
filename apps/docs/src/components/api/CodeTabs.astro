@@ -1,0 +1,281 @@
+---
+/**
+ * CodeTabs renders a set of language-labeled code samples as a single tabbed
+ * panel: a segmented tab bar with an accent underline over the active tab, and
+ * one syntax-highlighted panel visible at a time.
+ *
+ * Only the active tab's code lives in the rendered panel; every tab's
+ * highlighted markup is also emitted inside an inert <template>, and the client
+ * script swaps the panel's contents from the matching template on tab click.
+ * This keeps server-side Shiki highlighting for every language (no client
+ * re-highlighting) while ensuring the panel holds exactly one sample at a time,
+ * so a sample's text (for example a REST URL that embeds an endpoint path) does
+ * not duplicate content that also appears elsewhere on the page.
+ *
+ * Highlighting uses Astro's built-in Shiki `Code` component with the site's
+ * dual light/dark themes; a CSS toggle (below) swaps the per-token colors when
+ * the site is in light mode. Tab switching follows the site's client-script
+ * discipline: bound on astro:page-load with a per-element guard so it survives
+ * view-transition navigations without double-binding.
+ *
+ * The chosen language persists across page navigation via localStorage (key
+ * "wdk-code-lang", matching ThemeToggle's "wdk-theme" convention): picking
+ * "Python" on one method page keeps Python selected when the reader moves to
+ * another. A page that doesn't offer the stored language (for example one
+ * with no CLI tab) falls back to its first tab.
+ */
+import { Code } from 'astro:components';
+
+// The lang strings used here are 'go' | 'python' | 'js' | 'bash', all valid
+// Shiki bundled languages. shiki is not a direct dependency, so the prop is
+// typed via the Code component itself instead of importing shiki's types.
+type CodeLang = Parameters<typeof Code>[0]['lang'];
+
+interface Tab {
+  id: string;
+  label: string;
+  lang: string;
+  code: string;
+}
+interface Props {
+  tabs: Tab[];
+}
+const { tabs } = Astro.props;
+const themes = { dark: 'vitesse-dark', light: 'vitesse-light' } as const;
+---
+<div class="wdk-codetabs" data-codetabs>
+  <div class="wdk-codetabs__bar" role="tablist" aria-label="Code sample language">
+    {tabs.map((tab, i) => (
+      <button
+        type="button"
+        role="tab"
+        id={`tab-${tab.id}`}
+        aria-selected={i === 0 ? 'true' : 'false'}
+        aria-controls="wdk-codetabs-panel"
+        tabindex={i === 0 ? 0 : -1}
+        data-tab-btn={tab.id}
+        class:list={['wdk-codetabs__tab', i === 0 && 'is-active']}
+      >{tab.label}</button>
+    ))}
+  </div>
+
+  <!-- Live panel: holds the active tab's highlighted markup. Seeded with the
+       first tab; the client script swaps its contents from the templates. -->
+  <div
+    role="tabpanel"
+    id="wdk-codetabs-panel"
+    class="wdk-codetabs__panel"
+    aria-labelledby={`tab-${tabs[0].id}`}
+    data-codetabs-panel
+  >
+    <Code code={tabs[0].code} lang={tabs[0].lang as CodeLang} themes={themes} />
+  </div>
+
+  <!-- Inert source for every tab. <template> content is not rendered and is
+       not matched by DOM text queries, so only the live panel above counts as
+       page content. -->
+  {tabs.map((tab) => (
+    <template data-code-tpl={tab.id}>
+      <Code code={tab.code} lang={tab.lang as CodeLang} themes={themes} />
+    </template>
+  ))}
+</div>
+
+<script>
+  // localStorage key for the reader's chosen sample language, shared across
+  // every CodeTabs instance on every API method page.
+  const STORAGE_KEY = 'wdk-code-lang';
+
+  // Bind every tab group on astro:page-load with a per-element guard, the same
+  // lifecycle discipline as CodeRail and ReferenceLayout. Left/Right arrow keys
+  // move focus and selection across the tab bar for keyboard users.
+  function setupCodeTabs() {
+    // Collect every root bound in this pass so the teardown below can clear
+    // all of their guards, matching the rail script's single-teardown shape
+    // even though CodeTabs binds multiple roots per page.
+    const boundRoots: HTMLElement[] = [];
+
+    let storedLang: string | null = null;
+    try {
+      storedLang = localStorage.getItem(STORAGE_KEY);
+    } catch {
+      // Storage can throw in locked-down environments (private browsing
+      // quotas, disabled storage); tabs just fall back to the default.
+    }
+
+    document.querySelectorAll('[data-codetabs]').forEach((rootEl) => {
+      if (!(rootEl instanceof HTMLElement) || rootEl.dataset.wdkBound) return;
+      rootEl.dataset.wdkBound = '1';
+      boundRoots.push(rootEl);
+
+      const tabs = Array.from(
+        rootEl.querySelectorAll<HTMLElement>('[data-tab-btn]'),
+      );
+      const panel = rootEl.querySelector<HTMLElement>('[data-codetabs-panel]');
+      if (!panel || tabs.length === 0) return;
+
+      function select(i: number, persist: boolean) {
+        const id = tabs[i].dataset.tabBtn ?? '';
+        tabs.forEach((t, j) => {
+          const on = i === j;
+          t.classList.toggle('is-active', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.setAttribute('tabindex', on ? '0' : '-1');
+        });
+        const tpl = rootEl.querySelector<HTMLTemplateElement>(
+          `template[data-code-tpl="${id}"]`,
+        );
+        if (tpl && panel) {
+          panel.replaceChildren(tpl.content.cloneNode(true));
+          panel.setAttribute('aria-labelledby', `tab-${id}`);
+        }
+        if (persist) {
+          try {
+            localStorage.setItem(STORAGE_KEY, id);
+          } catch {
+            // Same locked-down-storage tolerance as the read above.
+          }
+        }
+      }
+
+      // Restore the reader's last-picked language if this page offers it;
+      // a page with no matching tab (for example no CLI tab on a method
+      // with no darepocli equivalent) keeps the server-rendered default.
+      if (storedLang) {
+        const restoreIndex = tabs.findIndex((t) => t.dataset.tabBtn === storedLang);
+        if (restoreIndex > 0) select(restoreIndex, false);
+      }
+
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => select(i, true));
+        tab.addEventListener('keydown', (ev) => {
+          const e = ev as KeyboardEvent;
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+          e.preventDefault();
+          const dir = e.key === 'ArrowRight' ? 1 : -1;
+          const next = (i + dir + tabs.length) % tabs.length;
+          select(next, true);
+          tabs[next].focus();
+        });
+      });
+    });
+
+    // Tear down before the next view-transition swap so the guard does not
+    // survive on a root that Astro preserves across a swap. The teardown
+    // listener removes itself from astro:before-swap so teardown listeners
+    // do not stack up either.
+    function teardown() {
+      boundRoots.forEach((rootEl) => {
+        delete rootEl.dataset.wdkBound;
+      });
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+  document.addEventListener('astro:page-load', setupCodeTabs);
+</script>
+
+<style>
+  /* Outer panel: a surface card that frames the tab bar and the code. */
+  .wdk-codetabs {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* Tab bar: horizontally scrollable strip of segmented buttons over a
+     hairline, so the six languages never wrap. */
+  .wdk-codetabs__bar {
+    display: flex;
+    gap: 2px;
+    padding: 0 8px;
+    background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .wdk-codetabs__bar::-webkit-scrollbar { display: none; }
+
+  /* A single tab: quiet by default, accent underline + brightened text when
+     active. The underline is a pseudo-element so it can sit on the hairline. */
+  .wdk-codetabs__tab {
+    position: relative;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-dim);
+    transition: color 0.15s ease;
+  }
+
+  .wdk-codetabs__tab::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--sl-accent, var(--orange));
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.18s ease;
+  }
+
+  .wdk-codetabs__tab:hover {
+    color: var(--text-muted);
+  }
+
+  .wdk-codetabs__tab.is-active {
+    color: var(--text);
+  }
+  .wdk-codetabs__tab.is-active::after {
+    transform: scaleX(1);
+  }
+
+  .wdk-codetabs__tab:focus-visible {
+    outline: 2px solid var(--sl-accent, var(--orange));
+    outline-offset: -2px;
+    border-radius: 6px;
+  }
+
+  /* Shiki emits <pre class="astro-code">. Reset its own background to the card
+     surface and give it comfortable, scrollable padding. */
+  .wdk-codetabs :global(pre.astro-code) {
+    margin: 0;
+    padding: 18px 20px;
+    background: transparent !important;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .wdk-codetabs :global(pre.astro-code)::-webkit-scrollbar { height: 6px; }
+  .wdk-codetabs :global(pre.astro-code)::-webkit-scrollbar-track { background: transparent; }
+  .wdk-codetabs :global(pre.astro-code)::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+
+  .wdk-codetabs :global(pre.astro-code) code {
+    font-family: var(--font-mono);
+  }
+
+  /* Dual-theme Shiki: Astro's Code component emits the light theme as the
+     inline token color and the dark theme as a --shiki-dark custom property.
+     The site defaults to dark, so the dark toggle rewrites tokens to their
+     --shiki-dark values; light mode uses the inline base color as-is. The
+     panel background comes from the card surface (transparent pre), so only
+     the token colors need swapping. */
+  :global([data-theme='dark']) .wdk-codetabs :global(pre.astro-code),
+  :global([data-theme='dark']) .wdk-codetabs :global(pre.astro-code span) {
+    color: var(--shiki-dark) !important;
+    background-color: transparent !important;
+  }
+</style>

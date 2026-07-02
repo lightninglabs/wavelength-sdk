@@ -1,0 +1,656 @@
+---
+/**
+ * ApiMethodLayout.astro - the per-RPC API reference page.
+ *
+ * Three-column shell mirroring ReferenceLayout: a fixed Sidebar on the left,
+ * the prose/reference column in the middle (data-pagefind-body), and a fixed
+ * full-height "On this page" rail on the right. Unlike ReferenceLayout the rail
+ * is static (its anchors are known at build time from the method's sections),
+ * so scroll-sync is handled with an IntersectionObserver over the rendered
+ * sections, bound with the site's astro:page-load + per-element-guard +
+ * astro:before-swap teardown discipline.
+ *
+ * The page reads like an instrument panel for one RPC: a header chip cluster
+ * (service badge, a streaming badge for server-streaming RPCs, and a CLI chip
+ * that jumps into the CLI slice), the proto comment, an Endpoints block, tabbed
+ * code samples, request and response field tables, then one section per
+ * referenced message or enum. The section accent (from the method's nav group)
+ * drives the accent bar, the active rail item, the tab underline, and the REST
+ * verb pill.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Sidebar from '~/components/Sidebar.astro';
+import PrevNext from '~/components/PrevNext.astro';
+import EndpointBlock from '~/components/api/EndpointBlock.astro';
+import FieldTable from '~/components/api/FieldTable.astro';
+import CodeTabs from '~/components/api/CodeTabs.astro';
+import { apiDoc } from '~/data/api';
+import type { MethodDoc } from '~/data/api/schema';
+import { accentForSlug } from '~/config/nav';
+import { API_CLI } from '~/config/api';
+import {
+  cliSample,
+  curlSample,
+  jsRestSample,
+  goGrpcSample,
+  pythonGrpcSample,
+  jsGrpcSample,
+} from '~/data/api/samples';
+
+interface Props {
+  method: MethodDoc;
+}
+const { method } = Astro.props;
+const slug = `api/wallet/${method.slug}`;
+const accent = accentForSlug(slug);
+
+// Proto comments separate paragraphs with blank lines; within a paragraph the
+// text is hard-wrapped, so collapse single newlines to spaces.
+const paragraphs = method.comment
+  .split(/\n\s*\n/)
+  .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
+  .filter(Boolean);
+
+// The CLI command page slug for this RPC, when one maps.
+const cliCmd = API_CLI[method.name];
+
+// Build the code-sample tabs in the fixed order CLI, Go, Python, JavaScript,
+// curl, fetch. The CLI tab only appears when a CLI command maps to this RPC.
+const cli = cliSample(method);
+const tabs = [
+  ...(cli ? [{ id: 'cli', label: 'CLI', lang: 'bash', code: cli }] : []),
+  { id: 'go', label: 'Go', lang: 'go', code: goGrpcSample(method) },
+  { id: 'python', label: 'Python', lang: 'python', code: pythonGrpcSample(method) },
+  { id: 'js-grpc', label: 'JavaScript', lang: 'js', code: jsGrpcSample(method) },
+  { id: 'curl', label: 'curl', lang: 'bash', code: curlSample(method) },
+  { id: 'js-rest', label: 'fetch', lang: 'js', code: jsRestSample(method) },
+];
+
+const request = apiDoc.messages[method.requestType];
+const response = apiDoc.messages[method.responseType];
+
+// Types rendered as sections on this page; field cells deep-link into them.
+const linkedTypes = new Set(method.referencedTypes);
+const referenced = method.referencedTypes.map((name) => ({
+  name,
+  message: apiDoc.messages[name],
+  enum: apiDoc.enums[name],
+}));
+
+// Right-rail anchor list: the fixed top sections plus one per referenced type.
+const railSections = [
+  { id: 'endpoints', label: 'Endpoints' },
+  { id: 'examples', label: 'Examples' },
+  { id: 'request', label: 'Request' },
+  { id: 'response', label: 'Response' },
+  ...method.referencedTypes.map((t) => ({ id: t, label: t })),
+];
+
+// Collapse a proto comment to a single-line summary for a section subhead.
+const summarize = (comment: string): string =>
+  comment.split(/\n\s*\n/)[0].replace(/\s*\n\s*/g, ' ').trim();
+---
+<BaseLayout
+  title={`${method.name} - API reference`}
+  description={paragraphs[0]}
+  accent={accent}
+  footerInsetLeft
+>
+  <div class="wdk-api">
+    <Sidebar currentSlug={slug} />
+
+    <!-- Main area pushed right of the fixed sidebar; the rail is fixed to the
+         right screen edge, so this reserves a matching right margin. -->
+    <div class="wdk-api__main">
+      <main class="wdk-api__content" data-pagefind-body>
+        <!-- Header: accent bar, chip cluster, method name, proto comment. -->
+        <div class="wdk-api__accent" aria-hidden="true"></div>
+
+        <div class="wdk-api__chips">
+          <span class="wdk-api__badge wdk-api__badge--service">
+            <span class="wdk-api__badge-dot" aria-hidden="true"></span>
+            {method.service}
+          </span>
+          {method.responseStream && (
+            <span class="wdk-api__badge wdk-api__badge--stream" title="Server-streaming RPC">
+              server streaming
+            </span>
+          )}
+          {cliCmd && (
+            <a class="wdk-api__cli-chip" href={`/cli/${cliCmd}/`}>
+              <span class="wdk-api__cli-label">CLI</span>
+              <code>darepocli {cliCmd}</code>
+            </a>
+          )}
+        </div>
+
+        <h1 class="wdk-api__title">{method.name}</h1>
+
+        {paragraphs.map((p) => (
+          <p class="wdk-api__lede">{p}</p>
+        ))}
+
+        <!-- Endpoints. -->
+        <section id="endpoints" class="wdk-api__section" data-api-section>
+          <h2 class="wdk-api__h2">Endpoints</h2>
+          <EndpointBlock method={method} />
+        </section>
+
+        <!-- Examples: tabbed code samples. -->
+        <section id="examples" class="wdk-api__section" data-api-section>
+          <h2 class="wdk-api__h2">Examples</h2>
+          <CodeTabs tabs={tabs} />
+        </section>
+
+        <!-- Request field table. -->
+        <section id="request" class="wdk-api__section" data-api-section>
+          <h2 class="wdk-api__h2">
+            Request
+            <code class="wdk-api__h2-type">{method.requestType}</code>
+          </h2>
+          {request?.comment && summarize(request.comment) && (
+            <p class="wdk-api__section-lede">{summarize(request.comment)}</p>
+          )}
+          <FieldTable fields={request?.fields ?? []} linkedTypes={linkedTypes} />
+        </section>
+
+        <!-- Response field table. -->
+        <section id="response" class="wdk-api__section" data-api-section>
+          <h2 class="wdk-api__h2">
+            Response
+            <code class="wdk-api__h2-type">
+              {method.responseStream ? 'stream ' : ''}{method.responseType}
+            </code>
+          </h2>
+          {response?.comment && summarize(response.comment) && (
+            <p class="wdk-api__section-lede">{summarize(response.comment)}</p>
+          )}
+          <FieldTable fields={response?.fields ?? []} linkedTypes={linkedTypes} />
+        </section>
+
+        <!-- One section per referenced type: messages get a field table, enums
+             get a Name/Number/Description value table. -->
+        {referenced.map(({ name, message, enum: enumDoc }) => (
+          <section id={name} class="wdk-api__section wdk-api__section--type" data-api-section>
+            <h2 class="wdk-api__h2">
+              <code class="wdk-api__h2-type wdk-api__h2-type--lead">{name}</code>
+              <span class="wdk-api__kind">{enumDoc ? 'enum' : 'message'}</span>
+            </h2>
+            {(message?.comment || enumDoc?.comment) &&
+              summarize(message?.comment ?? enumDoc?.comment ?? '') && (
+                <p class="wdk-api__section-lede">
+                  {summarize(message?.comment ?? enumDoc?.comment ?? '')}
+                </p>
+              )}
+            {message && <FieldTable fields={message.fields} linkedTypes={linkedTypes} />}
+            {enumDoc && (
+              <div class="wdk-enum__wrap">
+                <table class="wdk-enum">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Number</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enumDoc.values.map((v) => (
+                      <tr data-enum-row={v.name}>
+                        <td class="wdk-enum__name"><code>{v.name}</code></td>
+                        <td class="wdk-enum__num"><code>{v.value}</code></td>
+                        <td class="wdk-enum__desc">
+                          {v.comment
+                            .split(/\n\s*\n/)
+                            .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
+                            .filter(Boolean)
+                            .map((p) => (
+                              <p>{p}</p>
+                            ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        ))}
+
+        <PrevNext slug={slug} />
+      </main>
+
+      <!-- Fixed full-height right rail: static anchor list for this method. -->
+      <aside class="wdk-api__rail" aria-label="On this page">
+        <div class="wdk-api__rail-heading" aria-hidden="true">
+          <span class="wdk-api__rail-sq" aria-hidden="true"></span>
+          On this page
+        </div>
+        <nav class="wdk-api__rail-nav" data-api-rail aria-label="Section list">
+          {railSections.map((s) => (
+            <a href={`#${s.id}`} class="wdk-api__rail-link" data-rail-link={s.id}>
+              <span class="wdk-api__rail-link-name">{s.label}</span>
+            </a>
+          ))}
+        </nav>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // Sync the static right-rail's active link to the section scrolled into
+  // view. Same lifecycle discipline as ReferenceLayout: bind on
+  // astro:page-load, guard against double-binding, use an IntersectionObserver
+  // (not a scroll listener), and tear down before the next view-transition
+  // swap so observers and listeners do not accumulate.
+  function setupApiRail() {
+    const navEl = document.querySelector('[data-api-rail]');
+    if (!(navEl instanceof HTMLElement) || navEl.dataset.wdkBound) return;
+    // Capture the narrowed HTMLElement so the teardown closure keeps the
+    // dataset-bearing type (matches ReferenceLayout's `const nav = navEl`).
+    const nav = navEl;
+    nav.dataset.wdkBound = '1';
+
+    const sections = Array.from(document.querySelectorAll('[data-api-section]'));
+    const links = Array.from(nav.querySelectorAll('[data-rail-link]'));
+    if (sections.length === 0 || links.length === 0) return;
+
+    function activate(id: string) {
+      links.forEach((a) => {
+        const on = a instanceof HTMLElement && a.dataset.railLink === id;
+        a.classList.toggle('is-active', on);
+        if (on) {
+          a.setAttribute('aria-current', 'true');
+        } else {
+          a.removeAttribute('aria-current');
+        }
+      });
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const vis = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (vis) activate(vis.target.id);
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.25, 0.5, 1] },
+    );
+    sections.forEach((s) => io.observe(s));
+
+    const first = sections[0];
+    if (first instanceof HTMLElement) activate(first.id);
+
+    function teardown() {
+      io.disconnect();
+      delete nav.dataset.wdkBound;
+      document.removeEventListener('astro:before-swap', teardown);
+    }
+    document.addEventListener('astro:before-swap', teardown);
+  }
+
+  document.addEventListener('astro:page-load', setupApiRail);
+</script>
+
+<style>
+  /* Outer wrapper: full-height flex row; the sidebar is fixed and sits outside
+     the flow, so this mirrors ReferenceLayout's geometry exactly. */
+  .wdk-api {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .wdk-api__main {
+    margin-left: var(--sidebar-w, 256px);
+    margin-right: var(--toc-w, 240px);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+  }
+
+  .wdk-api__content {
+    flex: 1;
+    min-width: 0;
+    max-width: 820px;
+    padding: 48px 40px 80px;
+  }
+
+  /* Short accent bar above the header, keyed to the section accent. */
+  .wdk-api__accent {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sl-accent, var(--orange));
+    margin-bottom: 18px;
+  }
+
+  /* Chip cluster: service badge, optional streaming badge, optional CLI chip. */
+  .wdk-api__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .wdk-api__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* Service badge: neutral surface pill with an accent dot. */
+  .wdk-api__badge--service {
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .wdk-api__badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--sl-accent, var(--orange));
+    flex-shrink: 0;
+  }
+
+  /* Streaming badge: accent-tinted so a server-streaming RPC reads instantly. */
+  .wdk-api__badge--stream {
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 32%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* CLI chip: a link into the CLI slice, styled as a compact command pill. */
+  .wdk-api__cli-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .wdk-api__cli-chip:hover {
+    border-color: var(--border-2);
+    background: var(--surface-3);
+  }
+  .wdk-api__cli-label {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .wdk-api__cli-chip code {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 9px;
+  }
+
+  /* Method name: the page h1. */
+  .wdk-api__title {
+    font-family: var(--font-mono);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text);
+    margin: 0 0 16px;
+  }
+
+  /* Proto comment paragraphs. */
+  .wdk-api__lede {
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+    max-width: 68ch;
+  }
+  .wdk-api__lede:last-of-type {
+    margin-bottom: 0;
+  }
+
+  /* Section rhythm: a divider rule and generous space between sections. */
+  .wdk-api__section {
+    margin-top: 56px;
+    scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+  }
+
+  .wdk-api__h2 {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin: 0 0 18px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* The type name shown beside a Request/Response heading, and as the lead
+     token in a referenced-type heading. */
+  .wdk-api__h2-type {
+    font-family: var(--font-mono);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 26%, transparent);
+    border-radius: 6px;
+    padding: 2px 9px;
+  }
+  .wdk-api__h2-type--lead {
+    font-size: 1.375rem;
+    padding: 3px 11px;
+  }
+
+  /* "message" / "enum" kind marker beside a referenced-type heading. */
+  .wdk-api__kind {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* A one-line lede under a section heading (the type's proto summary). */
+  .wdk-api__section-lede {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+    max-width: 66ch;
+  }
+
+  /* Referenced-type sections read as a slightly indented cluster. */
+  .wdk-api__section--type {
+    margin-top: 40px;
+  }
+
+  /* Enum value table: mirrors FieldTable's surface/table treatment (those
+     styles are scoped to that component, so the enum variant repeats them
+     here) with a Name / Number / Description shape. */
+  .wdk-enum__wrap {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .wdk-enum__wrap::-webkit-scrollbar { height: 5px; }
+  .wdk-enum__wrap::-webkit-scrollbar-track { background: transparent; }
+  .wdk-enum__wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .wdk-enum {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 520px;
+  }
+  .wdk-enum thead th {
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .wdk-enum tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .wdk-enum tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .wdk-enum tbody tr {
+    transition: background 0.12s ease;
+  }
+  .wdk-enum tbody tr:hover {
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 5%, transparent);
+  }
+  .wdk-enum__name {
+    white-space: nowrap;
+  }
+  .wdk-enum__name code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  /* Number cell: an accent-tinted mono chip so the proto value reads clearly. */
+  .wdk-enum__num code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 10%, transparent);
+    border-radius: 5px;
+    padding: 1px 8px;
+  }
+  .wdk-enum__desc {
+    color: var(--text-muted);
+    line-height: 1.55;
+    min-width: 240px;
+  }
+  .wdk-enum__desc p {
+    margin: 0;
+  }
+  .wdk-enum__desc p + p {
+    margin-top: 8px;
+  }
+
+  /* -------------------------------------------------------
+     Right rail: fixed full-height column pinned to the right screen edge,
+     mirroring the left Sidebar exactly like ReferenceLayout's rail.
+     ------------------------------------------------------- */
+  .wdk-api__rail {
+    position: fixed;
+    top: var(--header-height, 56px);
+    right: 0;
+    bottom: var(--rail-bottom, 0);
+    width: var(--toc-w, 240px);
+    background: var(--rail-bg);
+    padding: 24px 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    z-index: 50;
+  }
+  .wdk-api__rail::-webkit-scrollbar { width: 3px; }
+  .wdk-api__rail::-webkit-scrollbar-track { background: transparent; }
+  .wdk-api__rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .wdk-api__rail-heading {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .wdk-api__rail-sq {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 1.75px;
+    background: var(--sl-accent, var(--orange));
+    flex-shrink: 0;
+  }
+
+  .wdk-api__rail-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .wdk-api__rail-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 0.8125rem;
+    transition: color 0.15s, background 0.15s;
+  }
+  .wdk-api__rail-link:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .wdk-api__rail-link.is-active {
+    color: var(--sl-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 10%, transparent);
+    font-weight: 600;
+  }
+  .wdk-api__rail-link-name {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Mobile: drop the fixed rail and left margin; content goes full-width. The
+     Sidebar hides itself via its own media query. */
+  @media (max-width: 768px) {
+    .wdk-api__main { margin-left: 0; margin-right: 0; flex-direction: column; }
+    .wdk-api__content { max-width: 100%; padding: 32px 20px 60px; }
+    .wdk-api__rail { display: none; }
+  }
+</style>

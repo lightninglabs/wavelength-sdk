@@ -1,0 +1,18 @@
+---
+/**
+ * Static route for every RPC reference page under /api/wallet/<slug>/. One
+ * page is generated per method in the validated ApiDoc.
+ */
+import ApiMethodLayout from '~/layouts/ApiMethodLayout.astro';
+import { apiDoc } from '~/data/api';
+
+export function getStaticPaths() {
+  return apiDoc.methods.map((m) => ({
+    params: { method: m.slug },
+    props: { method: m },
+  }));
+}
+
+const { method } = Astro.props;
+---
+<ApiMethodLayout method={method} />
