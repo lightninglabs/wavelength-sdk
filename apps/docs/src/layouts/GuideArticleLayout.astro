@@ -29,6 +29,7 @@ import Sidebar from '~/components/Sidebar.astro';
 import TableOfContents from '~/components/TableOfContents.astro';
 import PrevNext from '~/components/PrevNext.astro';
 import RelatedGuides from '~/components/RelatedGuides.astro';
+import PageActions from '~/components/PageActions.astro';
 import { accentForSlug } from '~/config/nav';
 
 interface Props {
@@ -82,7 +83,10 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
               <span aria-current="page">{entry.data.title}</span>
             </nav>
             <div class="wdk-guide__title-accent" aria-hidden="true"></div>
-            <h1 class="wdk-guide__title">{entry.data.title}</h1>
+            <div class="wdk-guide__head">
+              <h1 class="wdk-guide__title">{entry.data.title}</h1>
+              <PageActions />
+            </div>
             <div class="wdk-guide__meta">
               <div class="wdk-guide__meta-item">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -199,12 +203,20 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
     margin-bottom: 16px;
   }
 
+  /* Title row: h1 grows, PageActions floats at the right, same baseline. */
+  .wdk-guide__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 0 0 16px;
+  }
+
   /* Page title - h1 injected by the layout (MDX bodies start at ##). */
   .wdk-guide__title {
     font-size: clamp(1.75rem, 3vw, 2.25rem);
     font-weight: 700;
     letter-spacing: -0.02em;
-    margin: 0 0 10px;
     line-height: 1.15;
     color: var(--text);
   }
@@ -244,5 +256,6 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
     .wdk-guide__main { margin-left: 0; margin-right: 0; }
     .wdk-guide__inner { padding: 32px 20px 60px; gap: 0; }
     .wdk-guide__content { max-width: 100%; }
+    .wdk-guide__head { flex-direction: column; align-items: flex-start; gap: 12px; }
   }
 </style>
