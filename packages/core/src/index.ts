@@ -80,7 +80,8 @@ export { BaseWalletDKClient } from './base-client.ts';
 export { WalletDKError, errorMessage } from './errors.ts';
 export type { WalletDKErrorCode } from './errors.ts';
 
-// Passkey contract types and the wallet-kind label.
+// Passkey contract types, the wallet-kind label, and the shared PRF salt.
+export { PASSKEY_PRF_NAMESPACE, PASSKEY_PRF_SALT_HEX } from './passkey.ts';
 export type {
   PasskeyAssertion,
   PasskeyCeremony,
