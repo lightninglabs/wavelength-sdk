@@ -1,14 +1,23 @@
 #import "WalletdkModule.h"
 
 #import <Walletdk/Walletdk.h>
+#import <WalletdkSpec/WalletdkSpec.h>
+#import "WalletdkReactNative-Swift.h"
 
 // The single device event name; the body is { kind, payload }.
 static NSString *const kWalletdkEvent = @"walletdkActivity";
 static NSString *const kWalletdkErrorCode = @"walletdk_error";
 
+// The codegen spec conformance lives here (see the note in the header): the
+// generated protocol drags in C++ headers that must stay out of the public
+// Objective-C surface.
+@interface WalletdkModule () <NativeWalletdkSpec>
+@end
+
 @implementation WalletdkModule {
   MobileSubscription *_subscription;
   BOOL _closing;
+  WalletdkPasskey *_passkey;
 }
 
 RCT_EXPORT_MODULE(Walletdk)
@@ -30,6 +39,56 @@ RCT_EXPORT_MODULE(Walletdk)
       URLsForDirectory:NSApplicationSupportDirectory
              inDomains:NSUserDomainMask] firstObject];
   resolve([appSupport URLByAppendingPathComponent:@"walletdk"].path);
+}
+
+- (void)passkeySupported:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@([WalletdkPasskey prfSupported]));
+}
+
+- (void)passkeyCreate:(NSString *)requestJson
+              resolve:(RCTPromiseResolveBlock)resolve
+               reject:(RCTPromiseRejectBlock)reject
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    @synchronized (self) {
+      if (self->_passkey == nil) {
+        self->_passkey = [WalletdkPasskey new];
+      }
+    }
+    [self->_passkey create:requestJson
+                completion:^(NSString *json, NSString *errorMessage) {
+      if (json != nil) {
+        resolve(json);
+      } else {
+        reject(kWalletdkErrorCode,
+               errorMessage ?: @"passkey ceremony failed", nil);
+      }
+    }];
+  });
+}
+
+- (void)passkeyGet:(NSString *)requestJson
+           resolve:(RCTPromiseResolveBlock)resolve
+            reject:(RCTPromiseRejectBlock)reject
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    @synchronized (self) {
+      if (self->_passkey == nil) {
+        self->_passkey = [WalletdkPasskey new];
+      }
+    }
+    [self->_passkey get:requestJson
+             completion:^(NSString *json, NSString *errorMessage) {
+      if (json != nil) {
+        resolve(json);
+      } else {
+        reject(kWalletdkErrorCode,
+               errorMessage ?: @"passkey ceremony failed", nil);
+      }
+    }];
+  });
 }
 
 // call maps a verb name onto the gomobile Mobile* entry points. The facade

@@ -11,7 +11,8 @@ Pod::Spec.new do |s|
   s.authors      = "Lightning Labs"
   s.platforms    = { :ios => "15.1" }
   s.source       = { :git => "https://github.com/lightninglabs/dawallet.git" }
-  s.source_files = "ios/**/*.{h,mm}"
+  s.source_files = "ios/**/*.{h,mm,swift}"
+  s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
 
   # The gomobile-built daemon; staged by scripts/fetch-bindings.sh (gitignored).
   s.vendored_frameworks = "ios/Walletdk.xcframework"

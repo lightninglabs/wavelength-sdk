@@ -17,6 +17,12 @@ export interface Spec extends TurboModule {
   stopActivity(): Promise<void>;
   /** Resolves the platform default wallet data directory. */
   getDefaultDataDir(): Promise<string>;
+  /** Reports whether the platform can run a passkey PRF ceremony. */
+  passkeySupported(): Promise<boolean>;
+  /** Runs a passkey registration ceremony; WebAuthn JSON in and out. */
+  passkeyCreate(requestJson: string): Promise<string>;
+  /** Runs a passkey assertion ceremony; WebAuthn JSON in and out. */
+  passkeyGet(requestJson: string): Promise<string>;
   /** Required by NativeEventEmitter; the native side keeps no listener state. */
   addListener(eventName: string): void;
   /** Required by NativeEventEmitter; the native side keeps no listener state. */

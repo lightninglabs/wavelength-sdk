@@ -1,7 +1,14 @@
 import { NativeEventEmitter, NativeModules } from 'react-native';
-import type { WalletDKClient } from '@lightninglabs/walletdk-core';
+import type {
+  WalletDKClient,
+  PasskeyCeremony,
+} from '@lightninglabs/walletdk-core';
 import NativeWalletdk from './NativeWalletdk';
 import { NativeWalletDKClient } from './client';
+import {
+  nativePasskeyCeremony,
+  type NativePasskeyCeremonyOptions,
+} from './passkey';
 
 /**
  * Creates a {@link WalletDKClient} backed by the React Native transport: the
@@ -20,6 +27,25 @@ export function createNativeClient(): WalletDKClient {
     return () => subscription.remove();
   });
 }
+
+/**
+ * Creates the native (Android Credential Manager / iOS AuthenticationServices)
+ * implementation of the {@link PasskeyCeremony} contract; pass it to
+ * usePasskeyWallet, or drive it directly. Requires the relying-party domain
+ * to be associated with your app (assetlinks.json on Android, an Associated
+ * Domains entitlement plus apple-app-site-association on iOS). iOS support is
+ * experimental and needs iOS 18 or newer at runtime.
+ */
+export function createNativePasskeyCeremony(
+  options: NativePasskeyCeremonyOptions,
+): PasskeyCeremony {
+  return nativePasskeyCeremony(NativeWalletdk, options);
+}
+
+export type {
+  NativePasskeyCeremonyOptions,
+  WalletdkPasskeyNativeModule,
+} from './passkey';
 
 export { NativeWalletDKClient } from './client';
 export type {

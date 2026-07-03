@@ -32,4 +32,10 @@ dependencies {
   implementation "com.facebook.react:react-android"
   // The gomobile-generated bindings, staged by scripts/fetch-bindings.sh.
   api files("libs/Walletdk.aar")
+  // Passkeys: Credential Manager plus its Play services provider binding.
+  implementation "androidx.credentials:credentials:1.6.0"
+  implementation "androidx.credentials:credentials-play-services-auth:1.6.0"
+  // GoogleApiAvailability/ConnectionResult for the passkeySupported probe;
+  // the binding above does not expose them on the compile classpath.
+  implementation "com.google.android.gms:play-services-base:18.7.2"
 }

@@ -1,9 +1,29 @@
 package engineering.lightning.walletdk.reactnative
 
+import android.os.Build
+import androidx.core.content.ContextCompat
+import androidx.credentials.CreateCredentialResponse
+import androidx.credentials.CreatePublicKeyCredentialRequest
+import androidx.credentials.CreatePublicKeyCredentialResponse
+import androidx.credentials.CredentialManager
+import androidx.credentials.CredentialManagerCallback
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetPublicKeyCredentialOption
+import androidx.credentials.PublicKeyCredential
+import androidx.credentials.exceptions.CreateCredentialCancellationException
+import androidx.credentials.exceptions.CreateCredentialException
+import androidx.credentials.exceptions.CreateCredentialProviderConfigurationException
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import engineering.lightning.walletdk.mobile.Mobile
 import engineering.lightning.walletdk.mobile.Subscription
 import java.io.File
@@ -22,6 +42,103 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
 
   override fun getDefaultDataDir(promise: Promise) {
     promise.resolve(File(reactApplicationContext.filesDir, "walletdk").absolutePath)
+  }
+
+  // passkeySupported is a cheap prerequisite probe (platform passkeys need
+  // API 28 and Play services); like the web probe, true does not guarantee
+  // the ceremony will yield a PRF output.
+  override fun passkeySupported(promise: Promise) {
+    val playServicesReady = GoogleApiAvailability.getInstance()
+      .isGooglePlayServicesAvailable(reactApplicationContext) ==
+      ConnectionResult.SUCCESS
+    promise.resolve(Build.VERSION.SDK_INT >= 28 && playServicesReady)
+  }
+
+  // passkeyCreate runs a WebAuthn registration through Credential Manager,
+  // which consumes and produces the standard WebAuthn JSON verbatim.
+  override fun passkeyCreate(requestJson: String, promise: Promise) {
+    val activity = currentActivity
+    if (activity == null) {
+      promise.reject(ERROR_CODE, "passkey ceremony requires a foreground activity")
+      return
+    }
+    try {
+      CredentialManager.create(reactApplicationContext).createCredentialAsync(
+        activity,
+        CreatePublicKeyCredentialRequest(requestJson),
+        null,
+        ContextCompat.getMainExecutor(activity),
+        object :
+          CredentialManagerCallback<CreateCredentialResponse, CreateCredentialException> {
+          override fun onResult(result: CreateCredentialResponse) {
+            val json =
+              (result as? CreatePublicKeyCredentialResponse)?.registrationResponseJson
+            if (json == null) {
+              promise.reject(ERROR_CODE, "credential provider returned an unexpected type")
+            } else {
+              promise.resolve(json)
+            }
+          }
+
+          override fun onError(e: CreateCredentialException) {
+            promise.reject(ERROR_CODE, passkeyErrorMessage(e), e)
+          }
+        },
+      )
+    } catch (e: Exception) {
+      // Request construction validates the JSON eagerly; reject rather than
+      // crash when a caller bypasses the TypeScript ceremony with bad input.
+      promise.reject(ERROR_CODE, e.message ?: "passkey ceremony failed", e)
+    }
+  }
+
+  // passkeyGet runs a WebAuthn assertion through Credential Manager.
+  override fun passkeyGet(requestJson: String, promise: Promise) {
+    val activity = currentActivity
+    if (activity == null) {
+      promise.reject(ERROR_CODE, "passkey ceremony requires a foreground activity")
+      return
+    }
+    try {
+      CredentialManager.create(reactApplicationContext).getCredentialAsync(
+        activity,
+        GetCredentialRequest(listOf(GetPublicKeyCredentialOption(requestJson))),
+        null,
+        ContextCompat.getMainExecutor(activity),
+        object :
+          CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
+          override fun onResult(result: GetCredentialResponse) {
+            val json =
+              (result.credential as? PublicKeyCredential)?.authenticationResponseJson
+            if (json == null) {
+              promise.reject(ERROR_CODE, "credential provider returned an unexpected type")
+            } else {
+              promise.resolve(json)
+            }
+          }
+
+          override fun onError(e: GetCredentialException) {
+            promise.reject(ERROR_CODE, passkeyErrorMessage(e), e)
+          }
+        },
+      )
+    } catch (e: Exception) {
+      // Request construction validates the JSON eagerly; reject rather than
+      // crash when a caller bypasses the TypeScript ceremony with bad input.
+      promise.reject(ERROR_CODE, e.message ?: "passkey ceremony failed", e)
+    }
+  }
+
+  // passkeyErrorMessage maps the Credential Manager exception taxonomy onto
+  // the ceremony's user-facing messages, matching the web ceremony's wording.
+  private fun passkeyErrorMessage(e: Exception): String = when (e) {
+    is CreateCredentialCancellationException -> "passkey registration was cancelled"
+    is GetCredentialCancellationException -> "passkey authentication was cancelled"
+    is NoCredentialException -> "no passkey is available on this device for this app"
+    is CreateCredentialProviderConfigurationException,
+    is GetCredentialProviderConfigurationException,
+    -> "no passkey provider is configured on this device"
+    else -> e.message ?: "passkey ceremony failed"
   }
 
   override fun call(method: String, paramsJson: String, promise: Promise) {

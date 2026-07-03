@@ -53,10 +53,56 @@ into your app; pass it to `WalletDKProvider` and use the same hooks
 `useDepositAddress`, `useWalletActivity`) documented in
 [`@lightninglabs/walletdk-react`](../react).
 
+## Passkey wallets
+
+The transport ships a native passkey ceremony, so users can create and unlock
+a wallet with a platform passkey instead of a password:
+
+```tsx
+import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
+
+const ceremony = createNativePasskeyCeremony({ rpId: 'wallet.example.com' });
+
+function PasskeyButton() {
+  const passkey = usePasskeyWallet(ceremony);
+  if (!passkey.supported) return null;
+  return (
+    <Button
+      title="Create with passkey"
+      disabled={passkey.busy}
+      onPress={() => passkey.createPasskeyWallet('My Wallet App')}
+    />
+  );
+}
+```
+
+Passkeys bind to a relying-party domain (`rpId`) that must vouch for your
+app:
+
+- **Android:** serve
+  `https://<rpId>/.well-known/assetlinks.json` listing your app's package
+  name and signing-certificate SHA-256 fingerprint with both relations the
+  platform checks (`delegate_permission/common.handle_all_urls` and
+  `delegate_permission/common.get_login_creds`), and declare the association
+  in your app: an `asset_statements` string resource that includes that
+  assetlinks URL, referenced by a manifest `meta-data` entry. Without either
+  half the ceremony fails with "RP ID cannot be validated". At runtime the
+  device needs Android 9+ (API 28), Google Play services with a signed-in
+  Google account, and a device screen lock.
+- **iOS (experimental):** add the Associated Domains capability
+  (`webcredentials:<rpId>`) to your app and serve
+  `https://<rpId>/.well-known/apple-app-site-association` listing your Team
+  ID and bundle id. Requires iOS 18 or newer at runtime. The iOS ceremony is
+  implemented and unit-tested but has not yet been verified end to end;
+  treat it as experimental.
+
+`supportsPasskeyPrf()` (surfaced as `passkey.supported` by the hook) reports
+whether the platform prerequisites are present; a supported device can still
+decline the ceremony, which surfaces as a normal error.
+
 ## Known limitations
 
-- Passkey flows (`usePasskeyWallet`) are **web-only** for now. They rely on
-  a WebAuthn ceremony this transport does not yet implement.
 - Wallet runtime logs go to the platform log (Android logcat, iOS os_log),
   not to JS-visible events. Use your platform's native log viewer while
   debugging.
