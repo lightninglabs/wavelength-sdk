@@ -9,7 +9,8 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "engineering.lightning.walletdk.demo",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "associatedDomains": ["webcredentials:dadocs.lightning.engineering"]
     },
     "android": {
       "package": "engineering.lightning.walletdk.demo",
@@ -23,6 +24,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": ["./plugins/withAssetStatements"]
   }
 }

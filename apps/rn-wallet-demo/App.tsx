@@ -9,12 +9,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   RuntimeConfig,
   WalletDKProvider,
+  usePasskeyWallet,
   useWalletDK,
 } from '@lightninglabs/walletdk-react';
-import { createNativeClient } from '@lightninglabs/walletdk-react-native';
+import {
+  createNativeClient,
+  createNativePasskeyCeremony,
+} from '@lightninglabs/walletdk-react-native';
 
 // The Android emulator reaches the host machine as 10.0.2.2; the iOS
 // simulator shares the host loopback.
@@ -39,6 +44,17 @@ const PRESETS: Record<'regtest' | 'signet', RuntimeConfig> = {
     swapServerUrl: 'swapd-signet.testnet.lightningcluster.com:443',
   },
 };
+
+// The demo's relying party: the docs site serves the association files that
+// vouch for this app. Demo-grade trust; see the README.
+const passkeyCeremony = createNativePasskeyCeremony({
+  rpId: 'dadocs.lightning.engineering',
+});
+
+// The demo always uses the default data dir, so one fixed key is enough to
+// remember which passkey credential opened the wallet (the web demo keys the
+// same marker by data dir).
+const PASSKEY_CREDENTIAL_KEY = 'walletdk.passkeyCredentialId';
 
 export default function App() {
   return (
@@ -92,6 +108,7 @@ function StartSection() {
 /** Creates a new wallet or unlocks the existing one. */
 function BootstrapSection() {
   const { createWallet, unlockWallet, info, operations } = useWalletDK();
+  const passkey = usePasskeyWallet(passkeyCeremony);
   const [password, setPassword] = useState('');
   const hasWallet = info?.walletState === 'locked';
 
@@ -100,6 +117,19 @@ function BootstrapSection() {
       ? unlockWallet({ password })
       : createWallet({ password });
     action.catch(() => undefined);
+  };
+
+  // Scopes the unlock assertion to the stored credential when one is known;
+  // a fresh install falls back to a discoverable assertion.
+  const submitPasskey = async () => {
+    const outcome = hasWallet
+      ? await passkey.openPasskeyWallet(
+          (await AsyncStorage.getItem(PASSKEY_CREDENTIAL_KEY)) ?? undefined,
+        )
+      : await passkey.createPasskeyWallet('WalletDK RN Demo');
+    if (outcome) {
+      await AsyncStorage.setItem(PASSKEY_CREDENTIAL_KEY, outcome.credentialId);
+    }
   };
 
   return (
@@ -119,8 +149,19 @@ function BootstrapSection() {
         disabled={!password || operations.createWallet.busy || operations.unlockWallet.busy}
         onPress={submit}
       />
+      {passkey.supported ? (
+        <Button
+          title={hasWallet ? 'Unlock with passkey' : 'Create with passkey'}
+          disabled={passkey.busy}
+          onPress={() => submitPasskey().catch(() => undefined)}
+        />
+      ) : null}
       <OperationError
-        error={operations.createWallet.error || operations.unlockWallet.error}
+        error={
+          operations.createWallet.error ||
+          operations.unlockWallet.error ||
+          passkey.error
+        }
       />
     </View>
   );
