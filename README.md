@@ -16,12 +16,13 @@ Your app drives it through a small, typed client.
 |---|---|
 | [`@lightninglabs/walletdk-core`](packages/core) | The contract: types, the `WalletDKClient` interface, errors, and enums. No DOM, no transport. |
 | [`@lightninglabs/walletdk-web`](packages/web) | The browser (wasm) transport. Framework-agnostic: use it directly from vanilla JS, Vue, Svelte, or React. Re-exports `core`. |
+| [`@lightninglabs/walletdk-react-native`](packages/react-native) | The React Native transport. Re-exports `core`. |
 | [`@lightninglabs/walletdk-react`](packages/react) | React provider + hooks. |
 
 `walletdk-react` is transport-agnostic: it depends only on `core` and takes an
-injected client, so the same binding can later run over a React-Native transport.
-`walletdk-web` re-exports every type from `core`, so a non-React app imports the
-client and its types from one place.
+injected client, so the same binding runs over both the web and React Native
+transports. `walletdk-web` and `walletdk-react-native` each re-export every
+type from `core`, so an app imports the client and its types from one place.
 
 ## Install
 
@@ -33,9 +34,10 @@ npm install @lightninglabs/walletdk-react @lightninglabs/walletdk-web
 npm install @lightninglabs/walletdk-web
 ```
 
-You build the client with `createWebClient()` from `walletdk-web`. In React you
-pass that client to `WalletDKProvider`; the provider itself is transport-agnostic
-(the same binding will later run over a React-Native transport).
+You build the client with `createWebClient()` from `walletdk-web` (or
+`createNativeClient()` from `walletdk-react-native` on mobile). In React you
+pass that client to `WalletDKProvider`; the provider itself is
+transport-agnostic and works the same way with either.
 
 ## Quickstart: React
 
