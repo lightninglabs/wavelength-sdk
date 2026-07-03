@@ -42,6 +42,20 @@ export function createNativePasskeyCeremony(
   return nativePasskeyCeremony(NativeWalletdk, options);
 }
 
+/**
+ * Resolves the platform default wallet data directory (the same directory
+ * {@link createNativeClient}'s client uses when RuntimeConfig.dataDir is not
+ * set). Exposed for app-level data management: showing the storage location,
+ * backing it up, or deleting it to wipe the wallet.
+ *
+ * Returns a plain absolute filesystem path with no URI scheme; a consumer that
+ * needs a `file://` URL (for example to delete the directory) must add it. The
+ * directory is not guaranteed to exist until the runtime has started.
+ */
+export function getDefaultDataDir(): Promise<string> {
+  return NativeWalletdk.getDefaultDataDir();
+}
+
 export type {
   NativePasskeyCeremonyOptions,
   WalletdkPasskeyNativeModule,
