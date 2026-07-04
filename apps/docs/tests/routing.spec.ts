@@ -6,8 +6,8 @@ import { join, dirname } from 'node:path';
 const URLS = [
   '/', '/introduction/what-is-walletdk/', '/concepts/balances-and-vtxos/',
   '/glossary/', '/reference/walletdk-core/',
-  '/web/get-started/quickstart/', '/web/guides/send-a-payment/',
-  '/web/reference/walletdk-web/', '/web/support/troubleshooting/',
+  '/web/get-started/quickstart/', '/guides/send-a-payment/',
+  '/reference/walletdk-web/', '/web/support/troubleshooting/',
 ];
 
 test('every existing URL still resolves', async ({ page }) => {
@@ -33,7 +33,7 @@ test('no React Native references leak into the built site', async ({ page }) => 
 // --- Playground deferral assertions (Task 8) ---
 
 // The Playground is deferred. No shipped page should link to it.
-const PLAYGROUND_CHECK_PAGES = ['/', '/web/get-started/quickstart/', '/web/guides/send-a-payment/'];
+const PLAYGROUND_CHECK_PAGES = ['/', '/web/get-started/quickstart/', '/guides/send-a-payment/'];
 
 test('no shipped page links to a playground route', async ({ page }) => {
   for (const url of PLAYGROUND_CHECK_PAGES) {

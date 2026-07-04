@@ -28,11 +28,11 @@ Check the npm registry for current versions; do not rely on memorized ones.
 | Building | Read first |
 | --- | --- |
 | Any new integration | https://dadocs.lightning.engineering/web/get-started/quickstart.md |
-| React app | https://dadocs.lightning.engineering/web/integrations/react.md |
-| Wallet creation and unlock | https://dadocs.lightning.engineering/web/guides/create-a-wallet.md |
-| Sending payments | https://dadocs.lightning.engineering/web/guides/send-a-payment.md |
-| Receiving payments | https://dadocs.lightning.engineering/web/guides/receive-a-lightning-payment.md |
-| Passkey protection | https://dadocs.lightning.engineering/web/guides/use-a-passkey.md |
+| React app | https://dadocs.lightning.engineering/integrations/react.md |
+| Wallet creation and unlock | https://dadocs.lightning.engineering/guides/create-a-wallet.md |
+| Sending payments | https://dadocs.lightning.engineering/guides/send-a-payment.md |
+| Receiving payments | https://dadocs.lightning.engineering/guides/receive-a-lightning-payment.md |
+| Passkey protection | https://dadocs.lightning.engineering/guides/use-a-passkey.md |
 | Asset hosting or COOP/COEP issues | https://dadocs.lightning.engineering/web/get-started/hosting-runtime-assets.md |
 
 ## Critical rules

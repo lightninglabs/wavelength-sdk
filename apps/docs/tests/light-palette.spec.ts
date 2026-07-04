@@ -43,7 +43,7 @@ test('--sidebar-w token resolves on the quickstart page', async ({ page }) => {
 test('lime active sidebar link is not raw #c9f000 in light mode', async ({ page }) => {
   // Navigate to a guides page (lime section).
   await page.addInitScript(() => { try { localStorage.setItem('wdk-theme', 'light'); } catch {} });
-  await page.goto('/web/guides/create-a-wallet/');
+  await page.goto('/guides/create-a-wallet/');
 
   await page.emulateMedia({ colorScheme: 'light' });
   await goLight(page);
@@ -63,7 +63,7 @@ test('lime active sidebar link is not raw #c9f000 in light mode', async ({ page 
 
 test('h2 underline accent for lime pages is not #c9f000 in light mode', async ({ page }) => {
   await page.addInitScript(() => { try { localStorage.setItem('wdk-theme', 'light'); } catch {} });
-  await page.goto('/web/guides/create-a-wallet/');
+  await page.goto('/guides/create-a-wallet/');
   await page.emulateMedia({ colorScheme: 'light' });
   await goLight(page);
 

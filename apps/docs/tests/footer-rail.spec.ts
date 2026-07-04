@@ -8,7 +8,7 @@ import { edges } from './helpers';
 // the footer stays full-width on the right.
 
 test('guide footer clears the left sidebar and extends to the right edge', async ({ page }) => {
-  await page.goto('/web/guides/create-a-wallet/');
+  await page.goto('/guides/create-a-wallet/');
   const footer = page.locator('.wdk-footer');
   const sidebar = page.locator('.wdk-sidebar');
   const toc = page.locator('.wdk-toc');
@@ -71,7 +71,7 @@ test('home footer is full-width (no rail insets)', async ({ page }) => {
 });
 
 test('TOC rail bottom aligns with footer top when scrolled to the page bottom', async ({ page }) => {
-  await page.goto('/web/guides/create-a-wallet/');
+  await page.goto('/guides/create-a-wallet/');
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expect(async () => {
     const tocBottom = await page.locator('.wdk-toc').evaluate((el) => el.getBoundingClientRect().bottom);

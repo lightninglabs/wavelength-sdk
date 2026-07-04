@@ -56,7 +56,7 @@ activity events arrive.
 `'stopping'`, `'stopped'`, or `'error'`. The `loading`/`runtimeReady`/
 `starting`/`stopping`/`stopped`/`error` phases are owned by the start/stop
 flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from wallet info.
-See [Handle phases and errors](/web/guides/handle-phases-and-errors/) for the
+See [Handle phases and errors](/guides/handle-phases-and-errors/) for the
 full state machine and how to react to each phase.
 
 The package **re-exports every type and enum from `core`**, so a React app can
@@ -104,10 +104,10 @@ function SendButton({ invoice }: { invoice: string }) {
 }
 ```
 
-See [Send a payment](/web/guides/send-a-payment/),
-[Receive a Lightning payment](/web/guides/receive-a-lightning-payment/),
-[Get a deposit address](/web/guides/get-a-deposit-address/), and
-[Show balance and activity](/web/guides/show-balance-and-activity/) for
+See [Send a payment](/guides/send-a-payment/),
+[Receive a Lightning payment](/guides/receive-a-lightning-payment/),
+[Get a deposit address](/guides/get-a-deposit-address/), and
+[Show balance and activity](/guides/show-balance-and-activity/) for
 end-to-end usage of these hooks.
 
 Additional helpers split common concerns:
@@ -205,4 +205,4 @@ if (outcome) {
 }
 ```
 
-See [Use a passkey](/web/guides/use-a-passkey/) for end-to-end onboarding UX.
+See [Use a passkey](/guides/use-a-passkey/) for end-to-end onboarding UX.

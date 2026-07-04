@@ -13,7 +13,7 @@ Boarding is how you enter Ark from the Bitcoin base layer. You spend an on-chain
 
 ### Boarding address
 
-A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; WalletDK tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/web/guides/get-a-deposit-address/).
+A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; WalletDK tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/guides/get-a-deposit-address/).
 
 ### Cooperative leave
 
@@ -25,7 +25,7 @@ Esplora is a REST API for querying Bitcoin chain data and UTXOs. WalletDK's ligh
 
 ### In-swap
 
-An in-swap brings value into your Ark wallet over Lightning. When you create a Lightning invoice, the swap server and operator set up a vHTLC; once a payer settles the invoice, you claim the locked funds as Ark balance. In-swaps are the receive path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Receive a Lightning payment](/web/guides/receive-a-lightning-payment/).
+An in-swap brings value into your Ark wallet over Lightning. When you create a Lightning invoice, the swap server and operator set up a vHTLC; once a payer settles the invoice, you claim the locked funds as Ark balance. In-swaps are the receive path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Receive a Lightning payment](/guides/receive-a-lightning-payment/).
 
 ### Mailbox
 
@@ -41,7 +41,7 @@ The operator, also called the Ark Service Provider (ASP), runs the Ark coordinat
 
 ### Out-swap
 
-An out-swap sends value from your Ark wallet over Lightning. You fund a vHTLC from your Ark balance; the swap server pays the destination invoice and claims the vHTLC once Lightning settlement reveals the preimage. Out-swaps are the send path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Send a payment](/web/guides/send-a-payment/).
+An out-swap sends value from your Ark wallet over Lightning. You fund a vHTLC from your Ark balance; the swap server pays the destination invoice and claims the vHTLC once Lightning settlement reveals the preimage. Out-swaps are the send path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Send a payment](/guides/send-a-payment/).
 
 ### Round
 

@@ -67,7 +67,7 @@ Both directions go through `swapServerUrl`. Swaps can sit in a pending state whi
 
 Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark operator helps convert your VTXO into an on-chain transaction. This is the default path for `send({ onchainAddress })`. It is faster and cheaper than exiting alone.
 
-**Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WalletDKClient` for this path; see [Unilateral exit](/web/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
+**Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WalletDKClient` for this path; see [Unilateral exit](/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
 
 <DiagramFrame label="Diagram: the five payment rails. On-chain in: deposit, boarding, round, VTXO. Lightning receive: in-swap through the swap server to a VTXO. Lightning send: out-swap through the swap server to a paid invoice. On-chain send: cooperative leave via the operator and Esplora. Emergency: unilateral exit to on-chain.">
   <FlowLane

@@ -58,5 +58,5 @@ Unilateral exit is irreversible once broadcast and can cost many times the fee o
 If cooperative leave fails, WalletDK surfaces the error directly; it does not silently fall back to unilateral unroll. The unilateral path requires an explicit `forceUnrollAck` on `exit()`. Read `ExitResult.path` to see which branch ran so the UI can treat unilateral exit as a deliberate, informed event rather than a silent substitution.
 
 <Callout type="note">
-See [Unilateral exit](/web/guides/unilateral-exit/) for a walkthrough of building the flow end to end, or [Handle phases and errors](/web/guides/handle-phases-and-errors/) for surfacing `WalletDKErrorCode` failures along the way.
+See [Unilateral exit](/guides/unilateral-exit/) for a walkthrough of building the flow end to end, or [Handle phases and errors](/guides/handle-phases-and-errors/) for surfacing `WalletDKErrorCode` failures along the way.
 </Callout>

@@ -13,8 +13,8 @@ import Callout from '~/components/mdx/Callout.astro';
 `@lightninglabs/walletdk-core` is the framework-agnostic contract every
 WalletDK transport implements: a typed `WalletDKClient` interface, the request
 and result shapes its methods take and return, and the shared error and event
-model. It has no browser or React dependency: [`walletdk-web`](/web/reference/walletdk-web/)
-implements it for the browser, and [`walletdk-react`](/web/reference/walletdk-react/)
+model. It has no browser or React dependency: [`walletdk-web`](/reference/walletdk-web/)
+implements it for the browser, and [`walletdk-react`](/reference/walletdk-react/)
 re-exports it and layers hooks on top.
 
 Every method response is camelCase-normalized at the boundary: the embedded
@@ -153,7 +153,7 @@ export const disposeSig = `dispose(): void`;
 <ApiSymbol name="WalletDKClient" kind="type">
 
 The typed RPC surface every transport implements. Create a client with
-[`createWebClient()`](/web/reference/walletdk-web/) from walletdk-web (or a
+[`createWebClient()`](/reference/walletdk-web/) from walletdk-web (or a
 native transport), call `start(config)`, then use the wallet methods
 documented in the sections below.
 
@@ -1837,7 +1837,7 @@ the same passkey.
 The per-platform passkey ceremony contract a host injects to drive
 [`openWalletFromPasskey()`](#openWalletFromPasskey). Injecting it keeps
 consumers of this contract free of any transport dependency:
-[`walletdk-web`](/web/reference/walletdk-web/) supplies the browser
+[`walletdk-web`](/reference/walletdk-web/) supplies the browser
 (WebAuthn/PRF) implementation as `webPasskeyCeremony`, and
 `walletdk-react`'s `usePasskeyWallet` hook drives whichever implementation
 you pass it. A native (e.g. mobile) transport supplies its own.

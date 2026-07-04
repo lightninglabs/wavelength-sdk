@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 const CONCEPTS_BALANCES = '/concepts/balances-and-vtxos/';
 
 // A guide that has related[] set in frontmatter (send-a-payment has 4 related items).
-const GUIDE_SEND = '/web/guides/send-a-payment/';
+const GUIDE_SEND = '/guides/send-a-payment/';
 
 // A content page (DocLayout mounts RelatedGuides) with no related[] in its
 // frontmatter, used to assert RelatedGuides renders nothing when the list is empty.

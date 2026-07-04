@@ -60,7 +60,7 @@ test('exactly one symbol link is .is-active on load', async ({ page }) => {
 // Smoke checks for the sibling reference pages.
 
 test('walletdk-web reference page renders symbol sections, rail, and orange accent', async ({ page }) => {
-  await page.goto('/web/reference/walletdk-web/');
+  await page.goto('/reference/walletdk-web/');
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
@@ -69,7 +69,7 @@ test('walletdk-web reference page renders symbol sections, rail, and orange acce
 });
 
 test('walletdk-react reference page renders symbol sections, rail, and orange accent', async ({ page }) => {
-  await page.goto('/web/reference/walletdk-react/');
+  await page.goto('/reference/walletdk-react/');
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
@@ -139,7 +139,7 @@ test('symbol rail rebuilds after client-side reference->reference navigation', a
 
   // Navigate to walletdk-web via the sidebar link (client-side view transition).
   await page.locator('.wdk-sidebar').getByRole('link', { name: 'walletdk-web' }).click();
-  await expect(page).toHaveURL(/\/web\/reference\/walletdk-web\/$/);
+  await expect(page).toHaveURL(/\/reference\/walletdk-web\/$/);
 
   // Confirm it was a client-side swap, not a full reload.
   expect(await page.evaluate(() => window.__wdkNoReload === true)).toBe(true);

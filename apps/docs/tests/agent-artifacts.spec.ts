@@ -50,7 +50,7 @@ test('well-known skills catalog and files are served', async ({ request }) => {
 });
 
 test('mirrors contain converted content, not html', async ({ request }) => {
-  const res = await request.get('/web/guides/use-a-passkey.md');
+  const res = await request.get('/guides/use-a-passkey.md');
   const body = await res.text();
   // Code samples may legitimately contain HTML-shaped text; the leak check
   // targets prose and structure outside code.

@@ -3,9 +3,9 @@ title: Use a passkey
 description: How to create and unlock a WalletDK wallet using WebAuthn passkeys instead of a password, with a live example.
 pageLayout: guide
 related:
-  - web/guides/create-a-wallet
-  - web/guides/handle-phases-and-errors
-  - web/guides/show-balance-and-activity
+  - guides/create-a-wallet
+  - guides/handle-phases-and-errors
+  - guides/show-balance-and-activity
 ---
 
 ## Create a passkey-protected wallet
@@ -51,7 +51,7 @@ The browser presents the WebAuthn authentication dialog. On success, the
 runtime decrypts the seed and the provider transitions through `'syncing'` to
 `'ready'`. If the ceremony fails or times out, the provider instead moves to
 the `'error'` phase; see
-[Handle phases & errors](/web/guides/handle-phases-and-errors/) for how to
+[Handle phases & errors](/guides/handle-phases-and-errors/) for how to
 detect and recover from that path.
 
 Pass the stored `credentialId` to scope the assertion to the same passkey.

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // Tests for the new GuideArticleLayout (GR3).
 // The conventional, inline-code guide page replaces the scroll-synced rail.
-// Asserts that /web/guides/create-a-wallet/ renders:
+// Asserts that /guides/create-a-wallet/ renders:
 //   1. A breadcrumb (.wdk-guide__breadcrumb).
 //   2. A numbered first step - the first in-content h2 gets a CSS-counter
 //      circle via ::before whose content resolves to "1".
@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 //   4. data-accent="lime" on <html>.
 //   5. The old scrollytelling [data-code-rail] is ABSENT.
 
-const PAGE = '/web/guides/create-a-wallet/';
+const PAGE = '/guides/create-a-wallet/';
 
 test('guide page renders a breadcrumb', async ({ page }) => {
   await page.goto(PAGE);
@@ -86,7 +86,7 @@ test('the title-accent bar and a min-read meta item render', async ({ page }) =>
 // from the retired guide-scrollytelling.spec.js, which only ever exercised the
 // old scroll-synced code rail and is now a misnomer under the article layout.
 test('send-a-payment renders the guide article with numbered steps', async ({ page }) => {
-  await page.goto('/web/guides/send-a-payment/');
+  await page.goto('/guides/send-a-payment/');
   await expect(page.locator('.wdk-guide__breadcrumb')).toBeVisible();
   const headings = page.locator('.wdk-guide__content h2');
   await expect(headings.first()).toBeVisible();

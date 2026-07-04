@@ -48,36 +48,38 @@ export const NAV: NavGroup[] = [
   },
   // -- WEB SDK (BUILD) --
   {
-    label: 'Get started',
-    section: 'get-started',
+    label: 'Get started: Web',
+    section: 'get-started-web',
     items: [
-      { slug: 'web/get-started/quickstart', label: 'Quickstart', section: 'get-started' },
-      { slug: 'web/get-started/run-the-demo-app', label: 'Run the demo app', section: 'get-started' },
-      { slug: 'web/get-started/installation', label: 'Installation', section: 'get-started' },
-      { slug: 'web/get-started/requirements', label: 'Requirements', section: 'get-started' },
-      { slug: 'web/get-started/hosting-runtime-assets', label: 'Hosting runtime assets', section: 'get-started' },
-      { slug: 'web/get-started/cross-origin-isolation', label: 'Cross-origin isolation', section: 'get-started' },
+      { slug: 'web/get-started/quickstart', label: 'Quickstart', section: 'get-started-web' },
+      { slug: 'web/get-started/run-the-demo-app', label: 'Run the demo app', section: 'get-started-web' },
+      { slug: 'web/get-started/installation', label: 'Installation', section: 'get-started-web' },
+      { slug: 'web/get-started/requirements', label: 'Requirements', section: 'get-started-web' },
+      { slug: 'web/get-started/hosting-runtime-assets', label: 'Hosting runtime assets', section: 'get-started-web' },
+      { slug: 'web/get-started/cross-origin-isolation', label: 'Cross-origin isolation', section: 'get-started-web' },
     ],
   },
+  // The 'Get started: React Native' group is added in a later task, when its
+  // pages exist (Task 2), so the sidebar never links to a missing page.
   {
     label: 'Integrations',
     section: 'integrations',
     items: [
-      { slug: 'web/integrations/react', label: 'React', section: 'integrations' },
+      { slug: 'integrations/react', label: 'React', section: 'integrations' },
     ],
   },
   {
     label: 'Guides',
     section: 'guides',
     items: [
-      { slug: 'web/guides/create-a-wallet', label: 'Create a wallet', section: 'guides' },
-      { slug: 'web/guides/get-a-deposit-address', label: 'Get a deposit address', section: 'guides' },
-      { slug: 'web/guides/show-balance-and-activity', label: 'Show balance and activity', section: 'guides' },
-      { slug: 'web/guides/send-a-payment', label: 'Send a payment', section: 'guides' },
-      { slug: 'web/guides/receive-a-lightning-payment', label: 'Receive a Lightning payment', section: 'guides' },
-      { slug: 'web/guides/use-a-passkey', label: 'Use a passkey', section: 'guides' },
-      { slug: 'web/guides/handle-phases-and-errors', label: 'Handle phases and errors', section: 'guides' },
-      { slug: 'web/guides/unilateral-exit', label: 'Unilateral exit', section: 'guides' },
+      { slug: 'guides/create-a-wallet', label: 'Create a wallet', section: 'guides' },
+      { slug: 'guides/get-a-deposit-address', label: 'Get a deposit address', section: 'guides' },
+      { slug: 'guides/show-balance-and-activity', label: 'Show balance and activity', section: 'guides' },
+      { slug: 'guides/send-a-payment', label: 'Send a payment', section: 'guides' },
+      { slug: 'guides/receive-a-lightning-payment', label: 'Receive a Lightning payment', section: 'guides' },
+      { slug: 'guides/use-a-passkey', label: 'Use a passkey', section: 'guides' },
+      { slug: 'guides/handle-phases-and-errors', label: 'Handle phases and errors', section: 'guides' },
+      { slug: 'guides/unilateral-exit', label: 'Unilateral exit', section: 'guides' },
     ],
   },
   // -- REFERENCE --
@@ -86,25 +88,19 @@ export const NAV: NavGroup[] = [
     section: 'reference',
     items: [
       { slug: 'reference/walletdk-core', label: 'walletdk-core', section: 'reference' },
-      { slug: 'web/reference/walletdk-web', label: 'walletdk-web', section: 'reference' },
-      { slug: 'web/reference/walletdk-react', label: 'walletdk-react', section: 'reference' },
+      { slug: 'reference/walletdk-react', label: 'walletdk-react', section: 'reference' },
+      { slug: 'reference/walletdk-web', label: 'walletdk-web', section: 'reference' },
     ],
   },
-  // -- OPERATIONS --
+  // -- PLATFORM OPERATIONS --
   {
-    label: 'Web runtime',
-    section: 'runtime',
+    label: 'Web platform',
+    section: 'web-platform',
     items: [
-      { slug: 'web/runtime/data-and-persistence', label: 'Data and persistence', section: 'runtime' },
-    ],
-  },
-  {
-    label: 'Support',
-    section: 'support',
-    items: [
-      { slug: 'web/support/browser-support', label: 'Browser support', section: 'support' },
-      { slug: 'web/support/demo-app', label: 'Demo app', section: 'support' },
-      { slug: 'web/support/troubleshooting', label: 'Troubleshooting', section: 'support' },
+      { slug: 'web/runtime/data-and-persistence', label: 'Data and persistence', section: 'web-platform' },
+      { slug: 'web/support/browser-support', label: 'Browser support', section: 'web-platform' },
+      { slug: 'web/support/demo-app', label: 'Demo app', section: 'web-platform' },
+      { slug: 'web/support/troubleshooting', label: 'Troubleshooting', section: 'web-platform' },
     ],
   },
   {
@@ -274,14 +270,15 @@ export function sliceForSlug(slug: string): Slice {
  */
 export const SECTION_ACCENT: Record<string, Accent> = {
   introduction: 'violet',
-  'get-started': 'violet',
   concepts: 'teal',
   glossary: 'teal',
   guides: 'lime',
   integrations: 'lime',
   reference: 'orange',
-  runtime: 'orange',
-  support: 'sky',
+  'get-started-web': 'violet',
+  'get-started-rn': 'violet',
+  'web-platform': 'sky',
+  'rn-platform': 'sky',
   'api-overview': 'violet',
   'api-lifecycle': 'teal',
   'api-send': 'lime',
@@ -325,17 +322,17 @@ export function accentForSlug(slug: string): Accent {
   if (slug.startsWith('concepts/') || slug === 'glossary' || slug.startsWith('glossary/')) {
     return 'teal';
   }
-  if (slug.startsWith('web/guides/') || slug.startsWith('web/integrations/')) {
+  if (slug.startsWith('guides/') || slug.startsWith('integrations/')) {
     return 'lime';
   }
-  if (
-    slug.startsWith('reference/') ||
-    slug.startsWith('web/reference/') ||
-    slug.startsWith('web/runtime/')
-  ) {
+  if (slug.startsWith('reference/')) {
     return 'orange';
   }
-  if (slug.startsWith('web/support/')) {
+  if (
+    slug.startsWith('web/runtime/') ||
+    slug.startsWith('web/support/') ||
+    slug === 'react-native/troubleshooting'
+  ) {
     return 'sky';
   }
   return 'violet';

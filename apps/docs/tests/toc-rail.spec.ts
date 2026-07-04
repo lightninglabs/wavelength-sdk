@@ -8,10 +8,10 @@ import { test, expect } from '@playwright/test';
 // it spans to the viewport bottom; once the footer enters view RightRailCap
 // shortens it so the panel ends at the footer top.
 //
-// The guide article page (/web/guides/create-a-wallet/) has enough prose and
+// The guide article page (/guides/create-a-wallet/) has enough prose and
 // code blocks to overflow the viewport, so scrolling actually moves between
 // sections.
-const PAGE = '/web/guides/create-a-wallet/';
+const PAGE = '/guides/create-a-wallet/';
 
 test('TOC rail is fixed flush to the right screen edge and spans below the header', async ({ page }) => {
   await page.goto(PAGE);

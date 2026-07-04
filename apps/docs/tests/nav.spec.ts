@@ -9,16 +9,16 @@ test('nav flattens, accents and prev/next resolve', () => {
   const flat = flattenNav();
   expect(flat.length).toBeGreaterThan(20);
   expect(accentForSlug('concepts/balances-and-vtxos')).toBe('teal');
-  expect(accentForSlug('web/guides/send-a-payment')).toBe('lime');
-  expect(accentForSlug('web/reference/walletdk-web')).toBe('orange');
-  const pn = prevNext('web/guides/send-a-payment');
+  expect(accentForSlug('guides/send-a-payment')).toBe('lime');
+  expect(accentForSlug('reference/walletdk-web')).toBe('orange');
+  const pn = prevNext('guides/send-a-payment');
   expect(pn.section).toBe('guides');
   expect(pn.total).toBeGreaterThan(1);
 });
 
 test('nav order is journey-first: get started before reference', () => {
   const labels = NAV.map((g) => g.label);
-  const getStartedIdx = labels.indexOf('Get started');
+  const getStartedIdx = labels.indexOf('Get started: Web');
   const referenceIdx = labels.indexOf('Reference');
   const glossaryIdx = labels.indexOf('Glossary');
   expect(getStartedIdx).toBeGreaterThan(-1);
@@ -30,8 +30,8 @@ test('reference group includes all three packages', () => {
   const ref = NAV.find((g) => g.section === 'reference');
   expect(ref?.items.map((i) => i.slug)).toEqual([
     'reference/walletdk-core',
-    'web/reference/walletdk-web',
-    'web/reference/walletdk-react',
+    'reference/walletdk-react',
+    'reference/walletdk-web',
   ]);
 });
 
@@ -41,7 +41,7 @@ test('slices resolve by path prefix, SDK is the catch-all', () => {
   expect(sliceForPath('/api/').key).toBe('api');
   expect(sliceForPath('/cli/balance/').key).toBe('cli');
   expect(sliceForPath('/agents/').key).toBe('agents');
-  expect(sliceForPath('/web/guides/send-a-payment/').key).toBe('sdk');
+  expect(sliceForPath('/guides/send-a-payment/').key).toBe('sdk');
   expect(sliceForPath('/').key).toBe('sdk');
 });
 
