@@ -7,6 +7,7 @@ const URLS = [
   '/', '/introduction/what-is-walletdk/', '/concepts/balances-and-vtxos/',
   '/glossary/', '/reference/walletdk-core/',
   '/web/get-started/quickstart/', '/guides/send-a-payment/',
+  '/react-native/get-started/quickstart/',
   '/reference/walletdk-web/', '/web/support/troubleshooting/',
 ];
 
@@ -24,10 +25,10 @@ test('Starlight is gone from the output', async ({ page }) => {
   expect(html).not.toContain('starlight');
 });
 
-test('no React Native references leak into the built site', async ({ page }) => {
+test('the sidebar offers the React Native journey from web pages', async ({ page }) => {
   await page.goto('/web/get-started/quickstart/');
-  const body = (await page.locator('body').innerText()).toLowerCase();
-  expect(body).not.toContain('react native');
+  const rnLinks = page.locator('a[href="/react-native/get-started/quickstart/"]');
+  expect(await rnLinks.count()).toBeGreaterThan(0);
 });
 
 // --- Playground deferral assertions (Task 8) ---

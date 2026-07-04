@@ -59,8 +59,15 @@ export const NAV: NavGroup[] = [
       { slug: 'web/get-started/cross-origin-isolation', label: 'Cross-origin isolation', section: 'get-started-web' },
     ],
   },
-  // The 'Get started: React Native' group is added in a later task, when its
-  // pages exist (Task 2), so the sidebar never links to a missing page.
+  {
+    label: 'Get started: React Native',
+    section: 'get-started-rn',
+    items: [
+      { slug: 'react-native/get-started/quickstart', label: 'Quickstart', section: 'get-started-rn' },
+      { slug: 'react-native/get-started/installation', label: 'Installation', section: 'get-started-rn' },
+      { slug: 'react-native/get-started/requirements', label: 'Requirements', section: 'get-started-rn' },
+    ],
+  },
   {
     label: 'Integrations',
     section: 'integrations',

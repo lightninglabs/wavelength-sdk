@@ -1,0 +1,37 @@
+---
+title: Requirements
+description: Platform, OS, and passkey requirements for the React Native SDK.
+pageLayout: doc
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+<Callout type="note" title="Pre-release">
+The React Native SDK is pre-release and not yet published to npm. The API
+surface is stable; iOS passkey support is still experimental.
+</Callout>
+
+## Platform requirements
+
+- React Native 0.76 or newer, with the New Architecture enabled. This package is New Architecture only; it does not support the legacy architecture.
+- iOS 15.1+.
+- Android minSdk 24.
+- Expo apps need a **development build**, not Expo Go: the native wallet runtime is a compiled module that Expo Go cannot load.
+
+## Passkey requirements
+
+Passkey wallets let users create and unlock a wallet with a platform passkey instead of a password. Support depends on the device:
+
+- **Android:** Android 9+ (API 28), Google Play services with a signed-in Google account, and a device screen lock.
+- **iOS:** iOS 18 or newer.
+
+<Callout type="caution" title="iOS passkeys are experimental">
+The iOS ceremony has not been verified end to end. Treat it as experimental
+until a verified release notes otherwise.
+</Callout>
+
+`supportsPasskeyPrf()` (surfaced as the `supported` flag returned by `usePasskeyWallet`) reports whether the platform prerequisites are present; a supported device can still decline the ceremony, which surfaces as a normal error.
+
+## Networks
+
+Signet and testnet work out of the box over TLS: pass `defaultConfig('signet')` or `defaultConfig('testnet')` to `start()` and the client connects to Lightning Labs hosted gateways. Regtest needs a local stack running on your development machine, reachable from the device or simulator.

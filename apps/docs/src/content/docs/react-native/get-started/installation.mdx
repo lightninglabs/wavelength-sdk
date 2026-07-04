@@ -1,0 +1,48 @@
+---
+title: Installation
+description: Install the React Native packages, enable the New Architecture, and stage the native wallet runtime.
+pageLayout: doc
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+<Callout type="note" title="Pre-release">
+The React Native SDK is pre-release and not yet published to npm. The API
+surface is stable; iOS passkey support is still experimental.
+</Callout>
+
+## The packages
+
+```sh title="Terminal"
+npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+```
+
+| Package | What it is |
+|---|---|
+| `@lightninglabs/walletdk-react-native` | The native transport: a Turbo Module wrapping the wallet runtime compiled into your app binary. Re-exports the entire `core` surface, so it is the only wallet import an app needs besides the hooks package. |
+| `@lightninglabs/walletdk-react` | React provider and hooks. Transport-agnostic: it takes an injected client and depends only on `core`. |
+
+## New Architecture and Expo
+
+This package is New Architecture only; it does not support the legacy architecture. Enable the New Architecture in your app before installing.
+
+Expo apps need a **development build**, not Expo Go: the native wallet runtime is a compiled module that Expo Go cannot load. `npx expo run:android` and `npx expo run:ios` both produce development builds that include it.
+
+## iOS pods
+
+`pod install` runs as part of `expo run:ios` or a standard React Native build; you do not need to run it separately in the common case. If `pod install` fails with a locale-related error, set `LANG=en_US.UTF-8` before retrying.
+
+## Native runtime binaries
+
+<Callout type="caution" title="Temporary: binaries ship out of band">
+The native wallet runtime binaries (`Walletdk.aar`, `Walletdk.xcframework`)
+do not ship inside the npm package yet; hosted distribution is coming.
+Until then, build them from a source checkout with the package's
+`scripts/fetch-bindings.sh` and stage them into the package before running
+`pod install` or a Gradle build.
+</Callout>
+
+## Next steps
+
+- [Quickstart](/react-native/get-started/quickstart/): wire up the provider, create a wallet, and send your first payment.
+- [Requirements](/react-native/get-started/requirements/): confirm the platform, OS, and passkey requirements.
