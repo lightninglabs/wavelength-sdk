@@ -29,3 +29,11 @@ test('platform selection persists across a reload', async ({ page }) => {
   await expect(first.locator('[data-label="React Native"]')).toBeVisible();
   await expect(first.locator('[data-label="Web"]')).toBeHidden();
 });
+
+test('guide platform tabs follow the stored selection', async ({ page }) => {
+  await page.goto('/integrations/react/');
+  await page.locator('.wdk-platform-tabs').first().getByRole('tab', { name: 'React Native' }).click();
+  await page.goto('/guides/create-a-wallet/');
+  const first = page.locator('.wdk-platform-tabs').first();
+  await expect(first.locator('[data-label="React Native"]')).toBeVisible();
+});
