@@ -153,9 +153,10 @@ export const disposeSig = `dispose(): void`;
 <ApiSymbol name="WalletDKClient" kind="type">
 
 The typed RPC surface every transport implements. Create a client with
-[`createWebClient()`](/reference/walletdk-web/) from walletdk-web (or a
-native transport), call `start(config)`, then use the wallet methods
-documented in the sections below.
+[`createWebClient()`](/reference/walletdk-web/) from walletdk-web or
+`createNativeClient()` from [walletdk-react-native](/reference/walletdk-react-native/),
+call `start(config)`, then use the wallet methods documented in the
+sections below.
 
 <Signature title="walletdk-core.d.ts" code={walletDKClientSig} />
 
@@ -1840,7 +1841,8 @@ consumers of this contract free of any transport dependency:
 [`walletdk-web`](/reference/walletdk-web/) supplies the browser
 (WebAuthn/PRF) implementation as `webPasskeyCeremony`, and
 `walletdk-react`'s `usePasskeyWallet` hook drives whichever implementation
-you pass it. A native (e.g. mobile) transport supplies its own.
+you pass it. The React Native transport supplies its own implementation,
+`createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)).
 
 <Signature title="walletdk-core.d.ts" code={passkeyCeremonySig} />
 

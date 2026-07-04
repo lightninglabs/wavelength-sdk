@@ -99,6 +99,7 @@ export const NAV: NavGroup[] = [
       { slug: 'reference/walletdk-core', label: 'walletdk-core', section: 'reference' },
       { slug: 'reference/walletdk-react', label: 'walletdk-react', section: 'reference' },
       { slug: 'reference/walletdk-web', label: 'walletdk-web', section: 'reference' },
+      { slug: 'reference/walletdk-react-native', label: 'walletdk-react-native', section: 'reference' },
     ],
   },
   // -- PLATFORM OPERATIONS --

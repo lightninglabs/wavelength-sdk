@@ -77,6 +77,15 @@ test('walletdk-react reference page renders symbol sections, rail, and orange ac
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
+test('walletdk-react-native reference page renders symbol sections, rail, and orange accent', async ({ page }) => {
+  await page.goto('/reference/walletdk-react-native/');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
+  const symbols = page.locator('[data-symbol]');
+  await expect(symbols.first()).toBeVisible();
+  expect(await symbols.count()).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('[data-symbol-list]')).toBeVisible();
+});
+
 // Signature code-block frame + indentation.
 // Asserts the Signature component renders through the same Expressive Code
 // frame as the guides (filename header visible), and that the rendered

@@ -26,12 +26,13 @@ test('nav order is journey-first: get started before reference', () => {
   expect(glossaryIdx).toBeGreaterThan(referenceIdx);
 });
 
-test('reference group includes all three packages', () => {
+test('reference group includes all four packages', () => {
   const ref = NAV.find((g) => g.section === 'reference');
   expect(ref?.items.map((i) => i.slug)).toEqual([
     'reference/walletdk-core',
     'reference/walletdk-react',
     'reference/walletdk-web',
+    'reference/walletdk-react-native',
   ]);
 });
 
