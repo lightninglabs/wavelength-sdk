@@ -1,0 +1,495 @@
+---
+/**
+ * SurfacesBand.astro - "Choose how you integrate." integration surfaces band.
+ * A switchboard treatment: the five-square brand mark heads a vertical spine
+ * (the one wallet), and each integration surface taps off that spine as a
+ * full-width ledger row with a mono index, display-font name, square-dash
+ * dot leaders, pitch, and arrow. The agents line is a fifth, dashed tap.
+ * Deliberately not the eyebrow + card-grid idiom used by the other bands:
+ * an asymmetric split layout (heading left, switchboard rail right), no
+ * bordered cards, no eyebrow header.
+ * The section root carries the surface background and hairline top/bottom
+ * borders (the same surface-band idiom as CtaBand and ConceptsStrip), with
+ * an inner wrapper holding the max-width grid content.
+ */
+---
+
+<section class="wdk-surfaces" aria-labelledby="wdk-surfaces-heading">
+  <div class="wdk-surfaces__inner">
+    <div class="wdk-surfaces__head">
+      <h2 id="wdk-surfaces-heading" class="wdk-surfaces__heading">Choose how you integrate.</h2>
+      <p class="wdk-surfaces__lede">The same self-custodial wallet, four ways in.</p>
+    </div>
+
+    <div class="wdk-surfaces__rail">
+      <!-- The wallet core: the five-square brand mark at the head of the spine. -->
+      <div class="wdk-surfaces__core" aria-hidden="true">
+        <span class="wdk-surfaces__core-squares">
+          <span class="wdk-surfaces__core-sq wdk-surfaces__core-sq--violet"></span>
+          <span class="wdk-surfaces__core-sq wdk-surfaces__core-sq--teal"></span>
+          <span class="wdk-surfaces__core-sq wdk-surfaces__core-sq--lime"></span>
+          <span class="wdk-surfaces__core-sq wdk-surfaces__core-sq--orange"></span>
+          <span class="wdk-surfaces__core-sq wdk-surfaces__core-sq--sky"></span>
+        </span>
+        <span class="wdk-surfaces__core-label">one wallet</span>
+      </div>
+
+      <ul class="wdk-surfaces__list" role="list">
+        <li>
+          <a href="/web/get-started/quickstart/" class="wdk-surface wdk-surface--violet">
+            <span class="wdk-surface__index" aria-hidden="true">01</span>
+            <span class="wdk-surface__name">Web SDK</span>
+            <span class="wdk-surface__leader" aria-hidden="true"></span>
+            <span class="wdk-surface__pitch">Runs in the browser. Nothing to install.</span>
+            <span class="wdk-surface__arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/react-native/get-started/quickstart/" class="wdk-surface wdk-surface--teal">
+            <span class="wdk-surface__index" aria-hidden="true">02</span>
+            <span class="wdk-surface__name">React Native SDK</span>
+            <span class="wdk-surface__leader" aria-hidden="true"></span>
+            <span class="wdk-surface__pitch">Compiled into your iOS and Android app.</span>
+            <span class="wdk-surface__arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/api/" class="wdk-surface wdk-surface--sky">
+            <span class="wdk-surface__index" aria-hidden="true">03</span>
+            <span class="wdk-surface__name">API</span>
+            <span class="wdk-surface__leader" aria-hidden="true"></span>
+            <span class="wdk-surface__pitch">Integrate remotely over gRPC and REST.</span>
+            <span class="wdk-surface__arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/cli/" class="wdk-surface wdk-surface--orange">
+            <span class="wdk-surface__index" aria-hidden="true">04</span>
+            <span class="wdk-surface__name">CLI</span>
+            <span class="wdk-surface__leader" aria-hidden="true"></span>
+            <span class="wdk-surface__pitch">Automate the wallet from the command line.</span>
+            <span class="wdk-surface__arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- The compact fifth tap: a dashed branch for agent builders. -->
+      <p class="wdk-surfaces__agents">
+        Building with an AI agent?
+        <a href="/agents/" class="wdk-surfaces__agents-link">
+          Build with agents
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Full-bleed section: surface background plus hairline top/bottom
+     separators, matching the surface-band idiom used by CtaBand and
+     ConceptsStrip. Keeps the band visually distinct from the base-background
+     bands above (Hero) and below (Capabilities) it. */
+  .wdk-surfaces {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Asymmetric split: heading column left, switchboard rail right. */
+  .wdk-surfaces__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: 48px 72px;
+    align-items: start;
+    padding: 104px 80px 88px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Header column: oversized heading, no eyebrow. */
+  .wdk-surfaces__heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.2vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    color: var(--text);
+    margin-bottom: 18px;
+    max-width: 12ch;
+  }
+
+  .wdk-surfaces__lede {
+    font-size: 1.0625rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    max-width: 26ch;
+    margin: 0;
+  }
+
+  /* The rail hosts the core, the four taps, and the agents branch. The spine
+     geometry is shared: nodes are 12px squares whose center sits at x = 6px,
+     so every vertical segment is a 2px line at left = 5px. */
+  .wdk-surfaces__rail {
+    min-width: 0;
+  }
+
+  /* Wallet core: brand-mark squares plus a mono label, heading the spine. */
+  .wdk-surfaces__core {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    padding-bottom: 30px;
+  }
+
+  .wdk-surfaces__core-squares {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .wdk-surfaces__core-sq {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .wdk-surfaces__core-sq--violet { background: var(--violet); }
+  .wdk-surfaces__core-sq--teal   { background: var(--teal); }
+  .wdk-surfaces__core-sq--lime   { background: var(--lime); }
+  .wdk-surfaces__core-sq--orange { background: var(--orange); }
+  .wdk-surfaces__core-sq--sky    { background: var(--sky); }
+
+  .wdk-surfaces__core-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  /* Spine segment below the core, leading into the first tap. */
+  .wdk-surfaces__core::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 20px;
+    bottom: 0;
+    width: 2px;
+    background: color-mix(in srgb, var(--violet) 30%, var(--border));
+  }
+
+  .wdk-surfaces__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* One tap off the spine: a full-width ledger row, not a card. */
+  .wdk-surface {
+    --sf: var(--text-dim);
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    padding: 21px 12px 21px 36px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: background 0.18s ease;
+  }
+  .wdk-surface--violet { --sf: var(--violet); }
+  .wdk-surface--teal   { --sf: var(--teal); }
+  .wdk-surface--sky    { --sf: var(--sky); }
+  .wdk-surface--orange { --sf: var(--orange); }
+
+  /* The node: an accent brand square sitting on the spine. */
+  .wdk-surface::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    translate: 0 -50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--sf);
+    z-index: 1;
+    transition: box-shadow 0.18s ease, scale 0.18s ease;
+  }
+
+  /* The spine segment: each row draws its own slice, tinted toward its
+     accent, so the segments stack into one continuous colored line. */
+  .wdk-surface::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: color-mix(in srgb, var(--sf) 30%, var(--border));
+    transition: background 0.18s ease;
+  }
+
+  .wdk-surface__index {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    margin-right: 16px;
+  }
+
+  .wdk-surface__name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    white-space: nowrap;
+    transition: color 0.18s ease;
+  }
+
+  /* Square-dash dot leaders, echoing the brand squares at miniature scale. */
+  .wdk-surface__leader {
+    flex: 1 1 40px;
+    min-width: 28px;
+    height: 2px;
+    align-self: center;
+    margin: 0 18px;
+    translate: 0 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--text-dim) 38%, transparent) 0 3px,
+      transparent 3px 9px
+    );
+    transition: background 0.18s ease;
+  }
+
+  .wdk-surface__pitch {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .wdk-surface__arrow {
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: 16px;
+    color: var(--text-dim);
+    transition: color 0.18s ease, transform 0.18s ease;
+  }
+
+  /* Hover and keyboard focus light the whole station: accent wash, glowing
+     node, accent leaders, brightened spine slice, sliding arrow. */
+  .wdk-surface:is(:hover, :focus-visible) {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--sf) 9%, transparent),
+      transparent 70%
+    );
+  }
+  .wdk-surface:is(:hover, :focus-visible)::before {
+    scale: 1.15;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--sf) 22%, transparent);
+  }
+  .wdk-surface:is(:hover, :focus-visible)::after {
+    background: color-mix(in srgb, var(--sf) 65%, var(--border));
+  }
+  .wdk-surface:is(:hover, :focus-visible) .wdk-surface__name {
+    color: var(--sf);
+  }
+  .wdk-surface:is(:hover, :focus-visible) .wdk-surface__leader {
+    background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--sf) 75%, transparent) 0 3px,
+      transparent 3px 9px
+    );
+  }
+  .wdk-surface:is(:hover, :focus-visible) .wdk-surface__arrow {
+    color: var(--sf);
+    transform: translateX(4px);
+  }
+
+  .wdk-surface:focus-visible {
+    outline: 2px solid var(--sf);
+    outline-offset: 2px;
+  }
+
+  /* The agents branch: a compact dashed tap in the fifth brand color. */
+  .wdk-surfaces__agents {
+    position: relative;
+    margin: 0;
+    padding: 26px 0 2px 36px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* Hollow lime node, distinguishing the aside from the four main taps. */
+  .wdk-surfaces__agents::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 31px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--accent-lime);
+    border-radius: 3px;
+    z-index: 1;
+  }
+
+  /* Dashed spine slice connecting the branch to the line above. */
+  .wdk-surfaces__agents::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    height: 31px;
+    width: 2px;
+    background: repeating-linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-lime) 45%, var(--border)) 0 3px,
+      transparent 3px 8px
+    );
+  }
+
+  .wdk-surfaces__agents-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 6px;
+    font-weight: 600;
+    color: var(--accent-lime);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .wdk-surfaces__agents-link svg {
+    transition: transform 0.18s ease;
+  }
+  .wdk-surfaces__agents-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .wdk-surfaces__agents-link:hover svg {
+    transform: translateX(3px);
+  }
+  .wdk-surfaces__agents-link:focus-visible {
+    outline: 2px solid var(--accent-lime);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Scroll-linked entrance: each station rises in as it enters the viewport.
+     Pure CSS progressive enhancement; browsers without view() timelines and
+     reduced-motion users get the static layout. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .wdk-surfaces__core,
+      .wdk-surfaces__list li,
+      .wdk-surfaces__agents {
+        animation: wdk-surface-in linear both;
+        animation-timeline: view();
+        animation-range: entry 10% entry 50%;
+      }
+    }
+  }
+  @keyframes wdk-surface-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Reduced motion: keep hover color changes, drop the movement. */
+  @media (prefers-reduced-motion: reduce) {
+    .wdk-surface:is(:hover, :focus-visible)::before {
+      scale: none;
+    }
+    .wdk-surface:is(:hover, :focus-visible) .wdk-surface__arrow {
+      transform: none;
+    }
+    .wdk-surfaces__agents-link:hover svg {
+      transform: none;
+    }
+  }
+
+  /* Tablet: stack the header above the rail. */
+  @media (max-width: 1000px) {
+    .wdk-surfaces__inner {
+      grid-template-columns: 1fr;
+      gap: 40px;
+      padding: 72px 40px 64px;
+    }
+    .wdk-surfaces__heading {
+      max-width: none;
+    }
+    .wdk-surfaces__lede {
+      max-width: none;
+    }
+  }
+
+  /* Mobile: rows become two-line stations (name, then pitch), the leaders
+     drop out, and the node pins to the first line. */
+  @media (max-width: 720px) {
+    .wdk-surfaces__inner {
+      padding: 56px 20px 56px;
+    }
+    .wdk-surface {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas:
+        'index name arrow'
+        '.     pitch pitch';
+      column-gap: 14px;
+      row-gap: 4px;
+      align-items: baseline;
+      padding: 18px 8px 18px 34px;
+    }
+    .wdk-surface::before {
+      top: 24px;
+      translate: none;
+    }
+    .wdk-surface__index {
+      grid-area: index;
+      margin-right: 0;
+    }
+    .wdk-surface__name {
+      grid-area: name;
+      white-space: normal;
+      font-size: 1.15rem;
+    }
+    .wdk-surface__leader {
+      display: none;
+    }
+    .wdk-surface__pitch {
+      grid-area: pitch;
+    }
+    .wdk-surface__arrow {
+      grid-area: arrow;
+      align-self: center;
+      margin-left: 0;
+    }
+    .wdk-surfaces__agents {
+      padding-left: 34px;
+    }
+  }
+</style>

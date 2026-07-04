@@ -7,8 +7,13 @@ test('home renders the v4 hero + sections, no Starlight splash', async ({ page }
   await expect(page.locator('.starlight-aside')).toHaveCount(0);
 });
 
-test('home links to the API and CLI slices', async ({ page }) => {
+test('home surfaces band links every integration surface', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.wdk-refs a[href="/api/"]')).toBeVisible();
-  await expect(page.locator('.wdk-refs a[href="/cli/"]')).toBeVisible();
+  const band = page.locator('.wdk-surfaces');
+  await expect(band).toBeVisible();
+  await expect(band.locator('a[href="/web/get-started/quickstart/"]')).toBeVisible();
+  await expect(band.locator('a[href="/react-native/get-started/quickstart/"]')).toBeVisible();
+  await expect(band.locator('a[href="/api/"]')).toBeVisible();
+  await expect(band.locator('a[href="/cli/"]')).toBeVisible();
+  await expect(band.locator('a[href="/agents/"]')).toBeVisible();
 });

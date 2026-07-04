@@ -12,10 +12,10 @@
  */
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Hero from '~/components/home/Hero.astro';
+import SurfacesBand from '~/components/home/SurfacesBand.astro';
 import CapabilityList from '~/components/home/CapabilityList.astro';
 import ConceptsStrip from '~/components/home/ConceptsStrip.astro';
 import LayersBand from '~/components/home/LayersBand.astro';
-import ReferenceLinksBand from '~/components/home/ReferenceLinksBand.astro';
 import CtaBand from '~/components/home/CtaBand.astro';
 
 interface Props {
@@ -35,10 +35,10 @@ const { entry } = Astro.props;
 <BaseLayout title={entry.data.title} description={entry.data.description} accent="violet">
   <main class="wdk-home" data-pagefind-body>
     <Hero />
+    <SurfacesBand />
     <CapabilityList />
     <ConceptsStrip />
     <LayersBand />
-    <ReferenceLinksBand />
     <CtaBand />
   </main>
 </BaseLayout>
