@@ -62,8 +62,8 @@ test('agents page renders the hub content', async ({ page }) => {
   await page.goto('/agents/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Build with agents');
   await expect(page.getByText('npx skills add lightninglabs/dawallet').first()).toBeVisible();
-  await expect(page.locator('.wdk-prompt-tabs__strip button')).toHaveCount(3);
-  await page.locator('.wdk-prompt-tabs__strip button').nth(1).click();
+  await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(3);
+  await page.locator('.wdk-tabs__strip button').nth(1).click();
   await expect(page.getByText('gRPC or REST').first()).toBeVisible();
 });
 
@@ -76,7 +76,7 @@ test('agents page tab strip still works after client-side navigation', async ({ 
   // scripts against it. Without an astro:page-load handler, this second
   // visit renders an empty strip with every panel showing.
   await page.goto('/agents/');
-  await expect(page.locator('.wdk-prompt-tabs__strip button')).toHaveCount(3);
+  await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(3);
 
   // Drive the clicks via the DOM API rather than Playwright's pointer-based
   // click: the links are appended to document.body, which the fixed sidebar
@@ -101,8 +101,8 @@ test('agents page tab strip still works after client-side navigation', async ({ 
   });
   await expect(page).toHaveURL(/\/agents\/$/);
 
-  await expect(page.locator('.wdk-prompt-tabs__strip button')).toHaveCount(3);
-  await page.locator('.wdk-prompt-tabs__strip button').nth(1).click();
+  await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(3);
+  await page.locator('.wdk-tabs__strip button').nth(1).click();
   await expect(page.getByText('gRPC or REST').first()).toBeVisible();
 });
 
