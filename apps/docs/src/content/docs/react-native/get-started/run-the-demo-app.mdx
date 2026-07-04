@@ -1,0 +1,90 @@
+---
+title: Run the demo app
+description: Build and run the React Native reference wallet on a device or simulator.
+pageLayout: doc
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+<Callout type="note" title="Pre-release">
+The React Native SDK is pre-release and not yet published to npm. The API
+surface is stable; iOS passkey support is still experimental.
+</Callout>
+
+## Clone and install
+
+The reference integration lives in the WalletDK monorepo at
+`apps/rn-wallet-demo`. Clone the repository, install dependencies with pnpm,
+and build the workspace packages:
+
+```sh title="Terminal"
+git clone https://github.com/lightninglabs/dawallet.git
+cd dawallet
+pnpm install
+pnpm build
+```
+
+The demo needs the native wallet runtime binaries staged before it can build.
+Point `DAREPO_DIR` at a daemon source checkout and run the package's
+`fetch-bindings` script:
+
+```sh title="Terminal"
+DAREPO_DIR=/path/to/daemon-checkout \
+  pnpm --filter @lightninglabs/walletdk-react-native run fetch-bindings
+```
+
+See [Installation](/react-native/get-started/installation/) for why the
+binaries ship this way and what the script stages.
+
+## Run
+
+Start Metro in its own terminal, then build and launch per platform:
+
+```sh title="Terminal"
+cd apps/rn-wallet-demo
+npx expo start --dev-client --clear
+```
+
+This starts Metro, the dev server that serves the JS bundle to the app. Keep
+it running in its own terminal; `--clear` drops a possibly stale cache.
+
+```sh title="Terminal"
+npx expo run:android
+```
+
+This generates the native `android` project if needed, compiles the dev
+build, installs it on the running emulator or a connected device, and
+launches it.
+
+```sh title="Terminal"
+LANG=en_US.UTF-8 npx expo run:ios
+```
+
+This does the same for the iOS simulator: generates the native `ios` project
+if needed, compiles the dev build, installs it, and launches it. The `LANG`
+prefix satisfies `pod install`'s locale requirement.
+
+The first `expo run:*` generates the native `android/` and `ios/` projects
+(gitignored) and takes a while; later runs are incremental.
+
+## Networks
+
+The start screen offers three presets:
+
+- **regtest** targets a local stack. Host addressing is automatic per
+  platform: the Android emulator reaches your machine as `10.0.2.2`, the iOS
+  simulator as `127.0.0.1`.
+- **testnet** and **signet** target the public test network deployments over
+  TLS and also work on physical devices.
+
+Every endpoint is editable under "Advanced endpoints" before starting, so a
+preset is a starting point, not a limit.
+
+## What the demo shows
+
+The app exercises the full wallet flow: create, restore, or unlock (password
+or passkey), recovery-phrase backup, on-chain boarding and Lightning receive
+with scannable QRs, send, live activity, local-data wipe, and light/dark
+themes. It mirrors the web demo screen for screen, so the two SDK surfaces
+can be compared directly; see [Demo app](/web/support/demo-app/) for the web
+counterpart.

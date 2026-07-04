@@ -1,0 +1,44 @@
+---
+title: Troubleshooting
+description: Fixes for the common React Native integration failure modes.
+pageLayout: doc
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+<Callout type="note" title="Pre-release">
+The React Native SDK is pre-release and not yet published to npm. The API
+surface is stable; iOS passkey support is still experimental.
+</Callout>
+
+## The app runs old code after a native change
+
+Metro's dev-server cache can serve a stale bundle after native code or
+dependency changes. Restart Metro with `npx expo start --dev-client --clear`
+and relaunch the app.
+
+## The module fails to load in Expo Go
+
+The wallet runtime is a compiled native module; Expo Go cannot load it. Build
+and run a development build instead (`npx expo run:android` or `npx expo
+run:ios`), which both produce a build that includes the compiled runtime.
+
+## Where are the wallet runtime logs?
+
+Wallet runtime logs go to the platform log, not to JS-visible events: Android
+logcat, or iOS `os_log`. Use your platform's native log viewer while
+debugging rather than looking for them in the Metro console.
+
+## pod install fails with a locale error
+
+Run the iOS build with a UTF-8 locale:
+
+```sh title="Terminal"
+LANG=en_US.UTF-8 npx expo run:ios
+```
+
+## Passkey creation fails with "RP ID cannot be validated"
+
+The relying-party domain association is missing or incomplete on one of the
+platforms. See [Passkey setup](/react-native/get-started/passkey-setup/) for
+what each platform needs to serve and declare.

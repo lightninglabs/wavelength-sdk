@@ -8,6 +8,11 @@ const URLS = [
   '/glossary/', '/reference/walletdk-core/',
   '/web/get-started/quickstart/', '/guides/send-a-payment/',
   '/react-native/get-started/quickstart/',
+  '/react-native/get-started/installation/',
+  '/react-native/get-started/requirements/',
+  '/react-native/get-started/passkey-setup/',
+  '/react-native/get-started/run-the-demo-app/',
+  '/react-native/troubleshooting/',
   '/reference/walletdk-web/', '/web/support/troubleshooting/',
 ];
 
@@ -29,6 +34,8 @@ test('the sidebar offers the React Native journey from web pages', async ({ page
   await page.goto('/web/get-started/quickstart/');
   const rnLinks = page.locator('a[href="/react-native/get-started/quickstart/"]');
   expect(await rnLinks.count()).toBeGreaterThan(0);
+  const res = await page.goto('/react-native/get-started/quickstart/');
+  expect(res?.status()).toBe(200);
 });
 
 // --- Playground deferral assertions (Task 8) ---

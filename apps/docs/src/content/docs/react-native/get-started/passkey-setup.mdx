@@ -1,0 +1,62 @@
+---
+title: Passkey setup
+description: Associate your relying-party domain with your app so native passkeys work on Android and iOS.
+pageLayout: doc
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+<Callout type="note" title="Pre-release">
+The React Native SDK is pre-release and not yet published to npm. The API
+surface is stable; iOS passkey support is still experimental.
+</Callout>
+
+Passkeys bind to a relying-party domain (`rpId`) that must vouch for your
+app. Without the association in place, `createNativePasskeyCeremony({ rpId })`
+fails the ceremony with "RP ID cannot be validated".
+
+## What is an rpId?
+
+The `rpId` is the relying-party identifier: a domain you control, for example
+`wallet.example.com`. Passkeys created with a given `rpId` are bound to it, so
+the association files described in this guide must be served from exactly
+that domain over HTTPS. Using the same `rpId` across your web app and your
+mobile app means the same passkey, and therefore the same wallet, works on
+both.
+
+## Android
+
+Serve `https://<rpId>/.well-known/assetlinks.json` listing your app's package
+name and signing-certificate SHA-256 fingerprint with both relations the
+platform checks: `delegate_permission/common.handle_all_urls` and
+`delegate_permission/common.get_login_creds`.
+
+Declare the association app-side too: an `asset_statements` string resource
+that references that assetlinks URL, wired up through a manifest `meta-data`
+entry. The demo's Expo config plugin,
+`apps/rn-wallet-demo/plugins/withAssetStatements.js`, is a working example of
+both pieces for an Expo app.
+
+At runtime the device needs Android 9+ (API 28), Google Play services with a
+signed-in Google account, and a device screen lock.
+
+## iOS (experimental)
+
+Add the Associated Domains capability (`webcredentials:<rpId>`) to your app
+and serve `https://<rpId>/.well-known/apple-app-site-association` listing
+your Team ID and bundle id. Requires iOS 18 or newer at runtime.
+
+<Callout type="caution" title="iOS passkeys are experimental">
+The iOS ceremony has not been verified end to end. Treat it as experimental
+until a verified release notes otherwise.
+</Callout>
+
+## Verify it works
+
+`supportsPasskeyPrf()` surfaces as the `supported` flag returned by
+`usePasskeyWallet`, reporting whether the platform prerequisites above are
+present. A supported device can still decline the ceremony, which surfaces
+as a normal error rather than an unsupported state.
+
+See [Use a passkey](/guides/use-a-passkey/) for the wiring pattern once the
+association is live.

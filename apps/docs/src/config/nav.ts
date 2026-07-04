@@ -64,8 +64,10 @@ export const NAV: NavGroup[] = [
     section: 'get-started-rn',
     items: [
       { slug: 'react-native/get-started/quickstart', label: 'Quickstart', section: 'get-started-rn' },
+      { slug: 'react-native/get-started/run-the-demo-app', label: 'Run the demo app', section: 'get-started-rn' },
       { slug: 'react-native/get-started/installation', label: 'Installation', section: 'get-started-rn' },
       { slug: 'react-native/get-started/requirements', label: 'Requirements', section: 'get-started-rn' },
+      { slug: 'react-native/get-started/passkey-setup', label: 'Passkey setup', section: 'get-started-rn' },
     ],
   },
   {
@@ -108,6 +110,13 @@ export const NAV: NavGroup[] = [
       { slug: 'web/support/browser-support', label: 'Browser support', section: 'web-platform' },
       { slug: 'web/support/demo-app', label: 'Demo app', section: 'web-platform' },
       { slug: 'web/support/troubleshooting', label: 'Troubleshooting', section: 'web-platform' },
+    ],
+  },
+  {
+    label: 'React Native platform',
+    section: 'rn-platform',
+    items: [
+      { slug: 'react-native/troubleshooting', label: 'Troubleshooting', section: 'rn-platform' },
     ],
   },
   {
