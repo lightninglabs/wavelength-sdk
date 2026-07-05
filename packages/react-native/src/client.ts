@@ -31,8 +31,8 @@ export type WalletdkNativeModule = {
  * entry, a clean end of stream, or a stream error.
  */
 export type NativeActivityEvent = {
-  /** 'entry', 'end', or 'error'. */
-  kind: string;
+  /** The native pump's event kind. */
+  kind: 'entry' | 'end' | 'error';
   /** The entry JSON for 'entry', the error message for 'error', else ''. */
   payload: string;
 };
@@ -57,7 +57,15 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
   protected readonly serverTransport = 'grpc' as const;
 
   private removeNativeListener: (() => void) | null = null;
-  private activityOpen = false;
+  // Serializes start/stop native ops so a start always waits for a pending
+  // stop's native close to finish before it subscribes.
+  private opChain: Promise<void> = Promise.resolve();
+  // Whether a native subscription is currently open. Only read and written
+  // inside serialized ops, so it never races.
+  private streamOpen = false;
+  // Set inside a stop op so onNativeEvent knows the imminent native 'end' is
+  // client-initiated and must be swallowed.
+  private closing = false;
   private native: WalletdkNativeModule;
   private subscribeToNativeEvents: SubscribeToNativeEvents;
 
@@ -68,6 +76,15 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
     super();
     this.native = native;
     this.subscribeToNativeEvents = subscribeToNativeEvents;
+  }
+
+  // enqueue runs op after the previous op settles, whether it fulfilled or
+  // rejected, so a rejected native call cannot stall the chain.
+  private enqueue(op: () => Promise<void>): Promise<void> {
+    const next = this.opChain.then(op, op);
+    this.opChain = next;
+
+    return next;
   }
 
   // The runtime is compiled into the app binary, so there is nothing to load.
@@ -103,24 +120,45 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
   // entries to 'walletdkActivity' device events, which are re-emitted here as
   // typed 'activity' events. Idempotent while a stream is open.
   async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
-    if (this.activityOpen) {
-      return;
-    }
-    this.removeNativeListener ??= this.subscribeToNativeEvents((event) =>
-      this.onNativeEvent(event),
-    );
-    await this.native.startActivity(
-      JSON.stringify({ includeExisting: opts.includeExisting ?? false }),
-    );
-    this.activityOpen = true;
+    return this.enqueue(async () => {
+      if (this.streamOpen) {
+        return;
+      }
+      this.closing = false;
+      this.removeNativeListener ??= this.subscribeToNativeEvents((event) =>
+        this.onNativeEvent(event),
+      );
+      await this.native.startActivity(
+        JSON.stringify({ includeExisting: opts.includeExisting ?? false }),
+      );
+      this.streamOpen = true;
+    });
   }
 
   stopActivity(): void {
-    if (!this.activityOpen) {
-      return;
-    }
-    this.activityOpen = false;
-    void this.native.stopActivity().catch(() => undefined);
+    void this.enqueue(async () => {
+      if (!this.streamOpen) {
+        return;
+      }
+      // Set closing before the native close so the terminal native 'end',
+      // which arrives only after the close resolves, is recognized as
+      // client-initiated and swallowed.
+      this.closing = true;
+      this.streamOpen = false;
+      try {
+        await this.native.stopActivity();
+      } catch (err) {
+        // A failed native close means the pump may still be running; surface
+        // it instead of swallowing so a zombie stream is at least diagnosable.
+        this.emit({
+          type: 'log',
+          payload: {
+            level: 'warn',
+            message: `failed to close the activity stream: ${errorMessage(err)}`,
+          },
+        });
+      }
+    });
   }
 
   private onNativeEvent(event: NativeActivityEvent): void {
@@ -132,7 +170,10 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
       } catch (err) {
         this.emit({
           type: 'log',
-          payload: { level: 'error', message: errorMessage(err) },
+          payload: {
+            level: 'error',
+            message: `dropped an unparseable activity entry: ${errorMessage(err)}`,
+          },
         });
 
         return;
@@ -143,17 +184,20 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
     }
 
     case 'end':
-      // The stream ended cleanly (daemon stop or an intentional close); the
-      // next startActivity call may reopen it.
-      this.activityOpen = false;
+      // A client-initiated close is expected and silent; only an end the
+      // consumer did not ask for is surfaced so it can resubscribe.
+      this.streamOpen = false;
+      if (!this.closing) {
+        this.emit({ type: 'activityStream', payload: { state: 'ended' } });
+      }
 
       return;
 
     case 'error':
-      this.activityOpen = false;
+      this.streamOpen = false;
       this.emit({
-        type: 'log',
-        payload: { level: 'error', message: event.payload },
+        type: 'activityStream',
+        payload: { state: 'failed', message: event.payload },
       });
 
       return;
@@ -170,6 +214,11 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
   }
 
   dispose(): void {
+    // super.dispose() calls stopActivity(), which enqueues the native close;
+    // marking closing swallows the resulting terminal 'end'. Do not touch
+    // streamOpen here: the enqueued stop reads it to decide whether to close
+    // the native subscription, so clearing it now would leak the pump.
+    this.closing = true;
     super.dispose();
     this.removeNativeListener?.();
     this.removeNativeListener = null;

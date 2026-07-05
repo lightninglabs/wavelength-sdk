@@ -163,20 +163,24 @@ RCT_EXPORT_MODULE(Walletdk)
                reject:(RCTPromiseRejectBlock)reject
 {
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    // The check, the subscribe, and the store happen in one critical section
+    // (mirroring the Kotlin module): separate sections would let two
+    // overlapping calls both subscribe, leaking a pump that double-emits
+    // every entry.
     MobileSubscription *sub = nil;
+    NSError *error = nil;
     @synchronized (self) {
       if (self->_subscription != nil) {
-        sub = self->_subscription;
+        resolve(nil);
+        return;
+      }
+      NSData *req = [reqJson dataUsingEncoding:NSUTF8StringEncoding];
+      sub = MobileSubscribe(req, &error);
+      if (error == nil && sub != nil) {
+        self->_subscription = sub;
+        self->_closing = NO;
       }
     }
-    if (sub != nil) {
-      resolve(nil);
-      return;
-    }
-
-    NSError *error = nil;
-    NSData *req = [reqJson dataUsingEncoding:NSUTF8StringEncoding];
-    sub = MobileSubscribe(req, &error);
     if (error != nil || sub == nil) {
       reject(kWalletdkErrorCode,
              error.localizedDescription ?: @"walletdk subscribe failed",
@@ -184,10 +188,6 @@ RCT_EXPORT_MODULE(Walletdk)
       return;
     }
 
-    @synchronized (self) {
-      self->_subscription = sub;
-      self->_closing = NO;
-    }
     [self pump:sub];
     resolve(nil);
   });
@@ -223,8 +223,11 @@ RCT_EXPORT_MODULE(Walletdk)
       NSError *error = nil;
       NSData *entry = [sub next:&error];
       if (error != nil || entry == nil) {
-        BOOL eof = [error.localizedDescription.lowercaseString
-            containsString:@"eof"];
+        // A nil entry with no error, or the exact terminal "EOF", is a clean
+        // close; a substring match would misclassify failures like
+        // "unexpected EOF" as clean ends.
+        BOOL eof = error == nil ||
+            [error.localizedDescription isEqualToString:@"EOF"];
         BOOL closing;
         @synchronized (self) {
           closing = self->_closing;

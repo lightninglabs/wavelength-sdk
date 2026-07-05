@@ -85,7 +85,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
           }
         },
       )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       // Request construction validates the JSON eagerly; reject rather than
       // crash when a caller bypasses the TypeScript ceremony with bad input.
       promise.reject(ERROR_CODE, e.message ?: "passkey ceremony failed", e)
@@ -122,7 +122,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
           }
         },
       )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       // Request construction validates the JSON eagerly; reject rather than
       // crash when a caller bypasses the TypeScript ceremony with bad input.
       promise.reject(ERROR_CODE, e.message ?: "passkey ceremony failed", e)
@@ -145,7 +145,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
     executor.execute {
       try {
         promise.resolve(dispatch(method, paramsJson))
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
         promise.reject(ERROR_CODE, e.message ?: "walletdk call failed", e)
       }
     }
@@ -199,7 +199,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
           }
         }
         promise.resolve(null)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
         promise.reject(ERROR_CODE, e.message ?: "walletdk subscribe failed", e)
       }
     }
@@ -214,7 +214,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
         }
         sub?.close()
         promise.resolve(null)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
         promise.reject(ERROR_CODE, e.message ?: "walletdk unsubscribe failed", e)
       }
     }
@@ -229,8 +229,10 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
         val entry = try {
           sub.next()
         } catch (e: Exception) {
-          val eof = e.message?.contains("EOF", ignoreCase = true) == true
-          if (closing || eof) {
+          // Only the exact terminal "EOF" is a clean close; a substring match
+          // would misclassify real failures like "unexpected EOF" as clean
+          // ends and silently freeze the stream.
+          if (closing || e.message == "EOF") {
             sendEvent("end", "")
           } else {
             sendEvent("error", e.message ?: "walletdk activity stream failed")
@@ -239,7 +241,16 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
         }
         sendEvent("entry", entry.toString(Charsets.UTF_8))
       }
+    } catch (t: Throwable) {
+      // Emitting can fail while React tears down (a reload mid-stream);
+      // there is nobody left to notify, but this daemon thread must never
+      // crash the process.
     } finally {
+      try {
+        sub.close()
+      } catch (ignored: Exception) {
+        // The subscription may already be closed; nothing further to do.
+      }
       synchronized(this) {
         if (subscription === sub) {
           subscription = null
