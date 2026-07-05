@@ -104,8 +104,10 @@ export interface WalletDKClient {
   stopActivity(): void;
   /**
    * Releases the client's resources and unsubscribes all listeners: it closes
-   * the activity stream and, for the worker transport, terminates the underlying
-   * Worker. The client is unusable afterward; build a new one to start again.
+   * the activity stream, and transports tear down their runtime resources (the
+   * web transport terminates its Worker; the native transport removes its
+   * event subscription). The client is unusable afterward; build a new one to
+   * start again.
    */
   dispose(): void;
 }

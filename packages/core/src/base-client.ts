@@ -77,8 +77,7 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
   }
 
   balance(): Promise<Balance> {
-    // walletdkrpc.Balance: confirmed_sat (spendable VTXO), pending_in_sat,
-    // pending_out_sat, same surface as darepocli balance.
+    // The daemon's Balance shape; generated.ts is the field source of truth.
     return this.callRaw<Balance>('balance');
   }
 

@@ -104,5 +104,5 @@ export type { MobileConfig, ServerTransport } from './facade.ts';
 export { RUNTIME_MANIFEST_VERSION } from './version.ts';
 
 // camelizeKeys maps a daemon PascalCase JSON response to the SDK's camelCase
-// shapes; packages/web applies it at the response boundary.
+// shapes; every transport applies it at its response boundary.
 export { camelizeKeys } from './casing.ts';
