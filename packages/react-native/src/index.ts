@@ -12,8 +12,8 @@ import {
 
 /**
  * Creates a {@link WalletDKClient} backed by the React Native transport: the
- * daemon compiled into the app via the gomobile bindings. Takes no options in
- * this release; the signature reserves an options object for future use.
+ * daemon compiled into the app via the gomobile bindings. Takes no options
+ * today; an options parameter can be added later without a breaking change.
  */
 export function createNativeClient(): WalletDKClient {
   // NativeModules.Walletdk is the interop view of the Turbo Module; the

@@ -4,8 +4,8 @@ import Foundation
 import UIKit
 
 // The native half of the passkey ceremony: WebAuthn-shaped JSON in, a minimal
-// WebAuthn-shaped JSON response out (id, rawId, type, and the PRF extension
-// results; that subset is all the TypeScript parser reads). The JSON-to-
+// WebAuthn-shaped JSON response out. The TypeScript parser reads only id and
+// the PRF results; rawId and type ride along for WebAuthn shape fidelity. The JSON-to-
 // ASAuthorization mapping follows react-native-passkey (MIT,
 // https://github.com/f-23/react-native-passkey), which shipped the iOS 18 PRF
 // path this implementation mirrors.

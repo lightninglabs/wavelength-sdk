@@ -23,9 +23,9 @@ export interface Spec extends TurboModule {
   passkeyCreate(requestJson: string): Promise<string>;
   /** Runs a passkey assertion ceremony; WebAuthn JSON in and out. */
   passkeyGet(requestJson: string): Promise<string>;
-  /** Required by NativeEventEmitter; the native side keeps no listener state. */
+  /** Required by NativeEventEmitter. */
   addListener(eventName: string): void;
-  /** Required by NativeEventEmitter; the native side keeps no listener state. */
+  /** Required by NativeEventEmitter. */
   removeListeners(count: number): void;
 }
 

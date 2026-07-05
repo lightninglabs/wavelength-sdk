@@ -30,7 +30,7 @@ import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-// The thin JSON pipe between JS and the gomobile facade. Every verb runs on a
+// The thin JSON pipe between JS and the gomobile facade. Every facade verb runs on a
 // background executor because the facade's calls block (start until the
 // daemon serves, RPCs until they answer). All typing lives in TypeScript.
 class WalletdkModule(reactContext: ReactApplicationContext) :
@@ -152,7 +152,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
   }
 
   // dispatch maps a verb name onto the generated Mobile entry points. The
-  // remaining verbs land with the full transport implementation.
+  // switch stays dumb on purpose because all typing lives in TypeScript.
   private fun dispatch(method: String, paramsJson: String): String {
     val params = paramsJson.toByteArray(Charsets.UTF_8)
     val result: ByteArray? = when (method) {
