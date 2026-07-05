@@ -4,6 +4,34 @@ import type {
   PasskeyCeremony,
 } from '@lightninglabs/walletdk-core';
 
+// A passkey ceremony that neither resolves nor rejects within this bound has
+// wedged (a silent native provider); reject so usePasskeyWallet's busy flag
+// cannot stick until an app restart. Generous enough that a real user
+// completing biometrics or a PIN never trips it.
+const PASSKEY_TIMEOUT_MS = 120000;
+
+// withPasskeyTimeout rejects if the native ceremony call has not settled
+// within PASSKEY_TIMEOUT_MS. It does not cancel the native ceremony; it only
+// unwedges the JavaScript promise.
+function withPasskeyTimeout<T>(op: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`passkey ${label} timed out`)),
+      PASSKEY_TIMEOUT_MS,
+    );
+    op.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 /**
  * The subset of the native Turbo Module the passkey ceremony depends on.
  * Narrowed to an interface (rather than the generated Spec) so unit tests can
@@ -54,7 +82,10 @@ export function nativePasskeyCeremony(
       extensions: { prf: { eval: { first: saltB64url } } },
     };
     const response = JSON.parse(
-      await native.passkeyGet(JSON.stringify(request)),
+      await withPasskeyTimeout(
+        native.passkeyGet(JSON.stringify(request)),
+        'authentication',
+      ),
     ) as WebAuthnResponse;
 
     return { prfOutput: requirePrfHex(response), credentialId: response.id };
@@ -90,13 +121,16 @@ export function nativePasskeyCeremony(
         extensions: { prf: { eval: { first: saltB64url } } },
       };
       const response = JSON.parse(
-        await native.passkeyCreate(JSON.stringify(request)),
+        await withPasskeyTimeout(
+          native.passkeyCreate(JSON.stringify(request)),
+          'registration',
+        ),
       ) as WebAuthnResponse;
 
       const first = prfFirst(response);
       if (first) {
         return {
-          prfOutput: base64UrlToHex(first),
+          prfOutput: prfOutputHex(first),
           credentialId: response.id,
         };
       }
@@ -132,7 +166,18 @@ function requirePrfHex(response: WebAuthnResponse): string {
     );
   }
 
-  return base64UrlToHex(first);
+  return prfOutputHex(first);
+}
+
+// prfOutputHex decodes a PRF output and requires the WebAuthn-mandated 32
+// bytes: short or padded key material must never reach wallet derivation.
+function prfOutputHex(firstB64url: string): string {
+  const hex = base64UrlToHex(firstB64url);
+  if (hex.length !== 64) {
+    throw new Error('passkey PRF output is not 32 bytes');
+  }
+
+  return hex;
 }
 
 // randomUserIdBase64Url makes a fresh 16-byte WebAuthn user handle. user.id

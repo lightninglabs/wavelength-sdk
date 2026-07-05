@@ -9,6 +9,11 @@ import {
 // ceremony round-trips between; pinned in core's passkey test.
 const SALT_B64URL = '8xg7hrwDh8zwVU-yyi1dcEOg_sAslZb_w4UzwI1SBxU';
 
+// A 32-byte PRF output fixture (0xabcd repeated), since the ceremony rejects
+// anything that is not exactly 32 bytes of key material.
+const PRF32_B64URL = 'q82rzavNq82rzavNq82rzavNq82rzavNq82rzavNq80';
+const PRF32_HEX = 'abcd'.repeat(16);
+
 // A scriptable fake of the native ceremony methods: records request JSON and
 // replays canned responses, mirroring client.test.ts's fake pattern.
 function makeFake() {
@@ -17,6 +22,7 @@ function makeFake() {
     supported: Promise.resolve(true),
     createResponse: '' as string,
     getResponse: '' as string,
+    hang: false,
     native: {
       passkeySupported: () => fake.supported,
       passkeyCreate(requestJson: string) {
@@ -27,6 +33,9 @@ function makeFake() {
       },
       passkeyGet(requestJson: string) {
         calls.push({ method: 'get', request: JSON.parse(requestJson) });
+        if (fake.hang) {
+          return new Promise<string>(() => {});
+        }
         return fake.getResponse.startsWith('REJECT')
           ? Promise.reject(new Error(fake.getResponse.slice(7)))
           : Promise.resolve(fake.getResponse);
@@ -48,7 +57,7 @@ const withPrf = (id: string, firstB64url: string) =>
 describe('nativePasskeyCeremony', () => {
   it('builds the creation request with the shared salt and rpId', async () => {
     const fake = makeFake();
-    fake.createResponse = withPrf('cred-1', 'q80'); // 0xab 0xcd
+    fake.createResponse = withPrf('cred-1', PRF32_B64URL);
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     await ceremony.registerPasskeyWallet('Demo App');
@@ -72,24 +81,24 @@ describe('nativePasskeyCeremony', () => {
 
   it('returns hex PRF output and credential id from registration', async () => {
     const fake = makeFake();
-    fake.createResponse = withPrf('cred-1', 'q80'); // base64url of 0xab 0xcd
+    fake.createResponse = withPrf('cred-1', PRF32_B64URL);
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     const result = await ceremony.registerPasskeyWallet('Demo App');
 
-    assert.equal(result.prfOutput, 'abcd');
+    assert.equal(result.prfOutput, PRF32_HEX);
     assert.equal(result.credentialId, 'cred-1');
   });
 
   it('falls back to a scoped assertion when create omits PRF', async () => {
     const fake = makeFake();
     fake.createResponse = JSON.stringify({ id: 'cred-2', type: 'public-key' });
-    fake.getResponse = withPrf('cred-2', 'vu8'); // 0xbe 0xef
+    fake.getResponse = withPrf('cred-2', PRF32_B64URL);
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     const result = await ceremony.registerPasskeyWallet('Demo App');
 
-    assert.equal(result.prfOutput, 'beef');
+    assert.equal(result.prfOutput, PRF32_HEX);
     assert.equal(result.credentialId, 'cred-2');
     const getReq = fake.calls[1];
     assert.equal(getReq.method, 'get');
@@ -100,7 +109,7 @@ describe('nativePasskeyCeremony', () => {
 
   it('scopes assertion to the given credential id', async () => {
     const fake = makeFake();
-    fake.getResponse = withPrf('cred-3', 'q80');
+    fake.getResponse = withPrf('cred-3', PRF32_B64URL);
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     await ceremony.assertPasskeyPrf('cred-3');
@@ -117,7 +126,7 @@ describe('nativePasskeyCeremony', () => {
 
   it('sends empty allowCredentials for a discoverable assertion', async () => {
     const fake = makeFake();
-    fake.getResponse = withPrf('cred-4', 'q80');
+    fake.getResponse = withPrf('cred-4', PRF32_B64URL);
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     await ceremony.assertPasskeyPrf();
@@ -155,6 +164,18 @@ describe('nativePasskeyCeremony', () => {
     assert.equal(await ceremony.supportsPasskeyPrf(), false);
   });
 
+  it('rejects a PRF output that is not 32 bytes', async () => {
+    const fake = makeFake();
+    // Two bytes of key material; deriving a wallet from it must never happen.
+    fake.getResponse = withPrf('cred-7', 'q80');
+    const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
+
+    await assert.rejects(
+      () => ceremony.assertPasskeyPrf(),
+      /passkey PRF output is not 32 bytes/,
+    );
+  });
+
   it('rejects a corrupted PRF payload instead of decoding around it', async () => {
     const fake = makeFake();
     // The '!' is outside the base64url alphabet; skipping it would silently
@@ -166,5 +187,20 @@ describe('nativePasskeyCeremony', () => {
       () => ceremony.assertPasskeyPrf(),
       /malformed base64url payload in passkey response/,
     );
+  });
+
+  it('rejects when the native ceremony never settles', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const fake = makeFake();
+    fake.hang = true;
+    const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
+
+    const pending = ceremony.assertPasskeyPrf();
+    const rejects = assert.rejects(
+      pending,
+      /passkey authentication timed out/,
+    );
+    t.mock.timers.tick(120000);
+    await rejects;
   });
 });
