@@ -41,7 +41,7 @@ build and run the dev client with `npx expo run:android` / `npx expo
 run:ios` from that directory and exercise the flows by hand against a
 regtest stack. Before either command, stage the native binaries with
 `pnpm --filter @lightninglabs/walletdk-react-native run fetch-bindings`
-(needs `DAREPO_DIR`; see the package README).
+(needs `DAREPO_DIR`; see the demo README and the script header).
 
 Metro's dev-server cache can serve a stale JS bundle after native code or
 dependency changes, a real recurring issue during bring-up. If the app on
