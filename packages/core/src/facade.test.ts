@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   base64FromUtf8,
   toGoCreateWalletReq,
+  toGoUnlockWalletReq,
   toMobileConfig,
 } from './facade.ts';
 
@@ -35,6 +36,55 @@ describe('toMobileConfig', () => {
     assert.equal(out.wallet_type, 'lwwallet');
   });
 
+  it('maps every field of a fully populated config', () => {
+    // An exhaustive shape pin: a snake_case typo in any mapping would show
+    // up as a silently dropped daemon setting, so assert the whole object.
+    const out = toMobileConfig(
+      {
+        network: 'regtest',
+        allowMainnet: false,
+        dataDir: '/data/walletdk',
+        debugLevel: 'debug',
+        arkServerUrl: '10.0.2.2:7070',
+        esploraUrl: 'http://10.0.2.2:8501',
+        serverInsecure: true,
+        swapServerUrl: '10.0.2.2:10030',
+        swapServerInsecure: true,
+        swapDatabaseFileName: 'swaps.db',
+      },
+      'grpc',
+    );
+    assert.deepEqual(out, {
+      network: 'regtest',
+      allow_mainnet: false,
+      data_dir: '/data/walletdk',
+      debug_level: 'debug',
+      wallet_type: 'lwwallet',
+      wallet_esplora_url: 'http://10.0.2.2:8501',
+      server_address: '10.0.2.2:7070',
+      server_transport: 'grpc',
+      server_insecure: true,
+      swap_server_address: '10.0.2.2:10030',
+      swap_server_transport: 'grpc',
+      swap_server_insecure: true,
+      swap_database_file_name: 'swaps.db',
+    });
+  });
+
+  it('carries the swap address under the rest transport too', () => {
+    const out = toMobileConfig(
+      {
+        network: 'signet',
+        arkServerUrl: 'https://ark.example',
+        swapServerUrl: 'https://swap.example',
+      },
+      'rest',
+    );
+    assert.equal(out.server_transport, 'rest');
+    assert.equal(out.swap_server_address, 'https://swap.example');
+    assert.equal(out.swap_server_transport, 'rest');
+  });
+
   it('omits every swap field when swaps are disabled', () => {
     const out = toMobileConfig(
       { network: 'signet', disableSwaps: true, swapServerUrl: 'ignored:443' },
@@ -42,6 +92,20 @@ describe('toMobileConfig', () => {
     );
     assert.equal(out.swap_server_address, undefined);
     assert.equal(out.swap_server_transport, undefined);
+  });
+});
+
+describe('toGoUnlockWalletReq', () => {
+  it('base64-encodes the password for the Go byte field', () => {
+    const out = toGoUnlockWalletReq({ password: 'héllo' });
+    assert.equal(
+      out.WalletPassword,
+      Buffer.from('héllo', 'utf8').toString('base64'),
+    );
+  });
+
+  it('leaves an absent password undefined', () => {
+    assert.equal(toGoUnlockWalletReq({ password: '' }).WalletPassword, undefined);
   });
 });
 
