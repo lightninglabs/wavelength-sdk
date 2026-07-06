@@ -18,7 +18,8 @@ version folder is wrong. See [Hosting runtime assets](/web/get-started/hosting-r
 ### Page is not cross-origin isolated
 
 Symptoms: `SharedArrayBuffer` is undefined, worker startup fails, or SQLite/OPFS
-never initializes.
+never initializes. The SQLite worker reports an error like `Missing
+SharedArrayBuffer API ... the server must emit COOP/COEP`.
 
 **Fix:** Send **`Cross-Origin-Opener-Policy: same-origin`** and
 **`Cross-Origin-Embedder-Policy: require-corp`** (plus

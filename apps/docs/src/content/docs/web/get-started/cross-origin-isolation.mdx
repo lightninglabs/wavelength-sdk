@@ -22,8 +22,10 @@ docs site.
 
 ## COOP/COEP headers
 
-Send these response headers on wallet routes (and on your dev server while
-testing locally):
+These are response headers on your own HTML document, so only the server that
+serves your app can set them. WalletDK cannot set them for you: they are not
+something the SDK, the worker, or the runtime assets can emit on their own.
+Send them on wallet routes (and on your dev server while testing locally):
 
 ```http title="Response headers"
 Cross-Origin-Opener-Policy: same-origin
