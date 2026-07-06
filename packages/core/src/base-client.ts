@@ -32,6 +32,7 @@ import type { WalletDKEvent, WalletDKListener } from './events.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
 import type { ServerTransport } from './facade.ts';
 import { toGoCreateWalletReq, toGoUnlockWalletReq, toMobileConfig } from './facade.ts';
+import { errorMessage } from './errors.ts';
 import { normalizeInfo } from './state.ts';
 
 /**
@@ -169,7 +170,19 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
 
   protected emit(event: WalletDKEvent) {
     for (const listener of this.listeners) {
-      listener(event);
+      try {
+        listener(event);
+      } catch (err) {
+        // Isolate a throwing subscriber so it cannot suppress the others or
+        // abort the transport's event dispatch. Reported as a log event
+        // unless the log listener itself is the one that threw.
+        if (event.type !== 'log') {
+          this.emit({
+            type: 'log',
+            payload: { level: 'error', message: errorMessage(err) },
+          });
+        }
+      }
     }
   }
 

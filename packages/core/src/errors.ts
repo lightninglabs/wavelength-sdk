@@ -18,6 +18,9 @@ export type WalletDKErrorCode =
  * consumers can branch without string-matching the message.
  */
 export class WalletDKError extends Error {
+  /** The machine-readable error classification. */
+  readonly code: WalletDKErrorCode;
+
   /**
    * @param message - The human-readable error message.
    * @param code - The machine-readable error classification; defaults to `'walletdk_error'`.
@@ -25,11 +28,15 @@ export class WalletDKError extends Error {
    */
   constructor(
     message: string,
-    public readonly code: WalletDKErrorCode = 'walletdk_error',
+    code: WalletDKErrorCode = 'walletdk_error',
     options?: { cause?: unknown },
   ) {
     super(message, options);
     this.name = 'WalletDKError';
+    // Assigned explicitly rather than via a constructor parameter property,
+    // which node's strip-only TypeScript loader (used by the unit tests) does
+    // not support.
+    this.code = code;
   }
 }
 
