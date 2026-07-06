@@ -3,17 +3,27 @@ title: React
 description: How to integrate WalletDK into a React application using the provider-injected client, the available hooks, and the passkey ceremony helpers.
 ---
 
+import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
+
 ## Provider (injected client)
 
 `@lightninglabs/walletdk-react` is **transport-agnostic**: it depends only on
-`@lightninglabs/walletdk-core` and never imports a browser or native transport.
-You build a `WalletDKClient` with your transport (for web,
-`createWebClient()` from `@lightninglabs/walletdk-web`) and pass it to
-`WalletDKProvider`.
+`@lightninglabs/walletdk-core` and never imports a specific transport. The
+provider takes any `WalletDKClient`; each transport ships its own factory to
+build one (`createWebClient` from [`@lightninglabs/walletdk-web`](/reference/walletdk-web/)
+for the web transport, `createNativeClient` from
+[`@lightninglabs/walletdk-react-native`](/reference/walletdk-react-native/)
+for React Native), and you pass either the built client or the factory itself
+to `WalletDKProvider`.
 
 The provider accepts either a prebuilt **`client`** or a **`createClient`**
 factory. The factory is called once and memoized, so an inline arrow function is
-safe:
+safe. The web transport takes options (`runtimeBaseUrl`), so it builds the
+client outside the provider; the React Native transport takes none, so it
+can be passed directly as the factory:
+
+<PlatformTabs>
+<div data-label="Web">
 
 ```tsx title="App.tsx"
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
@@ -24,15 +34,30 @@ const client = createWebClient({
 });
 
 export function App() {
+  return <WalletDKProvider client={client}>{/* your app */}</WalletDKProvider>;
+}
+```
+
+</div>
+<div data-label="React Native">
+
+```tsx title="App.tsx"
+import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { createNativeClient } from '@lightninglabs/walletdk-react-native';
+
+export function App() {
   return (
-    <WalletDKProvider client={client}>
+    <WalletDKProvider createClient={createNativeClient}>
       {/* your app */}
     </WalletDKProvider>
   );
 }
 ```
 
-Alternatively, defer client construction to the provider:
+</div>
+</PlatformTabs>
+
+Alternatively, on web you can defer client construction to the provider:
 
 ```tsx title="App.tsx"
 <WalletDKProvider
@@ -56,13 +81,13 @@ activity events arrive.
 `'stopping'`, `'stopped'`, or `'error'`. The `loading`/`runtimeReady`/
 `starting`/`stopping`/`stopped`/`error` phases are owned by the start/stop
 flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from wallet info.
-See [Handle phases and errors](/web/guides/handle-phases-and-errors/) for the
+See [Handle phases and errors](/guides/handle-phases-and-errors/) for the
 full state machine and how to react to each phase.
 
 The package **re-exports every type and enum from `core`**, so a React app can
-import contracts from one place. It does **not** re-export `createWebClient`;
-keep the transport import separate so the same binding can later run over React
-Native.
+import contracts from one place. It does **not** re-export any transport's
+client factory; keep the transport import separate so the same binding runs
+over any transport, web or React Native.
 
 ## Hooks
 
@@ -104,10 +129,10 @@ function SendButton({ invoice }: { invoice: string }) {
 }
 ```
 
-See [Send a payment](/web/guides/send-a-payment/),
-[Receive a Lightning payment](/web/guides/receive-a-lightning-payment/),
-[Get a deposit address](/web/guides/get-a-deposit-address/), and
-[Show balance and activity](/web/guides/show-balance-and-activity/) for
+See [Send a payment](/guides/send-a-payment/),
+[Receive a Lightning payment](/guides/receive-a-lightning-payment/),
+[Get a deposit address](/guides/get-a-deposit-address/), and
+[Show balance and activity](/guides/show-balance-and-activity/) for
 end-to-end usage of these hooks.
 
 Additional helpers split common concerns:
@@ -142,7 +167,14 @@ function WalletBoot() {
 
 Passkeys are driven by **`usePasskeyWallet(ceremony)`**, where `ceremony` is a
 `PasskeyCeremony` implementation injected from your transport. On web, pass
-**`webPasskeyCeremony`** from `@lightninglabs/walletdk-web`:
+**`webPasskeyCeremony`** from `@lightninglabs/walletdk-web`; on React Native,
+pass **`createNativePasskeyCeremony({ rpId })`** from
+`@lightninglabs/walletdk-react-native` (see
+[Passkey setup](/react-native/get-started/passkey-setup/) for the
+relying-party domain association it requires):
+
+<PlatformTabs>
+<div data-label="Web">
 
 ```tsx title="PasskeyUnlock.tsx"
 import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
@@ -182,6 +214,51 @@ function PasskeyUnlock() {
 }
 ```
 
+</div>
+<div data-label="React Native">
+
+```tsx title="PasskeyUnlock.tsx"
+import { Button, Text } from 'react-native';
+import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
+
+const ceremony = createNativePasskeyCeremony({ rpId: 'your-app-domain.example' });
+
+function PasskeyUnlock() {
+  const {
+    supported,
+    busy,
+    error,
+    createPasskeyWallet,
+    openPasskeyWallet,
+    clearError,
+  } = usePasskeyWallet(ceremony);
+
+  if (!supported) {
+    return <Text>Passkeys are not available on this device.</Text>;
+  }
+
+  return (
+    <>
+      <Button
+        disabled={busy}
+        onPress={() => createPasskeyWallet('My App')}
+        title="Create with passkey"
+      />
+      <Button
+        disabled={busy}
+        onPress={() => openPasskeyWallet(/* optional credential id */)}
+        title="Unlock with passkey"
+      />
+      {error && <Text role="alert">{error}</Text>}
+    </>
+  );
+}
+```
+
+</div>
+</PlatformTabs>
+
 The hook checks **`ceremony.supportsPasskeyPrf()`** on mount (platform
 authenticator availability). **`createPasskeyWallet(appName)`** runs
 `registerPasskeyWallet`, then `client.openWalletFromPasskey({ prfOutput })`,
@@ -205,4 +282,4 @@ if (outcome) {
 }
 ```
 
-See [Use a passkey](/web/guides/use-a-passkey/) for end-to-end onboarding UX.
+See [Use a passkey](/guides/use-a-passkey/) for end-to-end onboarding UX.

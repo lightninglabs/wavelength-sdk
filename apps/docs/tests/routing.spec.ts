@@ -6,8 +6,14 @@ import { join, dirname } from 'node:path';
 const URLS = [
   '/', '/introduction/what-is-walletdk/', '/concepts/balances-and-vtxos/',
   '/glossary/', '/reference/walletdk-core/',
-  '/web/get-started/quickstart/', '/web/guides/send-a-payment/',
-  '/web/reference/walletdk-web/', '/web/support/troubleshooting/',
+  '/web/get-started/quickstart/', '/guides/send-a-payment/',
+  '/react-native/get-started/quickstart/',
+  '/react-native/get-started/installation/',
+  '/react-native/get-started/requirements/',
+  '/react-native/get-started/passkey-setup/',
+  '/react-native/get-started/run-the-demo-app/',
+  '/react-native/troubleshooting/',
+  '/reference/walletdk-web/', '/web/support/troubleshooting/',
 ];
 
 test('every existing URL still resolves', async ({ page }) => {
@@ -24,16 +30,18 @@ test('Starlight is gone from the output', async ({ page }) => {
   expect(html).not.toContain('starlight');
 });
 
-test('no React Native references leak into the built site', async ({ page }) => {
+test('the sidebar offers the React Native journey from web pages', async ({ page }) => {
   await page.goto('/web/get-started/quickstart/');
-  const body = (await page.locator('body').innerText()).toLowerCase();
-  expect(body).not.toContain('react native');
+  const rnLinks = page.locator('a[href="/react-native/get-started/quickstart/"]');
+  expect(await rnLinks.count()).toBeGreaterThan(0);
+  const res = await page.goto('/react-native/get-started/quickstart/');
+  expect(res?.status()).toBe(200);
 });
 
 // --- Playground deferral assertions (Task 8) ---
 
 // The Playground is deferred. No shipped page should link to it.
-const PLAYGROUND_CHECK_PAGES = ['/', '/web/get-started/quickstart/', '/web/guides/send-a-payment/'];
+const PLAYGROUND_CHECK_PAGES = ['/', '/web/get-started/quickstart/', '/guides/send-a-payment/'];
 
 test('no shipped page links to a playground route', async ({ page }) => {
   for (const url of PLAYGROUND_CHECK_PAGES) {

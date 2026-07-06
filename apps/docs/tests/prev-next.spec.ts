@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 const CONCEPTS_BALANCES = '/concepts/balances-and-vtxos/';
 
 // A guide that has related[] set in frontmatter (send-a-payment has 4 related items).
-const GUIDE_SEND = '/web/guides/send-a-payment/';
+const GUIDE_SEND = '/guides/send-a-payment/';
 
 // A content page (DocLayout mounts RelatedGuides) with no related[] in its
 // frontmatter, used to assert RelatedGuides renders nothing when the list is empty.
@@ -49,8 +49,8 @@ test.describe('PrevNext component', () => {
   });
 
   test('first nav page has no previous link and has a next link', async ({ page }) => {
-    // The SwapDK system is the first page in the nav (Introduction section).
-    await page.goto('/introduction/the-swapdk-system/');
+    // What is WalletDK is the first page in the nav (Introduction section).
+    await page.goto('/introduction/what-is-walletdk/');
     await expect(page.locator('[data-prev-link]')).toHaveCount(0);
     await expect(page.locator('[data-next-link]')).toBeVisible();
   });

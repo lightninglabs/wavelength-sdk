@@ -52,6 +52,30 @@ const groups = sliceForSlug(currentSlug).nav;
   })}
 </nav>
 
+<script>
+  // Preserve the sidebar's scroll position across client-side navigations. The
+  // sidebar re-renders per page (to move the active-link highlight), so without
+  // this it snaps back to the top on every click. Capture the offset just
+  // before the body swaps out and reapply it to the freshly rendered sidebar.
+  // Register once (inline scripts replay on each swap; the window flag keeps the
+  // listeners from stacking). `saved` stays null on a fresh full load, so only
+  // an actual in-app navigation restores, never a first paint.
+  if (!window.__wdkSidebarScrollBound) {
+    window.__wdkSidebarScrollBound = true;
+    let saved: number | null = null;
+    document.addEventListener('astro:before-swap', () => {
+      const el = document.querySelector('.wdk-sidebar');
+      saved = el ? el.scrollTop : null;
+    });
+    document.addEventListener('astro:page-load', () => {
+      if (saved === null) return;
+      const el = document.querySelector('.wdk-sidebar');
+      if (el) el.scrollTop = saved;
+      saved = null;
+    });
+  }
+</script>
+
 <style>
   /* Sidebar container - fixed, full-height, with thin scrollbar. */
   .wdk-sidebar {
@@ -124,7 +148,10 @@ const groups = sliceForSlug(currentSlug).nav;
     text-decoration: none;
   }
 
-  .wdk-sidebar__link:hover {
+  /* Hover for inactive links only. Active links keep their accent background
+     (deepened on hover just below) instead of being flattened to --surface,
+     which otherwise made the highlight appear to vanish on hover/click. */
+  .wdk-sidebar__link:not(.wdk-sidebar__link--active):hover {
     color: var(--text);
     background: var(--surface);
   }
@@ -163,6 +190,14 @@ const groups = sliceForSlug(currentSlug).nav;
     border-left-color: var(--sky);
   }
 
+  /* Hovering an active link deepens its own accent tint rather than replacing
+     it, so the highlight stays put and the hover still gives feedback. */
+  .wdk-sidebar__link--violet:hover { background: rgba(122, 47, 242, 0.20); }
+  .wdk-sidebar__link--teal:hover   { background: rgba(21, 224, 194, 0.18); }
+  .wdk-sidebar__link--lime:hover   { background: rgba(201, 240, 0, 0.18); }
+  .wdk-sidebar__link--orange:hover { background: rgba(247, 146, 14, 0.20); }
+  .wdk-sidebar__link--sky:hover    { background: rgba(86, 199, 242, 0.18); }
+
   /* Light-mode overrides: lime active link text uses the darker accent-lime
      token (#5a7000) so it reads against the white/light surface. The other
      accents (violet, teal, orange, sky) are already readable in light mode via
@@ -171,6 +206,9 @@ const groups = sliceForSlug(currentSlug).nav;
     color: var(--accent-lime);
     border-left-color: var(--accent-lime);
     background: rgba(90, 112, 0, 0.08);
+  }
+  :global([data-theme='light']) .wdk-sidebar__link--lime:hover {
+    background: rgba(90, 112, 0, 0.14);
   }
 
   /* Mobile: hide the fixed sidebar (DocLayout drops the left margin to match).

@@ -9,29 +9,30 @@ test('nav flattens, accents and prev/next resolve', () => {
   const flat = flattenNav();
   expect(flat.length).toBeGreaterThan(20);
   expect(accentForSlug('concepts/balances-and-vtxos')).toBe('teal');
-  expect(accentForSlug('web/guides/send-a-payment')).toBe('lime');
-  expect(accentForSlug('web/reference/walletdk-web')).toBe('orange');
-  const pn = prevNext('web/guides/send-a-payment');
+  expect(accentForSlug('guides/send-a-payment')).toBe('lime');
+  expect(accentForSlug('reference/walletdk-web')).toBe('orange');
+  const pn = prevNext('guides/send-a-payment');
   expect(pn.section).toBe('guides');
   expect(pn.total).toBeGreaterThan(1);
 });
 
 test('nav order is journey-first: get started before reference', () => {
   const labels = NAV.map((g) => g.label);
-  const getStartedIdx = labels.indexOf('Get started');
+  const webIdx = labels.indexOf('Web');
   const referenceIdx = labels.indexOf('Reference');
   const glossaryIdx = labels.indexOf('Glossary');
-  expect(getStartedIdx).toBeGreaterThan(-1);
-  expect(referenceIdx).toBeGreaterThan(getStartedIdx);
+  expect(webIdx).toBeGreaterThan(-1);
+  expect(referenceIdx).toBeGreaterThan(webIdx);
   expect(glossaryIdx).toBeGreaterThan(referenceIdx);
 });
 
-test('reference group includes all three packages', () => {
+test('reference group includes all four packages', () => {
   const ref = NAV.find((g) => g.section === 'reference');
   expect(ref?.items.map((i) => i.slug)).toEqual([
     'reference/walletdk-core',
-    'web/reference/walletdk-web',
-    'web/reference/walletdk-react',
+    'reference/walletdk-react',
+    'reference/walletdk-web',
+    'reference/walletdk-react-native',
   ]);
 });
 
@@ -41,7 +42,7 @@ test('slices resolve by path prefix, SDK is the catch-all', () => {
   expect(sliceForPath('/api/').key).toBe('api');
   expect(sliceForPath('/cli/balance/').key).toBe('cli');
   expect(sliceForPath('/agents/').key).toBe('agents');
-  expect(sliceForPath('/web/guides/send-a-payment/').key).toBe('sdk');
+  expect(sliceForPath('/guides/send-a-payment/').key).toBe('sdk');
   expect(sliceForPath('/').key).toBe('sdk');
 });
 
@@ -79,4 +80,6 @@ test('header shows slice tabs with the active slice highlighted', async ({ page 
   await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveText('API');
   await page.goto('/web/get-started/quickstart/');
   await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveText('SDK');
+  await page.goto('/');
+  await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveCount(0);
 });

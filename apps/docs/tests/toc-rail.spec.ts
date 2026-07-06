@@ -8,10 +8,30 @@ import { test, expect } from '@playwright/test';
 // it spans to the viewport bottom; once the footer enters view RightRailCap
 // shortens it so the panel ends at the footer top.
 //
-// The guide article page (/web/guides/create-a-wallet/) has enough prose and
+// The guide article page (/guides/create-a-wallet/) has enough prose and
 // code blocks to overflow the viewport, so scrolling actually moves between
 // sections.
-const PAGE = '/web/guides/create-a-wallet/';
+const PAGE = '/guides/create-a-wallet/';
+
+test('clicking a TOC link lands the heading below the sticky header, not under it', async ({ page }) => {
+  // The glossary is a plain prose page whose TOC targets are markdown headings.
+  // Regression: those headings lacked scroll-margin-top, so an anchor jump left
+  // the heading hidden under the sticky header.
+  await page.goto('/glossary/');
+  const header = (await page.locator('.wdk-header').boundingBox())!;
+  const headerBottom = header.y + header.height;
+
+  await page.locator('.wdk-toc a[href="#bolt-11"]').click();
+
+  const heading = page.locator('#bolt-11');
+  await expect(async () => {
+    const box = (await heading.boundingBox())!;
+    // Cleared the header (the bug): the heading top sits at or below it.
+    expect(box.y).toBeGreaterThanOrEqual(headerBottom - 1);
+    // Actually scrolled to the anchor: it rests near the top, not mid-page.
+    expect(box.y).toBeLessThan(headerBottom + 48);
+  }).toPass({ timeout: 3000 });
+});
 
 test('TOC rail is fixed flush to the right screen edge and spans below the header', async ({ page }) => {
   await page.goto(PAGE);

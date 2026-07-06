@@ -3,13 +3,13 @@ title: Show balance & activity
 description: How to read the WalletDK balance and subscribe to the activity stream to display transaction history in your UI, with a live example.
 pageLayout: guide
 related:
-  - web/guides/send-a-payment
-  - web/guides/receive-a-lightning-payment
-  - web/guides/get-a-deposit-address
+  - guides/send-a-payment
+  - guides/receive-a-lightning-payment
+  - guides/get-a-deposit-address
 ---
 
 This guide assumes your app already renders inside a `WalletDKProvider` with a
-wallet unlocked and ready. See [Create a wallet](/web/guides/create-a-wallet/).
+wallet unlocked and ready. See [Create a wallet](/guides/create-a-wallet/).
 
 ## Read the balance
 
@@ -48,7 +48,7 @@ function Balance() {
 The provider stays live: new entries arrive through the activity stream and
 pending entries update in place when they settle. This live-update behavior
 comes from the `WalletDKProvider` wrapping your app; see
-[Create a wallet](/web/guides/create-a-wallet/) for how it is set up. No
+[Create a wallet](/guides/create-a-wallet/) for how it is set up. No
 polling or manual refresh is needed.
 
 ```tsx title="balance.tsx"
@@ -120,6 +120,6 @@ function FilteredFeed() {
 ## What's next
 
 Now that your UI can show balance and activity, try
-[Send a payment](/web/guides/send-a-payment/),
-[Receive a Lightning payment](/web/guides/receive-a-lightning-payment/), or
-[Get a deposit address](/web/guides/get-a-deposit-address/).
+[Send a payment](/guides/send-a-payment/),
+[Receive a Lightning payment](/guides/receive-a-lightning-payment/), or
+[Get a deposit address](/guides/get-a-deposit-address/).

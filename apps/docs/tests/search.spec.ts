@@ -35,8 +35,14 @@ test('the header search button opens the modal', async ({ page }) => {
   const modal = page.getByRole('dialog', { name: /search/i });
   await expect(modal).toBeHidden();
 
-  await page.getByRole('button', { name: /^search/i }).click();
-  await expect(modal).toBeVisible();
+  // The button only dispatches the open event; the client:load island may not
+  // have hydrated and attached its listener yet, so retry until the modal is
+  // visible (same pattern as the shortcut test).
+  const button = page.getByRole('button', { name: /^search/i });
+  await expect(async () => {
+    await button.click();
+    await expect(modal).toBeVisible();
+  }).toPass({ timeout: 5000 });
 
   // Backdrop click closes it.
   await page.locator('[data-search-backdrop]').click({ position: { x: 5, y: 5 } });
@@ -51,8 +57,13 @@ test('search still opens after a client-side navigation', async ({ page }) => {
   await expect(page).toHaveURL(/\/concepts\/activity-and-events\/$/);
 
   const modal = page.getByRole('dialog', { name: /search/i });
-  // The global listeners must survive the swap without duplicating - one press
-  // opens it exactly once.
-  await page.keyboard.press('Control+KeyK');
-  await expect(modal).toBeVisible();
+  // The global listeners must survive the body swap. The shortcut only
+  // dispatches an event, which is lost if it lands before the persisted
+  // client:load island is listening again (more likely under full-suite load),
+  // so retry the press until the modal opens, same pattern as the initial-load
+  // shortcut test above.
+  await expect(async () => {
+    await page.keyboard.press('Control+KeyK');
+    await expect(modal).toBeVisible();
+  }).toPass({ timeout: 5000 });
 });

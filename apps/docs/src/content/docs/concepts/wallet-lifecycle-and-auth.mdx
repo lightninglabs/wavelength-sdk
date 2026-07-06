@@ -96,7 +96,7 @@ function PasskeyUnlock({ credentialId }: { credentialId: string }) {
 Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). WalletDK folds passkey into the provider via an injected passkey ceremony; the core client only sees the PRF bytes.
 
 <Callout type="note">
-WebAuthn registration, PRF extension availability, and credential persistence are platform mechanics. See [Use a passkey](/web/guides/use-a-passkey/) for browser-specific steps; this page is the shared mental model.
+WebAuthn registration, PRF extension availability, and credential persistence are platform mechanics. See [Use a passkey](/guides/use-a-passkey/) for browser-specific steps; this page is the shared mental model.
 </Callout>
 
 From the wallet lifecycle perspective both paths converge: after unlock the daemon enters syncing, then ready. Choose password for the simplest cross-device story; choose passkey when you want passwordless return visits on a trusted device.

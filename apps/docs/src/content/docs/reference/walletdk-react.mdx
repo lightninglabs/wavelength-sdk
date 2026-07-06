@@ -13,7 +13,7 @@ import Callout from '~/components/mdx/Callout.astro';
 `@lightninglabs/walletdk-react` is the React binding for WalletDK: a context provider that owns a `WalletDKClient` and wires its state into React, plus hooks for reading that state and calling wallet operations.
 
 <Callout type="note">
-This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/walletdk-react` instead of adding `@lightninglabs/walletdk-core` as a separate dependency. The transport is not re-exported: `createWebClient` still comes from [`@lightninglabs/walletdk-web`](/web/reference/walletdk-web/) (or a native transport package). Every hook on this page, including `usePasskeyWallet`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
+This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/walletdk-react` instead of adding `@lightninglabs/walletdk-core` as a separate dependency. The transport is not re-exported: use `createWebClient` from [walletdk-web](/reference/walletdk-web/) or `createNativeClient` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `usePasskeyWallet`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
 </Callout>
 
 ## Provider
@@ -362,7 +362,7 @@ type PasskeyCeremony = {
 
 <ApiSymbol name="usePasskeyWallet" kind="function">
 
-Drives a passkey ceremony and opens the wallet through the provider's client, refreshing provider state on success so the phase advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/web/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; a native transport supplies its own implementation. Must be called within a `WalletDKProvider` subtree; throws otherwise.
+Drives a passkey ceremony and opens the wallet through the provider's client, refreshing provider state on success so the phase advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; the React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)). Must be called within a `WalletDKProvider` subtree; throws otherwise.
 
 <Signature title="walletdk-react.d.ts" code={usePasskeyWalletSig} />
 
@@ -412,7 +412,7 @@ Pairs the Go-side open result with the credential id used in the ceremony, so th
 
 <ApiSymbol name="PasskeyCeremony" kind="type">
 
-The per-platform contract `usePasskeyWallet` drives. It is defined in `walletdk-core` but documented here since this package is its primary consumer; the browser implementation, `webPasskeyCeremony`, lives in [`walletdk-web`](/web/reference/walletdk-web/#webPasskeyCeremony). A native transport supplies its own implementation of the same contract.
+The per-platform contract `usePasskeyWallet` drives. It is defined in `walletdk-core` but documented here since this package is its primary consumer; the browser implementation, `webPasskeyCeremony`, lives in [`walletdk-web`](/reference/walletdk-web/#webPasskeyCeremony). The React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)) as its implementation of the same contract.
 
 <Signature title="walletdk-react.d.ts" code={passkeyCeremonySig} />
 
@@ -434,4 +434,5 @@ The per-platform contract `usePasskeyWallet` drives. It is defined in `walletdk-
 ## See also
 
 - [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
-- [walletdk-web reference](/web/reference/walletdk-web/) for `createWebClient()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
+- [walletdk-web reference](/reference/walletdk-web/) for `createWebClient()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
+- [walletdk-react-native reference](/reference/walletdk-react-native/) for `createNativeClient()` and `createNativePasskeyCeremony()`, the React Native transport and passkey ceremony used with this package.

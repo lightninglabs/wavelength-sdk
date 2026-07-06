@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const PAGE = '/web/guides/use-a-passkey/';
+const PAGE = '/guides/use-a-passkey/';
 
 test('page actions trigger opens a menu with every action', async ({ page }) => {
   await page.goto(PAGE);
@@ -15,7 +15,7 @@ test('page actions trigger opens a menu with every action', async ({ page }) => 
   await expect(menu.getByRole('menuitem', { name: /copy url to markdown/i })).toBeVisible();
   await expect(menu.getByRole('menuitem', { name: /view as markdown/i })).toHaveAttribute(
     'href',
-    '/web/guides/use-a-passkey.md',
+    '/guides/use-a-passkey.md',
   );
 });
 
@@ -38,7 +38,7 @@ test('copy url to markdown puts the mirror url on the clipboard', async ({ page,
   await actions.getByRole('menuitem', { name: /copy url to markdown/i }).click();
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toMatch(/\/web\/guides\/use-a-passkey\.md$/);
+    .toMatch(/\/guides\/use-a-passkey\.md$/);
 });
 
 test('open-in links target the ai providers with the md url', async ({ page }) => {

@@ -1,22 +1,26 @@
 ---
 title: Use a passkey
-description: How to create and unlock a WalletDK wallet using WebAuthn passkeys instead of a password, with a live example.
+description: How to create and unlock a WalletDK wallet using platform passkeys instead of a password, with a live example.
 pageLayout: guide
 related:
-  - web/guides/create-a-wallet
-  - web/guides/handle-phases-and-errors
-  - web/guides/show-balance-and-activity
+  - guides/create-a-wallet
+  - guides/handle-phases-and-errors
+  - guides/show-balance-and-activity
 ---
+
+import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Create a passkey-protected wallet
 
-`usePasskeyWallet()` drives the WebAuthn ceremony and opens the wallet through
-the provider client. Pass `webPasskeyCeremony` from walletdk-web as the
-ceremony implementation.
+`usePasskeyWallet(ceremony)` drives the passkey ceremony and opens the wallet
+through the provider client. The `ceremony` argument is injected from your
+transport:
 
-`createPasskeyWallet(appName)` registers a device-bound credential (Face ID,
-Touch ID, Windows Hello, or a hardware security key) and derives the wallet
-seed from the PRF output. No password is stored or transmitted.
+<PlatformTabs>
+<div data-label="Web">
+
+Pass `webPasskeyCeremony` from `@lightninglabs/walletdk-web` as the ceremony
+implementation.
 
 ```tsx title="passkey.tsx"
 import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
@@ -34,7 +38,7 @@ function PasskeyOnboard() {
     }
   };
 
-  if (!supported) return <p>Passkeys not supported in this browser.</p>;
+  if (!supported) return <p>Passkeys are not supported on this device.</p>;
 
   return (
     <button onClick={create} disabled={busy}>
@@ -44,14 +48,62 @@ function PasskeyOnboard() {
 }
 ```
 
+</div>
+<div data-label="React Native">
+
+Pass `createNativePasskeyCeremony({ rpId })` from
+`@lightninglabs/walletdk-react-native` as the ceremony implementation. The
+`rpId` domain must be associated with your app first; see
+[Passkey setup](/react-native/get-started/passkey-setup/).
+
+```tsx title="passkey.tsx"
+import { Button, Text } from 'react-native';
+import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
+import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+
+const ceremony = createNativePasskeyCeremony({ rpId: 'wallet.example.com' });
+
+function PasskeyOnboard() {
+  const { createPasskeyWallet, supported, busy } =
+    usePasskeyWallet(ceremony);
+
+  const create = async () => {
+    const outcome = await createPasskeyWallet('My Wallet App');
+    if (outcome) {
+      // Persist outcome.credentialId to scope future unlocks.
+      console.log('Wallet ready:', outcome.result.identityPubKey);
+    }
+  };
+
+  if (!supported) return <Text>Passkeys are not supported on this device.</Text>;
+
+  return (
+    <Button
+      title="Create wallet with passkey"
+      onPress={create}
+      disabled={busy}
+    />
+  );
+}
+```
+
+</div>
+</PlatformTabs>
+
+`createPasskeyWallet(appName)` registers a device-bound credential (Face ID,
+Touch ID, Windows Hello, or a hardware security key) and derives the wallet
+seed from the PRF output. No password is stored or transmitted.
+
 ## Unlock with a passkey
 
+The samples below use the web ceremony for brevity; on React Native, substitute the `ceremony` you created in the tabbed section above.
+
 When `phase === 'locked'`, call `openPasskeyWallet(allowCredentialId)`.
-The browser presents the WebAuthn authentication dialog. On success, the
-runtime decrypts the seed and the provider transitions through `'syncing'` to
-`'ready'`. If the ceremony fails or times out, the provider instead moves to
-the `'error'` phase; see
-[Handle phases & errors](/web/guides/handle-phases-and-errors/) for how to
+The platform presents the passkey dialog. On success, the runtime decrypts
+the seed and the provider transitions through `'syncing'` to `'ready'`. If
+the ceremony fails or times out, the provider instead moves to the
+`'error'` phase; see
+[Handle phases & errors](/guides/handle-phases-and-errors/) for how to
 detect and recover from that path.
 
 Pass the stored `credentialId` to scope the assertion to the same passkey.
@@ -60,7 +112,7 @@ persisted a `credentialId` yet or the user is unlocking from a new device
 where a synced passkey is already available:
 
 ```tsx
-// No credentialId: the browser prompts with any discoverable passkey
+// No credentialId: the platform prompts with any discoverable passkey
 // registered for this origin.
 await openPasskeyWallet();
 ```

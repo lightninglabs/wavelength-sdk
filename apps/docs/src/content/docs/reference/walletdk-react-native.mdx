@@ -1,0 +1,130 @@
+---
+title: walletdk-react-native
+description: React Native transport factory, native passkey ceremony, and data-directory API.
+pageLayout: reference
+---
+
+import ApiSymbol from '~/components/mdx/ApiSymbol.astro';
+import Signature from '~/components/mdx/Signature.astro';
+import ParamsTable from '~/components/mdx/ParamsTable.astro';
+import Returns from '~/components/mdx/Returns.astro';
+import Callout from '~/components/mdx/Callout.astro';
+
+<Callout type="note" title="Pre-release">
+The React Native SDK is pre-release and not yet published to npm. The API
+surface is stable; iOS passkey support is still experimental.
+</Callout>
+
+`@lightninglabs/walletdk-react-native` is the React Native transport for
+WalletDK: the daemon compiled into the app binary via gomobile bindings,
+exposed as a standard [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient).
+It also ships the native (Android Credential Manager / iOS
+AuthenticationServices) passkey ceremony.
+
+<Callout type="tip" title="One import for the client and every type">
+This package re-exports the entire [`@lightninglabs/walletdk-core`](/reference/walletdk-core/)
+public surface (`export * from '@lightninglabs/walletdk-core'`). You only need
+to import from `@lightninglabs/walletdk-react-native` to get the client
+factory, every request/result type, every enum, and `defaultConfig()`. There is
+no need to also depend on `@lightninglabs/walletdk-core` directly.
+</Callout>
+
+export const createNativeClientSig = `function createNativeClient(): WalletDKClient`;
+
+export const createNativePasskeyCeremonySig = `function createNativePasskeyCeremony(
+  options: NativePasskeyCeremonyOptions,
+): PasskeyCeremony`;
+
+export const nativePasskeyCeremonyOptionsSig = `type NativePasskeyCeremonyOptions = {
+  rpId: string;
+};`;
+
+export const getDefaultDataDirSig = `function getDefaultDataDir(): Promise<string>;`;
+
+## Creating a client
+
+<ApiSymbol name="createNativeClient" kind="function">
+
+Creates and returns a `WalletDKClient` backed by the React Native transport:
+the daemon compiled into the app via the gomobile bindings. Takes no options
+in this release; the signature reserves an options object for future use.
+Activity arrives as typed `activity` events, re-emitted here from native
+`walletdkActivity` device events.
+
+<Signature title="walletdk-react-native.d.ts" code={createNativeClientSig} />
+
+<Returns type="WalletDKClient">
+A live client instance. Call `ready()` (resolves immediately, since the
+runtime is already compiled in) then `start(config)` to boot the daemon.
+</Returns>
+
+</ApiSymbol>
+
+## Passkeys (native)
+
+<ApiSymbol name="createNativePasskeyCeremony" kind="function">
+
+Creates the native implementation of the
+[`PasskeyCeremony`](/reference/walletdk-core/#PasskeyCeremony) contract
+(Android Credential Manager, iOS AuthenticationServices). Pass it to
+`usePasskeyWallet` from walletdk-react, or call its methods directly.
+
+<Signature title="walletdk-react-native.d.ts" code={createNativePasskeyCeremonySig} />
+
+<ParamsTable rows={[
+  { name: 'options', type: 'NativePasskeyCeremonyOptions', desc: 'Native-specific ceremony configuration.' },
+]} />
+
+<Returns type="PasskeyCeremony">
+The native passkey ceremony. Its `supportsPasskeyPrf()` method is what backs
+`usePasskeyWallet`'s `supported` flag.
+</Returns>
+
+Requires the relying-party domain to be associated with your app:
+`assetlinks.json` on Android, an Associated Domains entitlement plus
+`apple-app-site-association` on iOS. See the
+[passkey setup guide](/react-native/get-started/passkey-setup/) for the full
+walkthrough.
+
+<Callout type="caution" title="iOS support is experimental">
+iOS passkey support needs iOS 18 or newer at runtime and is experimental in
+this release.
+</Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="NativePasskeyCeremonyOptions" kind="type">
+
+Options for `createNativePasskeyCeremony`.
+
+<Signature title="walletdk-react-native.d.ts" code={nativePasskeyCeremonyOptionsSig} />
+
+<ParamsTable rows={[
+  { name: 'rpId', type: 'string', desc: 'The WebAuthn relying-party id: the domain whose assetlinks.json (Android) and apple-app-site-association (iOS) vouch for this app. Native apps have no window.location, so the rpId is explicit configuration.' },
+]} />
+
+</ApiSymbol>
+
+## Data directory
+
+<ApiSymbol name="getDefaultDataDir" kind="function">
+
+Resolves the platform default wallet data directory: the same directory
+`createNativeClient`'s client uses when `RuntimeConfig.dataDir` is unset.
+Exposed for app-level data management (show the storage location, back it up,
+or wipe it).
+
+<Signature title="walletdk-react-native.d.ts" code={getDefaultDataDirSig} />
+
+<Returns type="Promise<string>">
+A plain absolute filesystem path, with no URI scheme. Not guaranteed to exist
+until the runtime has started.
+</Returns>
+
+</ApiSymbol>
+
+## See also
+
+- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
+- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider`, `usePasskeyWallet`, and the other hooks that consume a client created here.
+- [Passkey setup](/react-native/get-started/passkey-setup/) for the Android and iOS domain-association walkthrough required by `createNativePasskeyCeremony`.

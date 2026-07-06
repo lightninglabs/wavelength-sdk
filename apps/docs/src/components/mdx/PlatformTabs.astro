@@ -1,0 +1,66 @@
+---
+/**
+ * PlatformTabs.astro renders per-platform content behind a shared tab strip.
+ * Direct children are the panels, labeled via data-label ("Web",
+ * "React Native"). The selected label persists in localStorage under
+ * 'wdk-platform', and every instance on the page follows the selection, so a
+ * reader picks their platform once. Panels hide with the hidden attribute so
+ * the markdown mirror keeps all platforms as regular content. The visual
+ * chrome is the shared .wdk-tabs rules in theme.css; this component only
+ * contributes behavior.
+ */
+---
+<div class="wdk-tabs wdk-platform-tabs">
+  <div class="wdk-tabs__strip" role="tablist"></div>
+  <div class="wdk-tabs__panels"><slot /></div>
+</div>
+<script>
+  // Initialise on astro:page-load with a per-element bound guard, matching
+  // the lifecycle pattern in PromptTabs.astro.
+  const STORE_KEY = 'wdk-platform';
+
+  function selectPlatform(label: string) {
+    document.querySelectorAll<HTMLElement>('.wdk-platform-tabs').forEach((root) => {
+      const panels = Array.from(
+        root.querySelectorAll<HTMLElement>(':scope > .wdk-tabs__panels > [data-label]'),
+      );
+      // Only apply when this instance actually has a panel for the label, so
+      // a single-platform block elsewhere on the page is left alone.
+      if (!panels.some((p) => p.dataset.label === label)) return;
+      panels.forEach((p) => { p.hidden = p.dataset.label !== label; });
+      root.querySelectorAll<HTMLButtonElement>('.wdk-tabs__strip button').forEach((b) => {
+        b.setAttribute('aria-selected', String(b.textContent === label));
+      });
+    });
+  }
+
+  function setupPlatformTabs() {
+    document.querySelectorAll<HTMLElement>('.wdk-platform-tabs').forEach((root) => {
+      if (root.dataset.wdkBound) return;
+      root.dataset.wdkBound = '1';
+      const strip = root.querySelector('.wdk-tabs__strip')!;
+      const panels = Array.from(
+        root.querySelectorAll<HTMLElement>(':scope > .wdk-tabs__panels > [data-label]'),
+      );
+      panels.forEach((panel, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.role = 'tab';
+        btn.textContent = panel.dataset.label ?? `Tab ${i + 1}`;
+        btn.setAttribute('aria-selected', String(i === 0));
+        if (i > 0) panel.hidden = true;
+        btn.addEventListener('click', () => {
+          const label = panel.dataset.label ?? '';
+          try { localStorage.setItem(STORE_KEY, label); } catch { /* Private mode; selection just does not persist. */ }
+          selectPlatform(label);
+        });
+        strip.appendChild(btn);
+      });
+    });
+    // Apply any stored selection after all strips exist.
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(STORE_KEY); } catch { /* Ignore. */ }
+    if (stored) selectPlatform(stored);
+  }
+  document.addEventListener('astro:page-load', setupPlatformTabs);
+</script>

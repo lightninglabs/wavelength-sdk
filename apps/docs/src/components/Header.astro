@@ -12,6 +12,8 @@ import SearchModal from '~/components/SearchModal';
 // Current path drives the active slice-tab highlight.
 const pathname = Astro.url.pathname;
 const activeSlice = sliceForPath(pathname);
+// The home page belongs to no slice, so no tab should light up there.
+const isHome = pathname === '/';
 ---
 
 <header class="wdk-header" role="banner">
@@ -40,7 +42,7 @@ const activeSlice = sliceForPath(pathname);
 
   <nav class="wdk-topnav" aria-label="Primary navigation">
     {SLICES.map((slice) => {
-      const isActive = slice.key === activeSlice.key;
+      const isActive = !isHome && slice.key === activeSlice.key;
       return (
         <a
           href={slice.href}
@@ -103,14 +105,20 @@ const activeSlice = sliceForPath(pathname);
   // The button is a fresh DOM node on every client-side navigation, so bind it
   // on astro:page-load with a per-element guard (the MobileNav / CodeRail
   // discipline) to avoid double-binding on re-init.
+  // Flag the request before dispatching so the modal island can honor an open
+  // that arrives before it has hydrated and attached its listener (otherwise
+  // the event has no listener and is silently dropped, which flaked under load).
+  function requestSearchOpen() {
+    window.__wdkSearchWantsOpen = true;
+    window.dispatchEvent(new CustomEvent('wdk:open-search'));
+  }
+
   function wireSearchButton() {
     const btnEl = document.querySelector('[data-search-trigger]');
     if (!(btnEl instanceof HTMLElement) || btnEl.dataset.wdkBound) return;
     const btn = btnEl;
     btn.dataset.wdkBound = '1';
-    btn.addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('wdk:open-search'));
-    });
+    btn.addEventListener('click', requestSearchOpen);
   }
   document.addEventListener('astro:page-load', wireSearchButton);
 
@@ -124,7 +132,7 @@ const activeSlice = sliceForPath(pathname);
     window.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
-        window.dispatchEvent(new CustomEvent('wdk:open-search'));
+        requestSearchOpen();
       }
     });
   }

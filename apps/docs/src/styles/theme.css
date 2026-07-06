@@ -204,6 +204,15 @@ code, pre, kbd {
   font-weight: 600;
 }
 
+/* Anchor-linked prose headings land clear of the sticky header when a TOC or
+   in-page link jumps to them. Component-authored anchors (Step, GuideSection,
+   ApiSymbol) set their own scroll-margin; this covers plain markdown headings.
+   The guide section wrapper (.wdk-gsec) carries the anchor id in guides, so
+   this heading rule does not double-offset it. */
+:is(.wdk-doc__content, .wdk-guide__content) :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+}
+
 /* In-content headings - sizes from custom.css, margins from r4-final .prose. */
 :is(.wdk-doc__content, .wdk-guide__content) h2 {
   font-family: var(--font-display);
@@ -714,6 +723,117 @@ code, pre, kbd {
 
 :is(.wdk-doc__content, .wdk-guide__content) tr:last-child td {
   border-bottom: none;
+}
+
+/* ── Shared tab chrome (PromptTabs.astro, PlatformTabs.astro) ───────────────
+   Global, not scoped: the tab-strip <button> elements are created at runtime
+   by each component's script, so they never receive Astro's data-astro-cid-*
+   scoping attribute. The class names (wdk-tabs__*) are namespaced so this is
+   safe alongside the rest of the site's scoped component styles. Both
+   PromptTabs and PlatformTabs render this shared .wdk-tabs shell and keep
+   their own root class (wdk-prompt-tabs, wdk-platform-tabs) for
+   component-keyed behavior only; the visual rules live here once.
+   Glassy chrome shell, consistent with the search modal and header's
+   blurred-surface treatment (.wdk-search__dialog below, Header.astro). */
+.wdk-tabs {
+  margin: 1.5rem 0;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* Tab strip: horizontally scrollable on narrow viewports, each button gets
+   an accent underline on selection rather than a filled pill, echoing the
+   h2 underline motif used elsewhere in doc prose. */
+.wdk-tabs__strip {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 0;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.wdk-tabs__strip::-webkit-scrollbar {
+  display: none;
+}
+
+.wdk-tabs__strip button {
+  flex: none;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  padding: 9px 16px 11px;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  position: relative;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.wdk-tabs__strip button::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--sl-accent, var(--teal));
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.wdk-tabs__strip button:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-3) 60%, transparent);
+}
+
+.wdk-tabs__strip button[aria-selected='true'] {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.wdk-tabs__strip button[aria-selected='true']::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.wdk-tabs__strip button:focus-visible {
+  outline: 2px solid var(--sl-accent, var(--teal));
+  outline-offset: -2px;
+}
+
+.wdk-tabs__panels {
+  background: var(--surface);
+}
+
+/* Panels hold a fenced code block (via Expressive Code); strip the code
+   block's own outer margin so it sits flush inside the tab shell. */
+.wdk-tabs__panels > [data-label] {
+  padding: 14px;
+}
+
+.wdk-tabs__panels > [data-label] .expressive-code {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .wdk-tabs__strip button {
+    padding: 8px 12px 10px;
+    font-size: 0.75rem;
+  }
+  .wdk-tabs__panels > [data-label] {
+    padding: 10px;
+  }
 }
 
 /* ── Search modal (SearchModal.tsx) ─────────────────────────────────────────

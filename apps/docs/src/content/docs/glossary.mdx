@@ -3,6 +3,10 @@ title: Glossary
 description: Definitions of key WalletDK, Ark, and Lightning Network terms used throughout the documentation.
 ---
 
+### Ark
+
+Ark is the shared off-chain protocol layer WalletDK builds on. Users hold VTXOs (virtual UTXOs) that settle on-chain in batched rounds, so payments are instant and cheap while remaining self-custodial, and users can always exit to on-chain Bitcoin unilaterally. This underpins boarding, rounds, VTXOs, and leaving Ark, which have their own entries.
+
 ### Batch swap
 
 A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. WalletDK may perform batch swaps automatically as part of routine wallet maintenance. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for how VTXO expiry fits into the lifecycle.
@@ -13,7 +17,11 @@ Boarding is how you enter Ark from the Bitcoin base layer. You spend an on-chain
 
 ### Boarding address
 
-A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; WalletDK tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/web/guides/get-a-deposit-address/).
+A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; WalletDK tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/guides/get-a-deposit-address/).
+
+### BOLT 11
+
+BOLT 11 is the standard Lightning invoice format. Every Lightning payment WalletDK sends or receives is a BOLT 11 invoice, so the wallet interoperates with any Lightning wallet, exchange, or app. See the [in-swap](#in-swap) and [out-swap](#out-swap) entries for how Lightning sends and receives are handled as swaps.
 
 ### Cooperative leave
 
@@ -25,7 +33,7 @@ Esplora is a REST API for querying Bitcoin chain data and UTXOs. WalletDK's ligh
 
 ### In-swap
 
-An in-swap brings value into your Ark wallet over Lightning. When you create a Lightning invoice, the swap server and operator set up a vHTLC; once a payer settles the invoice, you claim the locked funds as Ark balance. In-swaps are the receive path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Receive a Lightning payment](/web/guides/receive-a-lightning-payment/).
+An in-swap brings value into your Ark wallet over Lightning. When you create a Lightning invoice, the swap server and operator set up a vHTLC; once a payer settles the invoice, you claim the locked funds as Ark balance. In-swaps are the receive path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Receive a Lightning payment](/guides/receive-a-lightning-payment/).
 
 ### Mailbox
 
@@ -41,11 +49,19 @@ The operator, also called the Ark Service Provider (ASP), runs the Ark coordinat
 
 ### Out-swap
 
-An out-swap sends value from your Ark wallet over Lightning. You fund a vHTLC from your Ark balance; the swap server pays the destination invoice and claims the vHTLC once Lightning settlement reveals the preimage. Out-swaps are the send path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Send a payment](/web/guides/send-a-payment/).
+An out-swap sends value from your Ark wallet over Lightning. You fund a vHTLC from your Ark balance; the swap server pays the destination invoice and claims the vHTLC once Lightning settlement reveals the preimage. Out-swaps are the send path for Lightning payments. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Send a payment](/guides/send-a-payment/).
+
+### Passkey
+
+A passkey is a phishing-resistant credential (WebAuthn on web, the platform authenticator on mobile) that can protect a WalletDK wallet instead of a password. WalletDK derives the wallet's encryption from the passkey's PRF (pseudo-random function) output, so the same passkey deterministically unlocks the same wallet. Passkey support requires platform support; see the requirements pages.
 
 ### Round
 
 A round is one cycle in which the operator collects participant requests, constructs a batch transaction, co-signs it with clients, and broadcasts it on-chain. Rounds run on a fixed periodic cadence, aggregating boarding inputs, leave requests, batch swaps, and new VTXO allocations into a single on-chain transaction. Your boarded deposit becomes spendable Ark balance once the round that includes it confirms.
+
+### Transport
+
+A transport is the layer that runs the embedded wallet daemon for a given platform. WalletDK ships two: the web transport (`walletdk-web`, daemon compiled to WebAssembly, reaches gateways over REST) and the React Native transport (`walletdk-react-native`, daemon compiled into the app binary, uses gRPC). Both implement the same `WalletDKClient` contract, so app code is transport-agnostic.
 
 ### Unilateral exit
 

@@ -7,11 +7,11 @@ import { readSkills, buildCatalog } from './skills.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 
-test('all three skills parse with spec-conformant frontmatter', () => {
+test('all four skills parse with spec-conformant frontmatter', () => {
   const skills = readSkills(repoRoot);
   assert.deepEqual(
     skills.map((s) => s.name).sort(),
-    ['walletdk-api', 'walletdk-cli', 'walletdk-web'],
+    ['walletdk-api', 'walletdk-cli', 'walletdk-react-native', 'walletdk-web'],
   );
   for (const s of skills) {
     assert.match(s.name, /^[a-z0-9-]{1,64}$/, `${s.name}: name charset and length`);
@@ -32,7 +32,7 @@ test('skill bodies stay inside the spec size guidance', () => {
 test('catalog JSON matches the well-known shape', () => {
   const catalog = JSON.parse(buildCatalog(readSkills(repoRoot)));
   assert.ok(Array.isArray(catalog.skills));
-  assert.equal(catalog.skills.length, 3);
+  assert.equal(catalog.skills.length, 4);
   for (const s of catalog.skills) {
     assert.equal(typeof s.name, 'string');
     assert.equal(typeof s.description, 'string');

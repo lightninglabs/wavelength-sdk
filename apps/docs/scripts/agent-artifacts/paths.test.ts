@@ -4,7 +4,7 @@ import { pageRoute, mirrorFilesFor } from './paths.ts';
 
 test('maps built html files to site routes', () => {
   assert.equal(pageRoute('index.html'), '/');
-  assert.equal(pageRoute('web/guides/use-a-passkey/index.html'), '/web/guides/use-a-passkey/');
+  assert.equal(pageRoute('guides/use-a-passkey/index.html'), '/guides/use-a-passkey/');
 });
 
 test('excludes non-page assets', () => {
@@ -15,9 +15,9 @@ test('excludes non-page assets', () => {
 });
 
 test('emits both md conventions for a nested route', () => {
-  assert.deepEqual(mirrorFilesFor('/web/guides/use-a-passkey/'), [
-    'web/guides/use-a-passkey.md',
-    'web/guides/use-a-passkey/index.md',
+  assert.deepEqual(mirrorFilesFor('/guides/use-a-passkey/'), [
+    'guides/use-a-passkey.md',
+    'guides/use-a-passkey/index.md',
   ]);
 });
 

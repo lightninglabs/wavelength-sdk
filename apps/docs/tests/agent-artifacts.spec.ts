@@ -40,6 +40,7 @@ test('well-known skills catalog and files are served', async ({ request }) => {
   expect(catalog.skills.map((s: { name: string }) => s.name).sort()).toEqual([
     'walletdk-api',
     'walletdk-cli',
+    'walletdk-react-native',
     'walletdk-web',
   ]);
   for (const s of catalog.skills) {
@@ -50,7 +51,7 @@ test('well-known skills catalog and files are served', async ({ request }) => {
 });
 
 test('mirrors contain converted content, not html', async ({ request }) => {
-  const res = await request.get('/web/guides/use-a-passkey.md');
+  const res = await request.get('/guides/use-a-passkey.md');
   const body = await res.text();
   // Code samples may legitimately contain HTML-shaped text; the leak check
   // targets prose and structure outside code.
@@ -62,8 +63,8 @@ test('agents page renders the hub content', async ({ page }) => {
   await page.goto('/agents/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Build with agents');
   await expect(page.getByText('npx skills add lightninglabs/dawallet').first()).toBeVisible();
-  await expect(page.locator('.wdk-prompt-tabs__strip button')).toHaveCount(3);
-  await page.locator('.wdk-prompt-tabs__strip button').nth(1).click();
+  await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(4);
+  await page.locator('.wdk-tabs__strip button').nth(2).click();
   await expect(page.getByText('gRPC or REST').first()).toBeVisible();
 });
 
@@ -76,7 +77,7 @@ test('agents page tab strip still works after client-side navigation', async ({ 
   // scripts against it. Without an astro:page-load handler, this second
   // visit renders an empty strip with every panel showing.
   await page.goto('/agents/');
-  await expect(page.locator('.wdk-prompt-tabs__strip button')).toHaveCount(3);
+  await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(4);
 
   // Drive the clicks via the DOM API rather than Playwright's pointer-based
   // click: the links are appended to document.body, which the fixed sidebar
@@ -101,19 +102,20 @@ test('agents page tab strip still works after client-side navigation', async ({ 
   });
   await expect(page).toHaveURL(/\/agents\/$/);
 
-  await expect(page.locator('.wdk-prompt-tabs__strip button')).toHaveCount(3);
-  await page.locator('.wdk-prompt-tabs__strip button').nth(1).click();
+  await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(4);
+  await page.locator('.wdk-tabs__strip button').nth(2).click();
   await expect(page.getByText('gRPC or REST').first()).toBeVisible();
 });
 
-test('agents page markdown mirror keeps all three prompts', async ({ request }) => {
+test('agents page markdown mirror keeps all four prompts', async ({ request }) => {
   const res = await request.get('/agents.md');
   expect(res.status()).toBe(200);
   const body = await res.text();
   // The tab labels live in data-label attributes stripped by the converter;
   // assert on content unique to each panel instead so we still confirm the
-  // markdown mirror kept all three prompts as plain content.
+  // markdown mirror kept all four prompts as plain content.
   expect(body).toContain('mount <WalletDKProvider');
+  expect(body).toContain('createNativeClient()');
   expect(body).toContain('gRPC or REST');
   expect(body).toContain('Write automation for the WalletDK wallet using darepocli.');
   expect(body).toContain('darepocli mcp');

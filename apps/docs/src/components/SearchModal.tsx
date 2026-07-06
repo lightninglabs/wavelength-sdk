@@ -118,9 +118,18 @@ function SearchModalInner() {
   // view-transition navigations.
   useEffect(() => {
     function onOpenRequest() {
+      // A live request is being handled, so it is no longer pending.
+      window.__wdkSearchWantsOpen = false;
       setOpen((prev) => !prev);
     }
     window.addEventListener('wdk:open-search', onOpenRequest);
+    // Honor an open requested before this island hydrated: the shortcut/button
+    // set the flag and dispatched an event that had no listener yet, so the
+    // event was dropped but the intent survives on the flag.
+    if (window.__wdkSearchWantsOpen) {
+      window.__wdkSearchWantsOpen = false;
+      setOpen(true);
+    }
     return () => {
       window.removeEventListener('wdk:open-search', onOpenRequest);
     };

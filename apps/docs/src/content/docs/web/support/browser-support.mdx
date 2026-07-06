@@ -20,7 +20,7 @@ their columns.
 **WebAssembly runtime:** Chrome 100+, Firefox 110+, and Safari 16+ are the
 documented development targets. Older engines may fail to instantiate the daemon
 or lack required APIs. See the
-[error codes reference](/web/guides/handle-phases-and-errors/) for the
+[error codes reference](/guides/handle-phases-and-errors/) for the
 `runtime_not_ready` and `asset_load_failed` codes to catch when instantiation
 fails.
 
@@ -44,7 +44,7 @@ extension. `webPasskeyCeremony.supportsPasskeyPrf()` checks for a user-verifying
 platform authenticator, but the authenticator must still return a PRF result at
 ceremony time. Gate passkey UI on the hook's `supported` flag and offer a
 password or recovery-phrase path when it is false. See the
-[passkey guide](/web/guides/use-a-passkey/) for a full example using
+[passkey guide](/guides/use-a-passkey/) for a full example using
 `usePasskeyWallet`.
 
 Node.js **20+** is recommended for local development (Vite, Next.js, and

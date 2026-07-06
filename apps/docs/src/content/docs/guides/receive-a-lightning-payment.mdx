@@ -3,10 +3,10 @@ title: Receive a Lightning payment
 description: How to generate a Lightning invoice via an in-swap and wait for the payment to settle, with a live example.
 pageLayout: guide
 related:
-  - web/guides/send-a-payment
-  - web/guides/show-balance-and-activity
-  - web/guides/get-a-deposit-address
-  - web/guides/handle-phases-and-errors
+  - guides/send-a-payment
+  - guides/show-balance-and-activity
+  - guides/get-a-deposit-address
+  - guides/handle-phases-and-errors
 ---
 
 ## Create a Lightning invoice
@@ -82,5 +82,5 @@ function InvoiceStatus({ bolt11 }: { bolt11: string }) {
 For finer-grained progress than the top-level `status` field offers (for
 example, distinguishing "waiting for payment" from "settling" while an
 in-swap is still `'pending'`), see `entry.progress?.phase` in
-[Handle phases and errors](/web/guides/handle-phases-and-errors/). This guide
+[Handle phases and errors](/guides/handle-phases-and-errors/). This guide
 sticks to the simpler `status` field for clarity.

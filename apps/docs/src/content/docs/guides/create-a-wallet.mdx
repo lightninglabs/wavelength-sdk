@@ -3,35 +3,63 @@ title: Create a wallet (password)
 description: Create a password-protected WalletDK wallet in a React app, with inline code at each step.
 pageLayout: guide
 related:
-  - web/guides/handle-phases-and-errors
-  - web/guides/use-a-passkey
-  - web/guides/show-balance-and-activity
+  - guides/handle-phases-and-errors
+  - guides/use-a-passkey
+  - guides/show-balance-and-activity
 ---
+
+import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Install the packages
 
-WalletDK ships as two packages: `@lightninglabs/walletdk-web`, the browser
-wallet runtime, and `@lightninglabs/walletdk-react`, the React bindings. Both
-are ES modules with full TypeScript declarations.
+WalletDK ships as a transport package, one per platform, plus
+`@lightninglabs/walletdk-react`, the React bindings. All are ES modules with
+full TypeScript declarations.
 
-The runtime bundles a WASM module for cryptography and uses OPFS for storage.
-There are no native dependencies and no server-side component, so a modern
-browser is all you need at runtime.
+<PlatformTabs>
+<div data-label="Web">
+
+The web transport, `@lightninglabs/walletdk-web`, bundles a WASM module for
+cryptography and uses OPFS for storage. There are no native dependencies and
+no server-side component, so a modern browser is all you need at runtime.
 
 ```bash title="Terminal"
 # Install the browser runtime and the React bindings.
 npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
 ```
 
+</div>
+<div data-label="React Native">
+
+The React Native transport, `@lightninglabs/walletdk-react-native`, wraps a
+wallet runtime that is compiled into your app binary rather than fetched at
+runtime.
+
+```bash title="Terminal"
+# Install the native transport and the React bindings.
+npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+```
+
+See [Installation](/react-native/get-started/installation/) for staging the
+native runtime binaries before your first build.
+
+</div>
+</PlatformTabs>
+
 ## Add the provider
 
-`createWebClient()` returns a browser client. Wrap your app in
-`WalletDKProvider` and pass it the client. Every component below the provider
-can reach the wallet through hooks.
+Wrap your app in `WalletDKProvider` so every component below it can reach the
+wallet through hooks.
 
 Call `start(defaultConfig('signet'))` to boot the daemon after the runtime
 loads. Switch to `defaultConfig('mainnet')` only once you have key backup and
 recovery in place.
+
+<PlatformTabs>
+<div data-label="Web">
+
+`createWebClient()` returns a browser client. Build it outside the provider
+and pass it via `client`:
 
 ```tsx title="App.tsx"
 import { useEffect } from 'react';
@@ -63,6 +91,43 @@ export function App() {
 }
 ```
 
+</div>
+<div data-label="React Native">
+
+`createNativeClient` takes no options, so pass it directly to the provider's
+`createClient` factory prop instead of building a client beforehand:
+
+```tsx title="App.tsx"
+import { useEffect } from 'react';
+import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { WalletDKProvider, useWalletRuntime } from '@lightninglabs/walletdk-react';
+
+function WalletApp({ children }: { children: React.ReactNode }) {
+  const { start, phase } = useWalletRuntime();
+
+  useEffect(() => {
+    if (phase === 'runtimeReady') {
+      start(defaultConfig('signet'));
+    }
+  }, [phase, start]);
+
+  return <>{children}</>;
+}
+
+export function App() {
+  return (
+    <WalletDKProvider createClient={createNativeClient}>
+      <WalletApp>
+        {/* your app */}
+      </WalletApp>
+    </WalletDKProvider>
+  );
+}
+```
+
+</div>
+</PlatformTabs>
+
 ## Create the wallet
 
 Call `useWalletBootstrap()` inside the provider to create or unlock a wallet.
@@ -71,8 +136,8 @@ When `phase` is `'needsWallet'`, no wallet exists yet.
 `createWallet({ password })` generates a fresh HD seed, encrypts it with the
 password, and stores it locally. The password is whatever you pass in; the
 SDK does not enforce a minimum length or complexity, so validate it yourself
-before calling `createWallet`. The whole operation runs in the browser and the
-seed never leaves the device. After it resolves, `phase` becomes `'ready'`.
+before calling `createWallet`. The whole operation runs on-device and the
+seed never leaves it. After it resolves, `phase` becomes `'ready'`.
 
 The resolved result includes `mnemonic`, the wallet's recovery phrase. This is
 the only time the SDK ever returns it, so show it to the user immediately and
@@ -91,7 +156,7 @@ function Onboard() {
   const [mnemonic, setMnemonic] = useState<string[] | null>(null);
 
   const handleCreate = async () => {
-    // Generate the HD seed in-browser, encrypted with the password.
+    // Generate the HD seed on-device, encrypted with the password.
     const result = await createWallet({ password: 'a-strong-password' });
     // Show the mnemonic once, right after creation: it is not retrievable later.
     setMnemonic(result.mnemonic);
