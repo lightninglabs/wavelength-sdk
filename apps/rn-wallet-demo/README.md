@@ -2,8 +2,10 @@
 
 The reference React Native app for [WalletDK](../../README.md): a
 self-custodial Lightning wallet embedded in an Expo app. It exercises the full
-wallet flow (create or unlock, on-chain deposit, Lightning receive and send,
-live activity) through [`@lightninglabs/walletdk-react-native`](../../packages/react-native)
+wallet flow: create, restore, or unlock (password or passkey), recovery-phrase
+backup, on-chain boarding and Lightning receive with scannable QRs, send, live
+activity, runtime controls, local-data wipe, and light/dark themes, all
+through [`@lightninglabs/walletdk-react-native`](../../packages/react-native)
 and the shared [`@lightninglabs/walletdk-react`](../../packages/react) hooks.
 
 This app is a development harness, not a published product. It runs as an Expo
@@ -56,13 +58,31 @@ The first `expo run:*` generates the native `android/` and `ios/` projects
 
 ## Networks
 
-The start screen offers two presets (defined in `App.tsx`):
+The start screen offers three presets (defined in `src/lib/runtime-config.ts`):
 
 - **regtest** targets the local stack. Host addressing is automatic per
   platform: the Android emulator reaches your machine as `10.0.2.2`, the iOS
   simulator as `127.0.0.1`.
-- **signet** targets the public signet deployment over TLS and also works on
-  physical devices.
+- **testnet** and **signet** target the public test network deployments over
+  TLS and also work on physical devices.
+
+Every endpoint is editable under "Advanced endpoints" before starting, so a
+preset is a starting point, not a limit.
+
+## App structure
+
+The app mirrors the web demo (`apps/web-wallet-demo`) screen for screen so
+the two SDK surfaces can be compared directly:
+
+- `src/WalletApp.tsx` routes by wallet lifecycle phase (connect, create or
+  restore, backup, unlock, syncing, stopped, error) and hosts the
+  authenticated tabs (Overview, Activity, Receive, Send, Settings).
+- `src/theme/` holds the shared design tokens (light and dark palettes, IBM
+  Plex type) behind a small theme context; the preference persists across
+  restarts and survives a data wipe.
+- Settings offers the runtime status, identity key, theme switch, read-only
+  server configuration, stop runtime, and "Clear wallet data", which stops
+  the runtime and deletes the wallet's data directory on device.
 
 ## Passkeys
 
