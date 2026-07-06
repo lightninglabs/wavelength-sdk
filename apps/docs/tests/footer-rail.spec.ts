@@ -7,6 +7,34 @@ import { edges } from './helpers';
 // stepper, symbol list) stop at the footer top via RightRailCap.astro, so
 // the footer stays full-width on the right.
 
+test('footer columns map every surface and all links resolve', async ({ page }) => {
+  await page.goto('/guides/create-a-wallet/');
+  const hrefs = await page
+    .locator('.wdk-footer-inner a.wdk-footer-link')
+    .evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
+
+  // The Integrate column spans every surface, including the non-SDK slices, so
+  // the footer reads the same on every page rather than echoing the SDK nav.
+  for (const href of [
+    '/web/get-started/quickstart/',
+    '/react-native/get-started/quickstart/',
+    '/api/',
+    '/cli/',
+    '/agents/',
+  ]) {
+    expect(hrefs, `footer is missing ${href}`).toContain(href);
+  }
+
+  // Every footer link points at a real page (guards stale links and the
+  // empty-column regression an orphaned NAV section key produced).
+  const unique = [...new Set(hrefs)];
+  expect(unique.length).toBeGreaterThanOrEqual(12);
+  for (const href of unique) {
+    const res = await page.request.get(href);
+    expect(res.status(), `footer link ${href} should resolve`).toBe(200);
+  }
+});
+
 test('guide footer clears the left sidebar and extends to the right edge', async ({ page }) => {
   await page.goto('/guides/create-a-wallet/');
   const footer = page.locator('.wdk-footer');

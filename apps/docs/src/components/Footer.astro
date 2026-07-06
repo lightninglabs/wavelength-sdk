@@ -10,7 +10,7 @@
  * via RightRailCap.astro, so the footer stays full-width on the right.
  * Defaults to false so the home page keeps a full-width footer.
  */
-import { NAV } from '~/config/nav';
+import { NAV, SURFACES } from '~/config/nav';
 
 interface Props {
   insetLeft?: boolean;
@@ -18,19 +18,30 @@ interface Props {
 
 const { insetLeft = false } = Astro.props;
 
-// Footer link columns: pick three representative sections from NAV.
-// Each entry shows up to `limit` items from its NAV group.
+// Footer link columns map the whole site, not just the SDK: how to integrate
+// (every surface), what to learn, and where to look things up. Each column is
+// an explicit list of { label, href } so the footer never depends on a NAV
+// section key that a later refactor might rename out from under it.
+const referenceGroup = NAV.find((g) => g.section === 'reference');
+
 const FOOTER_COLS = [
-  { section: 'get-started', limit: 4 },
-  { section: 'guides',      limit: 4 },
-  { section: 'reference',   limit: 4 },
-].map(({ section, limit }) => {
-  const group = NAV.find((g) => g.section === section);
-  return {
-    label: group?.label ?? section,
-    items: (group?.items ?? []).slice(0, limit),
-  };
-});
+  { label: 'Integrate', items: SURFACES },
+  {
+    label: 'Learn',
+    items: [
+      { label: 'What is WalletDK', href: '/introduction/what-is-walletdk/' },
+      { label: 'System architecture', href: '/introduction/system-architecture/' },
+      { label: 'Concepts', href: '/concepts/balances-and-vtxos/' },
+      { label: 'Glossary', href: '/glossary/' },
+    ],
+  },
+  {
+    label: referenceGroup?.label ?? 'Reference',
+    items: (referenceGroup?.items ?? [])
+      .slice(0, 4)
+      .map((i) => ({ label: i.label, href: `/${i.slug}/` })),
+  },
+];
 ---
 
 <footer
@@ -52,14 +63,14 @@ const FOOTER_COLS = [
         </div>
         <span class="wdk-wordmark">Wallet<span>DK</span></span>
       </div>
-      <p class="wdk-footer-tagline">Self-custodial Bitcoin, Lightning, and Ark. In the browser.</p>
+      <p class="wdk-footer-tagline">Self-custodial Bitcoin, Lightning, and Ark. On web and mobile.</p>
     </div>
 
     {FOOTER_COLS.map((col) => (
       <div>
         <div class="wdk-footer-col-label">{col.label}</div>
         {col.items.map((item) => (
-          <a href={`/${item.slug}/`} class="wdk-footer-link">{item.label}</a>
+          <a href={item.href} class="wdk-footer-link">{item.label}</a>
         ))}
       </div>
     ))}

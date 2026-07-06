@@ -257,6 +257,25 @@ export const SLICES: Slice[] = [
   { key: 'agents', label: 'Agents', href: '/agents/', prefixes: ['/agents'], nav: AGENTS_NAV },
 ];
 
+/** One way to integrate WalletDK: a labelled entry point. */
+export interface Surface {
+  label: string;
+  href: string;
+}
+
+/**
+ * The integration surfaces, in the same order the home page presents them.
+ * Canonical list shared by the home Surfaces band's intent and the footer's
+ * Integrate column so the two stay in sync.
+ */
+export const SURFACES: Surface[] = [
+  { label: 'Web SDK', href: '/web/get-started/quickstart/' },
+  { label: 'React Native SDK', href: '/react-native/get-started/quickstart/' },
+  { label: 'API', href: '/api/' },
+  { label: 'CLI', href: '/cli/' },
+  { label: 'Agents', href: '/agents/' },
+];
+
 /** Returns the slice owning a pathname; the SDK slice is the fallback. */
 export function sliceForPath(pathname: string): Slice {
   const match = SLICES.find((s) =>
