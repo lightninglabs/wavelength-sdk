@@ -18,11 +18,11 @@ test('nav flattens, accents and prev/next resolve', () => {
 
 test('nav order is journey-first: get started before reference', () => {
   const labels = NAV.map((g) => g.label);
-  const getStartedIdx = labels.indexOf('Get started: Web');
+  const webIdx = labels.indexOf('Web');
   const referenceIdx = labels.indexOf('Reference');
   const glossaryIdx = labels.indexOf('Glossary');
-  expect(getStartedIdx).toBeGreaterThan(-1);
-  expect(referenceIdx).toBeGreaterThan(getStartedIdx);
+  expect(webIdx).toBeGreaterThan(-1);
+  expect(referenceIdx).toBeGreaterThan(webIdx);
   expect(glossaryIdx).toBeGreaterThan(referenceIdx);
 });
 

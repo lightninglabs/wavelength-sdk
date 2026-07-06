@@ -29,8 +29,8 @@ export const NAV: NavGroup[] = [
     label: 'Introduction',
     section: 'introduction',
     items: [
-      { slug: 'introduction/the-swapdk-system', label: 'The SwapDK system', section: 'introduction' },
       { slug: 'introduction/what-is-walletdk', label: 'What is WalletDK', section: 'introduction' },
+      { slug: 'introduction/the-swapdk-system', label: 'The SwapDK system', section: 'introduction' },
       { slug: 'introduction/system-architecture', label: 'System architecture', section: 'introduction' },
     ],
   },
@@ -46,28 +46,34 @@ export const NAV: NavGroup[] = [
       { slug: 'concepts/leaving-ark', label: 'Leaving Ark', section: 'concepts' },
     ],
   },
-  // -- WEB SDK (BUILD) --
+  // -- WEB PLATFORM (BUILD) --
   {
-    label: 'Get started: Web',
-    section: 'get-started-web',
+    label: 'Web',
+    section: 'web',
     items: [
-      { slug: 'web/get-started/quickstart', label: 'Quickstart', section: 'get-started-web' },
-      { slug: 'web/get-started/run-the-demo-app', label: 'Run the demo app', section: 'get-started-web' },
-      { slug: 'web/get-started/installation', label: 'Installation', section: 'get-started-web' },
-      { slug: 'web/get-started/requirements', label: 'Requirements', section: 'get-started-web' },
-      { slug: 'web/get-started/hosting-runtime-assets', label: 'Hosting runtime assets', section: 'get-started-web' },
-      { slug: 'web/get-started/cross-origin-isolation', label: 'Cross-origin isolation', section: 'get-started-web' },
+      { slug: 'web/get-started/quickstart', label: 'Quickstart', section: 'web' },
+      { slug: 'web/get-started/run-the-demo-app', label: 'Run the demo app', section: 'web' },
+      { slug: 'web/support/demo-app', label: 'Demo app', section: 'web' },
+      { slug: 'web/get-started/installation', label: 'Installation', section: 'web' },
+      { slug: 'web/get-started/requirements', label: 'Requirements', section: 'web' },
+      { slug: 'web/get-started/hosting-runtime-assets', label: 'Hosting runtime assets', section: 'web' },
+      { slug: 'web/get-started/cross-origin-isolation', label: 'Cross-origin isolation', section: 'web' },
+      { slug: 'web/runtime/data-and-persistence', label: 'Data and persistence', section: 'web' },
+      { slug: 'web/support/browser-support', label: 'Browser support', section: 'web' },
+      { slug: 'web/support/troubleshooting', label: 'Troubleshooting', section: 'web' },
     ],
   },
+  // -- REACT NATIVE PLATFORM (BUILD) --
   {
-    label: 'Get started: React Native',
-    section: 'get-started-rn',
+    label: 'React Native',
+    section: 'react-native',
     items: [
-      { slug: 'react-native/get-started/quickstart', label: 'Quickstart', section: 'get-started-rn' },
-      { slug: 'react-native/get-started/run-the-demo-app', label: 'Run the demo app', section: 'get-started-rn' },
-      { slug: 'react-native/get-started/installation', label: 'Installation', section: 'get-started-rn' },
-      { slug: 'react-native/get-started/requirements', label: 'Requirements', section: 'get-started-rn' },
-      { slug: 'react-native/get-started/passkey-setup', label: 'Passkey setup', section: 'get-started-rn' },
+      { slug: 'react-native/get-started/quickstart', label: 'Quickstart', section: 'react-native' },
+      { slug: 'react-native/get-started/run-the-demo-app', label: 'Run the demo app', section: 'react-native' },
+      { slug: 'react-native/get-started/installation', label: 'Installation', section: 'react-native' },
+      { slug: 'react-native/get-started/requirements', label: 'Requirements', section: 'react-native' },
+      { slug: 'react-native/get-started/passkey-setup', label: 'Passkey setup', section: 'react-native' },
+      { slug: 'react-native/troubleshooting', label: 'Troubleshooting', section: 'react-native' },
     ],
   },
   {
@@ -100,24 +106,6 @@ export const NAV: NavGroup[] = [
       { slug: 'reference/walletdk-react', label: 'walletdk-react', section: 'reference' },
       { slug: 'reference/walletdk-web', label: 'walletdk-web', section: 'reference' },
       { slug: 'reference/walletdk-react-native', label: 'walletdk-react-native', section: 'reference' },
-    ],
-  },
-  // -- PLATFORM OPERATIONS --
-  {
-    label: 'Web platform',
-    section: 'web-platform',
-    items: [
-      { slug: 'web/runtime/data-and-persistence', label: 'Data and persistence', section: 'web-platform' },
-      { slug: 'web/support/browser-support', label: 'Browser support', section: 'web-platform' },
-      { slug: 'web/support/demo-app', label: 'Demo app', section: 'web-platform' },
-      { slug: 'web/support/troubleshooting', label: 'Troubleshooting', section: 'web-platform' },
-    ],
-  },
-  {
-    label: 'React Native platform',
-    section: 'rn-platform',
-    items: [
-      { slug: 'react-native/troubleshooting', label: 'Troubleshooting', section: 'rn-platform' },
     ],
   },
   {
@@ -292,10 +280,8 @@ export const SECTION_ACCENT: Record<string, Accent> = {
   guides: 'lime',
   integrations: 'lime',
   reference: 'orange',
-  'get-started-web': 'violet',
-  'get-started-rn': 'violet',
-  'web-platform': 'sky',
-  'rn-platform': 'sky',
+  web: 'violet',
+  'react-native': 'sky',
   'api-overview': 'violet',
   'api-lifecycle': 'teal',
   'api-send': 'lime',
@@ -345,12 +331,11 @@ export function accentForSlug(slug: string): Accent {
   if (slug.startsWith('reference/')) {
     return 'orange';
   }
-  if (
-    slug.startsWith('web/runtime/') ||
-    slug.startsWith('web/support/') ||
-    slug === 'react-native/troubleshooting'
-  ) {
+  if (slug.startsWith('react-native/')) {
     return 'sky';
+  }
+  if (slug.startsWith('web/')) {
+    return 'violet';
   }
   return 'violet';
 }

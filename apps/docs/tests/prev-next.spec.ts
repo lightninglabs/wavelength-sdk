@@ -49,8 +49,8 @@ test.describe('PrevNext component', () => {
   });
 
   test('first nav page has no previous link and has a next link', async ({ page }) => {
-    // The SwapDK system is the first page in the nav (Introduction section).
-    await page.goto('/introduction/the-swapdk-system/');
+    // What is WalletDK is the first page in the nav (Introduction section).
+    await page.goto('/introduction/what-is-walletdk/');
     await expect(page.locator('[data-prev-link]')).toHaveCount(0);
     await expect(page.locator('[data-next-link]')).toBeVisible();
   });
