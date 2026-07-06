@@ -15,11 +15,11 @@ export type RuntimeConfig = {
   allowMainnet?: boolean;
   /** Storage root for daemon and wallet state (an OPFS path in the browser). A daemon default is used when unset. */
   dataDir?: string;
-  /** The Ark operator's mailbox edge server (its REST gateway in the browser). Required to reach the Ark network. */
+  /** The Ark operator's mailbox edge server: its REST gateway URL in the browser, or a host:port gRPC address on the native transport. Required to reach the Ark network. */
   arkServerUrl?: string;
   /** The Esplora REST endpoint the lightweight wallet uses for chain data. Required. */
   esploraUrl?: string;
-  /** The Lightning swap server's REST gateway. Leave unset (or set disableSwaps) to run without Lightning swaps. */
+  /** The Lightning swap server: its REST gateway URL in the browser, or a host:port gRPC address on the native transport. Leave unset (or set disableSwaps) to run without Lightning swaps. */
   swapServerUrl?: string;
   /** Advanced. The daemon-owned SQLite file for swap state; a sensible default is used when unset. */
   swapDatabaseFileName?: string;
@@ -63,7 +63,9 @@ const NETWORK_PRESETS: Record<Network, Partial<RuntimeConfig>> = {
  * Returns a ready-to-use {@link RuntimeConfig} for a network, preloaded with the
  * canonical public gateway endpoints and merged with any overrides. Pass
  * overrides to set dataDir or point at your own infrastructure, e.g.
- * `defaultConfig('signet', { dataDir: 'my-wallet' })`.
+ * `defaultConfig('signet', { dataDir: 'my-wallet' })`. The presets carry the
+ * web transport's REST gateway URLs; the native (gRPC) transport needs
+ * host:port addresses instead, so supply your own endpoints there.
  *
  * @param network - The Bitcoin network to build a config for.
  * @param overrides - Fields that override the network preset's defaults.

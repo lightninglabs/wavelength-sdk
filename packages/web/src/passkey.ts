@@ -1,6 +1,5 @@
+import { PASSKEY_PRF_SALT_HEX } from "@lightninglabs/walletdk-core";
 import type { PasskeyAssertion } from "@lightninglabs/walletdk-core";
-
-const PRF_NAMESPACE = "walletdk-passkey:v1";
 
 // supportsPasskeyPrf reports whether a user-verifying platform authenticator is
 // available, which is a prerequisite for WebAuthn PRF but does not guarantee
@@ -19,14 +18,16 @@ export async function supportsPasskeyPrf(): Promise<boolean> {
   }
 }
 
-// prfSalt is SHA-256(PRF_NAMESPACE): the fixed PRF evaluation input shared with
-// the Go SDK (PasskeyPRFNamespace). The same salt on every device/platform is
+// prfSalt decodes the shared PRF evaluation input (SHA-256 of the PRF
+// namespace, precomputed in core). The same salt on every device/platform is
 // what makes the derived wallet reproducible.
-async function prfSalt(): Promise<ArrayBuffer> {
-  return crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(PRF_NAMESPACE),
-  );
+function prfSalt(): ArrayBuffer {
+  const bytes = new Uint8Array(PASSKEY_PRF_SALT_HEX.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(PASSKEY_PRF_SALT_HEX.slice(i * 2, i * 2 + 2), 16);
+  }
+
+  return bytes.buffer;
 }
 
 // prfFirst extracts the first PRF evaluation output from client extension
@@ -50,7 +51,7 @@ function prfFirst(results: unknown): ArrayBuffer {
 export async function registerPasskeyWallet(
   appName: string,
 ): Promise<PasskeyAssertion> {
-  const salt = await prfSalt();
+  const salt = prfSalt();
   const userId = crypto.getRandomValues(new Uint8Array(16));
 
   const created = (await navigator.credentials.create({
@@ -79,7 +80,7 @@ export async function registerPasskeyWallet(
   };
   if (createResults?.prf?.results?.first) {
     return {
-      prfOutput: bufferToHex(createResults.prf.results.first),
+      prfOutput: prfOutputHex(createResults.prf.results.first),
       credentialId: created.id,
     };
   }
@@ -96,7 +97,7 @@ export async function registerPasskeyWallet(
 export async function assertPasskeyPrf(
   allowCredentialId?: string,
 ): Promise<PasskeyAssertion> {
-  const salt = await prfSalt();
+  const salt = prfSalt();
   const allowCredentials = allowCredentialId
     ? [{ type: "public-key" as const, id: base64UrlToBuffer(allowCredentialId) }]
     : [];
@@ -114,7 +115,7 @@ export async function assertPasskeyPrf(
   }
 
   return {
-    prfOutput: bufferToHex(prfFirst(assertion.getClientExtensionResults())),
+    prfOutput: prfOutputHex(prfFirst(assertion.getClientExtensionResults())),
     credentialId: assertion.id,
   };
 }
@@ -140,4 +141,16 @@ function bufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+// prfOutputHex renders the PRF output as hex and requires the WebAuthn-
+// mandated 32 bytes: short or padded key material must never reach wallet
+// derivation, matching the native ceremony's guard.
+function prfOutputHex(buffer: ArrayBuffer): string {
+  const hex = bufferToHex(buffer);
+  if (hex.length !== 64) {
+    throw new Error("passkey PRF output is not 32 bytes");
+  }
+
+  return hex;
 }

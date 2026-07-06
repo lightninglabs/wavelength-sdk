@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "rn-wallet-demo",
+    "slug": "rn-wallet-demo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "engineering.lightning.walletdk.demo",
+      "supportsTablet": false,
+      "associatedDomains": ["webcredentials:dadocs.lightning.engineering"]
+    },
+    "android": {
+      "package": "engineering.lightning.walletdk.demo",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["./plugins/withAssetStatements"]
+  }
+}

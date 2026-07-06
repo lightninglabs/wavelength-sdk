@@ -11,3 +11,9 @@ apps/*/public/
 
 # Superpowers SDD scratch (briefs, reports, ledger, review diffs).
 .superpowers/
+
+# Staged gomobile bindings and native build output for the RN transport;
+# rebuilt from darepo-client by packages/react-native/scripts/fetch-bindings.sh.
+packages/react-native/android/libs/
+packages/react-native/ios/Walletdk.xcframework/
+packages/react-native/android/build/

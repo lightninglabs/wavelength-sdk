@@ -18,6 +18,9 @@ export type WalletDKErrorCode =
  * consumers can branch without string-matching the message.
  */
 export class WalletDKError extends Error {
+  /** The machine-readable error classification. */
+  readonly code: WalletDKErrorCode;
+
   /**
    * @param message - The human-readable error message.
    * @param code - The machine-readable error classification; defaults to `'walletdk_error'`.
@@ -25,10 +28,36 @@ export class WalletDKError extends Error {
    */
   constructor(
     message: string,
-    public readonly code: WalletDKErrorCode = 'walletdk_error',
+    code: WalletDKErrorCode = 'walletdk_error',
     options?: { cause?: unknown },
   ) {
     super(message, options);
     this.name = 'WalletDKError';
+    // Assigned explicitly rather than via a constructor parameter property,
+    // which node's strip-only TypeScript loader (used by the unit tests) does
+    // not support.
+    this.code = code;
+  }
+}
+
+/**
+ * Extracts a human-readable message from an unknown thrown value. Prefers an
+ * Error's message, falls back to the value itself when it is a string, and
+ * otherwise serializes it to JSON.
+ */
+export function errorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  if (typeof err === 'string') {
+    return err;
+  }
+
+  try {
+    return JSON.stringify(err);
+  } catch {
+    // JSON.stringify throws on circular structures or BigInt; fall back to a
+    // plain string so the error path never throws a new error.
+    return String(err);
   }
 }

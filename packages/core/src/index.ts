@@ -4,24 +4,26 @@
 
 // Runtime events and the subscriber callback.
 export type {
+  ActivityStreamPayload,
+  ActivityStreamState,
   WalletDKEvent,
   WalletDKEventType,
   WalletDKListener,
   WalletDKLogLevel,
   WalletDKLogPayload,
-} from './events';
+} from './events.ts';
 
 // Network selection and runtime configuration.
-export { defaultConfig } from './config';
-export type { Network, RuntimeConfig } from './config';
+export { defaultConfig } from './config.ts';
+export type { Network, RuntimeConfig } from './config.ts';
 
 // Wallet lifecycle state and the phases a UI renders.
-export { WalletState, normalizeInfo, phaseFromInfo, walletStateFromProto } from './state';
+export { WalletState, normalizeInfo, phaseFromInfo, walletStateFromProto } from './state.ts';
 export type {
   RuntimePhase,
   WalletInfo,
   WalletStatus,
-} from './state';
+} from './state.ts';
 
 // Request shapes for the client's typed methods.
 export type {
@@ -36,7 +38,7 @@ export type {
   SendRequest,
   SweepWalletRequest,
   UnlockWalletRequest,
-} from './requests';
+} from './requests.ts';
 
 // Result shapes (a couple SDK-augmented, the rest re-exported from generated).
 export type {
@@ -64,26 +66,43 @@ export type {
   SweepWalletResult,
   UnlockWalletResult,
   WalletSweepInput,
-} from './results';
+} from './results.ts';
 
 // The client contract every transport implements.
-export type { WalletDKClient } from './client';
+export type { WalletDKClient } from './client.ts';
+
+// The transport-agnostic half of the client, for transport implementers:
+// extend it and supply callRaw, ready, the activity plumbing, and the
+// transport flavor.
+export { BaseWalletDKClient } from './base-client.ts';
 
 // The SDK error type and its machine-readable codes.
-export { WalletDKError } from './errors';
-export type { WalletDKErrorCode } from './errors';
+export { WalletDKError, errorMessage } from './errors.ts';
+export type { WalletDKErrorCode } from './errors.ts';
 
-// Passkey contract types and the wallet-kind label.
+// Passkey contract types, the wallet-kind label, and the shared PRF salt.
+export { PASSKEY_PRF_NAMESPACE, PASSKEY_PRF_SALT_HEX } from './passkey.ts';
 export type {
   PasskeyAssertion,
   PasskeyCeremony,
   WalletKind,
-} from './passkey';
+} from './passkey.ts';
+
+// The daemon facade protocol shared by every transport: the flat Start config
+// and the Go-shaped request mappers. Transport implementers use these; app
+// code normally does not.
+export {
+  base64FromUtf8,
+  toGoCreateWalletReq,
+  toGoUnlockWalletReq,
+  toMobileConfig,
+} from './facade.ts';
+export type { MobileConfig, ServerTransport } from './facade.ts';
 
 // The daemon build this SDK release is paired with (generated types and
 // runtime assets alike).
-export { RUNTIME_MANIFEST_VERSION } from './version';
+export { RUNTIME_MANIFEST_VERSION } from './version.ts';
 
 // camelizeKeys maps a daemon PascalCase JSON response to the SDK's camelCase
-// shapes; packages/web applies it at the response boundary.
-export { camelizeKeys } from './casing';
+// shapes; every transport applies it at its response boundary.
+export { camelizeKeys } from './casing.ts';

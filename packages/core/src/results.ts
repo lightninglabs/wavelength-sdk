@@ -1,7 +1,7 @@
 import type {
   OpenWalletResult,
   SendResult as SendResultWire,
-} from './generated';
+} from './generated.ts';
 
 /**
  * The result of opening a wallet from a passkey, re-exported verbatim under the
@@ -36,13 +36,13 @@ export type {
   ReceiveResult,
   SweepWalletResult,
   UnlockWalletResult,
-} from './generated';
+} from './generated.ts';
 
 /**
  * Plan- and sweep-input types re-exported verbatim from the generated daemon
  * facade types.
  */
-export type { ExitPlanEntry, WalletSweepInput } from './generated';
+export type { ExitPlanEntry, WalletSweepInput } from './generated.ts';
 
 /**
  * Activity and entry types re-exported verbatim from the generated daemon facade
@@ -59,4 +59,4 @@ export type {
   ListView,
   PrepareSendResult,
   SendRail,
-} from './generated';
+} from './generated.ts';

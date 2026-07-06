@@ -1,15 +1,18 @@
 {
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "declaration": true,
     "declarationMap": true,
     "lib": ["DOM", "ES2022"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "dist",
+    "rewriteRelativeImportExtensions": true,
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
 }

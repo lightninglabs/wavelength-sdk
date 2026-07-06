@@ -237,7 +237,20 @@ async function pumpActivity(handle) {
     ) {
       postEvent("activity", entry);
     }
+    // A stream that ends while this is still the active handle was not closed
+    // by $stopActivity; signal it so the host can resubscribe. A handle
+    // swapped out by $stopActivity is an expected close and stays silent.
+    if (activityHandle === handle) {
+      postEvent("activityStream", { state: "ended" });
+    }
   } catch (err) {
-    postEvent("log", { level: "error", message: String(err?.message || err) });
+    // An error after a client-initiated close is expected; only surface a
+    // failure the consumer did not cause.
+    if (activityHandle === handle) {
+      postEvent("activityStream", {
+        state: "failed",
+        message: String(err?.message || err),
+      });
+    }
   }
 }

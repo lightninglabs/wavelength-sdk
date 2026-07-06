@@ -1,0 +1,23 @@
+{
+  "name": "rn-wallet-demo",
+  "main": "index.ts",
+  "dependencies": {
+    "@lightninglabs/walletdk-react": "workspace:*",
+    "@lightninglabs/walletdk-react-native": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~57.0.1",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit"
+  },
+  "private": true
+}

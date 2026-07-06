@@ -1,8 +1,8 @@
 // Request types stay hand-authored: they carry semantics the wire shape does not
 // (e.g. a plain password the client base64-encodes into the Go []byte field), so
-// packages/web keeps explicit request mappers for them.
+// core's facade module keeps explicit request mappers for them.
 
-import type { ListView } from './generated';
+import type { ListView } from './generated.ts';
 
 /**
  * Parameters for creating a new wallet.

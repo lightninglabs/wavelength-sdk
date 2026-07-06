@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
+import { PASSKEY_PRF_SALT_HEX } from "@lightninglabs/walletdk-core";
 import { assertPasskeyPrf, registerPasskeyWallet } from "./passkey.ts";
 
 // The browser globals these tests stub out are not present under Node, so we
@@ -16,30 +17,54 @@ function stubGlobal(name: string, value: unknown): void {
   });
 }
 
+// A 32-byte PRF output (0xabcd repeated); the ceremony rejects anything that
+// is not exactly 32 bytes of key material.
+const PRF32_BYTES = new Uint8Array(
+  Array.from({ length: 16 }, () => [0xab, 0xcd]).flat(),
+);
+const PRF32_HEX = "abcd".repeat(16);
+
 describe("assertPasskeyPrf", () => {
-  beforeEach(() => {
-    stubGlobal("crypto", {
-      subtle: { digest: async () => new Uint8Array(32).buffer },
-    });
+  afterEach(() => {
+    stubGlobal("navigator", savedNavigator);
   });
 
-  afterEach(() => {
-    stubGlobal("crypto", savedCrypto);
-    stubGlobal("navigator", savedNavigator);
+  it("sends the shared PRF salt as the challenge and PRF input", async () => {
+    const get = mock.fn(async () => ({
+      id: "cred-salt",
+      getClientExtensionResults: () => ({
+        prf: { results: { first: PRF32_BYTES.buffer } },
+      }),
+    }));
+    stubGlobal("navigator", { credentials: { get } });
+
+    await assertPasskeyPrf();
+
+    // Pins the hex-to-bytes hop: core pins hex == SHA-256(namespace), and a
+    // drift here would silently derive a different wallet for existing users.
+    const expected = new Uint8Array(Buffer.from(PASSKEY_PRF_SALT_HEX, "hex"));
+    const opts = (get.mock.calls[0].arguments[0] as {
+      publicKey: {
+        challenge: ArrayBuffer;
+        extensions: { prf: { eval: { first: ArrayBuffer } } };
+      };
+    }).publicKey;
+    assert.deepEqual(new Uint8Array(opts.challenge), expected);
+    assert.deepEqual(new Uint8Array(opts.extensions.prf.eval.first), expected);
   });
 
   it("requests a discoverable credential and returns hex PRF and credential id", async () => {
     const get = mock.fn(async () => ({
       id: "cred-abc",
       getClientExtensionResults: () => ({
-        prf: { results: { first: new Uint8Array([0xab, 0xcd]).buffer } },
+        prf: { results: { first: PRF32_BYTES.buffer } },
       }),
     }));
     stubGlobal("navigator", { credentials: { get } });
 
     const result = await assertPasskeyPrf();
 
-    assert.equal(result.prfOutput, "abcd");
+    assert.equal(result.prfOutput, PRF32_HEX);
     assert.equal(result.credentialId, "cred-abc");
 
     const opts = (get.mock.calls[0].arguments[0] as {
@@ -53,7 +78,7 @@ describe("assertPasskeyPrf", () => {
     const get = mock.fn(async () => ({
       id: "cred-xyz",
       getClientExtensionResults: () => ({
-        prf: { results: { first: new Uint8Array([0xab, 0xcd]).buffer } },
+        prf: { results: { first: PRF32_BYTES.buffer } },
       }),
     }));
     stubGlobal("navigator", { credentials: { get } });
@@ -84,6 +109,22 @@ describe("assertPasskeyPrf", () => {
     );
   });
 
+  it("throws when the PRF output is not 32 bytes", async () => {
+    const get = mock.fn(async () => ({
+      id: "cred-short",
+      // Two bytes of key material; deriving a wallet from it must never happen.
+      getClientExtensionResults: () => ({
+        prf: { results: { first: new Uint8Array([0xab, 0xcd]).buffer } },
+      }),
+    }));
+    stubGlobal("navigator", { credentials: { get } });
+
+    await assert.rejects(
+      () => assertPasskeyPrf(),
+      /passkey PRF output is not 32 bytes/,
+    );
+  });
+
   it("throws when navigator.credentials.get resolves to null (cancellation)", async () => {
     const get = mock.fn(async () => null);
     stubGlobal("navigator", { credentials: { get } });
@@ -98,7 +139,6 @@ describe("assertPasskeyPrf", () => {
 describe("registerPasskeyWallet", () => {
   beforeEach(() => {
     stubGlobal("crypto", {
-      subtle: { digest: async () => new Uint8Array(32).buffer },
       getRandomValues: (arr: Uint8Array) => arr,
     });
     stubGlobal("window", { location: { hostname: "wallet.example" } });
@@ -114,7 +154,7 @@ describe("registerPasskeyWallet", () => {
     const create = mock.fn(async () => ({
       id: "cred-new",
       getClientExtensionResults: () => ({
-        prf: { results: { first: new Uint8Array([0x01, 0x02]).buffer } },
+        prf: { results: { first: PRF32_BYTES.buffer } },
       }),
     }));
     const get = mock.fn(async () => {
@@ -124,7 +164,7 @@ describe("registerPasskeyWallet", () => {
 
     const result = await registerPasskeyWallet("My App");
 
-    assert.equal(result.prfOutput, "0102");
+    assert.equal(result.prfOutput, PRF32_HEX);
     assert.equal(result.credentialId, "cred-new");
     assert.equal(get.mock.callCount(), 0);
   });
@@ -148,14 +188,14 @@ describe("registerPasskeyWallet", () => {
     const get = mock.fn(async () => ({
       id: "abcd",
       getClientExtensionResults: () => ({
-        prf: { results: { first: new Uint8Array([0xbe, 0xef]).buffer } },
+        prf: { results: { first: PRF32_BYTES.buffer } },
       }),
     }));
     stubGlobal("navigator", { credentials: { create, get } });
 
     const result = await registerPasskeyWallet("My App");
 
-    assert.equal(result.prfOutput, "beef");
+    assert.equal(result.prfOutput, PRF32_HEX);
     assert.equal(result.credentialId, "abcd");
 
     // The fallback assertion is scoped to the just-created credential id.

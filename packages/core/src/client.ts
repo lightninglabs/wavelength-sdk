@@ -1,6 +1,6 @@
-import type { WalletDKListener } from './events';
-import type { RuntimeConfig } from './config';
-import type { WalletInfo, WalletStatus } from './state';
+import type { WalletDKListener } from './events.ts';
+import type { RuntimeConfig } from './config.ts';
+import type { WalletInfo, WalletStatus } from './state.ts';
 import type {
   CreateWalletRequest,
   DepositRequest,
@@ -13,7 +13,7 @@ import type {
   SendRequest,
   SweepWalletRequest,
   UnlockWalletRequest,
-} from './requests';
+} from './requests.ts';
 import type {
   Balance,
   CreateWalletResult,
@@ -28,7 +28,7 @@ import type {
   SendResult,
   SweepWalletResult,
   UnlockWalletResult,
-} from './results';
+} from './results.ts';
 
 /**
  * The framework-agnostic contract every WalletDK transport implements. It wraps
@@ -104,8 +104,10 @@ export interface WalletDKClient {
   stopActivity(): void;
   /**
    * Releases the client's resources and unsubscribes all listeners: it closes
-   * the activity stream and, for the worker transport, terminates the underlying
-   * Worker. The client is unusable afterward; build a new one to start again.
+   * the activity stream, and transports tear down their runtime resources (the
+   * web transport terminates its Worker; the native transport removes its
+   * event subscription). The client is unusable afterward; build a new one to
+   * start again.
    */
   dispose(): void;
 }

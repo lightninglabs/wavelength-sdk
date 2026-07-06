@@ -1,10 +1,10 @@
 import {
+  BaseWalletDKClient,
   camelizeKeys,
   Entry,
   WalletDKError,
 } from '@lightninglabs/walletdk-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
-import { BaseWalletDKClient } from './base';
 import type { WebClientOptions } from '../index';
 import {
   instantiateWasm,
@@ -22,6 +22,7 @@ import { ActivityHandle, debugTs, errorMessage } from '../util';
  * worker mode it blocks rendering while the runtime is busy.
  */
 export class MainThreadWalletDKClient extends BaseWalletDKClient {
+  protected readonly serverTransport = 'rest' as const;
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
   private readonly runtimeBaseUrl: string | undefined;
@@ -122,11 +123,21 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
       ) {
         this.emit({ type: 'activity', payload: camelizeKeys<Entry>(entry) });
       }
+      // A stream that ends while this is still the active handle was not
+      // closed by stopActivity; signal it so the host can resubscribe. A
+      // handle swapped out by stopActivity is an expected close and is silent.
+      if (this.activityHandle === handle) {
+        this.emit({ type: 'activityStream', payload: { state: 'ended' } });
+      }
     } catch (err) {
-      this.emit({
-        type: 'log',
-        payload: { level: 'error', message: errorMessage(err) },
-      });
+      // An error after a client-initiated close is expected; only surface a
+      // failure the consumer did not cause.
+      if (this.activityHandle === handle) {
+        this.emit({
+          type: 'activityStream',
+          payload: { state: 'failed', message: errorMessage(err) },
+        });
+      }
     }
   }
 

@@ -309,6 +309,8 @@ export interface Balance {
   confirmedSat: number /* int64 */;
   pendingInSat: number /* int64 */;
   pendingOutSat: number /* int64 */;
+  creditAvailableSat: number /* uint64 */;
+  creditReservedSat: number /* uint64 */;
 }
 /**
  * DepositRequest creates a tracked boarding address.
@@ -357,12 +359,14 @@ export interface PrepareSendRequest {
 /**
  * SendRail identifies the expected settlement rail for a prepared send.
  */
-export type SendRail = "unspecified" | "offchain_unknown" | "in_ark" | "lightning" | "onchain";
+export type SendRail = "unspecified" | "offchain_unknown" | "in_ark" | "lightning" | "onchain" | "credit" | "mixed";
 export const SendRailUnspecified: SendRail = "unspecified";
 export const SendRailOffchainUnknown: SendRail = "offchain_unknown";
 export const SendRailInArk: SendRail = "in_ark";
 export const SendRailLightning: SendRail = "lightning";
 export const SendRailOnchain: SendRail = "onchain";
+export const SendRailCredit: SendRail = "credit";
+export const SendRailMixed: SendRail = "mixed";
 /**
  * SendQuoteStatus describes how complete the prepare-time quote is.
  */
@@ -388,6 +392,18 @@ export interface PrepareSendResult {
   expiresAtUnix: number /* int64 */;
   selectedOutpoints: string[];
   warning: string;
+  creditPreview?: CreditPreview;
+}
+/**
+ * CreditPreview describes how a prepared invoice send will use sat-native
+ * server credits.
+ */
+export interface CreditPreview {
+  mustUseCredit: boolean;
+  creditAppliedSat: number /* uint64 */;
+  creditShortfallSat: number /* uint64 */;
+  creditTopupSat: number /* uint64 */;
+  arkFundingSat: number /* uint64 */;
 }
 /**
  * SendPreparedRequest dispatches a prepared outbound payment.
@@ -903,6 +919,13 @@ export interface EntryProgress {
    * VTXOOutpoint is populated when a swap observes the Ark vHTLC output.
    */
   vTXOOutpoint: string;
+  /**
+   * Preimage is the hex-encoded Lightning payment preimage once the swap
+   * revealed it. For a completed Lightning-backed send this is the proof
+   * of payment for the paid invoice (sha256(preimage) == PaymentHash); it
+   * is empty until durably known and for non-Lightning entries.
+   */
+  preimage: string;
 }
 /**
  * EntryRequestType discriminates which request shape an EntryRequest carries.

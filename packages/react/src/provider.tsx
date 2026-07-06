@@ -17,6 +17,7 @@ import {
   WalletDKLogPayload,
   WalletInfo,
   WalletState,
+  errorMessage,
   phaseFromInfo,
   type RuntimePhase,
 } from "@lightninglabs/walletdk-core";
@@ -99,6 +100,11 @@ const WalletDKContext = createContext<WalletDKReactState | null>(null);
 
 // MAX_LOGS bounds the in-memory log tail the provider keeps.
 const MAX_LOGS = 200;
+
+// Consecutive failed activity-stream reopens before the stream is treated as
+// permanently lost and surfaced as an error, mirroring the syncing poll's
+// give-up threshold.
+const ACTIVITY_STREAM_FAILURE_LIMIT = 5;
 
 const defaultOperations: Record<WalletOperation, OperationState> = {
   runtime: { busy: false, error: "" },
@@ -248,28 +254,83 @@ export function WalletDKProvider({
   refreshRef.current = refresh;
 
   // Activity subscription pushes wallet updates from the daemon; refresh
-  // balance and history when an entry changes instead of polling.
+  // balance and history when an entry changes instead of polling. If the
+  // stream is lost while ready, resubscribe with a capped backoff so a
+  // transient daemon or network blip does not silently freeze the wallet.
+  // After too many consecutive failed reopens the stream is treated as
+  // permanently lost and surfaced as an error rather than retried forever.
   useEffect(() => {
     if (phase !== "ready") {
       return;
     }
 
-    client.startActivity({ includeExisting: true }).catch(() => undefined);
-
+    let cancelled = false;
+    let backoff = 1000;
+    let failures = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let debounce: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = client.subscribe((event) => {
-      if (event.type !== "activity") {
+
+    const open = () => {
+      client.startActivity({ includeExisting: true }).then(
+        () => {
+          // A clean reopen replays existing entries (includeExisting), which
+          // drives the debounced refresh below, so missed changes are caught.
+          backoff = 1000;
+          failures = 0;
+        },
+        () => onReopenFailure(),
+      );
+    };
+
+    const onReopenFailure = () => {
+      if (cancelled) {
         return;
       }
+      failures += 1;
+      if (failures >= ACTIVITY_STREAM_FAILURE_LIMIT) {
+        // The stream could not be re-established after repeated attempts;
+        // surface it instead of leaving the wallet looking healthy while its
+        // balance and history silently stop updating.
+        setError("lost the activity stream and could not reconnect");
+        setPhase("error");
 
-      clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        refreshRef.current().catch(() => undefined);
-      }, 250);
+        return;
+      }
+      scheduleRetry();
+    };
+
+    const scheduleRetry = () => {
+      if (cancelled) {
+        return;
+      }
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        backoff = Math.min(backoff * 2, 30000);
+        open();
+      }, backoff);
+    };
+
+    open();
+
+    const unsubscribe = client.subscribe((event) => {
+      if (event.type === "activity") {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          refreshRef.current().catch(() => undefined);
+        }, 250);
+
+        return;
+      }
+      if (event.type === "activityStream") {
+        // The stream was lost while ready; reopen after a backoff.
+        scheduleRetry();
+      }
     });
 
     return () => {
+      cancelled = true;
       clearTimeout(debounce);
+      clearTimeout(retryTimer);
       unsubscribe();
       client.stopActivity();
     };
@@ -464,22 +525,4 @@ export function useWalletDK(): WalletDKReactState {
 
 function activityEntries(result: ListResult): Entry[] {
   return result.activity?.entries || [];
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof Error && err.message) {
-    return err.message;
-  }
-
-  if (typeof err === "string") {
-    return err;
-  }
-
-  try {
-    return JSON.stringify(err);
-  } catch {
-    // JSON.stringify throws on circular structures or BigInt; fall back to a
-    // plain string so the error path never throws a new error.
-    return String(err);
-  }
 }

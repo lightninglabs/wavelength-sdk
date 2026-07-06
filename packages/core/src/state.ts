@@ -1,4 +1,4 @@
-import type { Info, Status } from './generated';
+import type { Info, Status } from './generated.ts';
 
 /**
  * The wallet lifecycle, exposed as a lowercase string union to match the SDK's

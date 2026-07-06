@@ -1,9 +1,9 @@
 import {
+  BaseWalletDKClient,
   camelizeKeys,
   WalletDKError,
   WalletDKEventType,
 } from '@lightninglabs/walletdk-core';
-import { BaseWalletDKClient } from './base';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
 import { PendingCall, toWalletDKEvent } from '../util';
@@ -17,6 +17,7 @@ import { PendingCall, toWalletDKEvent } from '../util';
  * shipped daemon does, as of lightninglabs/darepo-client#811.
  */
 export class WorkerWalletDKClient extends BaseWalletDKClient {
+  protected readonly serverTransport = 'rest' as const;
   private readonly worker: Worker;
   private readonly pending = new Map<number, PendingCall>();
   private nextRequestID = 1;
