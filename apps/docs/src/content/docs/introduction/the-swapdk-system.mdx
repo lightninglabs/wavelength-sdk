@@ -24,7 +24,7 @@ You run **WalletDK**, the self-custodial client (compiled from [darepo-client](h
 
 | Piece | Who runs it | What it does |
 |---|---|---|
-| **WalletDK** (the client) | You | Holds keys, tracks balances, builds and signs payments. Runs in the browser (these docs), as a standalone server, embedded as an SDK, or as an MCP server for agents. |
+| **WalletDK** (the client) | You | Holds keys, tracks balances, builds and signs payments. Runs as an embedded SDK in a web or mobile app, as a standalone server, or as an MCP server for agents. |
 | **Coordination + settlement** | SwapDK | An Ark-like layer that batches off-chain transfers instantly and cheaply. It settles between users but never takes unilateral control of anyone's funds. |
 | **Liquidity via Loop** | SwapDK | Deep Lightning liquidity through Loop, so payments route reliably without you sourcing, funding, or managing channels. |
 | **The Lightning Network** | Open network | Everything speaks BOLT 11, so you can pay and be paid by any wallet, exchange, or app already on Lightning. |
@@ -41,12 +41,11 @@ Every payment you send and receive is a BOLT 11 invoice, the standard Lightning 
 
 SwapDK meets you where you build:
 
-- **In the browser** - the WebAssembly package runs the wallet in a browser tab. This is what these docs cover; start with the [Quickstart](/web/get-started/quickstart/).
+- **Embedded SDK** - pull the SDK into your app to put a wallet directly inside it. It runs on web (compiled to WebAssembly, in a browser tab) and on React Native (compiled into the app binary). Start with the [Web quickstart](/web/get-started/quickstart/) or the [React Native quickstart](/react-native/get-started/quickstart/).
 - **As a standalone client** - a single self-contained process driven over a gRPC and REST API.
-- **Embedded** - pull the SDK into your app to put a wallet directly inside it.
 - **For agents** - run the MCP server so an AI agent can drive the wallet as typed tool calls. Wallet creation and unlock stay off the agent channel, so seeds and passwords are never exposed to a model.
 
-These docs focus on the browser SDK. The other surfaces share the same wallet commands and are documented separately.
+These docs focus on the SDK (web and React Native). The other surfaces share the same wallet commands and are documented separately.
 
 ## Networks
 
@@ -54,6 +53,6 @@ SwapDK runs on signet and testnet by default, and both are open to everyone. The
 
 ## Where to go next
 
-- [What is WalletDK?](/introduction/what-is-walletdk/) - the client you run, and the three packages it ships as.
-- [Quickstart](/web/get-started/quickstart/) - a running wallet in a few minutes.
-- [System architecture](/introduction/system-architecture/) - how the in-browser daemon connects to the backend gateways.
+- [What is WalletDK?](/introduction/what-is-walletdk/) - the client you run, and the packages it ships as.
+- [Web quickstart](/web/get-started/quickstart/) or [React Native quickstart](/react-native/get-started/quickstart/) - a running wallet in a few minutes.
+- [System architecture](/introduction/system-architecture/) - how the embedded daemon connects to the backend gateways.

@@ -4,12 +4,13 @@ description: How to configure WalletDK for regtest, testnet, or mainnet using th
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
+import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## The three gateways
 
 Starting the embedded daemon requires three REST endpoints your app never calls directly, but they must all serve the same Bitcoin network. Misaligned URLs are a common cause of stuck deposits or swaps that never fund.
 
-The embedded daemon never talks to Bitcoin or Ark nodes directly from your app code. After `start()`, it reaches **three REST gateways** (browsers cannot use the daemon's native gRPC):
+The embedded daemon never talks to Bitcoin or Ark nodes directly from your app code. `RuntimeConfig` is the shared `core` contract, so the same fields apply on either transport: after `start()`, the daemon reaches these **three REST gateways**. (The React Native transport reaches the daemon over its native gRPC; the web transport uses REST because browsers cannot dial native gRPC. Either way these three gateway URLs are what the daemon connects out to.)
 
 1. **`arkServerUrl`** (Ark operator + mailbox edge): rounds, boarding, VTXO relay, cooperative leave, and mailbox traffic share this gateway. There is no separate mailbox URL in the launch config.
 2. **`swapServerUrl`** (swap server): Lightning↔Ark atomic swaps (in-swaps and out-swaps).
@@ -21,6 +22,9 @@ All three must point at infrastructure that serves the same **`network`**. A mis
 
 For public test networks, use `defaultConfig(network)` instead of hand-typing URLs. It returns a ready **RuntimeConfig** with canonical endpoints merged with any overrides you pass:
 
+<PlatformTabs>
+<div data-label="Web">
+
 ```ts
 import { defaultConfig } from '@lightninglabs/walletdk-core';
 import { createWebClient } from '@lightninglabs/walletdk-web';
@@ -29,6 +33,20 @@ const client = createWebClient();
 const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
 await client.start(config);
 ```
+
+</div>
+<div data-label="React Native">
+
+```ts
+import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
+
+const client = createNativeClient();
+const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
+await client.start(config);
+```
+
+</div>
+</PlatformTabs>
 
 Presets ship for:
 
@@ -59,7 +77,7 @@ Most apps only need `defaultConfig(network)` plus an optional data directory. Th
 
 | Field | Purpose |
 |-------|---------|
-| **`dataDir`** | Storage root for daemon and wallet state (OPFS path in the browser). |
+| **`dataDir`** | Storage root for daemon and wallet state (an OPFS path in the browser; a filesystem path in the app data directory on React Native). |
 | **`disableSwaps`** | Turn off the Lightning swap subsystem entirely; Ark boarding and leaves still work. |
 | **`serverInsecure`** | Skip TLS verification for **`arkServerUrl`** (local dev only). |
 | **`swapServerInsecure`** | Skip TLS verification for **`swapServerUrl`** (local dev only). |

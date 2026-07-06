@@ -1,24 +1,28 @@
 ---
 title: System architecture
-description: How WalletDK's in-browser daemon connects to the Ark, Lightning, and Bitcoin backend gateways to enable payments, boarding, swaps, and exits.
+description: How WalletDK's embedded wallet daemon connects to the Ark, Lightning, and Bitcoin backend gateways to enable payments, boarding, swaps, and exits.
 ---
 
 import DiagramFrame from '~/components/diagrams/DiagramFrame.astro';
 import FlowLane from '~/components/diagrams/FlowLane.astro';
+import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
-## The in-browser daemon
+## The embedded daemon
 
-WalletDK embeds [darepo-client](https://github.com/lightninglabs/darepo-client), the same wallet daemon used in native integrations, compiled to WebAssembly. When your app calls `createWebClient()` and `client.start()`, it boots that daemon inside the browser and keeps it running for the session.
+WalletDK embeds [darepo-client](https://github.com/lightninglabs/darepo-client), the same wallet daemon on every platform, and runs it wherever your app runs. On the web it is compiled to WebAssembly and runs inside the browser; you boot it with `createWebClient()` and `client.start()`. On React Native it is compiled into your app binary and runs on device; you boot it with `createNativeClient()` and `client.start()`. Either way it stays running for the session, and you drive it through one typed `WalletDKClient`.
 
-**`WalletDKClient` is the app-facing API.** It is defined in `@lightninglabs/walletdk-core` and implemented by `@lightninglabs/walletdk-web`. Your code never imports Go or protobuf types. You call typed methods (`deposit`, `receive`, `send`, `balance`, and so on) and receive plain JavaScript objects.
+**`WalletDKClient` is the app-facing API.** It is defined in `@lightninglabs/walletdk-core` and implemented by each transport (`@lightninglabs/walletdk-web` on the web, `@lightninglabs/walletdk-react-native` on React Native). Your code never imports Go or protobuf types. You call typed methods (`deposit`, `receive`, `send`, `balance`, and so on) and receive plain JavaScript objects.
 
-Under the hood, the native daemon speaks gRPC. Browsers cannot open arbitrary gRPC connections the way a Go or mobile host can, so the web transport uses **REST** against the embedded daemon's HTTP facade. From your app's perspective this is an implementation detail: you still hold one `WalletDKClient` and call the same methods whether you are on web or a future native transport.
+The wire protocol between the client and the embedded daemon differs by transport, and from your app's perspective it is an implementation detail. The React Native transport uses the daemon's native gRPC. Browsers cannot open arbitrary gRPC connections the way a native host can, so the web transport uses **REST** against the embedded daemon's HTTP facade instead. You still hold one `WalletDKClient` and call the same methods on either.
 
 The daemon also owns local persistence (wallet database, swap state) and signing. Your app configures *where* the daemon connects on the network, not *how* it stores keys.
 
 ## The three backend gateways
 
 Once started, the daemon reaches **three external REST gateways**. These are the only network services WalletDK depends on. Configure them in `RuntimeConfig` (or use `defaultConfig(network)` for public signet, testnet, and regtest presets):
+
+<PlatformTabs>
+<div data-label="Web">
 
 ```ts
 import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
@@ -28,6 +32,21 @@ await client.ready();
 await client.start(defaultConfig('signet'));
 // arkServerUrl, esploraUrl, swapServerUrl pre-filled for signet
 ```
+
+</div>
+<div data-label="React Native">
+
+```ts
+import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
+
+const client = createNativeClient();
+await client.ready();
+await client.start(defaultConfig('signet'));
+// arkServerUrl, esploraUrl, swapServerUrl pre-filled for signet
+```
+
+</div>
+</PlatformTabs>
 
 | Field | Service | What the daemon uses it for |
 |---|---|---|
