@@ -80,4 +80,6 @@ test('header shows slice tabs with the active slice highlighted', async ({ page 
   await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveText('API');
   await page.goto('/web/get-started/quickstart/');
   await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveText('SDK');
+  await page.goto('/');
+  await expect(page.locator('.wdk-topnav a.wdk-topnav__active')).toHaveCount(0);
 });

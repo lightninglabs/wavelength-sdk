@@ -12,6 +12,8 @@ import SearchModal from '~/components/SearchModal';
 // Current path drives the active slice-tab highlight.
 const pathname = Astro.url.pathname;
 const activeSlice = sliceForPath(pathname);
+// The home page belongs to no slice, so no tab should light up there.
+const isHome = pathname === '/';
 ---
 
 <header class="wdk-header" role="banner">
@@ -40,7 +42,7 @@ const activeSlice = sliceForPath(pathname);
 
   <nav class="wdk-topnav" aria-label="Primary navigation">
     {SLICES.map((slice) => {
-      const isActive = slice.key === activeSlice.key;
+      const isActive = !isHome && slice.key === activeSlice.key;
       return (
         <a
           href={slice.href}
