@@ -1,4 +1,5 @@
 import {
+  ActivityStreamPayload,
   camelizeKeys,
   Entry,
   WalletDKEvent,
@@ -47,6 +48,14 @@ export function toWalletDKEvent(raw: {
   switch (raw.type) {
   case 'activity':
     return { type: 'activity', payload: camelizeKeys<Entry>(raw.payload) };
+
+  case 'activityStream':
+    // The payload is a plain state/message object, not daemon JSON, so it
+    // crosses the worker boundary as-is with no camelizing.
+    return {
+      type: 'activityStream',
+      payload: raw.payload as ActivityStreamPayload,
+    };
 
   case 'log':
     return {

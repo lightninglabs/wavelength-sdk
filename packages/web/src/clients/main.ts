@@ -123,11 +123,21 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
       ) {
         this.emit({ type: 'activity', payload: camelizeKeys<Entry>(entry) });
       }
+      // A stream that ends while this is still the active handle was not
+      // closed by stopActivity; signal it so the host can resubscribe. A
+      // handle swapped out by stopActivity is an expected close and is silent.
+      if (this.activityHandle === handle) {
+        this.emit({ type: 'activityStream', payload: { state: 'ended' } });
+      }
     } catch (err) {
-      this.emit({
-        type: 'log',
-        payload: { level: 'error', message: errorMessage(err) },
-      });
+      // An error after a client-initiated close is expected; only surface a
+      // failure the consumer did not cause.
+      if (this.activityHandle === handle) {
+        this.emit({
+          type: 'activityStream',
+          payload: { state: 'failed', message: errorMessage(err) },
+        });
+      }
     }
   }
 
