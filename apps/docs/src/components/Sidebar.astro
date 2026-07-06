@@ -52,6 +52,30 @@ const groups = sliceForSlug(currentSlug).nav;
   })}
 </nav>
 
+<script>
+  // Preserve the sidebar's scroll position across client-side navigations. The
+  // sidebar re-renders per page (to move the active-link highlight), so without
+  // this it snaps back to the top on every click. Capture the offset just
+  // before the body swaps out and reapply it to the freshly rendered sidebar.
+  // Register once (inline scripts replay on each swap; the window flag keeps the
+  // listeners from stacking). `saved` stays null on a fresh full load, so only
+  // an actual in-app navigation restores, never a first paint.
+  if (!window.__wdkSidebarScrollBound) {
+    window.__wdkSidebarScrollBound = true;
+    let saved: number | null = null;
+    document.addEventListener('astro:before-swap', () => {
+      const el = document.querySelector('.wdk-sidebar');
+      saved = el ? el.scrollTop : null;
+    });
+    document.addEventListener('astro:page-load', () => {
+      if (saved === null) return;
+      const el = document.querySelector('.wdk-sidebar');
+      if (el) el.scrollTop = saved;
+      saved = null;
+    });
+  }
+</script>
+
 <style>
   /* Sidebar container - fixed, full-height, with thin scrollbar. */
   .wdk-sidebar {

@@ -12,6 +12,9 @@ declare global {
     /** Set to true once the astro:after-swap theme listener is registered.
      * Prevents stacking the listener across inline-script re-executions. */
     __wdkThemeBound?: boolean;
+    /** Set to true once the sidebar scroll-restore listeners are registered.
+     * Prevents stacking the listeners across inline-script re-executions. */
+    __wdkSidebarScrollBound?: boolean;
   }
 }
 
