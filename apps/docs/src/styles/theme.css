@@ -204,6 +204,15 @@ code, pre, kbd {
   font-weight: 600;
 }
 
+/* Anchor-linked prose headings land clear of the sticky header when a TOC or
+   in-page link jumps to them. Component-authored anchors (Step, GuideSection,
+   ApiSymbol) set their own scroll-margin; this covers plain markdown headings.
+   The guide section wrapper (.wdk-gsec) carries the anchor id in guides, so
+   this heading rule does not double-offset it. */
+:is(.wdk-doc__content, .wdk-guide__content) :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+}
+
 /* In-content headings - sizes from custom.css, margins from r4-final .prose. */
 :is(.wdk-doc__content, .wdk-guide__content) h2 {
   font-family: var(--font-display);
