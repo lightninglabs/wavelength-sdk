@@ -199,8 +199,12 @@ const progressPercent = pn.total > 0 ? Math.round((stepInSection / pn.total) * 1
     line-height: 1.3;
   }
 
-  /* Narrow viewports stack the links vertically and left-align both. */
-  @media (max-width: 600px) {
+  /* Only the narrowest viewports stack the links vertically and left-align
+     both; 600px was wider than needed and stacked on ordinary phone widths
+     (e.g. 430px), where the two links fit side by side once they can shrink
+     below their content width (.wdk-prevnext__link already sets min-width:
+     0). Keep a floor for genuinely tiny screens. */
+  @media (max-width: 340px) {
     .wdk-prevnext__links {
       flex-direction: column;
     }

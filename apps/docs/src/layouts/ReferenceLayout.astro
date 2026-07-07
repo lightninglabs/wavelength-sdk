@@ -15,7 +15,8 @@
  *   - IntersectionObserver (NOT a window scroll listener) for scroll-sync.
  *   - Self-removing astro:before-swap teardown to prevent listener stacking.
  *
- * Accent resolves from accentForSlug (reference slugs => orange).
+ * Accent resolves from accentForSlug (cycles per section's position in its
+ * slice's sidebar - see SECTION_ACCENT in config/nav.ts).
  *
  * Props (match DocLayout / GuideLayout):
  *   entry    - the content collection entry (has .id, .data.title, etc.)
@@ -201,12 +202,16 @@ const accent = accentForSlug(entry.id);
     display: flex;
   }
 
-  /* Prose content column. */
+  /* Prose content column. Centered (not flush-left) within .wdk-ref__main so
+     wide viewports distribute the leftover space evenly on both sides once
+     the max-width cap kicks in, instead of leaving it all as dead space next
+     to the symbol-list rail. */
   .wdk-ref__content {
     flex: 1;
     min-width: 0;
     max-width: 780px;
     padding: 48px 40px 80px;
+    margin: 0 auto;
   }
 
   /* Short orange accent bar above the page title. */
@@ -270,6 +275,47 @@ const accent = accentForSlug(entry.id);
     margin-top: 12px;
     padding-top: 0;
     border-top: none;
+  }
+
+  /* Plain markdown tables (e.g. the SendRail Value/Meaning enum table) - the
+     ApiSymbol params table has its own scoped styling, but a raw table
+     dropped straight into MDX prose has none, so it renders at full content
+     width and overflows the fixed rail instead of scrolling. Mirrors the
+     .wdk-doc__content table rule in theme.css: scroll horizontally instead of
+     wrapping cell text. */
+  .wdk-ref__content :global(table) {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    margin: 1rem 0;
+  }
+
+  .wdk-ref__content :global(td code) {
+    white-space: nowrap;
+  }
+
+  .wdk-ref__content :global(th) {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wdk-ref__content :global(td) {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+
+  .wdk-ref__content :global(tr:last-child td) {
+    border-bottom: none;
   }
 
   /* Right rail: fixed full-height column pinned to the right screen edge -
@@ -395,12 +441,25 @@ const accent = accentForSlug(entry.id);
     opacity: 0.8;
   }
 
-  /* Mobile: hide the right rail; content goes full-width.
-     The Sidebar component hides itself via its own media query. */
-  @media (max-width: 768px) {
-    .wdk-ref__main { margin-left: 0; margin-right: 0; flex-direction: column; }
+  /* The symbol-list rail needs more room to hide than the sidebar does: at
+     tablet/narrow-desktop widths the content column plus a 280-320px rail
+     (see the --toc-w breakpoints in theme.css) leaves too little space and
+     cramps everything, well before the full mobile layout is warranted.
+     Drop the right margin, hide the rail, and let content fill the freed
+     width. Also triggers on short viewports regardless of width (a phone
+     rotated to landscape). */
+  @media (max-width: 1279px), (max-height: 500px) {
+    .wdk-ref__main { margin-right: 0; }
     .wdk-ref__content { max-width: 100%; padding: 32px 20px 60px; }
     .wdk-ref__rail { display: none; }
+  }
+
+  /* Mobile: additionally hide the fixed left sidebar (Sidebar.astro hides
+     itself via its own media query) and stack the title/actions row. Also
+     triggers on short viewports regardless of width (a phone rotated to
+     landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-ref__main { margin-left: 0; flex-direction: column; }
     .wdk-ref__head { flex-direction: column; align-items: flex-start; gap: 14px; }
   }
 </style>

@@ -308,11 +308,15 @@ const summarize = (comment: string): string =>
     display: flex;
   }
 
+  /* Centered (not flush-left) within .wdk-api__main so wide viewports
+     distribute the leftover space evenly on both sides once the max-width
+     cap kicks in, instead of leaving it all as dead space next to the rail. */
   .wdk-api__content {
     flex: 1;
     min-width: 0;
     max-width: 820px;
     padding: 48px 40px 80px;
+    margin: 0 auto;
   }
 
   /* Short accent bar above the header, keyed to the section accent. */
@@ -646,11 +650,23 @@ const summarize = (comment: string): string =>
     white-space: nowrap;
   }
 
-  /* Mobile: drop the fixed rail and left margin; content goes full-width. The
-     Sidebar hides itself via its own media query. */
-  @media (max-width: 768px) {
-    .wdk-api__main { margin-left: 0; margin-right: 0; flex-direction: column; }
+  /* The method-list rail needs more room to hide than the sidebar does: at
+     tablet/narrow-desktop widths the content column plus a 280-320px rail
+     (see the --toc-w breakpoints in theme.css) leaves too little space and
+     cramps everything, well before the full mobile layout is warranted.
+     Drop the right margin, hide the rail, and let content fill the freed
+     width. Also triggers on short viewports regardless of width (a phone
+     rotated to landscape). */
+  @media (max-width: 1279px), (max-height: 500px) {
+    .wdk-api__main { margin-right: 0; }
     .wdk-api__content { max-width: 100%; padding: 32px 20px 60px; }
     .wdk-api__rail { display: none; }
+  }
+
+  /* Mobile: additionally hide the fixed left sidebar (Sidebar hides itself
+     via its own media query). Also triggers on short viewports regardless
+     of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-api__main { margin-left: 0; flex-direction: column; }
   }
 </style>

@@ -102,13 +102,24 @@ const hasSidebar = !entry.data.sidebar.hidden;
     margin-right: var(--toc-w, 240px);
   }
 
-  /* Inner flex row for the content column. */
+  /* Inner flex row for the content column. The TOC rail is position:fixed
+     (see TableOfContents.astro), so it is not actually a flex participant
+     here despite living in this row's markup for source-order convenience -
+     .wdk-doc__content is the only real flex item. max-width matches content's
+     760px max-width plus its own horizontal padding (40px each side), so this
+     row is never wider than the content it actually holds; width: 100% (not
+     omitted - shrink-to-fit "auto" sizing does not reliably respect the
+     available space when a scrollbar is present, and rendered wider than
+     .wdk-doc__main's real box, overlapping the TOC rail) keeps it properly
+     participating in the flex layout and shrinking on narrower viewports.
+     margin: auto centers it once the max-width cap engages. */
   .wdk-doc__inner {
     display: flex;
     gap: 40px;
     padding: 48px 40px 80px;
-    max-width: 1200px;
     width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
   }
 
   /* Prose content column. */
@@ -136,14 +147,26 @@ const hasSidebar = !entry.data.sidebar.hidden;
     color: var(--text);
   }
 
-  /* Mobile: single column - hide the fixed sidebar + TOC, content full-width.
-     The TOC rail hides itself (see TableOfContents.astro's own media query);
-     here we just drop the right margin that made room for it. */
-  @media (max-width: 768px) {
-    .wdk-doc__main { margin-left: 0; }
+  /* The TOC rail needs more room to hide than the sidebar does: at
+     tablet/narrow-desktop widths the content column (760px max-width) plus a
+     280-320px TOC rail (see the --toc-w breakpoints in theme.css) leaves too
+     little space and cramps everything, well before the full mobile layout
+     is warranted. Drop the right margin and let content fill the freed
+     width; the TOC rail hides itself (see TableOfContents.astro's own media
+     query). Also triggers on short viewports regardless of width (a phone
+     rotated to landscape). */
+  @media (max-width: 1279px), (max-height: 500px) {
     .wdk-doc__main--with-toc { margin-right: 0; }
     .wdk-doc__inner { padding: 32px 20px 60px; gap: 0; }
     .wdk-doc__content { max-width: 100%; }
+  }
+
+  /* Mobile: additionally hide the fixed left sidebar (Sidebar.astro hides
+     itself via its own media query) and stack the title/actions row. Also
+     triggers on short viewports regardless of width (a phone rotated to
+     landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-doc__main { margin-left: 0; }
     .wdk-doc__head { flex-direction: column; align-items: flex-start; gap: 14px; }
   }
 </style>

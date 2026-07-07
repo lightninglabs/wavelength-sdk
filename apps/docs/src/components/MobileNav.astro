@@ -307,8 +307,11 @@ const isActive = (slug: string) => pathname === `/${slug}/` || pathname === `/${
     font-weight: 500;
   }
 
-  /* The drawer only exists for narrow viewports. */
-  @media (min-width: 769px) {
+  /* The drawer only exists for narrow viewports, mirroring Header/Sidebar's
+     mobile breakpoint (width OR short height, the latter for a phone rotated
+     to landscape; TableOfContents shares the short-height clause but hides
+     at a wider 1279px, not 768px). */
+  @media (min-width: 769px) and (min-height: 501px) {
     .wdk-drawer,
     .wdk-drawer-backdrop {
       display: none;

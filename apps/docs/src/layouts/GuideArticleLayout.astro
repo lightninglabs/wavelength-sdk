@@ -17,8 +17,9 @@
  * (.guide-page-header, .guide-breadcrumb, .guide-title-accent, .guide-meta,
  * .step-num). The on-this-page rail mirrors DocLayout's TableOfContents column.
  *
- * Sets data-accent on <html> from accentForSlug (guides => lime) so the
- * per-section accent (--sl-accent) is available to CSS before paint.
+ * Sets data-accent on <html> from accentForSlug (cycles per section's
+ * position in its slice's sidebar - see SECTION_ACCENT in config/nav.ts) so
+ * the per-section accent (--sl-accent) is available to CSS before paint.
  *
  * Props (match DocLayout / GuideLayout):
  *   entry    - the content collection entry (.id, .data.title, .body, etc.).
@@ -145,13 +146,24 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
     display: flex;
   }
 
-  /* Inner flex row for the article column. */
+  /* Inner flex row for the article column. The TOC rail is position:fixed
+     (see TableOfContents.astro), so it is not actually a flex participant
+     here despite living in this row's markup for source-order convenience -
+     .wdk-guide__content is the only real flex item. max-width matches
+     content's 760px max-width plus its own horizontal padding (40px each
+     side), so this row is never wider than the content it actually holds;
+     width: 100% (not omitted - shrink-to-fit "auto" sizing does not reliably
+     respect the available space when a scrollbar is present, and rendered
+     wider than .wdk-guide__main's real box, overlapping the TOC rail) keeps
+     it properly participating in the flex layout and shrinking on narrower
+     viewports. margin: auto centers it once the max-width cap engages. */
   .wdk-guide__inner {
     display: flex;
     gap: 40px;
     padding: 48px 40px 80px;
-    max-width: 1200px;
     width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
   }
 
   /* Guide article column. */
@@ -249,13 +261,26 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
     background: var(--teal);
   }
 
-  /* Mobile: single column - drop the left/right margins (sidebar and TOC
-     rail hide themselves; see their own media queries), content goes
-     full-width. */
-  @media (max-width: 768px) {
-    .wdk-guide__main { margin-left: 0; margin-right: 0; }
+  /* The TOC rail needs more room to hide than the sidebar does: at
+     tablet/narrow-desktop widths the content column plus a 280-320px TOC
+     rail (see the --toc-w breakpoints in theme.css) leaves too little space
+     and cramps everything, well before the full mobile layout is warranted.
+     Drop the right margin and let content fill the freed width; the TOC
+     rail hides itself (see TableOfContents.astro's own media query). Also
+     triggers on short viewports regardless of width (a phone rotated to
+     landscape). */
+  @media (max-width: 1279px), (max-height: 500px) {
+    .wdk-guide__main { margin-right: 0; }
     .wdk-guide__inner { padding: 32px 20px 60px; gap: 0; }
     .wdk-guide__content { max-width: 100%; }
+  }
+
+  /* Mobile: additionally hide the fixed left sidebar (Sidebar.astro hides
+     itself via its own media query) and stack the title/actions row. Also
+     triggers on short viewports regardless of width (a phone rotated to
+     landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-guide__main { margin-left: 0; }
     .wdk-guide__head { flex-direction: column; align-items: flex-start; gap: 12px; }
   }
 </style>

@@ -212,8 +212,9 @@ const groups = sliceForSlug(currentSlug).nav;
   }
 
   /* Mobile: hide the fixed sidebar (DocLayout drops the left margin to match).
-     A mobile nav drawer is a Phase 2 follow-up. */
-  @media (max-width: 768px) {
+     Also triggers on short viewports regardless of width (a phone rotated to
+     landscape), where a fixed sidebar leaves too little width for content. */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-sidebar { display: none; }
   }
 </style>

@@ -41,18 +41,24 @@ test('--sidebar-w token resolves on the quickstart page', async ({ page }) => {
 // ---- Light mode contrast tests ---------------------------------------------
 
 test('lime active sidebar link is not raw #c9f000 in light mode', async ({ page }) => {
-  // Navigate to a guides page (lime section).
+  // Navigate to a web page (lime section - see SECTION_ACCENT in
+  // config/nav.ts; the position-derived cycle assigns lime here, not to
+  // guides, so this must stay pinned to whichever section is actually lime).
   await page.addInitScript(() => { try { localStorage.setItem('wdk-theme', 'light'); } catch {} });
-  await page.goto('/guides/create-a-wallet/');
+  await page.goto('/web/get-started/quickstart/');
 
   await page.emulateMedia({ colorScheme: 'light' });
   await goLight(page);
 
   // The active sidebar link for a lime-accented page should use the darker
-  // accent-lime token, not the vivid fill #c9f000.
+  // accent-lime token, not the vivid fill #c9f000. Assert the locator
+  // actually matches (not just "if any") - a silent zero-match here once let
+  // this test go green while checking nothing, after a section's accent
+  // changed out from under it.
   const activeLink = page.locator('.wdk-sidebar__link--active.wdk-sidebar__link--lime');
   const count = await activeLink.count();
-  if (count > 0) {
+  expect(count).toBeGreaterThan(0);
+  {
     const color = await activeLink.evaluate(
       (el) => getComputedStyle(el).color,
     );

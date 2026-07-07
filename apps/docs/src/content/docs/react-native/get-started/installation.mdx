@@ -5,6 +5,8 @@ pageLayout: doc
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
+import Card from '~/components/mdx/Card.astro';
+import CardGrid from '~/components/mdx/CardGrid.astro';
 
 <Callout type="note" title="Pre-release">
 The React Native SDK is pre-release and not yet published to npm. The API
@@ -17,10 +19,17 @@ surface is stable; iOS passkey support is still experimental.
 npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
 ```
 
-| Package | What it is |
-|---|---|
-| `@lightninglabs/walletdk-react-native` | The native transport: a Turbo Module wrapping the wallet runtime compiled into your app binary. Re-exports the entire `core` surface, so it is the only wallet import an app needs besides the hooks package. |
-| `@lightninglabs/walletdk-react` | React provider and hooks. Transport-agnostic: it takes an injected client and depends only on `core`. |
+<CardGrid>
+  <Card title="@lightninglabs/walletdk-react-native">
+    The native transport: a Turbo Module wrapping the wallet runtime compiled
+    into your app binary. Re-exports the entire `core` surface, so it is the
+    only wallet import an app needs besides the hooks package.
+  </Card>
+  <Card title="@lightninglabs/walletdk-react">
+    React provider and hooks. Transport-agnostic: it takes an injected client
+    and depends only on `core`.
+  </Card>
+</CardGrid>
 
 ## New Architecture and Expo
 

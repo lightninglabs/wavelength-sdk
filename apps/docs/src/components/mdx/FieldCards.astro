@@ -1,0 +1,192 @@
+---
+/**
+ * FieldCards.astro - a card per group of labeled key/value fields.
+ *
+ * Use in place of a markdown table whenever cell values are long (URLs,
+ * paths, multi-word strings): a table forces either horizontal scroll or
+ * mid-word wrapping, both bad for skimming. A card per group lets each field
+ * sit on its own line and wrap naturally at any viewport width. First used
+ * for the Network reference's defaultConfig() gateway presets, but generic
+ * for any "one card per named group of fields" data.
+ *
+ * Props:
+ *   cards - array of { title, accent, fields, tags, empty }.
+ *     accent selects the title-chip tint (one of the theme's accent tokens).
+ *     empty renders a dashed muted card instead of a field list, for groups
+ *     (e.g. mainnet) with nothing to show.
+ */
+interface Field {
+  label: string;
+  value: string;
+}
+
+interface Card {
+  title: string;
+  accent?: 'teal' | 'sky' | 'lime' | 'violet' | 'orange';
+  fields?: Field[];
+  tags?: string[];
+  empty?: string;
+}
+
+interface Props {
+  cards: Card[];
+}
+
+const { cards } = Astro.props;
+---
+
+<div class="wdk-field-cards">
+  {cards.map((c, i) => {
+    const titleId = `wdk-field-card-title-${i}-${c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    return (
+      <section class:list={['wdk-field-card', c.empty && 'wdk-field-card--empty']} data-accent={c.accent ?? 'orange'} aria-labelledby={titleId}>
+        <header class="wdk-field-card__head">
+          <span class="wdk-field-card__title" id={titleId}>{c.title}</span>
+        </header>
+
+        {c.empty ? (
+          <p class="wdk-field-card__empty-note">{c.empty}</p>
+        ) : (
+          <dl class="wdk-field-card__fields">
+            {c.fields?.map((f) => (
+              <div class="wdk-field-card__field">
+                <dt>{f.label}</dt>
+                <dd><code>{f.value}</code></dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
+        {c.tags && c.tags.length > 0 && (
+          <div class="wdk-field-card__tags">
+            {c.tags.map((t) => <code class="wdk-field-card__tag">{t}</code>)}
+          </div>
+        )}
+      </section>
+    );
+  })}
+</div>
+
+<style>
+  /* Responsive card grid: two up on wide viewports, one column once a card
+     can no longer keep its title and field labels comfortably side by side. */
+  .wdk-field-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 20px 0 28px;
+  }
+
+  .wdk-field-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    border-top: 2px solid color-mix(in srgb, var(--sl-field-card-accent, var(--orange)) 70%, var(--border));
+  }
+
+  .wdk-field-card[data-accent='teal']   { --sl-field-card-accent: var(--teal); }
+  .wdk-field-card[data-accent='sky']    { --sl-field-card-accent: var(--sky); }
+  .wdk-field-card[data-accent='lime']   { --sl-field-card-accent: var(--lime); }
+  .wdk-field-card[data-accent='violet'] { --sl-field-card-accent: var(--violet); }
+  .wdk-field-card[data-accent='orange'] { --sl-field-card-accent: var(--orange); }
+
+  .wdk-field-card__head {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .wdk-field-card__title {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--sl-field-card-accent, var(--orange));
+    background: color-mix(in srgb, var(--sl-field-card-accent, var(--orange)) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sl-field-card-accent, var(--orange)) 30%, transparent);
+    border-radius: 5px;
+    padding: 2px 9px;
+  }
+
+  .wdk-field-card__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .wdk-field-card__field dt {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  .wdk-field-card__field dd {
+    margin: 0;
+  }
+
+  /* Doubled class (instead of a single .wdk-field-card__field code) so this
+     beats the higher-specificity ":is(.wdk-doc__content, .wdk-guide__content)
+     :not(pre) > code" inline-code rule in theme.css - without it, a
+     FieldCards instance on a DocLayout/GuideLayout page (unlike the
+     ReferenceLayout page this component was first used on) inherited that
+     rule's chip background/border, which looks wrong on values that are
+     descriptive phrases rather than code tokens. */
+  .wdk-field-card .wdk-field-card__field code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-code);
+    word-break: break-all;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .wdk-field-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+
+  /* Doubled class for the same reason as .wdk-field-card__field code above:
+     beats theme.css's higher-specificity inline-code rule on DocLayout/
+     GuideLayout pages, so this chip's own background/border render instead
+     of being silently overridden there. */
+  .wdk-field-card .wdk-field-card__tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15em 0.5em;
+  }
+
+  /* Empty card (e.g. mainnet): dashed, muted, no colored accent bar, since
+     there is nothing live to represent. */
+  .wdk-field-card--empty {
+    border-top-color: var(--border);
+    border-style: dashed;
+    background: transparent;
+  }
+
+  .wdk-field-card--empty .wdk-field-card__title {
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border-color: var(--border);
+  }
+
+  .wdk-field-card__empty-note {
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+    margin: 0;
+    line-height: 1.6;
+  }
+</style>
