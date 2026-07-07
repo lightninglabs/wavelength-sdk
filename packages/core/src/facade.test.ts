@@ -120,4 +120,21 @@ describe('toGoCreateWalletReq', () => {
     assert.equal(out.SeedPassphrase, Buffer.from('p', 'utf8').toString('base64'));
     assert.deepEqual(out.Mnemonic, ['ab', 'cd']);
   });
+
+  it('omits the recovery fields when unset so the daemon defaults apply', () => {
+    const out = toGoCreateWalletReq({ password: 'pw' });
+    assert.equal(out.RecoverState, undefined);
+    assert.equal(out.RecoveryWindow, undefined);
+  });
+
+  it('threads recovery opt-in and window through as PascalCase fields', () => {
+    const out = toGoCreateWalletReq({
+      password: 'pw',
+      mnemonic: ['ab', 'cd'],
+      recoverState: true,
+      recoveryWindow: 250,
+    });
+    assert.equal(out.RecoverState, true);
+    assert.equal(out.RecoveryWindow, 250);
+  });
 });

@@ -240,6 +240,8 @@ export const createWalletRequestSig = `type CreateWalletRequest = {
   password: string;
   mnemonic?: string[];
   seedPassphrase?: string;
+  recoverState?: boolean;
+  recoveryWindow?: number;
 };`;
 export const createWalletResultSig = `type CreateWalletResult = {
   mnemonic: string[];
@@ -298,6 +300,8 @@ counters.
   { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
   { name: 'mnemonic', type: 'string[]', desc: 'Optional. An existing mnemonic to restore from; a fresh one is generated when omitted.' },
   { name: 'seedPassphrase', type: 'string', desc: 'Optional. A BIP-39 passphrase applied on top of the mnemonic.' },
+  { name: 'recoverState', type: 'boolean', desc: "Optional. Opt into server-assisted recovery: rebuild wallet state (boarding UTXOs, VTXOs, receive history) from the seed by querying the operator's indexer. Set it when restoring from a mnemonic so funds and activity come back. Defaults to false." },
+  { name: 'recoveryWindow', type: 'number', desc: 'Optional. The per-key-family address look-ahead used during recovery. Only meaningful when recoverState is true; omit to let the daemon resolve its own default.' },
 ]} />
 
 **`CreateWalletResult`**

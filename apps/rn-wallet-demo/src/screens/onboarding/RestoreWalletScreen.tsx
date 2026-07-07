@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { ClipboardPaste, KeyRound } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
@@ -8,6 +8,7 @@ import { GhostButton, PrimaryButton } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { InlineError } from '../../components/ui/InlineError';
 import { Segmented } from '../../components/ui/Segmented';
+import { ToggleRow } from '../../components/ui/ToggleRow';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -78,6 +79,25 @@ const makeStyles = (p: Palette) => ({
     fontSize: 14,
     paddingVertical: 2,
   },
+  recoverBox: {
+    backgroundColor: p.well,
+    borderColor: p.border,
+    borderWidth: 1,
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  advanced: {
+    borderTopColor: p.border,
+    borderTopWidth: 1,
+    gap: 12,
+    paddingTop: 12,
+  },
+  advancedToggle: {
+    color: p.muted,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+  },
 });
 
 // RestoreWalletScreen rebuilds a wallet on-device from an existing recovery
@@ -95,6 +115,8 @@ export function RestoreWalletScreen({
     password: string;
     mnemonic: string[];
     passphrase: string;
+    recoverState: boolean;
+    recoveryWindow?: number;
   }) => void;
   onBack: () => void;
   busy: boolean;
@@ -107,10 +129,20 @@ export function RestoreWalletScreen({
   const [count, setCount] = useState<12 | 24>(12);
   const [words, setWords] = useState<string[]>(() => resize([], 12));
   const [passphrase, setPassphrase] = useState('');
+  // Restores default to recovery on: a mnemonic without it rebuilds the seed
+  // but leaves the wallet empty, which is rarely what someone restoring wants.
+  const [recoverState, setRecoverState] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [recoveryWindow, setRecoveryWindow] = useState('');
 
   const passwordOk = password.length > 0 && password === confirm;
   const wordsOk = words.every((w) => w.trim().length > 0);
-  const canSubmit = !busy && passwordOk && wordsOk;
+  // An empty window field means "let the daemon default"; only a present value
+  // must parse to a positive integer.
+  const windowOk =
+    recoveryWindow.trim() === '' ||
+    (/^\d+$/.test(recoveryWindow.trim()) && Number(recoveryWindow) > 0);
+  const canSubmit = !busy && passwordOk && wordsOk && windowOk;
 
   // pastePhrase distributes a multi-word clipboard string across the inputs,
   // switching the word count when the clipboard holds exactly 12 or 24 words.
@@ -211,14 +243,51 @@ export function RestoreWalletScreen({
           onChange={setPassphrase}
         />
 
+        <View style={styles.recoverBox}>
+          <ToggleRow
+            title="Recover wallet state"
+            subtitle="Rebuild balances and history from the operator's indexer. This scan can take a while."
+            on={recoverState}
+            onChange={setRecoverState}
+            disabled={busy}
+          />
+          {recoverState && (
+            <View style={styles.advanced}>
+              <Pressable
+                onPress={() => setShowAdvanced((v) => !v)}
+                disabled={busy}
+              >
+                <Text style={styles.advancedToggle}>
+                  {showAdvanced ? 'Hide advanced' : 'Advanced'}
+                </Text>
+              </Pressable>
+              {showAdvanced && (
+                <Field
+                  label="Recovery window (optional)"
+                  numeric
+                  mono
+                  placeholder="daemon default"
+                  value={recoveryWindow}
+                  onChange={setRecoveryWindow}
+                  disabled={busy}
+                />
+              )}
+            </View>
+          )}
+        </View>
+
         <PrimaryButton
           icon={KeyRound}
           onPress={() => {
             if (canSubmit) {
+              const window = recoveryWindow.trim();
               onRestore({
                 password,
                 mnemonic: words.map((w) => w.trim()),
                 passphrase: passphrase.trim(),
+                recoverState,
+                recoveryWindow:
+                  recoverState && window !== '' ? Number(window) : undefined,
               });
             }
           }}

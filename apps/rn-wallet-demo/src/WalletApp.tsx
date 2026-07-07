@@ -6,6 +6,7 @@ import {
   getDefaultDataDir,
 } from '@lightninglabs/walletdk-react-native';
 import { AppShell } from './components/layout/AppShell';
+import { RecoveryBanner } from './components/RecoveryBanner';
 import { AppTab } from './components/layout/nav';
 import { WalletMode } from './components/ui/WalletTypePicker';
 import { errorMessage } from './lib/errors';
@@ -164,27 +165,36 @@ export function WalletApp() {
   );
 
   const restoreWallet = useCallback(
-    async ({
+    ({
       password,
       mnemonic: words,
       passphrase,
+      recoverState,
+      recoveryWindow,
     }: {
       password: string;
       mnemonic: string[];
       passphrase: string;
+      recoverState: boolean;
+      recoveryWindow?: number;
     }) => {
-      try {
-        await wallet.createWallet({
-          password,
-          mnemonic: words,
-          seedPassphrase: passphrase || undefined,
-        });
-        await walletKind.record('password');
-        setMnemonic([]);
-        setBackupAcknowledged(true);
-      } catch {
-        // Surfaced via operations.createWallet.error.
-      }
+      // Fire-and-forget: restoreWallet lands us on the wallet as soon as it is
+      // ready and runs recovery in the background (tracked via wallet.recovery),
+      // so a long indexer scan no longer pins the user on the restore form.
+      wallet.restoreWallet({
+        password,
+        mnemonic: words,
+        seedPassphrase: passphrase || undefined,
+        recoverState,
+        recoveryWindow,
+      });
+      // A restore is a password wallet the user already holds the phrase for, so
+      // record the kind and skip the backup screen optimistically. record is
+      // async and fire-and-forget here, so swallow its rejection explicitly to
+      // avoid an unhandled promise rejection.
+      void walletKind.record('password').catch(() => undefined);
+      setMnemonic([]);
+      setBackupAcknowledged(true);
     },
     [wallet, walletKind],
   );
@@ -470,6 +480,10 @@ export function WalletApp() {
         connected: phaseConnected(wallet.phase),
       }}
     >
+      <RecoveryBanner
+        recovery={wallet.recovery}
+        onDismiss={wallet.acknowledgeRecovery}
+      />
       {tab === 'home' ? (
         <HomeScreen
           balance={wallet.balance}

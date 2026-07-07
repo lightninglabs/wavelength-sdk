@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWalletDK, usePasskeyWallet } from "@lightninglabs/walletdk-react";
 import { webPasskeyCeremony } from "@lightninglabs/walletdk-web";
 import { AppShell } from "./components/layout/AppShell";
+import { RecoveryBanner } from "./components/RecoveryBanner";
 import { AppTab } from "./components/layout/nav";
 import { phaseConnected, statusLabel } from "./lib/phase";
 import {
@@ -186,28 +187,42 @@ export function App() {
   );
 
   const restoreWallet = useCallback(
-    async ({
+    ({
       password,
       mnemonic: words,
       passphrase,
+      recoverState,
+      recoveryWindow,
     }: {
       password: string;
       mnemonic: string[];
       passphrase: string;
+      recoverState: boolean;
+      recoveryWindow?: number;
     }) => {
+      // Fire-and-forget: restoreWallet lands us on the wallet as soon as it is
+      // ready and runs recovery in the background (tracked via wallet.recovery),
+      // so a long indexer scan no longer pins the user on the restore form.
+      wallet.restoreWallet({
+        password,
+        mnemonic: words,
+        seedPassphrase: passphrase || undefined,
+        recoverState,
+        recoveryWindow,
+      });
+      // A restore is a password wallet the user already holds the phrase for, so
+      // record the kind and skip the backup screen optimistically. Guard the
+      // localStorage write (it can throw under quota / private mode) so a
+      // storage failure does not abort the rest of the restore transition; the
+      // kind marker only influences which unlock affordance shows later.
       try {
-        await wallet.createWallet({
-          password,
-          mnemonic: words,
-          seedPassphrase: passphrase || undefined,
-        });
         writeWalletKind(form.dataDir, "password");
         setKindVersion((v) => v + 1);
-        setMnemonic([]);
-        setBackupAcknowledged(true);
       } catch {
-        // Surfaced via operations.createWallet.error.
+        // Non-fatal: proceed without the persisted wallet-kind marker.
       }
+      setMnemonic([]);
+      setBackupAcknowledged(true);
     },
     [wallet, form.dataDir],
   );
@@ -436,6 +451,10 @@ export function App() {
         identityPubKey: wallet.info?.identityPubKey || "",
       }}
     >
+      <RecoveryBanner
+        recovery={wallet.recovery}
+        onDismiss={wallet.acknowledgeRecovery}
+      />
       {tab === "home" ? (
         <HomeScreen
           balance={wallet.balance}

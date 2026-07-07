@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { createElement, type ReactNode } from "react";
 import { describe, it, mock } from "node:test";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { Entry, WalletInfo } from "@lightninglabs/walletdk-core";
+import type {
+  CreateWalletResult,
+  Entry,
+  WalletInfo,
+} from "@lightninglabs/walletdk-core";
 import { WalletDKProvider, useWalletDK } from "./provider.tsx";
 import { FakeWalletDKClient } from "./testing/fake-client.ts";
 import { flushMicrotasks, renderWithProvider } from "./testing/render.ts";
@@ -515,5 +519,234 @@ describe("WalletDKProvider wiring", () => {
 
     assert.equal(created, 1);
     assert.equal(result.current.client, client);
+  });
+});
+
+// A promise with its resolve/reject pulled out, so a test can hold createWallet
+// pending (the background restore fires it without awaiting) and settle it on cue.
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
+// A create result carrying recovery counters, for the done path.
+function recoveredResult(): CreateWalletResult {
+  return {
+    identityPubKey: "pk-restore",
+    recoveredVTXOs: 3,
+    recoveredBoardingUTXOs: 1,
+  } as CreateWalletResult;
+}
+
+const restoreReq = {
+  password: "pw",
+  mnemonic: ["a", "b"],
+  recoverState: true,
+};
+
+describe("WalletDKProvider background recovery", () => {
+  it("tracks a recoverState restore restoring -> done and lands on the wallet", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    // Not ready yet: the readiness poll must wait for the wallet to come up.
+    client.info = lockedInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() => result.current.restoreWallet(restoreReq));
+    assert.equal(result.current.phase, "syncing");
+    assert.equal(result.current.recovery.status, "restoring");
+
+    // The wallet reports ready before the scan finishes: advance to the wallet.
+    client.info = readyInfo;
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "ready");
+    assert.equal(result.current.recovery.status, "restoring");
+
+    // The scan completes with counters.
+    await act(async () => {
+      create.resolve(recoveredResult());
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.recovery.status, "done");
+    if (result.current.recovery.status === "done") {
+      assert.equal(result.current.recovery.result.recoveredVTXOs, 3);
+    }
+  });
+
+  it("an untracked restore never surfaces a recovery banner", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    client.info = lockedInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() =>
+      result.current.restoreWallet({ ...restoreReq, recoverState: false }),
+    );
+    assert.equal(result.current.recovery.status, "idle");
+
+    client.info = readyInfo;
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    await act(async () => {
+      create.resolve(recoveredResult());
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.recovery.status, "idle");
+  });
+
+  it("readiness poll ignores the transient unlocking state without flashing locked", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    // InitWallet transiently reports an unlocking state that maps to 'locked';
+    // the readiness poll must not let the generic syncing poll surface it.
+    client.info = lockedInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() => result.current.restoreWallet(restoreReq));
+    assert.equal(result.current.phase, "syncing");
+
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        mock.timers.tick(1500);
+        await flushMicrotasks();
+      });
+    }
+    assert.equal(result.current.phase, "syncing");
+
+    client.info = readyInfo;
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    await act(async () => {
+      create.resolve(recoveredResult());
+      await flushMicrotasks();
+    });
+  });
+
+  it("a tracked scan that fails after the wallet is ready shows a failed banner", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    // Came up: the failure probe (getInfo) finds a ready wallet.
+    client.info = readyInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() => result.current.restoreWallet(restoreReq));
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    await act(async () => {
+      create.reject(new Error("indexer down"));
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "ready");
+    assert.equal(result.current.recovery.status, "failed");
+    if (result.current.recovery.status === "failed") {
+      assert.equal(result.current.recovery.error, "indexer down");
+    }
+  });
+
+  it("an untracked restore that fails after the wallet is ready keeps recovery idle", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    client.info = readyInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() =>
+      result.current.restoreWallet({ ...restoreReq, recoverState: false }),
+    );
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    await act(async () => {
+      create.reject(new Error("boom"));
+      await flushMicrotasks();
+    });
+    // No recovery banner (no scan was requested), but the failure is still
+    // reported on the operation.
+    assert.equal(result.current.recovery.status, "idle");
+    assert.equal(result.current.operations.createWallet.error, "boom");
+  });
+
+  it("a restore that fails before the wallet comes up falls back to needsWallet", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    // Never becomes ready, so the failure probe reports not-came-up.
+    client.info = lockedInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() => result.current.restoreWallet(restoreReq));
+    assert.equal(result.current.phase, "syncing");
+
+    await act(async () => {
+      create.reject(new Error("bad mnemonic"));
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.phase, "needsWallet");
+    assert.equal(result.current.recovery.status, "idle");
+    assert.equal(result.current.operations.createWallet.error, "bad mnemonic");
+  });
+
+  it("acknowledgeRecovery clears a completed recovery back to idle", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const create = deferred<CreateWalletResult>();
+    client.impl("createWallet", () => create.promise);
+    client.info = readyInfo;
+
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    act(() => result.current.restoreWallet(restoreReq));
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks();
+    });
+    await act(async () => {
+      create.resolve(recoveredResult());
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.recovery.status, "done");
+
+    act(() => result.current.acknowledgeRecovery());
+    assert.equal(result.current.recovery.status, "idle");
   });
 });

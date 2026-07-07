@@ -32,6 +32,8 @@ export function OnboardingFlow({
     password: string;
     mnemonic: string[];
     passphrase: string;
+    recoverState: boolean;
+    recoveryWindow?: number;
   }) => void;
   onUnlockPasskey: () => void;
   busy: boolean;

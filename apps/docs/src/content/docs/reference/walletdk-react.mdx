@@ -75,6 +75,9 @@ export const walletDKReactStateSig = `type WalletDKReactState = {
   stop(): Promise<void>;
   refresh(): Promise<void>;
   createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
+  restoreWallet(req: CreateWalletRequest): void;
+  recovery: RecoveryState;
+  acknowledgeRecovery(): void;
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
   deposit(req?: DepositRequest): Promise<DepositResult>;
   receive(req: ReceiveRequest): Promise<ReceiveResult>;
@@ -114,6 +117,9 @@ Shape returned by `useWalletDK()`. The `phase` field tracks [`RuntimePhase`](/re
   { name: 'stop()', type: '() => Promise<void>', desc: "Sets phase to 'stopping', calls client.stop(), then clears info/balance/activity to null/null/[] and sets phase to 'stopped'. Uses the 'runtime' operation key, the same as start()." },
   { name: 'refresh()', type: '() => Promise<void>', desc: "Re-fetches info (via getInfo()) and re-derives phase with phaseFromInfo(), then re-fetches balance() and the activity list. Uses the shared 'refresh' operation key; useWalletBalance and useWalletActivity read the same busy/error slot." },
   { name: 'createWallet(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: "Creates a new wallet, optimistically patches info with the returned identityPubKey and walletState/walletReady set to ready, sets phase to 'ready', then awaits a full refresh() before resolving with the CreateWalletResult." },
+  { name: 'restoreWallet(req)', type: '(req: CreateWalletRequest) => void', desc: "Restores from a mnemonic without blocking on server-assisted recovery. Fire-and-forget: it starts createWallet(req) in the background, advances to phase 'ready' as soon as the daemon reports the wallet ready (which happens before the recovery scan finishes), and, when req.recoverState is set, tracks the scan through recovery below. Use this instead of createWallet for a restore-from-mnemonic flow so a long indexer scan does not pin the UI on the restore form." },
+  { name: 'recovery', type: 'RecoveryState', desc: "The background recovery status set by restoreWallet, a discriminated union on `status`: { status: 'idle' } | { status: 'restoring' } | { status: 'done', result: CreateWalletResult } | { status: 'failed', error: string }. 'restoring' while the scan runs; 'done' carries the recovery counters; 'failed' (wallet still usable) carries the error. Drive a 'restoring your balance and history' banner off this." },
+  { name: 'acknowledgeRecovery()', type: '() => void', desc: 'Resets recovery to idle, e.g. after the user dismisses the banner.' },
   { name: 'unlockWallet(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: "Unlocks an existing wallet with the same optimistic-info-patch, phase-to-'ready', and awaited refresh() sequence as createWallet, resolving with the UnlockWalletResult." },
   { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address, awaits refresh() on success, and resolves with the DepositResult. req defaults to {} when omitted.' },
   { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice, awaits refresh() on success, and resolves with the ReceiveResult.' },
@@ -177,6 +183,9 @@ Exposes the runtime client, lifecycle phase, info, and start/stop/refresh action
 
 export const useWalletBootstrapSig = `function useWalletBootstrap(): {
   createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
+  restoreWallet(req: CreateWalletRequest): void;
+  recovery: RecoveryState;
+  acknowledgeRecovery(): void;
   info: Partial<WalletInfo> | null;
   operations: Record<WalletOperation, OperationState>;
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
@@ -184,12 +193,15 @@ export const useWalletBootstrapSig = `function useWalletBootstrap(): {
 
 <ApiSymbol name="useWalletBootstrap" kind="function">
 
-Exposes wallet creation and unlock actions together with the latest info, for the bootstrap (create-or-unlock) flow.
+Exposes wallet creation, restore, and unlock actions together with the latest info and background-recovery status, for the bootstrap (create-or-unlock) flow.
 
 <Signature title="walletdk-react.d.ts" code={useWalletBootstrapSig} />
 
 <ParamsTable rows={[
   { name: 'createWallet(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet and refreshes state on success.' },
+  { name: 'restoreWallet(req)', type: '(req: CreateWalletRequest) => void', desc: 'Restores from a mnemonic without blocking on server-assisted recovery; recovery runs in the background and is tracked through recovery below. See WalletDKReactState.restoreWallet.' },
+  { name: 'recovery', type: 'RecoveryState', desc: "Background recovery status from restoreWallet ('idle' | 'restoring' | 'done' | 'failed'); drive a recovery banner off it. See WalletDKReactState.recovery." },
+  { name: 'acknowledgeRecovery()', type: '() => void', desc: 'Resets recovery to idle (e.g. on banner dismiss).' },
   { name: 'info', type: 'Partial<WalletInfo> | null', desc: 'Most recent wallet info.' },
   { name: 'operations', type: 'Record<WalletOperation, OperationState>', desc: 'The raw operations record: read operations.createWallet.busy / operations.unlockWallet.error directly. Unlike the other granular hooks, this hook does not flatten busy/error and has no clearError; call useWalletDK().clearOperationError(op) if you need to clear one.' },
   { name: 'unlockWallet(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: 'Unlocks an existing wallet and refreshes state on success.' },

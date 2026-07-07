@@ -14,6 +14,21 @@ export type CreateWalletRequest = {
   mnemonic?: string[];
   /** An optional BIP-39 passphrase applied on top of the mnemonic. */
   seedPassphrase?: string;
+  /**
+   * Opt into server-assisted recovery. When true, the daemon rebuilds wallet
+   * state (boarding UTXOs, VTXOs, and receive history) from the seed by
+   * querying the operator's indexer, rather than starting empty. Leave it unset
+   * or false when creating a fresh wallet; set it when restoring from a
+   * `mnemonic` so the funds and activity come back. Defaults to false.
+   */
+  recoverState?: boolean;
+  /**
+   * The per-key-family look-ahead used during recovery: how many unused
+   * addresses past the last used one the indexer scan probes before giving up.
+   * Only meaningful when `recoverState` is true. Omit to let the daemon resolve
+   * its own default; raise it if a wallet skipped a large gap of addresses.
+   */
+  recoveryWindow?: number;
 };
 
 /**
