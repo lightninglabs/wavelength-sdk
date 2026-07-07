@@ -340,8 +340,11 @@ const isHome = pathname === '/';
     border-color: #12ccb0;
   }
 
-  /* Mobile: show the hamburger, collapse the top nav and non-essential actions. */
-  @media (max-width: 768px) {
+  /* Mobile: show the hamburger, collapse the top nav and non-essential actions.
+     Also triggers on short viewports regardless of width (e.g. a phone
+     rotated to landscape), where the full desktop header has no room and
+     otherwise overflows. */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-header { padding: 0 12px; }
     .wdk-menu-toggle { display: inline-flex; }
     .wdk-header-brand { margin-right: 8px; }

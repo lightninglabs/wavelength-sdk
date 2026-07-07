@@ -139,8 +139,9 @@ const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
 
   /* Mobile: hide the fixed rail (the doc/guide layouts drop the matching
      right margin so content goes full-width). Mirrors .wdk-sidebar's
-     same-breakpoint rule. */
-  @media (max-width: 768px) {
+     same-breakpoint rule, including the short-viewport (landscape phone)
+     clause. */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-toc { display: none; }
   }
 

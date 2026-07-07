@@ -464,8 +464,9 @@ const accent = accentForSlug(entry.id);
   }
 
   /* Mobile: single column - drop the left/right margins (sidebar and stepper
-     rail hide themselves), content goes full-width. */
-  @media (max-width: 768px) {
+     rail hide themselves), content goes full-width. Also triggers on short
+     viewports regardless of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-qs__main {
       margin-left: 0;
       margin-right: 0;

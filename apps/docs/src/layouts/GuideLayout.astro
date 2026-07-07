@@ -124,8 +124,9 @@ const accent = accentForSlug(entry.id);
   }
 
   /* Mobile: single column - drop the left margin (sidebar hides itself), and
-     the rail stacks below the prose (handled in CodeRail). */
-  @media (max-width: 768px) {
+     the rail stacks below the prose (handled in CodeRail). Also triggers on
+     short viewports regardless of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-guide__main { margin-left: 0; flex-direction: column; }
     .wdk-guide__content { max-width: 100%; padding: 32px 20px 40px; }
   }

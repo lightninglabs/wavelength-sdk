@@ -647,8 +647,9 @@ const summarize = (comment: string): string =>
   }
 
   /* Mobile: drop the fixed rail and left margin; content goes full-width. The
-     Sidebar hides itself via its own media query. */
-  @media (max-width: 768px) {
+     Sidebar hides itself via its own media query. Also triggers on short
+     viewports regardless of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-api__main { margin-left: 0; margin-right: 0; flex-direction: column; }
     .wdk-api__content { max-width: 100%; padding: 32px 20px 60px; }
     .wdk-api__rail { display: none; }

@@ -138,8 +138,9 @@ const hasSidebar = !entry.data.sidebar.hidden;
 
   /* Mobile: single column - hide the fixed sidebar + TOC, content full-width.
      The TOC rail hides itself (see TableOfContents.astro's own media query);
-     here we just drop the right margin that made room for it. */
-  @media (max-width: 768px) {
+     here we just drop the right margin that made room for it. Also triggers
+     on short viewports regardless of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-doc__main { margin-left: 0; }
     .wdk-doc__main--with-toc { margin-right: 0; }
     .wdk-doc__inner { padding: 32px 20px 60px; gap: 0; }

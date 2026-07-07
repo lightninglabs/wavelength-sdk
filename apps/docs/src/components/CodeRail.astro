@@ -169,8 +169,9 @@ import { DEMO_APP_URL } from '~/config/site';
   /* Narrow screens: drop the sticky rail and stack every code panel inline
      below the prose so no code is lost (the scrollytelling swap is a
      wide-screen affordance). Each panel returns to normal flow and is fully
-     visible regardless of the active state. */
-  @media (max-width: 768px) {
+     visible regardless of the active state. Also triggers on short viewports
+     regardless of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
     .wdk-rail {
       width: 100%;
       padding: 0 0 32px;
