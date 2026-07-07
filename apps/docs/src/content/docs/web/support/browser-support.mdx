@@ -3,6 +3,8 @@ title: Browser support
 description: The compatibility matrix showing which browsers and versions support WalletDK's WebAssembly runtime, OPFS storage, and passkey features.
 ---
 
+import FieldCards from '~/components/mdx/FieldCards.astro';
+
 ## Matrix
 
 WalletDK targets evergreen desktop and mobile browsers with mature WebAssembly,
@@ -10,12 +12,48 @@ Worker, and storage APIs. Minimum versions below are **floors for the WASM
 runtime**; passkeys and OPFS persistence have stricter requirements noted in
 their columns.
 
-| Browser | Min version | WebAuthn passkeys (PRF) | SharedArrayBuffer | OPFS persistence |
-|---|---|---|---|---|
-| Chrome / Edge | 100 | 114+ (platform authenticator + PRF extension) | Yes, with COOP/COEP | Yes, with COOP/COEP |
-| Firefox | 110 | Limited PRF support; prefer password fallback | Yes, with COOP/COEP | Yes, with COOP/COEP |
-| Safari (macOS) | 16 | 17.4+ for PRF | Yes, with COOP/COEP | Yes, with COOP/COEP |
-| Safari (iOS / iPadOS) | 16 | 17.4+ for PRF | Yes, with COOP/COEP | Yes, with COOP/COEP |
+<FieldCards cards={[
+  {
+    title: 'Chrome / Edge',
+    accent: 'sky',
+    fields: [
+      { label: 'Min version', value: '100' },
+      { label: 'WebAuthn passkeys (PRF)', value: '114+ (platform authenticator + PRF extension)' },
+      { label: 'SharedArrayBuffer', value: 'Yes, with COOP/COEP' },
+      { label: 'OPFS persistence', value: 'Yes, with COOP/COEP' },
+    ],
+  },
+  {
+    title: 'Firefox',
+    accent: 'orange',
+    fields: [
+      { label: 'Min version', value: '110' },
+      { label: 'WebAuthn passkeys (PRF)', value: 'Limited PRF support; prefer password fallback' },
+      { label: 'SharedArrayBuffer', value: 'Yes, with COOP/COEP' },
+      { label: 'OPFS persistence', value: 'Yes, with COOP/COEP' },
+    ],
+  },
+  {
+    title: 'Safari (macOS)',
+    accent: 'teal',
+    fields: [
+      { label: 'Min version', value: '16' },
+      { label: 'WebAuthn passkeys (PRF)', value: '17.4+ for PRF' },
+      { label: 'SharedArrayBuffer', value: 'Yes, with COOP/COEP' },
+      { label: 'OPFS persistence', value: 'Yes, with COOP/COEP' },
+    ],
+  },
+  {
+    title: 'Safari (iOS / iPadOS)',
+    accent: 'violet',
+    fields: [
+      { label: 'Min version', value: '16' },
+      { label: 'WebAuthn passkeys (PRF)', value: '17.4+ for PRF' },
+      { label: 'SharedArrayBuffer', value: 'Yes, with COOP/COEP' },
+      { label: 'OPFS persistence', value: 'Yes, with COOP/COEP' },
+    ],
+  },
+]} />
 
 **WebAssembly runtime:** Chrome 100+, Firefox 110+, and Safari 16+ are the
 documented development targets. Older engines may fail to instantiate the daemon

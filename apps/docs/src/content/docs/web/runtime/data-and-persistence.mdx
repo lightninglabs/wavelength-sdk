@@ -3,6 +3,9 @@ title: Data & persistence
 description: How WalletDK stores wallet data using OPFS or localStorage and how storage responsibilities are split between the main thread and the worker.
 ---
 
+import Card from '~/components/mdx/Card.astro';
+import CardGrid from '~/components/mdx/CardGrid.astro';
+
 ## OPFS vs localStorage
 
 The embedded daemon persists two kinds of browser-local data:
@@ -52,10 +55,19 @@ signals). Do not rely on it being granted; treat it as best-effort.
 `createWebClient()` accepts **`runtimeThread`**: `'worker'` (default) or
 `'main'`.
 
-| Mode | Thread | Storage | When to use |
-|---|---|---|---|
-| `'worker'` (default) | Dedicated Web Worker | OPFS | Production web apps. Keeps the UI responsive while the daemon runs. |
-| `'main'` | Page main thread | No OPFS SQLite path | Escape hatch when Workers are unavailable or you cannot set COOP/COEP headers. Expect UI jank. |
+<CardGrid>
+  <Card title="'worker' (default)">
+    **Thread:** Dedicated Web Worker. **Storage:** OPFS.
+
+    Production web apps. Keeps the UI responsive while the daemon runs.
+  </Card>
+  <Card title="'main'">
+    **Thread:** Page main thread. **Storage:** No OPFS SQLite path.
+
+    Escape hatch when Workers are unavailable or you cannot set COOP/COEP
+    headers. Expect UI jank.
+  </Card>
+</CardGrid>
 
 Worker mode spawns the bundled `walletdk-worker.js` (override with
 `workerURL`). The worker receives **`runtimeBaseUrl`** on init so it can fetch

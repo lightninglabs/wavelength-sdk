@@ -129,12 +129,20 @@ const { cards } = Astro.props;
     margin: 0;
   }
 
-  .wdk-field-card__field code {
-    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  /* Doubled class (instead of a single .wdk-field-card__field code) so this
+     beats the higher-specificity ":is(.wdk-doc__content, .wdk-guide__content)
+     :not(pre) > code" inline-code rule in theme.css - without it, a
+     FieldCards instance on a DocLayout/GuideLayout page (unlike the
+     ReferenceLayout page this component was first used on) inherited that
+     rule's chip background/border, which looks wrong on values that are
+     descriptive phrases rather than code tokens. */
+  .wdk-field-card .wdk-field-card__field code {
+    font-family: var(--font-mono);
     font-size: 0.8125rem;
     color: var(--text-code);
     word-break: break-all;
     background: none;
+    border: none;
     padding: 0;
   }
 
@@ -147,8 +155,12 @@ const { cards } = Astro.props;
     border-top: 1px dashed var(--border);
   }
 
-  .wdk-field-card__tag {
-    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  /* Doubled class for the same reason as .wdk-field-card__field code above:
+     beats theme.css's higher-specificity inline-code rule on DocLayout/
+     GuideLayout pages, so this chip's own background/border render instead
+     of being silently overridden there. */
+  .wdk-field-card .wdk-field-card__tag {
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     color: var(--text-muted);
     background: var(--surface-2);
