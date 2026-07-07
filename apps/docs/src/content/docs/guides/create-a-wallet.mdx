@@ -3,6 +3,7 @@ title: Create a wallet (password)
 description: Create a password-protected WalletDK wallet in a React app, with inline code at each step.
 pageLayout: guide
 related:
+  - guides/restore-a-wallet
   - guides/handle-phases-and-errors
   - guides/use-a-passkey
   - guides/show-balance-and-activity
@@ -141,10 +142,9 @@ seed never leaves it. After it resolves, `phase` becomes `'ready'`.
 
 The resolved result includes `mnemonic`, the wallet's recovery phrase. This is
 the only time the SDK ever returns it, so show it to the user immediately and
-prompt them to write it down before continuing. To restore a wallet from an
-existing recovery phrase instead of generating a new one, pass `mnemonic` (and
-`seedPassphrase`, if the original wallet used a BIP-39 passphrase) to
-`createWallet`.
+prompt them to write it down before continuing. To rebuild a wallet from an
+existing recovery phrase instead of generating a new one, see
+[Restore a wallet](/guides/restore-a-wallet/).
 
 ```tsx title="Onboard.tsx"
 import { useState } from 'react';

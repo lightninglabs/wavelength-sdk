@@ -88,6 +88,7 @@ export const NAV: NavGroup[] = [
     section: 'guides',
     items: [
       { slug: 'guides/create-a-wallet', label: 'Create a wallet', section: 'guides' },
+      { slug: 'guides/restore-a-wallet', label: 'Restore a wallet', section: 'guides' },
       { slug: 'guides/get-a-deposit-address', label: 'Get a deposit address', section: 'guides' },
       { slug: 'guides/show-balance-and-activity', label: 'Show balance and activity', section: 'guides' },
       { slug: 'guides/send-a-payment', label: 'Send a payment', section: 'guides' },

@@ -1,0 +1,128 @@
+---
+title: Restore a wallet
+description: Rebuild a WalletDK wallet from a recovery phrase, and bring back balances and history with background server-assisted recovery.
+pageLayout: guide
+related:
+  - guides/create-a-wallet
+  - guides/handle-phases-and-errors
+  - guides/show-balance-and-activity
+---
+
+A restore rebuilds a wallet on-device from a recovery phrase the user already
+has, rather than generating a fresh seed. Restores are always local password
+wallets: the user supplies the recovery phrase plus a new password to encrypt
+the seed on this device. This guide covers restoring the seed, opting into
+server-assisted recovery to bring back funds and history, and running that
+recovery in the background so the user is not stuck on a loading screen.
+
+## Restore from a recovery phrase
+
+Pass an existing `mnemonic` to `createWallet` (with `seedPassphrase` too, if the
+original wallet used a BIP-39 passphrase). This re-derives the same HD seed and
+encrypts it with the new `password`.
+
+On its own, that rebuilds the keys but leaves the wallet empty: it does not know
+about any funds or past activity yet. To bring those back, opt into recovery.
+
+## Bring back balances and history
+
+Set `recoverState: true` to turn on server-assisted recovery. The daemon walks
+the seed's addresses and queries the operator's indexer to rebuild wallet state:
+boarding outputs, VTXOs, and Lightning receive history. Without it, a restored
+wallet starts at a zero balance even if the seed has funds.
+
+`recoveryWindow` is an optional per-key-family address look-ahead: how many
+unused addresses past the last used one the scan probes before giving up. Omit
+it to let the daemon pick its own default, and only raise it if a wallet skipped
+a large gap of addresses.
+
+## Restore in the background
+
+The recovery scan can take minutes and reports no progress while it runs, and
+`createWallet` does not resolve until it finishes. So instead of awaiting
+`createWallet`, use `restoreWallet` from `useWalletBootstrap`. It is
+fire-and-forget: it starts the restore, advances `phase` to `'ready'` as soon as
+the daemon reports the wallet ready (which happens before the scan completes),
+and tracks the scan through the `recovery` state. The user lands in a working
+wallet immediately while balances and history fill in behind them.
+
+```tsx title="Restore.tsx"
+import { useWalletBootstrap, useWalletDK } from '@lightninglabs/walletdk-react';
+
+function Restore({ mnemonic }: { mnemonic: string[] }) {
+  const { restoreWallet, operations } = useWalletBootstrap();
+  const { phase } = useWalletDK();
+
+  const handleRestore = () => {
+    // Fire-and-forget: reaches 'ready' as soon as the wallet is up, then keeps
+    // rebuilding balances and history in the background (tracked via recovery).
+    restoreWallet({
+      password: 'a-strong-password',
+      mnemonic,
+      recoverState: true,
+    });
+  };
+
+  if (phase !== 'needsWallet') {
+    return null;
+  }
+
+  return (
+    <>
+      <button onClick={handleRestore} disabled={operations.createWallet.busy}>
+        Restore wallet
+      </button>
+      {operations.createWallet.error && (
+        <p role="alert">{operations.createWallet.error}</p>
+      )}
+    </>
+  );
+}
+```
+
+## Show recovery progress
+
+`recovery` is a discriminated union on `status`. Drive a banner off it so the
+user knows the scan is still running, and report the outcome when it settles.
+`acknowledgeRecovery` resets it to `idle` when the user dismisses the banner.
+
+```tsx title="RecoveryBanner.tsx"
+import { useWalletBootstrap } from '@lightninglabs/walletdk-react';
+
+function RecoveryBanner() {
+  const { recovery, acknowledgeRecovery } = useWalletBootstrap();
+
+  switch (recovery.status) {
+    case 'idle':
+      return null;
+    case 'restoring':
+      return (
+        <p role="status">
+          Restoring your balance and history. This can take a few minutes; your
+          balance will fill in as it is found.
+        </p>
+      );
+    case 'done':
+      return (
+        <p role="status">
+          Wallet restored. Recovered {recovery.result.recoveredVTXOs} VTXOs.
+          <button onClick={acknowledgeRecovery}>Dismiss</button>
+        </p>
+      );
+    case 'failed':
+      return (
+        <p role="alert">
+          Could not finish restoring your history, so your balance may be
+          incomplete. The wallet is still usable. {recovery.error}
+          <button onClick={acknowledgeRecovery}>Dismiss</button>
+        </p>
+      );
+  }
+}
+```
+
+The wallet is fully usable throughout. Recovery only reads state, so sending and
+receiving during the scan is safe. Until it finishes, the balance is understated
+(a send may briefly report insufficient funds), while receiving is unaffected.
+If the scan fails, the wallet still works with whatever it found; the phrase is
+the source of truth, so the user can restore again later.
