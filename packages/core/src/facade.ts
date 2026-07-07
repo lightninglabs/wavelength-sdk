@@ -134,6 +134,12 @@ export function toGoCreateWalletReq(req: CreateWalletRequest) {
     SeedPassphrase: req.seedPassphrase
       ? base64FromUtf8(req.seedPassphrase)
       : undefined,
+    // The Go facade struct has no json tags, so field names stay PascalCase on
+    // the wire (unlike the camelCase TS mirror in generated.ts). Pass both
+    // recovery fields straight through; JSON drops the undefined ones, letting
+    // the daemon apply its own defaults.
+    RecoverState: req.recoverState,
+    RecoveryWindow: req.recoveryWindow,
   };
 }
 
