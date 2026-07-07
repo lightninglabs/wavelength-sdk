@@ -145,13 +145,24 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
     display: flex;
   }
 
-  /* Inner flex row for the article column. */
+  /* Inner flex row for the article column. The TOC rail is position:fixed
+     (see TableOfContents.astro), so it is not actually a flex participant
+     here despite living in this row's markup for source-order convenience -
+     .wdk-guide__content is the only real flex item. max-width matches
+     content's 760px max-width plus its own horizontal padding (40px each
+     side), so this row is never wider than the content it actually holds;
+     width: 100% (not omitted - shrink-to-fit "auto" sizing does not reliably
+     respect the available space when a scrollbar is present, and rendered
+     wider than .wdk-guide__main's real box, overlapping the TOC rail) keeps
+     it properly participating in the flex layout and shrinking on narrower
+     viewports. margin: auto centers it once the max-width cap engages. */
   .wdk-guide__inner {
     display: flex;
     gap: 40px;
     padding: 48px 40px 80px;
-    max-width: 1200px;
     width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
   }
 
   /* Guide article column. */
