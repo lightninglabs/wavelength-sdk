@@ -54,6 +54,27 @@ export type OperationState = {
 };
 
 /**
+ * The state of a background wallet recovery started by {@link
+ * WalletDKReactState.restoreWallet}, a discriminated union keyed on `status`:
+ * `idle` before any tracked restore (and after {@link
+ * WalletDKReactState.acknowledgeRecovery}); `restoring` while the daemon's
+ * server-assisted scan runs; `done` once it completes (carrying the scan's
+ * `result` counters); `failed` if the scan errored (carrying the `error`
+ * message; the wallet is still usable, its state just may be incomplete). Read
+ * it to drive a "restoring your balance and history" banner: the scan runs while
+ * the wallet is already usable, so the UI can land on the main wallet and let
+ * balances fill in as they are found.
+ */
+export type RecoveryState =
+  | { status: "idle" }
+  | { status: "restoring" }
+  | { status: "done"; result: CreateWalletResult }
+  | { status: "failed"; error: string };
+
+/** The lifecycle status of a {@link RecoveryState}. */
+export type RecoveryStatus = RecoveryState["status"];
+
+/**
  * The full wallet state and action set exposed through the provider context and
  * returned by {@link useWalletDK}.
  */
@@ -80,6 +101,19 @@ export type WalletDKReactState = {
   refresh(): Promise<void>;
   /** Creates a new wallet and refreshes state on success. */
   createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
+  /**
+   * Restores a wallet from a mnemonic without blocking on server-assisted
+   * recovery. Fire-and-forget: it starts `createWallet(req)` in the background,
+   * advances to the main wallet as soon as the daemon reports it ready (which
+   * happens before the recovery scan finishes), and, when `req.recoverState` is
+   * set, tracks the scan through {@link recovery} so the UI can show a progress
+   * banner. Use this instead of `createWallet` for a restore-from-mnemonic flow.
+   */
+  restoreWallet(req: CreateWalletRequest): void;
+  /** The background recovery status set by {@link restoreWallet}. */
+  recovery: RecoveryState;
+  /** Resets {@link recovery} to `idle` (e.g. after dismissing the banner). */
+  acknowledgeRecovery(): void;
   /** Unlocks an existing wallet and refreshes state on success. */
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
   /** Requests an on-chain deposit address and refreshes state on success. */
@@ -162,6 +196,12 @@ export function WalletDKProvider({
   const [activity, setActivity] = useState<Entry[]>([]);
   const [operations, setOperations] = useState(defaultOperations);
   const [logs, setLogs] = useState<WalletDKLogPayload[]>([]);
+  const [recovery, setRecovery] = useState<RecoveryState>({ status: "idle" });
+  // True while a background restore waits for the freshly created wallet to
+  // report ready. It gates the generic syncing poll (below) off, because
+  // InitWallet transiently reports an unlocking state that maps to 'locked',
+  // which the generic poll would surface as the Unlock screen mid-restore.
+  const [awaitingWalletReady, setAwaitingWalletReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -340,7 +380,9 @@ export function WalletDKProvider({
   // re-derived on refresh, so without this the wallet would never leave
   // 'syncing'. The SDK owns this so hosts don't each re-implement the poll.
   useEffect(() => {
-    if (phase !== "syncing") {
+    // A background restore owns readiness itself (see below); defer to it so the
+    // generic poll does not fight it over the transient pre-ready states.
+    if (phase !== "syncing" || awaitingWalletReady) {
       return;
     }
 
@@ -365,7 +407,52 @@ export function WalletDKProvider({
     }, 2000);
 
     return () => clearInterval(id);
-  }, [phase]);
+  }, [phase, awaitingWalletReady]);
+
+  // While a background restore is bringing a freshly created wallet up, poll
+  // getInfo until it reports ready, then advance to the main wallet. This is
+  // separate from the generic syncing poll above because InitWallet passes
+  // through a transient unlocking state (mapped to 'locked') before ready, which
+  // the generic poll would surface as the Unlock screen. Here we only react to
+  // the ready state, ignoring the intermediate ones.
+  useEffect(() => {
+    if (!awaitingWalletReady) {
+      return;
+    }
+
+    let stopped = false;
+    const tick = async () => {
+      let nextInfo;
+      try {
+        nextInfo = await client.getInfo();
+      } catch {
+        // Transient while the wallet comes up; keep polling.
+        return;
+      }
+      if (stopped) {
+        return;
+      }
+      if (nextInfo.walletReady || nextInfo.walletState === WalletState.Ready) {
+        setInfo(nextInfo);
+        setPhase("ready");
+        setAwaitingWalletReady(false);
+        // Fetch balance and history now that the wallet is ready, rather than
+        // leaving them null until the recovery scan finishes: a null balance
+        // reads as "still loading" to hosts, so without this the main wallet
+        // would sit on a loader for the whole scan. Recovery then keeps them
+        // fresh through the activity stream as it finds more.
+        void refreshRef.current().catch(() => undefined);
+      }
+    };
+
+    const id = setInterval(() => void tick(), 1500);
+    void tick();
+
+    return () => {
+      stopped = true;
+      clearInterval(id);
+    };
+  }, [awaitingWalletReady, client]);
 
   const start = useCallback(async (config: RuntimeConfig) => {
     setPhase("starting");
@@ -413,6 +500,83 @@ export function WalletDKProvider({
       return result;
     });
   }, [client, refresh, runOperation]);
+
+  const acknowledgeRecovery = useCallback(() => {
+    setRecovery({ status: "idle" });
+  }, []);
+
+  const restoreWallet = useCallback((req: CreateWalletRequest) => {
+    // A restore with server-assisted recovery blocks the createWallet call for
+    // the whole indexer scan, but the daemon marks the wallet ready before the
+    // scan runs. So kick createWallet off without awaiting it, drive to the main
+    // wallet as soon as it reports ready (via the readiness poll above), and
+    // track the scan through `recovery` when the caller opted into it.
+    const tracking = Boolean(req.recoverState);
+
+    setOperation("createWallet", { busy: true, error: "" });
+    setRecovery(tracking ? { status: "restoring" } : { status: "idle" });
+    setPhase("syncing");
+    setAwaitingWalletReady(true);
+
+    client.createWallet(req).then(
+      (result) => {
+        setOperation("createWallet", { busy: false });
+        setInfo((current) => ({
+          ...(current || {}),
+          identityPubKey: result.identityPubKey,
+          walletState: WalletState.Ready,
+          walletReady: true,
+        }));
+        setAwaitingWalletReady(false);
+        setPhase((current) => (current === "syncing" ? "ready" : current));
+        if (tracking) {
+          setRecovery({ status: "done", result });
+        }
+        // Pull the recovered balance and history in now that the scan is done.
+        void refreshRef.current().catch(() => undefined);
+      },
+      async (err) => {
+        const message = errorMessage(err);
+        setOperation("createWallet", { busy: false, error: message });
+        setAwaitingWalletReady(false);
+
+        // Recovery runs after the wallet is created and unlocked, so a failure
+        // may leave a usable (if under-populated) wallet. Probe getInfo: if the
+        // wallet came up, keep the user in it and surface a failed banner;
+        // otherwise the create itself failed, so fall back to onboarding with
+        // the error and clear the recovery state.
+        let cameUp = false;
+        try {
+          const probe = await client.getInfo();
+          cameUp = Boolean(
+            probe.walletReady || probe.walletState === WalletState.Ready,
+          );
+          if (cameUp) {
+            setInfo(probe);
+          }
+        } catch {
+          // Treat an unreachable daemon as not-came-up.
+        }
+
+        if (cameUp) {
+          setPhase("ready");
+          // Only show the recovery-failed banner when the caller opted into
+          // recovery; a plain restore that failed post-ready never ran a scan,
+          // so its error surfaces through operations.createWallet.error instead.
+          setRecovery(
+            tracking
+              ? { status: "failed", error: message }
+              : { status: "idle" },
+          );
+        } else {
+          setPhase((current) =>
+            current === "syncing" ? "needsWallet" : current,
+          );
+          setRecovery({ status: "idle" });
+        }
+      },
+    );
+  }, [client, setOperation]);
 
   const unlockWallet = useCallback(async (req: UnlockWalletRequest) => {
     return runOperation("unlockWallet", async () => {
@@ -464,6 +628,7 @@ export function WalletDKProvider({
   const clearLogs = useCallback(() => setLogs([]), []);
 
   const value = useMemo<WalletDKReactState>(() => ({
+    acknowledgeRecovery,
     activity,
     balance,
     clearLogs,
@@ -477,12 +642,15 @@ export function WalletDKProvider({
     operations,
     phase,
     receive,
+    recovery,
     refresh,
+    restoreWallet,
     send,
     start,
     stop,
     unlockWallet,
   }), [
+    acknowledgeRecovery,
     activity,
     balance,
     clearLogs,
@@ -496,7 +664,9 @@ export function WalletDKProvider({
     operations,
     phase,
     receive,
+    recovery,
     refresh,
+    restoreWallet,
     send,
     start,
     stop,

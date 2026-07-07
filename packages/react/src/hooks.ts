@@ -20,13 +20,30 @@ export function useWalletRuntime() {
 }
 
 /**
- * Exposes wallet creation and unlock actions together with the latest info, for
- * the bootstrap (create-or-unlock) flow.
+ * Exposes wallet creation, restore, and unlock actions together with the latest
+ * info and background-recovery status, for the bootstrap (create-or-unlock)
+ * flow.
  */
 export function useWalletBootstrap() {
-  const { createWallet, info, operations, unlockWallet } = useWalletDK();
+  const {
+    createWallet,
+    restoreWallet,
+    recovery,
+    acknowledgeRecovery,
+    info,
+    operations,
+    unlockWallet,
+  } = useWalletDK();
 
-  return { createWallet, info, operations, unlockWallet };
+  return {
+    createWallet,
+    restoreWallet,
+    recovery,
+    acknowledgeRecovery,
+    info,
+    operations,
+    unlockWallet,
+  };
 }
 
 // The single-operation hooks below expose flat busy / error / clearError for
