@@ -3,9 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-runtime-assets.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/copy-runtime-assets.mjs",
     "build": "astro build",
     "postbuild": "node scripts/agent-artifacts/index.ts",
     "preview": "astro preview",
