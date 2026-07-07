@@ -272,6 +272,47 @@ const accent = accentForSlug(entry.id);
     border-top: none;
   }
 
+  /* Plain markdown tables (e.g. the SendRail Value/Meaning enum table) - the
+     ApiSymbol params table has its own scoped styling, but a raw table
+     dropped straight into MDX prose has none, so it renders at full content
+     width and overflows the fixed rail instead of scrolling. Mirrors the
+     .wdk-doc__content table rule in theme.css: scroll horizontally instead of
+     wrapping cell text. */
+  .wdk-ref__content :global(table) {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    margin: 1rem 0;
+  }
+
+  .wdk-ref__content :global(td code) {
+    white-space: nowrap;
+  }
+
+  .wdk-ref__content :global(th) {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wdk-ref__content :global(td) {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+
+  .wdk-ref__content :global(tr:last-child td) {
+    border-bottom: none;
+  }
+
   /* Right rail: fixed full-height column pinned to the right screen edge -
      mirrors .wdk-sidebar's fixed left column so the two rails read as
      symmetric surfaces. Padding insets the heading and symbol list from the

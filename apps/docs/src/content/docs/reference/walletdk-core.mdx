@@ -9,6 +9,7 @@ import Signature from '~/components/mdx/Signature.astro';
 import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
+import FieldCards from '~/components/mdx/FieldCards.astro';
 
 `@lightninglabs/walletdk-core` is the framework-agnostic contract every
 WalletDK transport implements: a typed `WalletDKClient` interface, the request
@@ -100,12 +101,40 @@ Selects the Bitcoin network the embedded daemon runs against.
 `defaultConfig()` holds a canonical public gateway preset per network, so the
 common case needs no URLs looked up:
 
-| Network | `arkServerUrl` | `esploraUrl` | `swapServerUrl` | Other fields |
-|---|---|---|---|---|
-| `signet` | `https://arkd-signet-rest.testnet.lightningcluster.com` | `https://mempool-signet.testnet.lightningcluster.com/api` | `https://swapd-signet-rest.testnet.lightningcluster.com` | - |
-| `testnet` | `https://arkd-rest.testnet.lightningcluster.com` | `https://mempool.space/testnet/api` | `https://swapd-rest.testnet.lightningcluster.com` | - |
-| `regtest` | `http://127.0.0.1:7071` | `http://127.0.0.1:8501` | `http://127.0.0.1:10032` | `serverInsecure: true`, `swapServerInsecure: true` |
-| `mainnet` | (none) | (none) | (none) | - |
+<FieldCards cards={[
+  {
+    title: 'signet',
+    accent: 'teal',
+    fields: [
+      { label: 'arkServerUrl', value: 'https://arkd-signet-rest.testnet.lightningcluster.com' },
+      { label: 'esploraUrl', value: 'https://mempool-signet.testnet.lightningcluster.com/api' },
+      { label: 'swapServerUrl', value: 'https://swapd-signet-rest.testnet.lightningcluster.com' },
+    ],
+  },
+  {
+    title: 'testnet',
+    accent: 'sky',
+    fields: [
+      { label: 'arkServerUrl', value: 'https://arkd-rest.testnet.lightningcluster.com' },
+      { label: 'esploraUrl', value: 'https://mempool.space/testnet/api' },
+      { label: 'swapServerUrl', value: 'https://swapd-rest.testnet.lightningcluster.com' },
+    ],
+  },
+  {
+    title: 'regtest',
+    accent: 'lime',
+    fields: [
+      { label: 'arkServerUrl', value: 'http://127.0.0.1:7071' },
+      { label: 'esploraUrl', value: 'http://127.0.0.1:8501' },
+      { label: 'swapServerUrl', value: 'http://127.0.0.1:10032' },
+    ],
+    tags: ['serverInsecure: true', 'swapServerInsecure: true'],
+  },
+  {
+    title: 'mainnet',
+    empty: 'No public preset yet - supply arkServerUrl, esploraUrl, and swapServerUrl yourself.',
+  },
+]} />
 
 <Callout type="caution" title="mainnet has no public preset">
 `defaultConfig('mainnet')` returns an empty preset (just `{ network: 'mainnet' }`).
