@@ -5,9 +5,9 @@ description: How WalletDK sends and receives Lightning as Lightning↔Ark atomic
 
 import Callout from '~/components/mdx/Callout.astro';
 
-## In-swap (receive)
+## Receiving over Lightning
 
-Receiving Lightning does not mean opening a channel in your app. WalletDK routes inbound payments through an atomic swap, called an **in-swap**, that moves value **from Lightning into Ark**. You do **not** open or manage Lightning channels. Instead, `receive()` asks the **swap server** to act as a bridge.
+Receiving Lightning does not mean opening a channel in your app. WalletDK routes inbound payments through an atomic swap that moves value **from Lightning into Ark**. You do **not** open or manage Lightning channels. Instead, `receive()` asks the **swap server** to act as a bridge.
 
 The flow, at a high level:
 
@@ -22,9 +22,9 @@ The vHTLC is a taproot output with the same hashlock/timelock structure as a Lig
 WalletDK Lightning receive is swap-backed. There is no inbound channel capacity to pre-fund, but swap server liquidity and operator liveness still matter for how quickly funding appears.
 </Callout>
 
-## Out-swap (send)
+## Sending over Lightning
 
-Sending to a Lightning invoice works the same way in reverse: Ark value funds a vHTLC, and the swap server pays the invoice on Lightning once the Ark side is claimable. Sending to a Lightning invoice is an **out-swap**: value moves **from Ark out to Lightning**. Again, this is not a channel payment.
+Sending to a Lightning invoice works the same way in reverse: Ark value funds a vHTLC, and the swap server pays the invoice on Lightning once the Ark side is claimable. The swap moves value **from Ark out to Lightning**. Again, this is not a channel payment.
 
 The flow:
 
@@ -43,7 +43,7 @@ Swap legs can take seconds or minutes, and either side can time out. Your UI sho
 
 Every vHTLC encodes **refund paths** with CLTV and CSV timelocks. If the swap server never claims (receive side) or never pays the invoice (send side), the wallet can unwind cooperatively first (operator-co-signed OOR refunds) and, if needed, fall back to on-chain unilateral leaves after delays elapse.
 
-WalletDK **arms automatic refund recovery** on pay sessions so stuck out-swaps do not strand funds indefinitely. Entries may pass through `refunding` and `refunded` phases when a timeout fires; `failed` covers hard errors with failure reason text for display. When an entry fails, `entry.failureReason` holds a human-readable message and `entry.failureCode` holds one of `timed_out | expired | refunded | needs_intervention | failed` for programmatic handling.
+WalletDK **arms automatic refund recovery** on pay sessions so stuck sends do not strand funds indefinitely. Entries may pass through `refunding` and `refunded` phases when a timeout fires; `failed` covers hard errors with failure reason text for display. When an entry fails, `entry.failureReason` holds a human-readable message and `entry.failureCode` holds one of `timed_out | expired | refunded | needs_intervention | failed` for programmatic handling.
 
 <Callout type="caution">
 A pending Lightning send is often waiting on swap server liquidity or routing, not a bug in your integration. Surface the entry phase to users and expect auto-refund if the invoice expires or the swap times out. See [Troubleshooting](/web/support/troubleshooting/) for the "stuck send" pattern.

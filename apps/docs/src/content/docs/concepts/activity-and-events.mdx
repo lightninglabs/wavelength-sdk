@@ -62,8 +62,8 @@ Activity events carry the full entry shape:
 **Entry kinds** group operations for filtering and display:
 
 - **`deposit`**: on-chain boarding (`deposit()` address flow).
-- **`receive`**: inbound Lightning receive settled through an in-swap into Ark.
-- **`send`**: outbound payment (Lightning out-swap, cooperative on-chain leave, or in-Ark send).
+- **`receive`**: inbound Lightning receive settled through an atomic swap into Ark.
+- **`send`**: outbound payment (Lightning send swap, cooperative on-chain leave, or in-Ark send).
 - **`exit`**: cooperative leave of VTXOs to a plain on-chain address.
 
 For a `send` entry, `entry.request?.type` (`'lightning'`, `'onchain'`, or `'ark'`) tells you which rail the payment actually used; when preparing a send, `PrepareSendResult.rail` reports the same thing ahead of time. See the [walletdk-core reference](/reference/walletdk-core/) for the full field list.

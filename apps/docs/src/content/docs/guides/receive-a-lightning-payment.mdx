@@ -1,6 +1,6 @@
 ---
 title: Receive a Lightning payment
-description: How to generate a Lightning invoice via an in-swap and wait for the payment to settle, with a live example.
+description: How to generate a Lightning invoice via an atomic swap and wait for the payment to settle, with a live example.
 pageLayout: guide
 related:
   - guides/send-a-payment
@@ -11,7 +11,7 @@ related:
 
 ## Create a Lightning invoice
 
-`receive()` triggers an in-swap: the Ark server sets up a Lightning payment
+`receive()` triggers a receive swap: the Ark server sets up a Lightning payment
 path that deposits into your VTXO once the payer settles. Pass `amountSat` and
 an optional `memo` for the invoice.
 
@@ -51,8 +51,8 @@ function CreateInvoice() {
 `useWalletActivity()` streams live updates. Match the entry by invoice string
 in `entry.request?.lightningInvoice` and watch its `status` field: the entry
 appears as `'pending'` when the payer sends and switches to `'complete'` once
-the in-swap round completes. Like any entry, an in-swap can also terminate as
-`'failed'`, so handle that branch too.
+the receive swap round completes. Like any entry, a receive swap can also
+terminate as `'failed'`, so handle that branch too.
 
 Render a loading state until the entry appears, then show a pending indicator
 while it settles, a failure message if it fails, and a success message once
@@ -80,7 +80,7 @@ function InvoiceStatus({ bolt11 }: { bolt11: string }) {
 ```
 
 For finer-grained progress than the top-level `status` field offers (for
-example, distinguishing "waiting for payment" from "settling" while an
-in-swap is still `'pending'`), see `entry.progress?.phase` in
+example, distinguishing "waiting for payment" from "settling" while a
+receive swap is still `'pending'`), see `entry.progress?.phase` in
 [Handle phases and errors](/guides/handle-phases-and-errors/). This guide
 sticks to the simpler `status` field for clarity.
