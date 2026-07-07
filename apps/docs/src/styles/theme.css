@@ -66,6 +66,17 @@
   --rail-bg: var(--surface);
 }
 
+/* Widen the right rail on large screens, where the content column's
+   max-width leaves it sitting in an otherwise-empty column. Every layout
+   (TOC, stepper, symbol list, method list) reads --toc-w, so this alone
+   reflows all of them. */
+@media (min-width: 1440px) {
+  :root { --toc-w: 280px; }
+}
+@media (min-width: 1800px) {
+  :root { --toc-w: 320px; }
+}
+
 /* -------------------------------------------------------
    Light palette
    ------------------------------------------------------- */
