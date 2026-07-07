@@ -19,6 +19,7 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm --filter @lightninglabs/walletdk-web test
+      - run: pnpm --filter @lightninglabs/walletdk-react test
       - name: Fetch runtime assets for docs build
         run: |
           if [ -z "${RUNTIME_ASSETS_BASE_URL// }" ]; then
