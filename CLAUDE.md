@@ -72,7 +72,7 @@ Cross-cutting:
 
 **Git history.** Keep it a clean series of net-new logical commits, each building correctly on its own, not a "create then refactor" layer. When changing work that already exists on the branch, **fold the change into the commit that introduced it** (a `hunk rebase` fixup) rather than stacking a new commit; force-push is fine on the feature branch. Use `hunk` for non-interactive precision staging and fixup-rebases. Verify each commit builds.
 
-**Commit messages.** Bare area prefix, no conventional-commit type wrapper: `core:`, `web:`, `react:`, `demo:` (and `chore:` / `docs:` for non-package work). Descriptive, imperative subjects.
+**Commit messages.** Bare area prefix, no conventional-commit type wrapper: `core:`, `web:`, `react:`, `demo:` (and `chore:` / `docs:` / `ci:` for non-package work; use `ci:` for CI/workflow-only changes). Descriptive, imperative subjects.
 
 **Public docs.** Consumer-facing docs (the README) pitch the product value: a self-custodial Lightning wallet with no node/channels/liquidity to manage. The underlying protocol (Ark) and the daemon repo are implementation details: keep them out of the README and other public copy. (Internal docs like this file may name them.)
 
