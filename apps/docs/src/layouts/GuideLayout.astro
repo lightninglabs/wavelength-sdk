@@ -7,8 +7,9 @@
  * swapping to the active section as the reader scrolls. There is no separate
  * on-this-page TOC in this layout - the rail is the right column.
  *
- * Sets data-accent on <html> from accentForSlug (guides => lime) so the
- * per-section accent is available to CSS before paint, matching DocLayout.
+ * Sets data-accent on <html> from accentForSlug (cycles per section's
+ * position in its slice's sidebar - see SECTION_ACCENT in config/nav.ts) so
+ * the per-section accent is available to CSS before paint, matching DocLayout.
  *
  * Props (match DocLayout):
  *   entry    - the content collection entry (has .id, .data.title, etc.)

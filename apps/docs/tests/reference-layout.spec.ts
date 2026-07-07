@@ -4,11 +4,11 @@ import { test, expect } from '@playwright/test';
 // Asserts that /reference/walletdk-core/ renders:
 //   1. [data-symbol] sections - one per exported symbol.
 //   2. A sticky symbol-list rail with one link per symbol.
-//   3. data-accent="orange" on <html>.
+//   3. data-accent="teal" on <html>.
 
-test('reference page has data-accent="orange"', async ({ page }) => {
+test('reference page has data-accent="teal"', async ({ page }) => {
   await page.goto('/reference/walletdk-core/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
 });
 
 test('reference page renders [data-symbol] sections', async ({ page }) => {
@@ -59,27 +59,27 @@ test('exactly one symbol link is .is-active on load', async ({ page }) => {
 
 // Smoke checks for the sibling reference pages.
 
-test('walletdk-web reference page renders symbol sections, rail, and orange accent', async ({ page }) => {
+test('walletdk-web reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
   await page.goto('/reference/walletdk-web/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   expect(await symbols.count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
-test('walletdk-react reference page renders symbol sections, rail, and orange accent', async ({ page }) => {
+test('walletdk-react reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
   await page.goto('/reference/walletdk-react/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   expect(await symbols.count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
-test('walletdk-react-native reference page renders symbol sections, rail, and orange accent', async ({ page }) => {
+test('walletdk-react-native reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
   await page.goto('/reference/walletdk-react-native/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'orange');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   expect(await symbols.count()).toBeGreaterThanOrEqual(2);

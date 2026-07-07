@@ -17,8 +17,9 @@
  * (.guide-page-header, .guide-breadcrumb, .guide-title-accent, .guide-meta,
  * .step-num). The on-this-page rail mirrors DocLayout's TableOfContents column.
  *
- * Sets data-accent on <html> from accentForSlug (guides => lime) so the
- * per-section accent (--sl-accent) is available to CSS before paint.
+ * Sets data-accent on <html> from accentForSlug (cycles per section's
+ * position in its slice's sidebar - see SECTION_ACCENT in config/nav.ts) so
+ * the per-section accent (--sl-accent) is available to CSS before paint.
  *
  * Props (match DocLayout / GuideLayout):
  *   entry    - the content collection entry (.id, .data.title, .body, etc.).

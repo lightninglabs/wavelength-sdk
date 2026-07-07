@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 //   2. A numbered first step - the first in-content h2 gets a CSS-counter
 //      circle via ::before whose content resolves to "1".
 //   3. The reused "On this page" rail (.wdk-toc).
-//   4. data-accent="lime" on <html>.
+//   4. data-accent="violet" on <html>.
 //   5. The old scrollytelling [data-code-rail] is ABSENT.
 
 const PAGE = '/guides/create-a-wallet/';
@@ -64,9 +64,9 @@ test('an "On this page" rail (.wdk-toc) is present', async ({ page }) => {
   await expect(page.locator('.wdk-toc')).toBeVisible();
 });
 
-test('guide page has data-accent="lime"', async ({ page }) => {
+test('guide page has data-accent="violet"', async ({ page }) => {
   await page.goto(PAGE);
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'lime');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'violet');
 });
 
 test('the old scrollytelling code rail is absent', async ({ page }) => {

@@ -291,29 +291,35 @@ export function sliceForSlug(slug: string): Slice {
 }
 
 /**
- * Maps section keys (matching path prefixes) to their accent color.
+ * The five accent tokens, in the fixed order they cycle through a slice's
+ * sidebar groups (see buildSectionAccents below) - also the order the
+ * squares appear in the wordmark motif (Header, Footer, MobileNav).
  */
-export const SECTION_ACCENT: Record<string, Accent> = {
-  introduction: 'violet',
-  concepts: 'teal',
-  glossary: 'teal',
-  guides: 'lime',
-  integrations: 'lime',
-  reference: 'orange',
-  web: 'violet',
-  'react-native': 'sky',
-  'api-overview': 'violet',
-  'api-lifecycle': 'teal',
-  'api-send': 'lime',
-  'api-receive': 'sky',
-  'api-activity': 'orange',
-  'api-exit': 'violet',
-  'cli-overview': 'violet',
-  'cli-wallet': 'teal',
-  'cli-daemon': 'orange',
-  'cli-advanced': 'sky',
-  agents: 'sky',
-};
+const ACCENT_CYCLE: Accent[] = ['violet', 'teal', 'lime', 'orange', 'sky'];
+
+/**
+ * Maps every section key (matching path prefixes) to an accent color,
+ * derived from each group's position within its own slice's sidebar (NAV,
+ * API_NAV, CLI_NAV, AGENTS_NAV independently restart the cycle) rather than
+ * a hand-picked color per section. A fixed hand-picked table had no visible
+ * rule a reader could infer, drifted out of sync across the three slices,
+ * and occasionally repeated a color on two adjacent sidebar groups (e.g.
+ * Guides and Integrations both landed on lime). Cycling by position
+ * guarantees adjacent groups never collide (5 colors, never fewer than 2
+ * groups apart before a repeat) and needs no maintenance when sections are
+ * added, removed, or reordered.
+ */
+function buildSectionAccents(...slices: NavGroup[][]): Record<string, Accent> {
+  const map: Record<string, Accent> = {};
+  for (const groups of slices) {
+    groups.forEach((group, i) => {
+      map[group.section] = ACCENT_CYCLE[i % ACCENT_CYCLE.length];
+    });
+  }
+  return map;
+}
+
+export const SECTION_ACCENT: Record<string, Accent> = buildSectionAccents(NAV, API_NAV, CLI_NAV, AGENTS_NAV);
 
 /**
  * Returns a flat list of nav items in depth-first order.
@@ -340,22 +346,6 @@ export function accentForSlug(slug: string): Accent {
     if (item) {
       return SECTION_ACCENT[item.section] ?? 'violet';
     }
-  }
-  // Path-prefix fallback mirrors the inline head script logic.
-  if (slug.startsWith('concepts/') || slug === 'glossary' || slug.startsWith('glossary/')) {
-    return 'teal';
-  }
-  if (slug.startsWith('guides/') || slug.startsWith('integrations/')) {
-    return 'lime';
-  }
-  if (slug.startsWith('reference/')) {
-    return 'orange';
-  }
-  if (slug.startsWith('react-native/')) {
-    return 'sky';
-  }
-  if (slug.startsWith('web/')) {
-    return 'violet';
   }
   return 'violet';
 }

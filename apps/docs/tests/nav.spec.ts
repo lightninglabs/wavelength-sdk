@@ -9,8 +9,8 @@ test('nav flattens, accents and prev/next resolve', () => {
   const flat = flattenNav();
   expect(flat.length).toBeGreaterThan(20);
   expect(accentForSlug('concepts/balances-and-vtxos')).toBe('teal');
-  expect(accentForSlug('guides/send-a-payment')).toBe('lime');
-  expect(accentForSlug('reference/walletdk-web')).toBe('orange');
+  expect(accentForSlug('guides/send-a-payment')).toBe('violet');
+  expect(accentForSlug('reference/walletdk-web')).toBe('teal');
   const pn = prevNext('guides/send-a-payment');
   expect(pn.section).toBe('guides');
   expect(pn.total).toBeGreaterThan(1);

@@ -15,7 +15,8 @@
  *   - IntersectionObserver (NOT a window scroll listener) for scroll-sync.
  *   - Self-removing astro:before-swap teardown to prevent listener stacking.
  *
- * Accent resolves from accentForSlug (reference slugs => orange).
+ * Accent resolves from accentForSlug (cycles per section's position in its
+ * slice's sidebar - see SECTION_ACCENT in config/nav.ts).
  *
  * Props (match DocLayout / GuideLayout):
  *   entry    - the content collection entry (has .id, .data.title, etc.)
