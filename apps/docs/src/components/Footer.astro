@@ -191,7 +191,10 @@ const FOOTER_COLS = [
     color: var(--text-dim);
   }
 
-  /* Mobile: collapse the 4-column grid and stack the bottom row. */
+  /* Mobile portrait: collapse the 4-column grid to a 2x2 and stack the
+     bottom row. Width-only on purpose - a phone rotated to landscape has
+     plenty of width for the full 4-column row (see the short-viewport rule
+     below), it just needs the inset-left margin dropped. */
   @media (max-width: 768px) {
     .wdk-footer-inner {
       grid-template-columns: 1fr 1fr;
@@ -204,10 +207,16 @@ const FOOTER_COLS = [
       gap: 8px;
       padding: 16px 20px 0;
     }
-    /* The side rails are hidden on mobile, so drop the footer inset too. */
-    .wdk-footer--inset-left { margin-left: 0; }
   }
-  @media (max-width: 460px) {
-    .wdk-footer-inner { grid-template-columns: 1fr; }
+
+  /* Drop the desktop inset-left margin on narrow OR short viewports - the
+     latter for a phone rotated to landscape, matching Header/Sidebar's width
+     breakpoint (and the short-viewport clause shared by all of
+     Header/Sidebar/TableOfContents, though TableOfContents' own width
+     breakpoint is wider, 1279px). Otherwise a landscape phone keeps the
+     margin meant to clear the fixed sidebar (long gone at that width) and the
+     footer sits shifted off-center instead of full-width. */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-footer--inset-left { margin-left: 0; }
   }
 </style>
