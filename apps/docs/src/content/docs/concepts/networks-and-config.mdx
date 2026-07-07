@@ -13,7 +13,7 @@ Starting the embedded daemon requires three REST endpoints your app never calls 
 The embedded daemon never talks to Bitcoin or Ark nodes directly from your app code. `RuntimeConfig` is the shared `core` contract, so the same fields apply on either transport: after `start()`, the daemon reaches these **three REST gateways**. (The React Native transport reaches the daemon over its native gRPC; the web transport uses REST because browsers cannot dial native gRPC. Either way these three gateway URLs are what the daemon connects out to.)
 
 1. **`arkServerUrl`** (Ark operator + mailbox edge): rounds, boarding, VTXO relay, cooperative leave, and mailbox traffic share this gateway. There is no separate mailbox URL in the launch config.
-2. **`swapServerUrl`** (swap server): Lightning↔Ark atomic swaps (in-swaps and out-swaps).
+2. **`swapServerUrl`** (swap server): Lightning↔Ark atomic swaps (Lightning receive and send).
 3. **`esploraUrl`** (Esplora): chain queries and UTXO lookups for boarding detection. Must implement the Esplora `/address/:addr/utxo` API (electrs / mempool.space compatible).
 
 All three must point at infrastructure that serves the same **`network`**. A mismatched Esplora endpoint or swap server is a common source of "stuck deposit" or "swap never funds" bugs.

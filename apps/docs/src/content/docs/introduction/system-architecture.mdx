@@ -51,7 +51,7 @@ await client.start(defaultConfig('signet'));
 | Field | Service | What the daemon uses it for |
 |---|---|---|
 | `arkServerUrl` | Ark operator REST gateway | Ark **rounds**, VTXO lifecycle, and **mailbox relay** for out-of-round transfers |
-| `swapServerUrl` | Swap server REST gateway | **Lightning↔Ark atomic swaps** (in-swap receive, out-swap send) |
+| `swapServerUrl` | Swap server REST gateway | **Lightning↔Ark atomic swaps** (Lightning receive and send) |
 | `esploraUrl` | Esplora-compatible indexer | **Chain and UTXO queries**; must implement the Esplora `/address/:addr/utxo` API |
 
 **Mailbox and operator share one edge.** VTXO mailbox traffic goes through the same Ark server URL. There is no separate `mailboxUrl` in `RuntimeConfig`; the redundant mailbox fields were removed so you configure a single Ark gateway.
@@ -77,8 +77,8 @@ Until boarding completes, funds show as pending inbound balance.
 
 WalletDK does not open Lightning channels in the browser. Lightning payments are **atomic swaps** between Lightning and Ark:
 
-- **Receive Lightning** (`receive()`) starts an **in-swap**: the swap server holds a Lightning invoice; when it is paid, you receive Ark balance (a VTXO).
-- **Send Lightning** (`send({ invoice })`) runs an **out-swap**: you spend Ark balance; the swap server pays the BOLT-11 invoice on Lightning. For a quote-then-confirm flow instead of a single call, see `prepareSend()`/`sendPrepared()`.
+- **Receive Lightning** (`receive()`) starts a **receive swap**: the swap server holds a Lightning invoice; when it is paid, you receive Ark balance (a VTXO).
+- **Send Lightning** (`send({ invoice })`) runs a **send swap**: you spend Ark balance; the swap server pays the BOLT-11 invoice on Lightning. For a quote-then-confirm flow instead of a single call, see `prepareSend()`/`sendPrepared()`.
 
 Both directions go through `swapServerUrl`. Swaps can sit in a pending state while liquidity or routing resolves; the daemon tracks them in your activity stream and can refund if a swap expires.
 
@@ -88,7 +88,7 @@ Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark opera
 
 **Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WalletDKClient` for this path; see [Unilateral exit](/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
 
-<DiagramFrame label="Diagram: the five payment rails. On-chain in: deposit, boarding, round, VTXO. Lightning receive: in-swap through the swap server to a VTXO. Lightning send: out-swap through the swap server to a paid invoice. On-chain send: cooperative leave via the operator and Esplora. Emergency: unilateral exit to on-chain.">
+<DiagramFrame label="Diagram: the five payment rails. On-chain in: deposit, boarding, round, VTXO. Lightning receive: a receive swap through the swap server to a VTXO. Lightning send: a send swap through the swap server to a paid invoice. On-chain send: cooperative leave via the operator and Esplora. Emergency: unilateral exit to on-chain.">
   <FlowLane
     header="On-chain in"
     steps={[
@@ -101,7 +101,7 @@ Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark opera
   <FlowLane
     header="Lightning receive"
     steps={[
-      { label: 'In-swap', accent: 'violet' },
+      { label: 'Receive swap', accent: 'violet' },
       { label: 'Swap server', accent: 'violet' },
       { label: 'VTXO', accent: 'violet' },
     ]}
@@ -109,7 +109,7 @@ Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark opera
   <FlowLane
     header="Lightning send"
     steps={[
-      { label: 'Out-swap', accent: 'violet' },
+      { label: 'Send swap', accent: 'violet' },
       { label: 'Swap server', accent: 'violet' },
       { label: 'Invoice paid', accent: 'violet' },
     ]}

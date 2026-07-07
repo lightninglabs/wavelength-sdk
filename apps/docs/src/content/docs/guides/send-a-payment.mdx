@@ -1,6 +1,6 @@
 ---
 title: Send a payment
-description: How to send sats over Lightning (out-swap) or on-chain (cooperative leave) using the prepare then confirm flow.
+description: How to send sats over Lightning (send swap) or on-chain (cooperative leave) using the prepare then confirm flow.
 pageLayout: guide
 related:
   - guides/receive-a-lightning-payment
@@ -11,7 +11,7 @@ related:
 
 ## Send over Lightning
 
-WalletDK uses an out-swap to route a Lightning payment from your Ark balance.
+WalletDK uses a send swap to route a Lightning payment from your Ark balance.
 Call `prepareSend({ invoice })` to get a fee quote and a single-use
 `sendIntentId`. Pass the result to `sendPrepared()` to execute.
 

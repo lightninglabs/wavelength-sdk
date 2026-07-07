@@ -4,7 +4,7 @@ description: Materialize an inbound payment surface, either a Lightning invoice 
 ---
 
 Asks the daemon to materialize an inbound payment surface. With `--offchain`
-(the default) the daemon opens a swap-in and returns a BOLT-11 Lightning invoice
+(the default) the daemon opens a receive swap and returns a BOLT-11 Lightning invoice
 signed with a daemon-managed key; `--amt` is required. With `--onchain` the
 daemon returns a fresh boarding address: fund it, and the daemon rolls the
 boarding output into the next round.
