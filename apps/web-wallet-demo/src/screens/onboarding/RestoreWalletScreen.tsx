@@ -9,6 +9,7 @@ import {
   PrimaryButton,
 } from "../../components/ui/Button";
 import { Segmented } from "../../components/ui/Segmented";
+import { ToggleRow } from "../../components/ui/ToggleRow";
 
 // resize grows or shrinks a word list to the requested length, preserving any
 // already-entered words.
@@ -46,6 +47,8 @@ export function RestoreWalletScreen({
     password: string;
     mnemonic: string[];
     passphrase: string;
+    recoverState: boolean;
+    recoveryWindow?: number;
   }) => void;
   onBack: () => void;
   busy: boolean;
@@ -56,10 +59,20 @@ export function RestoreWalletScreen({
   const [count, setCount] = useState<12 | 24>(12);
   const [words, setWords] = useState<string[]>(() => resize([], 12));
   const [passphrase, setPassphrase] = useState("");
+  // Restores default to recovery on: a mnemonic without it rebuilds the seed
+  // but leaves the wallet empty, which is rarely what someone restoring wants.
+  const [recoverState, setRecoverState] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [recoveryWindow, setRecoveryWindow] = useState("");
 
   const passwordOk = password.length > 0 && password === confirm;
   const wordsOk = words.every((w) => w.trim().length > 0);
-  const canSubmit = !busy && passwordOk && wordsOk;
+  // An empty window field means "let the daemon default"; only a present value
+  // must parse to a positive integer.
+  const windowOk =
+    recoveryWindow.trim() === "" ||
+    (/^\d+$/.test(recoveryWindow.trim()) && Number(recoveryWindow) > 0);
+  const canSubmit = !busy && passwordOk && wordsOk && windowOk;
 
   // handleWordPaste distributes a multi-word clipboard string across the
   // recovery phrase inputs (e.g. paste all 24 words at once).
@@ -87,10 +100,13 @@ export function RestoreWalletScreen({
       return;
     }
 
+    const window = recoveryWindow.trim();
     onRestore({
       password,
       mnemonic: words.map((w) => w.trim()),
       passphrase: passphrase.trim(),
+      recoverState,
+      recoveryWindow: recoverState && window !== "" ? Number(window) : undefined,
     });
   }
 
@@ -175,6 +191,42 @@ export function RestoreWalletScreen({
           value={passphrase}
           onChange={setPassphrase}
         />
+
+        <div className="space-y-3 border border-border bg-well px-3 py-3">
+          <ToggleRow
+            title="Recover wallet state"
+            subtitle="Rebuild balances and history from the operator's indexer.
+              This scan can take a while."
+            on={recoverState}
+            onChange={setRecoverState}
+            disabled={busy}
+          />
+          {recoverState && (
+            <div className="space-y-3 border-t border-border pt-3">
+              <button
+                type="button"
+                className="text-xs font-medium text-muted
+                  hover:text-fg disabled:cursor-not-allowed"
+                onClick={() => setShowAdvanced((v) => !v)}
+                disabled={busy}
+              >
+                {showAdvanced ? "Hide advanced" : "Advanced"}
+              </button>
+              {showAdvanced && (
+                <Field
+                  label="Recovery window (optional)"
+                  type="text"
+                  inputMode="numeric"
+                  mono
+                  placeholder="daemon default"
+                  value={recoveryWindow}
+                  onChange={setRecoveryWindow}
+                  disabled={busy}
+                />
+              )}
+            </div>
+          )}
+        </div>
 
         <PrimaryButton type="submit" icon={KeyRound} disabled={!canSubmit}>
           {busy ? "Restoring wallet…" : "Restore wallet"}
