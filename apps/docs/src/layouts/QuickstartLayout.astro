@@ -228,12 +228,16 @@ const accent = accentForSlug(entry.id);
     display: flex;
   }
 
-  /* Content column. */
+  /* Content column. Centered (not flush-left) within .wdk-qs__main so wide
+     viewports distribute the leftover space evenly on both sides once the
+     max-width cap kicks in, instead of leaving it all as dead space next to
+     the stepper rail. */
   .wdk-qs__content {
     flex: 1;
     min-width: 0;
     max-width: 780px;
     padding: 48px 40px 80px;
+    margin: 0 auto;
   }
 
   /* Stepper rail: fixed full-height column pinned to the right screen edge,
@@ -463,12 +467,15 @@ const accent = accentForSlug(entry.id);
     color: var(--text);
   }
 
-  /* Mobile: single column - drop the left/right margins (sidebar and stepper
-     rail hide themselves), content goes full-width. Also triggers on short
-     viewports regardless of width (a phone rotated to landscape). */
-  @media (max-width: 768px), (max-height: 500px) {
+  /* The stepper rail needs more room to hide than the sidebar does: at
+     tablet/narrow-desktop widths the content column plus a 280-320px rail
+     (see the --toc-w breakpoints in theme.css) leaves too little space and
+     cramps everything, well before the full mobile layout is warranted.
+     Drop the right margin, hide the rail, and let content fill the freed
+     width. Also triggers on short viewports regardless of width (a phone
+     rotated to landscape). */
+  @media (max-width: 1279px), (max-height: 500px) {
     .wdk-qs__main {
-      margin-left: 0;
       margin-right: 0;
     }
     .wdk-qs__content {
@@ -477,6 +484,15 @@ const accent = accentForSlug(entry.id);
     }
     .wdk-qs__stepper {
       display: none;
+    }
+  }
+
+  /* Mobile: additionally hide the fixed left sidebar (sidebar hides itself)
+     and stack the title/actions row. Also triggers on short viewports
+     regardless of width (a phone rotated to landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-qs__main {
+      margin-left: 0;
     }
     .wdk-qs__head {
       flex-direction: column;

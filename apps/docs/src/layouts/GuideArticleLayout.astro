@@ -260,14 +260,26 @@ const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
     background: var(--teal);
   }
 
-  /* Mobile: single column - drop the left/right margins (sidebar and TOC
-     rail hide themselves; see their own media queries), content goes
-     full-width. Also triggers on short viewports regardless of width (a
-     phone rotated to landscape). */
-  @media (max-width: 768px), (max-height: 500px) {
-    .wdk-guide__main { margin-left: 0; margin-right: 0; }
+  /* The TOC rail needs more room to hide than the sidebar does: at
+     tablet/narrow-desktop widths the content column plus a 280-320px TOC
+     rail (see the --toc-w breakpoints in theme.css) leaves too little space
+     and cramps everything, well before the full mobile layout is warranted.
+     Drop the right margin and let content fill the freed width; the TOC
+     rail hides itself (see TableOfContents.astro's own media query). Also
+     triggers on short viewports regardless of width (a phone rotated to
+     landscape). */
+  @media (max-width: 1279px), (max-height: 500px) {
+    .wdk-guide__main { margin-right: 0; }
     .wdk-guide__inner { padding: 32px 20px 60px; gap: 0; }
     .wdk-guide__content { max-width: 100%; }
+  }
+
+  /* Mobile: additionally hide the fixed left sidebar (Sidebar.astro hides
+     itself via its own media query) and stack the title/actions row. Also
+     triggers on short viewports regardless of width (a phone rotated to
+     landscape). */
+  @media (max-width: 768px), (max-height: 500px) {
+    .wdk-guide__main { margin-left: 0; }
     .wdk-guide__head { flex-direction: column; align-items: flex-start; gap: 12px; }
   }
 </style>
