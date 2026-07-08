@@ -1,11 +1,12 @@
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bitcoin } from 'lucide-react-native';
+import { useWallet, useWalletInfo } from '@lightninglabs/walletdk-react';
+import { phaseConnected, statusLabel } from '../../lib/phase';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { ThemeToggle } from '../ui/ThemeToggle';
-import { ChromeStatus } from './nav';
 
 const makeStyles = (p: Palette) => ({
   bar: {
@@ -61,11 +62,21 @@ const makeStyles = (p: Palette) => ({
 });
 
 // TopBar is the authenticated app's compact header: brand on the left, the
-// live connection dot, phase, and network on the right, plus the theme toggle.
-export function TopBar({ status }: { status: ChromeStatus }) {
+// live connection dot, phase, and network on the right, plus the theme
+// toggle. The status self-serves the wallet's phase and info; network is the
+// connect form's chosen network, used only as a fallback label until the
+// wallet's own info reports one.
+export function TopBar({ network }: { network: string }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
+  const { phase } = useWallet();
+  const info = useWalletInfo();
+  const status = {
+    phaseLabel: statusLabel(phase),
+    network: info?.network || network,
+    connected: phaseConnected(phase),
+  };
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top }]}>

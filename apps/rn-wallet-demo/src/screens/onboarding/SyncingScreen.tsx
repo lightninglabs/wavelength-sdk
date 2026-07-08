@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import type { WalletDKLogPayload } from '@lightninglabs/walletdk-react';
+import { useWalletInfo, useWalletLogs } from '@lightninglabs/walletdk-react';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Card } from '../../components/ui/Card';
@@ -58,17 +58,12 @@ const makeStyles = (p: Palette) => ({
 
 // SyncingScreen serves the `syncing` phase: the wallet exists and is scanning
 // the chain. Progress is indeterminate; it advances once the wallet reports
-// ready. The latest runtime log lines give a sense of motion.
-export function SyncingScreen({
-  network,
-  blockHeight,
-  logs,
-}: {
-  network: string;
-  blockHeight?: number;
-  logs: WalletDKLogPayload[];
-}) {
+// ready. The chain tip and the latest runtime log lines are self-served from
+// the provider.
+export function SyncingScreen({ network }: { network: string }) {
   const styles = useThemedStyles(makeStyles);
+  const info = useWalletInfo();
+  const { logs } = useWalletLogs();
   const recent = logs.slice(-4).reverse();
 
   return (
@@ -78,10 +73,10 @@ export function SyncingScreen({
         sub="Scanning the chain and rebuilding wallet state."
       />
       <Card style={styles.card}>
-        {blockHeight ? (
+        {info?.blockHeight ? (
           <View style={styles.tipRow}>
             <Text style={styles.tipLabel}>Chain tip</Text>
-            <Text style={styles.tipValue}>block {formatSats(blockHeight)}</Text>
+            <Text style={styles.tipValue}>block {formatSats(info.blockHeight)}</Text>
           </View>
         ) : null}
         <View style={styles.spinnerRow}>

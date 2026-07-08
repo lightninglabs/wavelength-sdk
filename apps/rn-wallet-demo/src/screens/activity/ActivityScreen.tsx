@@ -1,9 +1,14 @@
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Entry } from '@lightninglabs/walletdk-react';
+import {
+  Entry,
+  useWalletActivity,
+  useWalletRefresh,
+} from '@lightninglabs/walletdk-react';
 import { ActivityRow } from '../../components/ActivityRow';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
 import { Band } from '../../components/ui/Band';
+import { InlineError } from '../../components/ui/InlineError';
 import { Label } from '../../components/ui/Label';
 import { dayLabel } from '../../lib/format';
 import { Palette, fonts } from '../../theme/tokens';
@@ -12,7 +17,9 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 
 // groupByDay buckets entries into ordered day groups, preserving the incoming
 // (newest-first) order within and across groups.
-function groupByDay(entries: Entry[]): Array<{ day: string; items: Entry[] }> {
+function groupByDay(
+  entries: readonly Entry[],
+): Array<{ day: string; items: Entry[] }> {
   const groups: Array<{ day: string; items: Entry[] }> = [];
 
   for (const entry of entries) {
@@ -48,27 +55,30 @@ const makeStyles = (p: Palette) => ({
 });
 
 // ActivityScreen lists the full transaction history grouped by day, one band
-// per day, refreshed by pull-to-refresh.
+// per day, refreshed by pull-to-refresh. Activity and refresh are self-served
+// from the provider; only tab routing comes from the caller. The app-wide poll
+// for pending on-chain work in WalletApp.tsx covers this screen too, so it
+// does not keep its own.
 export function ActivityScreen({
-  activity,
   onNavigate,
-  onRefresh,
-  busy,
 }: {
-  activity: Entry[];
   onNavigate: (tab: AppTab) => void;
-  onRefresh: () => void;
-  busy: boolean;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const activity = useWalletActivity();
+  const { refresh, refreshPending, refreshError } = useWalletRefresh();
   const groups = groupByDay(activity);
+
+  const onRefresh = () => {
+    void refresh().catch(() => undefined);
+  };
 
   return (
     <ScrollView
       refreshControl={
         <RefreshControl
-          refreshing={busy}
+          refreshing={refreshPending}
           onRefresh={onRefresh}
           tintColor={palette.accent}
           colors={[palette.accent]}
@@ -80,6 +90,11 @@ export function ActivityScreen({
         subtitle="Complete payment history"
         onBack={() => onNavigate('home')}
       />
+      {refreshError ? (
+        <Band>
+          <InlineError message={refreshError.message} />
+        </Band>
+      ) : null}
       {groups.length === 0 ? (
         <Band>
           <Text style={styles.empty}>No activity yet.</Text>

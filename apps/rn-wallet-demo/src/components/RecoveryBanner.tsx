@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type {
-  CreateWalletResult,
-  RecoveryState,
-} from '@lightninglabs/walletdk-react';
+import type { CreateWalletResult } from '@lightninglabs/walletdk-react';
+import { useWalletRecovery } from '@lightninglabs/walletdk-react';
 import { CheckCircle2, TriangleAlert, X } from 'lucide-react-native';
 import { Palette, fonts } from '../theme/tokens';
 import { useTheme } from '../theme/ThemeProvider';
@@ -50,15 +48,10 @@ const makeStyles = (p: Palette) => ({
 // wallet UI. Recovery runs while the wallet is already usable, so the banner
 // explains that balances and history are still filling in, and reports the
 // outcome once the daemon's indexer scan finishes.
-export function RecoveryBanner({
-  recovery,
-  onDismiss,
-}: {
-  recovery: RecoveryState;
-  onDismiss: () => void;
-}) {
+export function RecoveryBanner() {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { recovery, acknowledge } = useWalletRecovery();
 
   // Auto-clear the success banner after a short read; leave the failure banner
   // up until the user dismisses it.
@@ -67,10 +60,10 @@ export function RecoveryBanner({
       return;
     }
 
-    const id = setTimeout(onDismiss, 8000);
+    const id = setTimeout(acknowledge, 8000);
 
     return () => clearTimeout(id);
-  }, [recovery.status, onDismiss]);
+  }, [recovery.status, acknowledge]);
 
   if (recovery.status === 'idle') {
     return null;
@@ -99,7 +92,7 @@ export function RecoveryBanner({
             ? `Wallet restored. Recovered ${summary}.`
             : 'Wallet restored. No prior balance or history was found.'}
         </Text>
-        <DismissButton onPress={onDismiss} color={palette.muted} />
+        <DismissButton onPress={acknowledge} color={palette.muted} />
       </View>
     );
   }
@@ -112,7 +105,7 @@ export function RecoveryBanner({
         Could not finish restoring your history, so your balance may be
         incomplete. The wallet is still usable.
       </Text>
-      <DismissButton onPress={onDismiss} color={palette.muted} />
+      <DismissButton onPress={acknowledge} color={palette.muted} />
     </View>
   );
 }

@@ -84,6 +84,10 @@ const makeStyles = (p: Palette) => ({
     fontFamily: fonts.sans,
     fontSize: 12,
   },
+  restoreFailure: {
+    gap: 6,
+    marginBottom: 16,
+  },
 });
 
 // Divider renders the hairline "or" separator between auth affordances.
@@ -114,6 +118,8 @@ export function CreateWalletScreen({
   error,
   passkeyBusy,
   passkeyError,
+  restoreFailure,
+  onDismissRestoreFailure,
 }: {
   network: string;
   passkeySupported: boolean;
@@ -125,6 +131,10 @@ export function CreateWalletScreen({
   error: string;
   passkeyBusy: boolean;
   passkeyError: string;
+  /** A restore that failed before the wallet came up, or empty when none. */
+  restoreFailure?: string;
+  /** Dismisses the restore-failure message. */
+  onDismissRestoreFailure?: () => void;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -246,6 +256,12 @@ export function CreateWalletScreen({
             <View style={{ marginTop: 8 }}>
               <InlineError message={passkeyError} />
             </View>
+          </View>
+        ) : null}
+        {restoreFailure ? (
+          <View style={styles.restoreFailure}>
+            <InlineError message={restoreFailure} />
+            <TextLink onPress={onDismissRestoreFailure}>Dismiss</TextLink>
           </View>
         ) : null}
         <View style={styles.footerRow}>

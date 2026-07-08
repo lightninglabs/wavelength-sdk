@@ -14,7 +14,11 @@ import {
   Wallet,
   Zap,
 } from 'lucide-react-native';
-import { WalletInfo, WalletKind } from '@lightninglabs/walletdk-react';
+import {
+  WalletKind,
+  useWallet,
+  useWalletInfo,
+} from '@lightninglabs/walletdk-react';
 import { GatewayFields } from '../../components/GatewayFields';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
@@ -25,6 +29,7 @@ import { Label } from '../../components/ui/Label';
 import { Segmented } from '../../components/ui/Segmented';
 import { SummaryRow } from '../../components/ui/SummaryRow';
 import { formatSats, shortKey } from '../../lib/format';
+import { statusLabel } from '../../lib/phase';
 import { RuntimeFieldSetter, RuntimeForm } from '../../lib/runtime-config';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -146,8 +151,6 @@ const makeStyles = (p: Palette) => ({
 // SettingsScreen surfaces runtime status, identity, appearance, security,
 // advanced gateway configuration, and the danger zone (stop + wipe).
 export function SettingsScreen({
-  info,
-  phaseLabel,
   form,
   onField,
   walletKind,
@@ -155,8 +158,6 @@ export function SettingsScreen({
   onWipe,
   onNavigate,
 }: {
-  info: Partial<WalletInfo> | null;
-  phaseLabel: string;
   form: RuntimeForm;
   onField: RuntimeFieldSetter;
   walletKind: WalletKind | null;
@@ -164,6 +165,9 @@ export function SettingsScreen({
   onWipe: () => void;
   onNavigate: (tab: AppTab) => void;
 }) {
+  const { phase } = useWallet();
+  const info = useWalletInfo();
+  const phaseLabel = statusLabel(phase);
   const { theme, palette, setTheme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const [advanced, setAdvanced] = useState(false);

@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 import { Check, TriangleAlert } from 'lucide-react-native';
+import { useWalletRefresh } from '@lightninglabs/walletdk-react';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { PrimaryButton } from '../../components/ui/Button';
@@ -64,20 +65,25 @@ const makeStyles = (p: Palette) => ({
 
 // BackupScreen serves a freshly created wallet (phase ready, backup not yet
 // acknowledged): it presents the generated recovery phrase once before the
-// dashboard becomes reachable.
+// dashboard becomes reachable. Acknowledging fires a background refresh so
+// the dashboard it hands off to is not stale.
 export function BackupScreen({
   network,
   mnemonic,
   onAcknowledge,
-  busy,
 }: {
   network: string;
   mnemonic: string[];
   onAcknowledge: () => void;
-  busy: boolean;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { refresh, refreshPending } = useWalletRefresh();
+
+  function handleAcknowledge() {
+    onAcknowledge();
+    void refresh().catch(() => undefined);
+  }
 
   return (
     <AuthLayout network={network}>
@@ -103,7 +109,7 @@ export function BackupScreen({
         <View style={styles.copyRow}>
           <CopyButton value={mnemonic.join(' ')} label="Copy phrase" />
         </View>
-        <PrimaryButton icon={Check} onPress={onAcknowledge} disabled={busy} busy={busy}>
+        <PrimaryButton icon={Check} onPress={handleAcknowledge} disabled={refreshPending} busy={refreshPending}>
           I saved it
         </PrimaryButton>
       </View>

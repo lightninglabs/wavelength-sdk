@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 import { Power } from 'lucide-react-native';
+import { useWalletInfo } from '@lightninglabs/walletdk-react';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { PrimaryButton } from '../../components/ui/Button';
@@ -49,25 +50,24 @@ const makeStyles = (p: Palette) => ({
 });
 
 // StoppedScreen serves the `stopped` phase: the runtime was torn down and its
-// in-memory keys cleared. Starting again re-runs the connect flow.
+// in-memory keys cleared. Starting again re-runs the connect flow. The last
+// known block height and version are self-served from the provider (the
+// engine keeps the most recent info around after a stop).
 export function StoppedScreen({
   network,
   onStart,
   busy,
-  blockHeight,
-  version,
 }: {
   network: string;
   onStart: () => void;
   busy: boolean;
-  blockHeight?: number;
-  version?: string;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const info = useWalletInfo();
   const meta = [
-    blockHeight ? `last block ${blockHeight}` : '',
-    version ? `v${version}` : '',
+    info?.blockHeight ? `last block ${info.blockHeight}` : '',
+    info?.version ? `v${info.version}` : '',
   ]
     .filter(Boolean)
     .join(' · ');

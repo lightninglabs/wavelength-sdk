@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Balance, Entry, useWalletDK } from '@lightninglabs/walletdk-react';
+import { Balance, Entry, useWalletEngine } from '@lightninglabs/walletdk-react';
 
 // Whether there is pending on-chain work the activity stream will not push to
 // completion. Two signals: a pending deposit/exit entry, or a balance reporting
@@ -13,7 +13,7 @@ import { Balance, Entry, useWalletDK } from '@lightninglabs/walletdk-react';
 // shows up there, which is why the entry-kind arm carries exit tracking and why
 // an unpaid invoice never starts a poll.
 export function hasPendingOnchain(
-  activity: Entry[],
+  activity: readonly Entry[],
   balance?: Balance | null,
 ): boolean {
   const pendingEntry = activity.some(
@@ -53,9 +53,9 @@ const POLL_FAILURE_LIMIT = 5;
 //
 // Tracking: https://github.com/lightninglabs/darepo-client/issues/875
 export function usePollWhileWaiting(active: boolean, intervalMs = 3000): void {
-  const { refresh } = useWalletDK();
-  const refreshRef = useRef(refresh);
-  refreshRef.current = refresh;
+  const engine = useWalletEngine();
+  const refreshRef = useRef(() => engine.refresh());
+  refreshRef.current = () => engine.refresh();
 
   useEffect(() => {
     if (!active) {

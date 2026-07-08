@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { AlertTriangle, CheckCircle2, Layers, Zap } from 'lucide-react-native';
 import {
-  Balance,
-  DepositResult,
-  Entry,
-  ReceiveRequest,
-  ReceiveResult,
+  useWalletActivity,
+  useWalletBalance,
+  useWalletDeposit,
+  useWalletReceive,
 } from '@lightninglabs/walletdk-react';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
@@ -89,32 +88,20 @@ const makeStyles = (p: Palette) => ({
 
 // ReceiveScreen offers a Lightning invoice (amount + memo) or an on-chain
 // boarding address, each paired with a scannable QR. Values come from the
-// live receive()/deposit() calls. Once a payment lands, the provider's
-// activity stream surfaces the matching entry, which flips the QR to a received
-// confirmation without any manual refresh.
+// live receive()/deposit() calls, self-served here from the provider. Once a
+// payment lands, the provider's activity stream surfaces the matching entry,
+// which flips the QR to a received confirmation without any manual refresh.
 export function ReceiveScreen({
   onNavigate,
-  onReceive,
-  onDeposit,
-  activity,
-  balance,
-  receiveBusy,
-  receiveError,
-  depositBusy,
-  depositError,
 }: {
   onNavigate: (tab: AppTab) => void;
-  onReceive: (req: ReceiveRequest) => Promise<ReceiveResult>;
-  onDeposit: () => Promise<DepositResult>;
-  activity: Entry[];
-  balance: Balance | null;
-  receiveBusy: boolean;
-  receiveError: string;
-  depositBusy: boolean;
-  depositError: string;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const activity = useWalletActivity();
+  const balance = useWalletBalance();
+  const { receive, receivePending, receiveError } = useWalletReceive();
+  const { deposit, depositPending, depositError } = useWalletDeposit();
   const [tab, setTab] = useState<Tab>('lightning');
   const [amount, setAmount] = useState('1000');
   const [memo, setMemo] = useState('');
@@ -186,7 +173,7 @@ export function ReceiveScreen({
     setLocalError('');
     trackEntry('lightning', '');
     try {
-      const next = await onReceive({
+      const next = await receive({
         amountSat: Number(amount) || 0,
         memo: memo || undefined,
       });
@@ -201,7 +188,7 @@ export function ReceiveScreen({
     setLocalError('');
     trackEntry('onchain', '');
     try {
-      const next = await onDeposit();
+      const next = await deposit();
       setAddress(next.address);
       trackEntry('onchain', next.entry.id);
     } catch (err) {
@@ -252,8 +239,8 @@ export function ReceiveScreen({
 
         <View style={styles.action}>
           {isLn ? (
-            <PrimaryButton icon={Zap} onPress={() => void createInvoice()} busy={receiveBusy}>
-              {receiveBusy
+            <PrimaryButton icon={Zap} onPress={() => void createInvoice()} busy={receivePending}>
+              {receivePending
                 ? 'Creating invoice…'
                 : invoice
                   ? 'Create another'
@@ -262,14 +249,16 @@ export function ReceiveScreen({
           ) : address ? (
             <GhostButton onPress={() => onNavigate('home')}>Done</GhostButton>
           ) : (
-            <PrimaryButton icon={Layers} onPress={() => void getAddress()} busy={depositBusy}>
-              {depositBusy ? 'Generating…' : 'Get boarding address'}
+            <PrimaryButton icon={Layers} onPress={() => void getAddress()} busy={depositPending}>
+              {depositPending ? 'Generating…' : 'Get boarding address'}
             </PrimaryButton>
           )}
         </View>
         <View style={{ marginTop: 12 }}>
           <InlineError
-            message={localError || (isLn ? receiveError : depositError)}
+            message={
+              localError || (isLn ? receiveError : depositError)?.message || ''
+            }
           />
         </View>
       </Band>
