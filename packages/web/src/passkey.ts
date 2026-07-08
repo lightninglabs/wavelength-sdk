@@ -1,19 +1,59 @@
-import { PASSKEY_PRF_SALT_HEX } from "@lightninglabs/walletdk-core";
+import {
+  PASSKEY_PRF_SALT_HEX,
+  PasskeyCancelledError,
+} from "@lightninglabs/walletdk-core";
 import type { PasskeyAssertion } from "@lightninglabs/walletdk-core";
 
-// supportsPasskeyPrf reports whether a user-verifying platform authenticator is
-// available, which is a prerequisite for WebAuthn PRF but does not guarantee
-// that the authenticator will return a PRF result; there is no synchronous
-// PRF-detection API, so a browser may return true here yet fail the ceremony.
-export async function supportsPasskeyPrf(): Promise<boolean> {
+// Whether a WebAuthn rejection means the user dismissed or timed out the OS
+// prompt, as opposed to a real failure. NotAllowedError is the spec-mandated
+// name for both cancel and timeout; AbortError covers programmatic aborts.
+function isWebAuthnCancel(err: unknown): boolean {
+  return (
+    typeof DOMException !== "undefined" &&
+    err instanceof DOMException &&
+    (err.name === "NotAllowedError" || err.name === "AbortError")
+  );
+}
+
+// The memoized probe promise, shared across every supportsPasskeyPrf() call
+// for the page's lifetime. Null when no probe is in flight or cached.
+let supportsPasskeyPrfProbe: Promise<boolean> | null = null;
+
+// rawSupportsPasskeyPrf runs the actual platform authenticator availability
+// check, without swallowing a rejection, so the memo above can distinguish
+// "resolved false" (cached) from "rejected" (retried on the next call).
+async function rawSupportsPasskeyPrf(): Promise<boolean> {
   if (!globalThis.PublicKeyCredential || !globalThis.crypto?.subtle) {
     return false;
   }
 
+  return PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+}
+
+/**
+ * Reports whether a user-verifying platform authenticator is available,
+ * which is a prerequisite for WebAuthn PRF but does not guarantee that the
+ * authenticator will return a PRF result; there is no synchronous
+ * PRF-detection API, so a browser may return true here yet fail the
+ * ceremony.
+ *
+ * The underlying probe is memoized at module scope: the first call starts
+ * it and every later call reuses the same in-flight or resolved promise, so
+ * the platform authenticator check runs at most once per page lifetime. A
+ * rejection is not cached: this function still degrades to false on a
+ * rejection, but clears the memo first so a later call retries the probe
+ * from scratch instead of replaying a poisoned promise.
+ */
+export async function supportsPasskeyPrf(): Promise<boolean> {
+  if (!supportsPasskeyPrfProbe) {
+    supportsPasskeyPrfProbe = rawSupportsPasskeyPrf();
+  }
+
   try {
-    return await PublicKeyCredential
-      .isUserVerifyingPlatformAuthenticatorAvailable();
+    return await supportsPasskeyPrfProbe;
   } catch {
+    supportsPasskeyPrfProbe = null;
+
     return false;
   }
 }
@@ -54,25 +94,32 @@ export async function registerPasskeyWallet(
   const salt = prfSalt();
   const userId = crypto.getRandomValues(new Uint8Array(16));
 
-  const created = (await navigator.credentials.create({
-    publicKey: {
-      challenge: salt,
-      rp: { name: appName, id: window.location.hostname },
-      user: { id: userId, name: appName, displayName: appName },
-      pubKeyCredParams: [
-        { alg: -7, type: "public-key" },
-        { alg: -257, type: "public-key" },
-      ],
-      authenticatorSelection: {
-        authenticatorAttachment: "platform",
-        userVerification: "required",
-        residentKey: "required",
+  let created: PublicKeyCredential | null;
+  try {
+    created = (await navigator.credentials.create({
+      publicKey: {
+        challenge: salt,
+        rp: { name: appName, id: window.location.hostname },
+        user: { id: userId, name: appName, displayName: appName },
+        pubKeyCredParams: [
+          { alg: -7, type: "public-key" },
+          { alg: -257, type: "public-key" },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required",
+          residentKey: "required",
+        },
+        extensions: { prf: { eval: { first: salt } } },
       },
-      extensions: { prf: { eval: { first: salt } } },
-    },
-  })) as PublicKeyCredential | null;
+    })) as PublicKeyCredential | null;
+  } catch (err) {
+    throw isWebAuthnCancel(err)
+      ? new PasskeyCancelledError("passkey registration was cancelled")
+      : err;
+  }
   if (!created) {
-    throw new Error("passkey registration was cancelled");
+    throw new PasskeyCancelledError("passkey registration was cancelled");
   }
 
   const createResults = created.getClientExtensionResults() as {
@@ -102,16 +149,23 @@ export async function assertPasskeyPrf(
     ? [{ type: "public-key" as const, id: base64UrlToBuffer(allowCredentialId) }]
     : [];
 
-  const assertion = (await navigator.credentials.get({
-    publicKey: {
-      challenge: salt,
-      allowCredentials,
-      userVerification: "required",
-      extensions: { prf: { eval: { first: salt } } },
-    },
-  })) as PublicKeyCredential | null;
+  let assertion: PublicKeyCredential | null;
+  try {
+    assertion = (await navigator.credentials.get({
+      publicKey: {
+        challenge: salt,
+        allowCredentials,
+        userVerification: "required",
+        extensions: { prf: { eval: { first: salt } } },
+      },
+    })) as PublicKeyCredential | null;
+  } catch (err) {
+    throw isWebAuthnCancel(err)
+      ? new PasskeyCancelledError("passkey authentication was cancelled")
+      : err;
+  }
   if (!assertion) {
-    throw new Error("passkey authentication was cancelled");
+    throw new PasskeyCancelledError("passkey authentication was cancelled");
   }
 
   return {

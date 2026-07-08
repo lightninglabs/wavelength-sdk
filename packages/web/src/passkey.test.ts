@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
-import { PASSKEY_PRF_SALT_HEX } from "@lightninglabs/walletdk-core";
-import { assertPasskeyPrf, registerPasskeyWallet } from "./passkey.ts";
+import {
+  PASSKEY_PRF_SALT_HEX,
+  PasskeyCancelledError,
+} from "@lightninglabs/walletdk-core";
+import {
+  assertPasskeyPrf,
+  registerPasskeyWallet,
+  supportsPasskeyPrf,
+} from "./passkey.ts";
 
 // The browser globals these tests stub out are not present under Node, so we
 // snapshot and restore whatever was there to keep the cases isolated.
@@ -134,6 +141,33 @@ describe("assertPasskeyPrf", () => {
       /passkey authentication was cancelled/,
     );
   });
+
+  it("maps a NotAllowedError rejection to PasskeyCancelledError", async () => {
+    const get = mock.fn(async () => {
+      throw new DOMException("user cancelled", "NotAllowedError");
+    });
+    stubGlobal("navigator", { credentials: { get } });
+
+    await assert.rejects(
+      () => assertPasskeyPrf(),
+      (err: unknown) => err instanceof PasskeyCancelledError,
+    );
+  });
+
+  it("propagates a SecurityError rejection unchanged", async () => {
+    const get = mock.fn(async () => {
+      throw new DOMException("origin mismatch", "SecurityError");
+    });
+    stubGlobal("navigator", { credentials: { get } });
+
+    await assert.rejects(
+      () => assertPasskeyPrf(),
+      (err: unknown) =>
+        !(err instanceof PasskeyCancelledError) &&
+        err instanceof DOMException &&
+        err.name === "SecurityError",
+    );
+  });
 });
 
 describe("registerPasskeyWallet", () => {
@@ -148,6 +182,30 @@ describe("registerPasskeyWallet", () => {
     stubGlobal("crypto", savedCrypto);
     stubGlobal("navigator", savedNavigator);
     stubGlobal("window", savedWindow);
+  });
+
+  it("sends the shared PRF salt as the challenge and PRF input", async () => {
+    const create = mock.fn(async () => ({
+      id: "cred-salt",
+      getClientExtensionResults: () => ({
+        prf: { results: { first: PRF32_BYTES.buffer } },
+      }),
+    }));
+    stubGlobal("navigator", { credentials: { create } });
+
+    await registerPasskeyWallet("My App");
+
+    // Pins the hex-to-bytes hop: core pins hex == SHA-256(namespace), and a
+    // drift here would silently derive a different wallet for existing users.
+    const expected = new Uint8Array(Buffer.from(PASSKEY_PRF_SALT_HEX, "hex"));
+    const opts = (create.mock.calls[0].arguments[0] as {
+      publicKey: {
+        challenge: ArrayBuffer;
+        extensions: { prf: { eval: { first: ArrayBuffer } } };
+      };
+    }).publicKey;
+    assert.deepEqual(new Uint8Array(opts.challenge), expected);
+    assert.deepEqual(new Uint8Array(opts.extensions.prf.eval.first), expected);
   });
 
   it("returns the PRF from create() without an assertion when surfaced", async () => {
@@ -205,5 +263,80 @@ describe("registerPasskeyWallet", () => {
     }).publicKey;
     assert.equal(opts.allowCredentials.length, 1);
     assert.equal(opts.allowCredentials[0].type, "public-key");
+  });
+
+  it("maps a NotAllowedError rejection to PasskeyCancelledError", async () => {
+    const create = mock.fn(async () => {
+      throw new DOMException("user cancelled", "NotAllowedError");
+    });
+    stubGlobal("navigator", { credentials: { create } });
+
+    await assert.rejects(
+      () => registerPasskeyWallet("My App"),
+      (err: unknown) => err instanceof PasskeyCancelledError,
+    );
+  });
+
+  it("propagates a plain Error rejection unchanged", async () => {
+    const create = mock.fn(async () => {
+      throw new Error("registration failed unexpectedly");
+    });
+    stubGlobal("navigator", { credentials: { create } });
+
+    await assert.rejects(
+      () => registerPasskeyWallet("My App"),
+      (err: unknown) =>
+        !(err instanceof PasskeyCancelledError) &&
+        err instanceof Error &&
+        err.message === "registration failed unexpectedly",
+    );
+  });
+});
+
+describe("supportsPasskeyPrf", () => {
+  const savedPublicKeyCredential = (
+    globalThis as { PublicKeyCredential?: unknown }
+  ).PublicKeyCredential;
+
+  afterEach(() => {
+    stubGlobal("PublicKeyCredential", savedPublicKeyCredential);
+    stubGlobal("crypto", savedCrypto);
+  });
+
+  it("memoizes the probe, and retries only after a rejection", async () => {
+    let calls = 0;
+    let behavior: "reject" | "resolve" = "reject";
+    stubGlobal("PublicKeyCredential", {
+      isUserVerifyingPlatformAuthenticatorAvailable: async () => {
+        calls++;
+        if (behavior === "reject") {
+          throw new Error("probe failed");
+        }
+
+        return true;
+      },
+    });
+    stubGlobal("crypto", { subtle: {} });
+
+    // The first call's probe rejects; the function still degrades to false,
+    // but does not cache the rejection.
+    assert.equal(await supportsPasskeyPrf(), false);
+    assert.equal(calls, 1);
+
+    // A rejected probe is retryable: the next call re-probes rather than
+    // replaying the stale rejection.
+    behavior = "resolve";
+    assert.equal(await supportsPasskeyPrf(), true);
+    assert.equal(calls, 2);
+
+    // A resolved probe is memoized: a further call reuses it instead of
+    // invoking the underlying check again.
+    const [a, b] = await Promise.all([
+      supportsPasskeyPrf(),
+      supportsPasskeyPrf(),
+    ]);
+    assert.equal(a, true);
+    assert.equal(b, true);
+    assert.equal(calls, 2);
   });
 });
