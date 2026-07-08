@@ -69,7 +69,7 @@ export function App() {
   // pending row would sit stale until a manual refresh. Lightning/credit
   // send+receive are stream-backed and excluded. Runs app-wide so it keeps
   // going after the waiting screen unmounts.
-  usePollWhileWaiting(hasPendingOnchain(wallet.activity));
+  usePollWhileWaiting(hasPendingOnchain(wallet.activity, wallet.balance));
 
   // The refresh spinner should reflect only user-initiated refreshes, not the
   // background poll (which shares operations.refresh via the provider). Track a
@@ -498,6 +498,7 @@ export function App() {
           onReceive={wallet.receive}
           onDeposit={() => wallet.deposit()}
           activity={wallet.activity}
+          balance={wallet.balance}
           receiveBusy={wallet.operations.receive.busy}
           receiveError={wallet.operations.receive.error}
           depositBusy={wallet.operations.deposit.busy}

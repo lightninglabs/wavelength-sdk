@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Layers, Zap } from "lucide-react";
 import {
+  Balance,
   DepositResult,
   Entry,
   ReceiveRequest,
@@ -35,6 +36,7 @@ export function ReceiveScreen({
   onReceive,
   onDeposit,
   activity,
+  balance,
   receiveBusy,
   receiveError,
   depositBusy,
@@ -44,6 +46,7 @@ export function ReceiveScreen({
   onReceive: (req: ReceiveRequest) => Promise<ReceiveResult>;
   onDeposit: () => Promise<DepositResult>;
   activity: Entry[];
+  balance: Balance | null;
   receiveBusy: boolean;
   receiveError: string;
   depositBusy: boolean;
@@ -98,7 +101,11 @@ export function ReceiveScreen({
   // here to avoid a double poll. Lightning receives arrive via the stream, and a
   // failed receive is terminal, so neither keeps polling.
   usePollWhileWaiting(
-    !isLn && Boolean(address) && !settled && !failed && !hasPendingOnchain(activity),
+    !isLn &&
+      Boolean(address) &&
+      !settled &&
+      !failed &&
+      !hasPendingOnchain(activity, balance),
   );
 
   function trackEntry(forTab: Tab, id: string) {
