@@ -7,7 +7,7 @@ export function InlineError({ message }: { message: string }) {
   }
 
   return (
-    <p className="flex items-start gap-2 text-sm text-bad">
+    <p role="alert" className="flex items-start gap-2 text-sm text-bad">
       <TriangleAlert size={15} className="mt-0.5 shrink-0" />
       <span className="break-words">{message}</span>
     </p>
