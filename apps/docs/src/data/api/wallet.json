@@ -110,7 +110,7 @@
       "name": "Recv",
       "slug": "recv",
       "service": "WalletService",
-      "comment": "Recv asks the daemon for a Lightning invoice the caller can hand\nout. Internally this opens a swap-in via the daemon-owned swap\nsubsystem; the invoice is signed with a daemon-managed key, not an\nephemeral process-local key.",
+      "comment": "Recv asks the daemon for a Lightning invoice the caller can hand\nout. Internally the daemon sets up the inbound receive via its\nowned swap subsystem; the invoice is signed with a daemon-managed\nkey, not an ephemeral process-local key.",
       "requestType": "RecvRequest",
       "responseType": "RecvResponse",
       "requestStream": false,
@@ -502,7 +502,7 @@
           "repeated": false,
           "optional": false,
           "oneof": "destination",
-          "comment": "invoice is a BOLT-11 Lightning invoice. The daemon opens an\nout-swap; the swap server picks same-Ark p2p vs real Lightning\ntransparently."
+          "comment": "invoice is a BOLT-11 Lightning invoice. The daemon pays it via\nits owned swap subsystem; the swap server picks same-Ark p2p vs\nreal Lightning transparently."
         },
         {
           "name": "onchain_address",
@@ -604,7 +604,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "rail is the settlement rail the prepared send is expected to take,\nderived from the swap server's quote. It is\nSEND_RAIL_OFFCHAIN_UNKNOWN when the invoice parsed locally but no\nremote quote distinguished same-Ark from Lightning settlement."
+          "comment": "rail is the expected settlement rail for this prepared send. Onchain\nprepares always return SEND_RAIL_ONCHAIN. Invoice prepares map the\nswap quote settlement type when a remote quote is available; when\nno quote is available (LOCAL_ONLY) or the quote does not\ndistinguish same-Ark from Lightning, the value is\nSEND_RAIL_OFFCHAIN_UNKNOWN until Send starts."
         },
         {
           "name": "quote_status",
@@ -612,7 +612,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "quote_status describes how complete the prepare-time quote is:\nCOMPLETE when every amount and fee is backed by a remote quote, or\nLOCAL_ONLY when the wallet validated locally but a remote quote API\nwas unavailable."
+          "comment": "quote_status describes how complete the prepare-time quote is.\nInvoice sends: COMPLETE when every amount and fee is backed by a\nswap remote quote; LOCAL_ONLY when the invoice parsed locally but\nthe swap quote API was unavailable. Onchain sends: COMPLETE when\ndaemonrpc.EstimateFee returned a binding operator quote;\nLOCAL_ONLY when only a local fee floor could be computed."
         },
         {
           "name": "destination_summary",
@@ -764,7 +764,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "id is the stable identifier for this entry. Concretely it is the\nLightning payment_hash for swap rows, the leave_job_id (or sweep\ntxid) for exits, the boarding outpoint or txid for deposits."
+          "comment": "id is the stable identifier for this entry. Swap-backed SEND and\nRECV rows use the Lightning payment_hash. Credit-backed RECV rows\nuse the credit operation id (see CreditReceive.operation_id); the\npayment_hash lives on recv progress/detail instead. EXIT rows use\nleave_job_id (or sweep txid); DEPOSIT rows use the boarding\noutpoint or txid."
         },
         {
           "name": "kind",
@@ -1068,7 +1068,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "operation_id is the durable credit-subsystem operation id tracking\nthis receive. It correlates to the pending WalletEntry.id so the row\ncan be reconciled after the credit settles."
+          "comment": "operation_id is the durable credit-subsystem operation id tracking\nthis receive. It is the WalletEntry.id for credit RECV rows; the\nserver-owned payment_hash is in payment_hash below."
         },
         {
           "name": "amount_sat",
@@ -1130,7 +1130,15 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "offset is the pagination offset within the chosen view."
+          "comment": "offset is the pagination offset within the chosen view. It applies\nto the VTXOS and ONCHAIN views; the ACTIVITY view paginates by the\nopaque cursor below instead and ignores offset."
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "cursor is the opaque pagination token for the ACTIVITY view. Empty\nstarts from the newest entry; otherwise it is the next_cursor\nreturned by the previous ActivityList page. It is stable across\nconcurrent inserts, so paging never skips or duplicates rows.\nIgnored for the VTXOS and ONCHAIN views."
         }
       ]
     },
@@ -1182,7 +1190,23 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "total is the total number of entries matching the filter before\nlimit and offset are applied."
+          "comment": "total is the number of entries in this page. It is a page count,\nnot a full-feed count: the feed is paged by an opaque cursor, so\ncallers use has_more, not total, to decide whether to fetch again."
+        },
+        {
+          "name": "has_more",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "has_more reports whether more entries exist after this page."
+        },
+        {
+          "name": "next_cursor",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "next_cursor is the opaque token to pass as ListRequest.cursor to\nfetch the next page. Empty when has_more is false."
         }
       ]
     },
@@ -1480,7 +1504,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "network is the bitcoin network the daemon is configured for, for\nexample \"mainnet\", \"testnet\", \"signet\", or \"regtest\"."
+          "comment": "network is the bitcoin network the daemon is configured for, for\nexample \"mainnet\", \"testnet\", \"testnet4\", \"signet\", or\n\"regtest\"."
         },
         {
           "name": "balance",
