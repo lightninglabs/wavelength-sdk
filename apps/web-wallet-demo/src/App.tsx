@@ -355,11 +355,15 @@ export function App() {
     );
 
   case "starting":
+    // The provider leaves the phase on 'starting' if start() rejects, so
+    // surface the error with a retry instead of an endless spinner.
     return (
       <LoadingScreen
         network={network}
         title="Starting runtime"
         sub="Connecting to the gateways."
+        error={wallet.operations.runtime.error}
+        onRetry={startRuntime}
       />
     );
 

@@ -372,6 +372,7 @@ export function WalletApp() {
           sub="Connecting to the servers."
           error={wallet.operations.runtime.error}
           onRetry={() => void startRuntime()}
+          onWipe={() => void wipeData()}
         />
       );
 
@@ -395,6 +396,7 @@ export function WalletApp() {
           onField={onField}
           onNetworkChange={onNetworkChange}
           onStart={() => void startRuntime()}
+          onWipe={() => void wipeData()}
           busy={wallet.operations.runtime.busy}
           error={wallet.operations.runtime.error || wallet.error}
         />
@@ -450,6 +452,7 @@ export function WalletApp() {
             onField={onField}
             onNetworkChange={onNetworkChange}
             onStart={() => void startRuntime()}
+            onWipe={() => void wipeData()}
             busy={wallet.operations.runtime.busy}
             error={wallet.operations.runtime.error || wallet.error}
           />

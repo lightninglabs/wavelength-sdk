@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Power } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { GatewayFields } from '../../components/GatewayFields';
+import { WipeDataButton } from '../../components/WipeDataButton';
 import { PrimaryButton } from '../../components/ui/Button';
 import { InlineError } from '../../components/ui/InlineError';
 import { Segmented } from '../../components/ui/Segmented';
@@ -60,6 +61,7 @@ export function ConnectScreen({
   onField,
   onNetworkChange,
   onStart,
+  onWipe,
   busy,
   error,
 }: {
@@ -67,6 +69,7 @@ export function ConnectScreen({
   onField: RuntimeFieldSetter;
   onNetworkChange: (network: RuntimeNetwork) => void;
   onStart: () => void;
+  onWipe: () => void;
   busy: boolean;
   error: string;
 }) {
@@ -110,6 +113,7 @@ export function ConnectScreen({
           {busy ? 'Starting runtime…' : 'Start runtime'}
         </PrimaryButton>
         <InlineError message={error} />
+        <WipeDataButton onWipe={onWipe} />
       </View>
     </AuthLayout>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, Power } from "lucide-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
+import { WipeDataButton } from "../../components/WipeDataButton";
 import { Field } from "../../components/ui/Field";
 import { InlineError } from "../../components/ui/InlineError";
 import { PrimaryButton } from "../../components/ui/Button";
@@ -36,7 +37,7 @@ export function ConnectScreen({
   const [advanced, setAdvanced] = useState(false);
 
   return (
-    <AuthLayout network={form.network} wide>
+    <AuthLayout network={form.network} wide footer={<WipeDataButton />}>
       <AuthHeader
         title="Start runtime"
         sub="Choose a network and the gateways the runtime should connect to."
