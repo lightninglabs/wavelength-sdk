@@ -1,7 +1,11 @@
 import { NativeEventEmitter, NativeModules } from 'react-native';
-import type {
-  WalletDKClient,
-  PasskeyCeremony,
+import {
+  createWalletEngine,
+  type WalletDKClient,
+  type PasskeyCeremony,
+  type DistributiveOmit,
+  type WalletEngine,
+  type WalletEngineOptions,
 } from '@lightninglabs/walletdk-core';
 import NativeWalletdk from './NativeWalletdk';
 import { NativeWalletDKClient } from './client';
@@ -25,6 +29,30 @@ export function createNativeClient(): WalletDKClient {
     const subscription = emitter.addListener('walletdkActivity', listener);
 
     return () => subscription.remove();
+  });
+}
+
+/**
+ * Options for {@link createNativeWalletEngine}. See {@link WalletEngineOptions}
+ * for the config/autoStart field docs; the type requires config when
+ * autoStart is true.
+ */
+export type NativeWalletEngineOptions = DistributiveOmit<
+  WalletEngineOptions,
+  'client'
+>;
+
+/**
+ * Creates a {@link WalletEngine} over the React Native transport: the
+ * one-call setup for an RN app. Pass the engine to WalletDKProvider from
+ * \@lightninglabs/walletdk-react.
+ */
+export function createNativeWalletEngine(
+  options: NativeWalletEngineOptions = {},
+): WalletEngine {
+  return createWalletEngine({
+    client: createNativeClient(),
+    ...options,
   });
 }
 

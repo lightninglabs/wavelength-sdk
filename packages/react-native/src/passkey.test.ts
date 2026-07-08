@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { PasskeyCancelledError } from '@lightninglabs/walletdk-core';
 import {
   nativePasskeyCeremony,
   type WalletdkPasskeyNativeModule,
@@ -147,13 +148,55 @@ describe('nativePasskeyCeremony', () => {
 
   it('propagates native rejection messages', async () => {
     const fake = makeFake();
-    fake.createResponse = 'REJECT:passkey registration was cancelled';
+    fake.createResponse = 'REJECT:native module unavailable';
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     await assert.rejects(
       () => ceremony.registerPasskeyWallet('Demo App'),
-      /passkey registration was cancelled/,
+      /native module unavailable/,
     );
+  });
+
+  it('maps a user-cancelled native ceremony to PasskeyCancelledError', async () => {
+    const fake = makeFake();
+    fake.createResponse =
+      'REJECT:androidx.credentials.exceptions.GetCredentialCancellationException: User cancelled';
+    const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
+
+    await assert.rejects(
+      () => ceremony.registerPasskeyWallet('Demo App'),
+      (err: unknown) => err instanceof PasskeyCancelledError,
+    );
+  });
+
+  it('does not map an unrelated failure that merely mentions cancel to cancellation', async () => {
+    const fake = makeFake();
+    fake.createResponse = 'REJECT:cancellation token invalid while registering';
+    const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
+
+    await assert.rejects(
+      () => ceremony.registerPasskeyWallet('Demo App'),
+      (err: unknown) =>
+        err instanceof Error &&
+        !(err instanceof PasskeyCancelledError) &&
+        /cancellation token invalid while registering/.test(err.message),
+    );
+  });
+
+  it('does not map a timeout to cancellation', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const fake = makeFake();
+    fake.hang = true;
+    const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
+
+    const pending = ceremony.assertPasskeyPrf();
+    const rejects = assert.rejects(
+      pending,
+      (err: unknown) =>
+        err instanceof Error && !(err instanceof PasskeyCancelledError),
+    );
+    t.mock.timers.tick(120000);
+    await rejects;
   });
 
   it('supportsPasskeyPrf degrades to false when the probe rejects', async () => {
@@ -162,6 +205,58 @@ describe('nativePasskeyCeremony', () => {
     const ceremony = nativePasskeyCeremony(fake.native, { rpId: 'rp.example' });
 
     assert.equal(await ceremony.supportsPasskeyPrf(), false);
+  });
+
+  it('memoizes supportsPasskeyPrf per ceremony instance, and retries after a rejection', async () => {
+    const calls: boolean[] = [];
+    let behavior: 'reject' | 'resolve' = 'reject';
+    const native: WalletdkPasskeyNativeModule = {
+      passkeySupported: async () => {
+        calls.push(true);
+        if (behavior === 'reject') {
+          throw new Error('no module');
+        }
+
+        return true;
+      },
+      passkeyCreate: async () => '',
+      passkeyGet: async () => '',
+    };
+    const ceremony = nativePasskeyCeremony(native, { rpId: 'rp.example' });
+
+    // The first call's probe rejects; the ceremony still degrades to false,
+    // but does not cache the rejection.
+    assert.equal(await ceremony.supportsPasskeyPrf(), false);
+    assert.equal(calls.length, 1);
+
+    // A rejected probe is retryable.
+    behavior = 'resolve';
+    assert.equal(await ceremony.supportsPasskeyPrf(), true);
+    assert.equal(calls.length, 2);
+
+    // A resolved probe is memoized for this ceremony instance.
+    const [a, b] = await Promise.all([
+      ceremony.supportsPasskeyPrf(),
+      ceremony.supportsPasskeyPrf(),
+    ]);
+    assert.equal(a, true);
+    assert.equal(b, true);
+    assert.equal(calls.length, 2);
+
+    // A different ceremony instance gets its own memo, not the shared one.
+    const otherCalls: boolean[] = [];
+    const otherNative: WalletdkPasskeyNativeModule = {
+      passkeySupported: async () => {
+        otherCalls.push(true);
+
+        return true;
+      },
+      passkeyCreate: async () => '',
+      passkeyGet: async () => '',
+    };
+    const otherCeremony = nativePasskeyCeremony(otherNative, { rpId: 'rp.example' });
+    assert.equal(await otherCeremony.supportsPasskeyPrf(), true);
+    assert.equal(otherCalls.length, 1);
   });
 
   it('rejects a PRF output that is not 32 bytes', async () => {
