@@ -792,20 +792,28 @@ export function WalletDKProvider({
 
   // sendPrepared refreshes on success for the same reason send() does: a settled
   // payment invalidates both balance and activity. Keeping that here means a
-  // two-step caller cannot forget it.
+  // two-step caller cannot forget it. The refresh's own failure must not turn
+  // into a reported send failure: the money already left, and runOperation
+  // rethrows, so an unguarded refresh() here would discard the SendResult and
+  // write the refresh error onto operations.send instead. refresh() already
+  // records its own failure on operations.refresh, so swallowing it here loses
+  // nothing.
   const sendPrepared = useCallback(async (prepared: PrepareSendResult) => {
     return runOperation("send", async () => {
       const result = await client.sendPrepared(prepared);
-      await refresh();
+      await refresh().catch(() => {});
 
       return result;
     });
   }, [client, refresh, runOperation]);
 
+  // send refreshes on success for the same reason sendPrepared() does; see its
+  // comment for why the refresh failure is swallowed here rather than allowed
+  // to shadow a settled payment as a reported send failure.
   const send = useCallback(async (req: SendRequest) => {
     return runOperation("send", async () => {
       const result = await client.send(req);
-      await refresh();
+      await refresh().catch(() => {});
 
       return result;
     });
