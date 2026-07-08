@@ -25,6 +25,8 @@ import type {
 import { WalletState, type WalletInfo } from '../state.ts';
 import { ActivityStream } from './activity.ts';
 import {
+  ADOPT_INFO_RETRIES,
+  ADOPT_INFO_RETRY_MS,
   BACKGROUND_REFRESH_FAILURE_LIMIT,
   MAX_LOGS,
   RESTORE_POLL_MS,
@@ -38,15 +40,38 @@ import type { WalletSnapshot } from './snapshot.ts';
 import { stabilize } from './stabilize.ts';
 import { SnapshotStore } from './store.ts';
 
-/** Options for {@link createWalletEngine}. */
-export type WalletEngineOptions = {
-  /** The transport client the engine drives. */
-  client: WalletDKClient;
-  /** Default runtime config used by autoStart and by start() with no argument. */
-  config?: RuntimeConfig;
-  /** Start the runtime automatically once it is ready. Requires config. */
-  autoStart?: boolean;
-};
+/**
+ * Options for {@link createWalletEngine}. A discriminated union: the type
+ * requires config when autoStart is true, so autoStart cannot be set without
+ * a config to start from.
+ */
+export type WalletEngineOptions =
+  | {
+      /** The transport client the engine drives. */
+      client: WalletDKClient;
+      /** Default runtime config used by autoStart and by start() with no argument. */
+      config: RuntimeConfig;
+      /** Start the runtime automatically once it is ready. */
+      autoStart: true;
+    }
+  | {
+      /** The transport client the engine drives. */
+      client: WalletDKClient;
+      /** Default runtime config used by start() with no argument. */
+      config?: RuntimeConfig;
+      /** Start the runtime automatically once it is ready. Requires config; omit or set false when config is unset. */
+      autoStart?: false;
+    };
+
+/**
+ * Removes a key from every arm of a union type. TypeScript's built-in Omit
+ * does not distribute over unions (it flattens to the union of all keys
+ * first), which would erase the discriminant on types like
+ * {@link WalletEngineOptions}. This distributes the omission per arm instead.
+ */
+export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
+  ? Omit<T, K>
+  : never;
 
 /**
  * The headless wallet orchestrator: it owns the lifecycle phase machine, the
@@ -79,8 +104,10 @@ export interface WalletEngine {
   /**
    * Restores a wallet from a mnemonic. Resolves as soon as the restored
    * wallet is usable; the optional server-assisted recovery scan continues in
-   * the background, observed through snapshot.recovery. Rejects only when the
-   * restore fails before the wallet came up.
+   * the background, observed through snapshot.recovery. Rejects when the
+   * restore fails before the wallet came up, when a restore is already in
+   * flight, when req.mnemonic is missing or empty, or if the engine has been
+   * disposed.
    */
   restoreWallet(req: RestoreWalletRequest): Promise<WalletInfo>;
   /** Resets snapshot.recovery to idle (e.g. after dismissing a banner). */
@@ -129,6 +156,16 @@ class WalletDKEngine implements WalletEngine {
   readonly #reconciler: SettleReconciler;
   readonly #syncPoller: Poller;
   readonly #restorePoller: Poller;
+
+  // The pending restore promise, settled exactly once at usability (resolve)
+  // or wallet-down failure (reject).
+  #restore:
+    | {
+        resolve: (info: WalletInfo) => void;
+        reject: (error: Error) => void;
+        settled: boolean;
+      }
+    | undefined;
 
   constructor(options: WalletEngineOptions) {
     this.client = options.client;
@@ -195,7 +232,18 @@ class WalletDKEngine implements WalletEngine {
   getSnapshot = (): WalletSnapshot => this.#store.getSnapshot();
   subscribe = (listener: () => void): (() => void) => this.#store.subscribe(listener);
 
+  // Guards a public mutator against running after dispose(): a disposed
+  // engine has already torn down its subscriptions and background processes,
+  // so any RPC it kicks off would race a client no consumer can observe
+  // through the snapshot.
+  #assertNotDisposed(): void {
+    if (this.#disposed) {
+      throw new Error('the engine has been disposed');
+    }
+  }
+
   async start(config?: RuntimeConfig): Promise<WalletInfo> {
+    this.#assertNotDisposed();
     const cfg = config ?? this.#config;
     if (!cfg) {
       throw new Error(
@@ -227,6 +275,7 @@ class WalletDKEngine implements WalletEngine {
   }
 
   async stop(): Promise<void> {
+    this.#assertNotDisposed();
     this.#dispatch({ type: 'stopRequested' });
     try {
       await this.client.stop();
@@ -234,6 +283,7 @@ class WalletDKEngine implements WalletEngine {
         { type: 'stopCompleted' },
         { info: null, balance: null, activity: [], error: null },
       );
+      this.#rejectRestoreOnTeardown();
     } catch (err) {
       const error = toError(err);
       this.#dispatch({ type: 'stopFailed' }, { error });
@@ -242,19 +292,113 @@ class WalletDKEngine implements WalletEngine {
   }
 
   async refresh(): Promise<void> {
+    this.#assertNotDisposed();
     await this.#fetchAll();
   }
 
   async createWallet(req: CreateWalletRequest): Promise<CreateWalletResult> {
+    this.#assertNotDisposed();
     const result = await this.client.createWallet(req);
     await this.#adoptInfo();
     this.#kickRefresh();
 
     return result;
   }
-  // Restore wallet verb lands in Task 10.
-  restoreWallet(_req: RestoreWalletRequest): Promise<WalletInfo> {
-    return Promise.reject(new Error('not implemented'));
+  restoreWallet(req: RestoreWalletRequest): Promise<WalletInfo> {
+    // A restore with server-assisted recovery blocks createWallet for the
+    // whole indexer scan, but the daemon marks the wallet ready before the
+    // scan runs. So kick createWallet off without awaiting it, resolve this
+    // promise as soon as the wallet is usable (the readiness poll below), and
+    // track the scan through snapshot.recovery when the caller opted in.
+    if (this.#disposed) {
+      return Promise.reject(new Error('the engine has been disposed'));
+    }
+    if (!req.mnemonic || req.mnemonic.length === 0) {
+      return Promise.reject(new Error('a restore needs a mnemonic'));
+    }
+    if (this.#restore && !this.#restore.settled) {
+      // A second concurrent restore would otherwise clobber #restore and
+      // strand the first caller's promise; reject the new call up front
+      // instead, before dispatching anything, so the first caller's promise
+      // stays valid.
+      return Promise.reject(new Error('a restore is already in flight'));
+    }
+    const tracking = Boolean(req.recoverState);
+    this.#dispatch(
+      { type: 'restoreRequested' },
+      {
+        error: null,
+        recovery: tracking ? { status: 'restoring' } : { status: 'idle' },
+      },
+    );
+    const promise = new Promise<WalletInfo>((resolve, reject) => {
+      this.#restore = { resolve, reject, settled: false };
+    });
+
+    this.client.createWallet(req).then(
+      async (result) => {
+        // dispose() already rejected #restore; a resolving createWallet must
+        // not dispatch, adopt info, or kick a refresh on a torn-down engine.
+        if (this.#disposed) {
+          return;
+        }
+        // The scan (or a plain restore) finished, so the wallet is up.
+        if (tracking) {
+          this.#store.update({ recovery: { status: 'done', result } });
+        }
+        const info = await this.#adoptWalletUp();
+        this.#settleRestore(info);
+        this.#kickRefresh();
+      },
+      async (err) => {
+        // dispose() already rejected #restore; a settling createWallet must
+        // not dispatch, adopt info, or kick a refresh on a torn-down engine.
+        if (this.#disposed) {
+          return;
+        }
+        const error = toError(err);
+        // Recovery runs after the wallet is created and unlocked, so a
+        // failure may leave a usable (if under-populated) wallet. Probe
+        // getInfo: if the wallet came up, keep the user in it and surface a
+        // failed banner; otherwise the create itself failed, so fall back to
+        // onboarding and reject.
+        let probe: WalletInfo | null = null;
+        try {
+          probe = await this.client.getInfo();
+        } catch {
+          // Treat an unreachable daemon as not-came-up.
+        }
+        const cameUp = Boolean(
+          probe && (probe.walletReady || probe.walletState === WalletState.Ready),
+        );
+        if (cameUp && probe) {
+          this.#dispatch(
+            { type: 'restoreFailedWalletUp' },
+            {
+              info: probe,
+              recovery: tracking
+                ? { status: 'failed', error, walletUsable: true }
+                : { status: 'idle' },
+            },
+          );
+          this.#settleRestore(probe);
+          this.#kickRefresh();
+        } else {
+          // The wallet never came up, so the phase falls back to
+          // needsWallet, but recovery still records the failure: without
+          // this, a screen that unmounts on the rejection (returning to
+          // needsWallet) would lose the error the moment its hook-local
+          // state disappears with it. The snapshot survives that unmount.
+          this.#dispatch(
+            { type: 'restoreFailedWalletDown' },
+            { recovery: { status: 'failed', error, walletUsable: false } },
+          );
+          this.#rejectRestore(error);
+        }
+      },
+    ).catch((err) => this.#rejectRestore(toError(err)));
+
+    return promise;
   }
   // A no-op while a scan is live: a stray banner dismiss must not wipe the
   // in-progress restoring state out from under the poll that is tracking it.
@@ -265,6 +409,7 @@ class WalletDKEngine implements WalletEngine {
     this.#store.update({ recovery: { status: 'idle' } });
   }
   async unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult> {
+    this.#assertNotDisposed();
     const result = await this.client.unlockWallet(req);
     await this.#adoptInfo();
     this.#kickRefresh();
@@ -274,6 +419,7 @@ class WalletDKEngine implements WalletEngine {
   async openWalletFromPasskey(
     req: OpenWalletFromPasskeyRequest,
   ): Promise<OpenWalletFromPasskeyResult> {
+    this.#assertNotDisposed();
     const result = await this.client.openWalletFromPasskey(req);
     await this.#adoptInfo();
     this.#kickRefresh();
@@ -281,28 +427,33 @@ class WalletDKEngine implements WalletEngine {
     return result;
   }
   async deposit(req: DepositRequest = {}): Promise<DepositResult> {
+    this.#assertNotDisposed();
     const result = await this.client.deposit(req);
     this.#kickRefresh();
 
     return result;
   }
   async receive(req: ReceiveRequest): Promise<ReceiveResult> {
+    this.#assertNotDisposed();
     const result = await this.client.receive(req);
     this.#kickRefresh();
 
     return result;
   }
   prepareSend(req: SendRequest): Promise<PrepareSendResult> {
+    this.#assertNotDisposed();
     // A quote moves no money, so nothing to refresh.
     return this.client.prepareSend(req);
   }
   async sendPrepared(prepared: PrepareSendResult): Promise<SendResult> {
+    this.#assertNotDisposed();
     const result = await this.client.sendPrepared(prepared);
     this.#kickRefresh();
 
     return result;
   }
   async send(req: SendRequest): Promise<SendResult> {
+    this.#assertNotDisposed();
     const result = await this.client.send(req);
     this.#kickRefresh();
 
@@ -321,6 +472,7 @@ class WalletDKEngine implements WalletEngine {
     this.#reconciler.cancel();
     this.#syncPoller.stop();
     this.#restorePoller.stop();
+    this.#rejectRestore(new Error('the engine was disposed during the restore'));
   }
 
   // ----- internals -----
@@ -335,6 +487,7 @@ class WalletDKEngine implements WalletEngine {
         { type: 'runtimeStopped' },
         { info: null, balance: null, activity: [] },
       );
+      this.#rejectRestoreOnTeardown();
     } else if (event.type === 'log') {
       const logs = [...this.getSnapshot().logs, event.payload].slice(-MAX_LOGS);
       this.#store.update({ logs });
@@ -410,18 +563,43 @@ class WalletDKEngine implements WalletEngine {
     return nextBalance;
   }
 
-  // Refetches complete info after a wallet came up (create/unlock/restore),
-  // instead of fabricating a partial. A refetch failure is swallowed: the
-  // wallet exists, and the kicked background refresh converges the snapshot.
+  // Refetches complete info after a wallet came up (create/unlock/passkey),
+  // instead of fabricating a partial. A single failed attempt is transient
+  // (the daemon can take a beat to settle right after create/unlock), so this
+  // retries up to ADOPT_INFO_RETRIES times, ADOPT_INFO_RETRY_MS apart. If
+  // every attempt fails the daemon is presumed gone: escalate via
+  // walletAdoptionFailed rather than silently leaving the wallet stuck
+  // without info.
   async #adoptInfo(): Promise<WalletInfo | null> {
-    try {
-      const info = await this.client.getInfo();
-      this.#dispatch({ type: 'infoReceived', info }, { info });
+    for (let attempt = 0; attempt < ADOPT_INFO_RETRIES; attempt++) {
+      if (this.#disposed) {
+        return null;
+      }
+      try {
+        const info = await this.client.getInfo();
+        this.#dispatch({ type: 'infoReceived', info }, { info });
 
-      return info;
-    } catch {
-      return null;
+        return info;
+      } catch {
+        if (attempt < ADOPT_INFO_RETRIES - 1) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, ADOPT_INFO_RETRY_MS);
+          });
+        }
+      }
     }
+    if (!this.#disposed) {
+      this.#dispatch(
+        { type: 'walletAdoptionFailed' },
+        {
+          error: new Error(
+            'the wallet was created but the daemon stopped responding',
+          ),
+        },
+      );
+    }
+
+    return null;
   }
 
   // Serialized background refresh with a consecutive-failure budget. Below
@@ -466,8 +644,68 @@ class WalletDKEngine implements WalletEngine {
     void this.#backgroundRefresh();
   }
 
-  async #restoreTick(): Promise<void> {
-    // Filled in by the restore task; keeping the poller wired keeps the
-    // process table complete.
+  // The readiness poll during a background restore: only a genuinely ready
+  // wallet advances; the transient locked-looking states InitWallet passes
+  // through are ignored (the machine has no infoReceived entry for
+  // 'restoring', and this tick never dispatches infoReceived).
+  #restoreTick = async (): Promise<void> => {
+    let info: WalletInfo;
+    try {
+      info = await this.client.getInfo();
+    } catch {
+      // Transient while the wallet comes up; keep polling.
+      return;
+    }
+    if (info.walletReady || info.walletState === WalletState.Ready) {
+      this.#dispatch({ type: 'walletBecameReady' }, { info });
+      this.#settleRestore(info);
+      this.#kickRefresh();
+    }
+  };
+
+  // Adopts post-restore info when the scan finished: refetch, dispatch
+  // walletBecameReady (a no-op transition if the poll already won).
+  async #adoptWalletUp(): Promise<WalletInfo | null> {
+    let info: WalletInfo | null = null;
+    try {
+      info = await this.client.getInfo();
+    } catch {
+      // The background refresh converges the snapshot.
+    }
+    this.#dispatch(
+      { type: 'walletBecameReady' },
+      info ? { info } : {},
+    );
+
+    return info;
+  }
+
+  #settleRestore(info: WalletInfo | null): void {
+    if (!this.#restore || this.#restore.settled) {
+      return;
+    }
+    const resolved = info ?? this.getSnapshot().info;
+    this.#restore.settled = true;
+    if (resolved === null) {
+      this.#restore.reject(
+        new Error('the restored wallet came up but its info could not be read'),
+      );
+    } else {
+      this.#restore.resolve(resolved);
+    }
+  }
+
+  #rejectRestore(error: Error): void {
+    if (this.#restore && !this.#restore.settled) {
+      this.#restore.settled = true;
+      this.#restore.reject(error);
+    }
+  }
+
+  // Mirrors dispose()'s pending-restore rejection: the runtime tearing down
+  // mid-restore (a clean stop() or a crash) leaves any in-flight restore
+  // promise stranded forever unless it is settled here too.
+  #rejectRestoreOnTeardown(): void {
+    this.#rejectRestore(new Error('the runtime stopped during the restore'));
   }
 }

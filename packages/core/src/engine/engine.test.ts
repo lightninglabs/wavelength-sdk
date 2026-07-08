@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import type { WalletInfo } from '../state.ts';
 import { FakeWalletDKClient } from '../testing/fake-client.ts';
@@ -259,5 +259,142 @@ describe('engine wallet verbs', () => {
     await flush();
     assert.equal(engine.getSnapshot().phase, 'ready');
     engine.dispose();
+  });
+});
+
+describe('engine restore', () => {
+  async function needsWalletEngine() {
+    const client = new FakeWalletDKClient();
+    client.info = noneInfo;
+    const engine = createWalletEngine({ client });
+    client.resolveReady();
+    await flush();
+    await engine.start({} as never);
+    return { client, engine };
+  }
+  const restoreReq = {
+    password: 'pw',
+    mnemonic: ['a', 'b'],
+    recoverState: true,
+  };
+
+  it('resolves at usability via the readiness poll, before the scan finishes', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    // The scan (createWallet) hangs; the wallet reports ready underneath.
+    client.impl('createWallet', () => new Promise(() => undefined));
+    const promise = engine.restoreWallet(restoreReq);
+    assert.equal(engine.getSnapshot().phase, 'restoring');
+    assert.equal(engine.getSnapshot().recovery.status, 'restoring');
+    // Let the immediate poller tick (which reads the still-not-ready info)
+    // settle before advancing the clock, matching poller.test.ts's own
+    // start(); await flush(); pattern: otherwise it is still in flight when
+    // the mock interval fires and that tick is dropped as a no-op overlap.
+    await flush();
+    client.info = readyInfo;
+    mock.timers.tick(1500);
+    await flush();
+    const info = await promise;
+    assert.equal(info.walletReady, true);
+    assert.equal(engine.getSnapshot().phase, 'ready');
+    // The scan is still running, so recovery stays restoring.
+    assert.equal(engine.getSnapshot().recovery.status, 'restoring');
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('transient locked info during restore does not leak (no unlock flash)', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    client.impl('createWallet', () => new Promise(() => undefined));
+    void engine.restoreWallet(restoreReq).catch(() => undefined);
+    // Let the immediate poller tick settle before advancing the clock (see
+    // the previous test), so the interval tick below actually runs and
+    // observes the transient locked info instead of being dropped as an
+    // overlapping no-op.
+    await flush();
+    client.info = { walletState: 'locked', walletReady: false } as WalletInfo;
+    mock.timers.tick(1500);
+    await flush();
+    assert.equal(engine.getSnapshot().phase, 'restoring');
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('scan completion marks recovery done and refreshes', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    client.info = readyInfo;
+    const promise = engine.restoreWallet(restoreReq);
+    await flush();
+    await promise;
+    assert.equal(engine.getSnapshot().phase, 'ready');
+    assert.equal(engine.getSnapshot().recovery.status, 'done');
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('an untracked restore never touches the recovery banner state', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    client.info = readyInfo;
+    await engine.restoreWallet({ ...restoreReq, recoverState: false });
+    assert.equal(engine.getSnapshot().recovery.status, 'idle');
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('a failure after the wallet came up keeps it usable with a failed banner', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    client.fail('createWallet', new Error('scan died'));
+    client.info = readyInfo;
+    const info = await engine.restoreWallet(restoreReq);
+    // The outer promise can settle via the immediate readiness poll (it
+    // already sees the ready info) before the createWallet rejection
+    // handler's own getInfo probe finishes and dispatches the failed
+    // recovery status; give that independent chain a chance to land.
+    await flush();
+    assert.ok(info);
+    const snap = engine.getSnapshot();
+    assert.equal(snap.phase, 'ready');
+    assert.equal(snap.recovery.status, 'failed');
+    assert.equal(
+      snap.recovery.status === 'failed' ? snap.recovery.error.message : '',
+      'scan died',
+    );
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('a failure with the wallet down falls back to needsWallet and rejects', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    client.fail('createWallet', new Error('create failed'));
+    client.info = noneInfo;
+    await assert.rejects(() => engine.restoreWallet(restoreReq), /create failed/);
+    const snap = engine.getSnapshot();
+    assert.equal(snap.phase, 'needsWallet');
+    // The snapshot records the failure (not idle) so it survives a component
+    // unmount that discards hook-local error state along with the screen.
+    assert.equal(snap.recovery.status, 'failed');
+    assert.equal(
+      snap.recovery.status === 'failed' ? snap.recovery.error.message : '',
+      'create failed',
+    );
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('acknowledgeRecovery resets a terminal recovery state to idle', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const { client, engine } = await needsWalletEngine();
+    client.info = readyInfo;
+    await engine.restoreWallet(restoreReq);
+    assert.equal(engine.getSnapshot().recovery.status, 'done');
+    engine.acknowledgeRecovery();
+    assert.equal(engine.getSnapshot().recovery.status, 'idle');
+    engine.dispose();
+    mock.timers.reset();
   });
 });

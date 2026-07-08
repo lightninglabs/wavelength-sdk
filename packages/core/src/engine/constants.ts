@@ -33,3 +33,9 @@ export const SETTLE_RECONCILE_DELAYS_MS = [750, 1500, 3000];
 
 /** Consecutive failed background refreshes before escalating to error. */
 export const BACKGROUND_REFRESH_FAILURE_LIMIT = 5;
+
+/** Retries for the post-create/unlock info refetch before escalating. */
+export const ADOPT_INFO_RETRIES = 3;
+
+/** Delay between #adoptInfo retries. */
+export const ADOPT_INFO_RETRY_MS = 1000;
