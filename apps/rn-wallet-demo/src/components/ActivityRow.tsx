@@ -27,6 +27,26 @@ const KIND_LABEL: Record<string, string> = {
   exit: 'Unilateral exit',
 };
 
+// phaseHint renders the daemon's lifecycle label for an in-flight entry, which
+// explains why a row is still pending (the balance can settle before the entry
+// finalizes). It returns '' when the label adds nothing over what the row
+// already says: a boarding deposit, for one, carries the counterparty
+// 'boarding' and the phase label 'boarding'.
+function phaseHint(
+  label: string | undefined,
+  title: string,
+  counterparty: string,
+): string {
+  const text = (label ?? '').replace(/_/g, ' ').trim();
+  if (!text) {
+    return '';
+  }
+  const same = (other: string) =>
+    other.trim().toLowerCase() === text.toLowerCase();
+
+  return same(title) || same(counterparty) ? '' : text;
+}
+
 const makeStyles = (p: Palette) => ({
   row: {
     alignItems: 'center' as const,
@@ -116,6 +136,9 @@ export function ActivityRow({ entry }: { entry: Entry }) {
   const meta = entry.counterparty
     ? `${shortKey(entry.counterparty, 10, 6)}${time ? ` · ${time}` : ''}`
     : time;
+  const phase = pending
+    ? phaseHint(entry.progress?.phaseLabel, title, entry.counterparty)
+    : '';
   const amountColor = failed ? palette.faint : incoming ? palette.good : palette.text;
   const statusColor = failed ? palette.bad : palette.warn;
   const statusBg = failed ? palette.badSoft : palette.warnSoft;
@@ -137,6 +160,11 @@ export function ActivityRow({ entry }: { entry: Entry }) {
         {failed && entry.failureReason ? (
           <Text style={styles.failReason} numberOfLines={1}>
             {entry.failureReason}
+          </Text>
+        ) : null}
+        {phase ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {phase}
           </Text>
         ) : null}
         {pending || failed ? (
