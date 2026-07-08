@@ -1,24 +1,38 @@
 import { Bitcoin, Power, Settings } from "lucide-react";
+import { useWallet, useWalletInfo } from "@lightninglabs/walletdk-react";
 import { cn } from "../../lib/cn";
 import { shortKey } from "../../lib/format";
+import { phaseConnected, statusLabel } from "../../lib/phase";
 import { ThemeToggle } from "../ui/ThemeToggle";
-import { AppTab, CENTER_NAV, ChromeStatus } from "./nav";
+import { AppTab, CENTER_NAV } from "./nav";
 
 // TopNav is the full-width top navbar, styled to sit with Zones: a square brand
 // tile, tonal (not pill) active links, flat hairline status/account groups and
 // square icon buttons. Brand on the left, primary nav centre on desktop, and
-// runtime status / account / theme / settings / stop on the right.
+// runtime status / account / theme / settings / stop on the right. The
+// status pill self-serves the wallet's phase and info; network is the
+// connect form's chosen network, used only as a fallback label until the
+// wallet's own info reports one.
 export function TopNav({
   tab,
   onTab,
   onStop,
-  status,
+  network,
 }: {
   tab: AppTab;
   onTab: (tab: AppTab) => void;
   onStop: () => void;
-  status: ChromeStatus;
+  network: string;
 }) {
+  const { phase } = useWallet();
+  const info = useWalletInfo();
+  const status = {
+    phaseLabel: statusLabel(phase),
+    network: info?.network || network,
+    connected: phaseConnected(phase),
+    identityPubKey: info?.identityPubKey || "",
+  };
+
   return (
     <header className="sticky top-0 z-20 w-full border-b border-border bg-bg">
       <div

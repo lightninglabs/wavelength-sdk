@@ -1,24 +1,27 @@
 import { Power } from "lucide-react";
+import { useWalletInfo } from "@lightninglabs/walletdk-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { Card } from "../../components/ui/Card";
 import { PrimaryButton } from "../../components/ui/Button";
 
 // StoppedScreen serves the `stopped` phase: the runtime was torn down and its
-// in-memory keys cleared. Starting again re-runs the connect flow.
+// in-memory keys cleared. Starting again re-runs the connect flow. The last
+// known block height and version are self-served from the provider (the
+// engine keeps the most recent info around after a stop).
 export function StoppedScreen({
   network,
   onStart,
   busy,
-  blockHeight,
-  version,
 }: {
   network: string;
   onStart: () => void;
   busy: boolean;
-  blockHeight?: number;
-  version?: string;
 }) {
+  const info = useWalletInfo();
+  const blockHeight = info?.blockHeight;
+  const version = info?.version;
+
   return (
     <AuthLayout network={network}>
       <AuthHeader

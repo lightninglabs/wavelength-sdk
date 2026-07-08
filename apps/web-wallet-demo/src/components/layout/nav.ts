@@ -24,12 +24,3 @@ export const NAV: Array<{ id: AppTab; label: string; icon: LucideIcon }> = [
 // CENTER_NAV is the desktop top-navbar links. Settings lives as a dedicated
 // right-side icon button, so it is excluded here.
 export const CENTER_NAV = NAV.filter((n) => n.id !== "settings");
-
-// ChromeStatus is the runtime/account summary the chrome renders in the top
-// navbar status pill and account chip.
-export type ChromeStatus = {
-  phaseLabel: string;
-  network: string;
-  connected: boolean;
-  identityPubKey: string;
-};

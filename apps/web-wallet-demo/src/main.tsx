@@ -2,8 +2,9 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { WalletDKProvider } from "@lightninglabs/walletdk-react";
 import {
-  createWebClient,
+  createWebWalletEngine,
   RUNTIME_MANIFEST_VERSION,
+  webPasskeyCeremony,
 } from "@lightninglabs/walletdk-web";
 import { App } from "./App";
 import { ThemeProvider } from "./theme/ThemeProvider";
@@ -23,8 +24,14 @@ import "@fontsource/ibm-plex-mono/latin-600.css";
 import "./index.css";
 
 // boot clears any pending wipe before mounting, so a reset starts the app from
-// clean storage with no OPFS handles held open.
+// clean storage with no OPFS handles held open. The engine is constructed
+// after the wipe completes, and not before, because the Worker it creates
+// must not exist while a pending wipe clears OPFS.
 async function boot() {
+  // Warm the memoized passkey support probe now, before onboarding ever
+  // mounts, so its result is already resolved by the time a screen reads it.
+  void webPasskeyCeremony.supportsPasskeyPrf();
+
   await consumePendingWipe();
 
   // Ask the browser to keep the OPFS-backed wallet data out of routine
@@ -38,9 +45,9 @@ async function boot() {
   // reuse a stale cached runtime after a version bump. The path is resolved
   // against Vite's base URL (./ locally, /demo/ in production).
   // debug logs every RPC request/response to the console for local diagnosis.
-  // The client is built here and injected into the provider, which is
+  // The engine is built once here and injected into the provider, which is
   // transport-agnostic.
-  const client = createWebClient({
+  const engine = createWebWalletEngine({
     runtimeBaseUrl: new URL(
       `runtime/${RUNTIME_MANIFEST_VERSION}/`,
       new URL(import.meta.env.BASE_URL, window.location.href),
@@ -51,7 +58,7 @@ async function boot() {
   createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <ThemeProvider>
-        <WalletDKProvider client={client}>
+        <WalletDKProvider engine={engine}>
           <App />
         </WalletDKProvider>
       </ThemeProvider>

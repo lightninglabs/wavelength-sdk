@@ -12,7 +12,18 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { Balance, Entry, WalletInfo } from "@lightninglabs/walletdk-react";
+import {
+  Balance,
+  Entry,
+  WalletInfo,
+  errorMessage,
+  useWallet,
+  useWalletBalance,
+  useWalletDeposit,
+  useWalletActivity,
+  useWalletInfo,
+  useWalletRefresh,
+} from "@lightninglabs/walletdk-react";
 import { ActivityRow } from "../../components/ActivityRow";
 import { PageHead } from "../../components/layout/PageHead";
 import { AppTab } from "../../components/layout/nav";
@@ -29,38 +40,39 @@ import {
   pendingInSat,
   pendingOutSat,
 } from "../../lib/balance";
-import { errorMessage } from "../../lib/errors";
 import { formatBtc, formatSats } from "../../lib/format";
+import { statusLabel } from "../../lib/phase";
 import { usePollWhileWaiting } from "../../lib/usePollWhileWaiting";
 import { Composition } from "./Composition";
 
 // HomeScreen is the authenticated overview: the balance hero with composition,
 // recent activity, quick actions and runtime status, laid out as full-bleed
 // Zones bands. A zero balance swaps the funded dashboard for a board-on-chain
-// CTA (the only way to fund a fresh Ark wallet).
+// CTA (the only way to fund a fresh Ark wallet). Balance, activity, info,
+// deposit and refresh are all self-served from the provider; only tab
+// routing comes from the caller.
 export function HomeScreen({
-  balance,
-  activity,
-  info,
-  phaseLabel,
   onNavigate,
-  onDeposit,
-  onRefresh,
-  refreshBusy,
-  depositBusy,
-  depositError,
 }: {
-  balance: Balance | null;
-  activity: Entry[];
-  info: Partial<WalletInfo> | null;
-  phaseLabel: string;
   onNavigate: (tab: AppTab) => void;
-  onDeposit: () => Promise<string>;
-  onRefresh: () => void;
-  refreshBusy: boolean;
-  depositBusy: boolean;
-  depositError: string;
 }) {
+  const { phase } = useWallet();
+  const info = useWalletInfo();
+  const phaseLabel = statusLabel(phase);
+  const balance = useWalletBalance();
+  const activity = useWalletActivity();
+  const { deposit, depositPending, depositError } = useWalletDeposit();
+  const { refresh, refreshPending, refreshError } = useWalletRefresh();
+  const refreshErrorMessage = refreshError?.message ?? "";
+
+  const onDeposit = useCallback(
+    () => deposit().then((result) => result.address),
+    [deposit],
+  );
+  const onRefresh = useCallback(() => {
+    void refresh().catch(() => undefined);
+  }, [refresh]);
+
   // Treat the wallet as funded when the balance holds or is moving any value,
   // or when there is any history to show. Value comes from the balance, history
   // from the activity: the two are never mixed.
@@ -78,7 +90,8 @@ export function HomeScreen({
             balance={balance}
             onNavigate={onNavigate}
             onRefresh={onRefresh}
-            refreshBusy={refreshBusy}
+            refreshBusy={refreshPending}
+            refreshError={refreshErrorMessage}
           />
           <Band>
             <Label>Balance composition</Label>
@@ -95,8 +108,8 @@ export function HomeScreen({
           phaseLabel={phaseLabel}
           onNavigate={onNavigate}
           onDeposit={onDeposit}
-          depositBusy={depositBusy}
-          depositError={depositError}
+          depositBusy={depositPending}
+          depositError={depositError?.message ?? ""}
         />
       )}
     </div>
@@ -110,11 +123,13 @@ function BalanceBand({
   onNavigate,
   onRefresh,
   refreshBusy,
+  refreshError,
 }: {
   balance: Balance | null;
   onNavigate: (t: AppTab) => void;
   onRefresh: () => void;
   refreshBusy: boolean;
+  refreshError: string;
 }) {
   const amount = balanceSat(balance);
   const incoming = pendingInSat(balance);
@@ -199,6 +214,11 @@ function BalanceBand({
           </button>
         </div>
       </div>
+      {refreshError ? (
+        <div className="mt-3">
+          <InlineError message={refreshError} />
+        </div>
+      ) : null}
     </Band>
   );
 }
@@ -209,7 +229,7 @@ function RuntimeBand({
   info,
   phaseLabel,
 }: {
-  info: Partial<WalletInfo> | null;
+  info: WalletInfo | null;
   phaseLabel: string;
 }) {
   const rows: Array<{
@@ -265,7 +285,7 @@ function EmptyWallet({
   depositBusy,
   depositError,
 }: {
-  info: Partial<WalletInfo> | null;
+  info: WalletInfo | null;
   phaseLabel: string;
   onNavigate: (t: AppTab) => void;
   onDeposit: () => Promise<string>;
@@ -383,7 +403,7 @@ function RecentActivityBand({
   activity,
   onNavigate,
 }: {
-  activity: Entry[];
+  activity: readonly Entry[];
   onNavigate: (t: AppTab) => void;
 }) {
 

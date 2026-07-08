@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Layers, Zap } from "lucide-react";
 import {
-  Balance,
-  DepositResult,
-  Entry,
-  ReceiveRequest,
-  ReceiveResult,
+  errorMessage,
+  useWalletActivity,
+  useWalletBalance,
+  useWalletDeposit,
+  useWalletReceive,
 } from "@lightninglabs/walletdk-react";
 import { PageHead } from "../../components/layout/PageHead";
 import { AppTab } from "../../components/layout/nav";
@@ -17,7 +17,6 @@ import { Field } from "../../components/ui/Field";
 import { InlineError } from "../../components/ui/InlineError";
 import { Label } from "../../components/ui/Label";
 import { Segmented } from "../../components/ui/Segmented";
-import { errorMessage } from "../../lib/errors";
 import { formatSats } from "../../lib/format";
 import {
   hasPendingOnchain,
@@ -28,30 +27,18 @@ type Tab = "lightning" | "onchain";
 
 // ReceiveScreen offers a Lightning invoice (amount + memo) or an on-chain
 // boarding address, each paired with a QR. Values come from the live
-// receive()/deposit() calls. Once a payment lands, the provider's activity
-// stream surfaces the matching entry, which flips the QR to a received
-// confirmation without any manual refresh.
+// receive()/deposit() calls, self-served here from the provider. Once a
+// payment lands, the provider's activity stream surfaces the matching entry,
+// which flips the QR to a received confirmation without any manual refresh.
 export function ReceiveScreen({
   onNavigate,
-  onReceive,
-  onDeposit,
-  activity,
-  balance,
-  receiveBusy,
-  receiveError,
-  depositBusy,
-  depositError,
 }: {
   onNavigate: (tab: AppTab) => void;
-  onReceive: (req: ReceiveRequest) => Promise<ReceiveResult>;
-  onDeposit: () => Promise<DepositResult>;
-  activity: Entry[];
-  balance: Balance | null;
-  receiveBusy: boolean;
-  receiveError: string;
-  depositBusy: boolean;
-  depositError: string;
 }) {
+  const activity = useWalletActivity();
+  const balance = useWalletBalance();
+  const { receive, receivePending, receiveError } = useWalletReceive();
+  const { deposit, depositPending, depositError } = useWalletDeposit();
   const [tab, setTab] = useState<Tab>("lightning");
   const [amount, setAmount] = useState("1000");
   const [memo, setMemo] = useState("");
@@ -122,7 +109,7 @@ export function ReceiveScreen({
     setLocalError("");
     trackEntry("lightning", "");
     try {
-      const next = await onReceive({
+      const next = await receive({
         amountSat: Number(amount) || 0,
         memo: memo || undefined,
       });
@@ -137,7 +124,7 @@ export function ReceiveScreen({
     setLocalError("");
     trackEntry("onchain", "");
     try {
-      const next = await onDeposit();
+      const next = await deposit();
       setAddress(next.address);
       trackEntry("onchain", next.entry.id);
     } catch (err) {
@@ -189,10 +176,10 @@ export function ReceiveScreen({
             <PrimaryButton
               icon={Zap}
               onClick={createInvoice}
-              busy={receiveBusy}
+              busy={receivePending}
               block={false}
             >
-              {receiveBusy
+              {receivePending
                 ? "Creating invoice…"
                 : invoice
                   ? "Create another"
@@ -206,16 +193,18 @@ export function ReceiveScreen({
             <PrimaryButton
               icon={Layers}
               onClick={getAddress}
-              busy={depositBusy}
+              busy={depositPending}
               block={false}
             >
-              {depositBusy ? "Generating…" : "Get boarding address"}
+              {depositPending ? "Generating…" : "Get boarding address"}
             </PrimaryButton>
           )}
         </div>
         <div className="mt-3">
           <InlineError
-            message={localError || (isLn ? receiveError : depositError)}
+            message={
+              localError || (isLn ? receiveError : depositError)?.message || ""
+            }
           />
         </div>
       </Band>

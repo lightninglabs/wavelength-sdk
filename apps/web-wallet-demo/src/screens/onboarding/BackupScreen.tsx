@@ -1,4 +1,5 @@
 import { Check, TriangleAlert } from "lucide-react";
+import { useWalletRefresh } from "@lightninglabs/walletdk-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { CopyButton } from "../../components/ui/CopyButton";
@@ -6,18 +7,24 @@ import { PrimaryButton } from "../../components/ui/Button";
 
 // BackupScreen serves a freshly created wallet (phase ready, backup not yet
 // acknowledged): it presents the generated recovery phrase once before the
-// dashboard becomes reachable.
+// dashboard becomes reachable. Acknowledging fires a background refresh so
+// the dashboard it hands off to is not stale.
 export function BackupScreen({
   network,
   mnemonic,
   onAcknowledge,
-  busy,
 }: {
   network: string;
   mnemonic: string[];
   onAcknowledge: () => void;
-  busy: boolean;
 }) {
+  const { refresh, refreshPending } = useWalletRefresh();
+
+  function handleAcknowledge() {
+    onAcknowledge();
+    void refresh().catch(() => undefined);
+  }
+
   return (
     <AuthLayout network={network} wide>
       <AuthHeader
@@ -49,7 +56,7 @@ export function BackupScreen({
         <div className="flex justify-center">
           <CopyButton value={mnemonic.join(" ")} label="Copy phrase" />
         </div>
-        <PrimaryButton icon={Check} onClick={onAcknowledge} disabled={busy}>
+        <PrimaryButton icon={Check} onClick={handleAcknowledge} disabled={refreshPending}>
           I saved it
         </PrimaryButton>
       </div>
