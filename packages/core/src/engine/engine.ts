@@ -5,6 +5,7 @@ import type { WalletDKEvent } from '../events.ts';
 import type {
   CreateWalletRequest,
   DepositRequest,
+  OpenWalletFromPasskeyRequest,
   ReceiveRequest,
   RestoreWalletRequest,
   SendRequest,
@@ -15,6 +16,7 @@ import type {
   CreateWalletResult,
   DepositResult,
   Entry,
+  OpenWalletFromPasskeyResult,
   PrepareSendResult,
   ReceiveResult,
   SendResult,
@@ -85,6 +87,10 @@ export interface WalletEngine {
   acknowledgeRecovery(): void;
   /** Unlocks an existing wallet, refetches info, and refreshes in the background. */
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
+  /** Opens the wallet from a passkey PRF output, refetches info, and refreshes in the background. */
+  openWalletFromPasskey(
+    req: OpenWalletFromPasskeyRequest,
+  ): Promise<OpenWalletFromPasskeyResult>;
   /** Requests an on-chain deposit address and refreshes in the background. */
   deposit(req?: DepositRequest): Promise<DepositResult>;
   /** Requests a Lightning receive and refreshes in the background. */
@@ -239,10 +245,14 @@ class WalletDKEngine implements WalletEngine {
     await this.#fetchAll();
   }
 
-  // Wallet verbs land in Tasks 9 and 10.
-  createWallet(_req: CreateWalletRequest): Promise<CreateWalletResult> {
-    return Promise.reject(new Error('not implemented'));
+  async createWallet(req: CreateWalletRequest): Promise<CreateWalletResult> {
+    const result = await this.client.createWallet(req);
+    await this.#adoptInfo();
+    this.#kickRefresh();
+
+    return result;
   }
+  // Restore wallet verb lands in Task 10.
   restoreWallet(_req: RestoreWalletRequest): Promise<WalletInfo> {
     return Promise.reject(new Error('not implemented'));
   }
@@ -254,23 +264,49 @@ class WalletDKEngine implements WalletEngine {
     }
     this.#store.update({ recovery: { status: 'idle' } });
   }
-  unlockWallet(_req: UnlockWalletRequest): Promise<UnlockWalletResult> {
-    return Promise.reject(new Error('not implemented'));
+  async unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult> {
+    const result = await this.client.unlockWallet(req);
+    await this.#adoptInfo();
+    this.#kickRefresh();
+
+    return result;
   }
-  deposit(_req?: DepositRequest): Promise<DepositResult> {
-    return Promise.reject(new Error('not implemented'));
+  async openWalletFromPasskey(
+    req: OpenWalletFromPasskeyRequest,
+  ): Promise<OpenWalletFromPasskeyResult> {
+    const result = await this.client.openWalletFromPasskey(req);
+    await this.#adoptInfo();
+    this.#kickRefresh();
+
+    return result;
   }
-  receive(_req: ReceiveRequest): Promise<ReceiveResult> {
-    return Promise.reject(new Error('not implemented'));
+  async deposit(req: DepositRequest = {}): Promise<DepositResult> {
+    const result = await this.client.deposit(req);
+    this.#kickRefresh();
+
+    return result;
   }
-  prepareSend(_req: SendRequest): Promise<PrepareSendResult> {
-    return Promise.reject(new Error('not implemented'));
+  async receive(req: ReceiveRequest): Promise<ReceiveResult> {
+    const result = await this.client.receive(req);
+    this.#kickRefresh();
+
+    return result;
   }
-  sendPrepared(_prepared: PrepareSendResult): Promise<SendResult> {
-    return Promise.reject(new Error('not implemented'));
+  prepareSend(req: SendRequest): Promise<PrepareSendResult> {
+    // A quote moves no money, so nothing to refresh.
+    return this.client.prepareSend(req);
   }
-  send(_req: SendRequest): Promise<SendResult> {
-    return Promise.reject(new Error('not implemented'));
+  async sendPrepared(prepared: PrepareSendResult): Promise<SendResult> {
+    const result = await this.client.sendPrepared(prepared);
+    this.#kickRefresh();
+
+    return result;
+  }
+  async send(req: SendRequest): Promise<SendResult> {
+    const result = await this.client.send(req);
+    this.#kickRefresh();
+
+    return result;
   }
 
   clearLogs(): void {
@@ -372,6 +408,20 @@ class WalletDKEngine implements WalletEngine {
     );
 
     return nextBalance;
+  }
+
+  // Refetches complete info after a wallet came up (create/unlock/restore),
+  // instead of fabricating a partial. A refetch failure is swallowed: the
+  // wallet exists, and the kicked background refresh converges the snapshot.
+  async #adoptInfo(): Promise<WalletInfo | null> {
+    try {
+      const info = await this.client.getInfo();
+      this.#dispatch({ type: 'infoReceived', info }, { info });
+
+      return info;
+    } catch {
+      return null;
+    }
   }
 
   // Serialized background refresh with a consecutive-failure budget. Below
