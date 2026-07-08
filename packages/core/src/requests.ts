@@ -104,8 +104,18 @@ export type ListRequest = {
   pendingOnly?: boolean;
   /** The maximum number of items to return. */
   limit?: number;
-  /** The number of items to skip for pagination. */
+  /**
+   * The number of items to skip for pagination. Applies to the `vtxos` and
+   * `onchain` views only; the `activity` view paginates by `cursor` and
+   * ignores `offset`.
+   */
   offset?: number;
+  /**
+   * The opaque pagination token for the `activity` view. Empty starts from
+   * the newest entry; otherwise pass the `nextCursor` from the previous
+   * {@link ActivityList} page. Ignored by the `vtxos` and `onchain` views.
+   */
+  cursor?: string;
 };
 
 /**

@@ -185,14 +185,27 @@ export interface ConnectConfig {
    */
   transport: Transport;
   /**
-   * DialOptions are appended to the default dial options. When empty,
-   * walletdk uses insecure transport credentials for local development.
+   * TLSCertPath is an optional daemon TLS certificate path. When empty,
+   * walletdk uses system roots unless Insecure is set.
+   */
+  tLSCertPath: string;
+  /**
+   * MacaroonPath is an optional daemon RPC macaroon path.
+   */
+  macaroonPath: string;
+  /**
+   * Insecure disables TLS for local development or injected listeners.
+   */
+  insecure: boolean;
+  /**
+   * DialOptions are appended to the transport and auth dial options.
    * Only used with TransportGRPC.
    */
   dialOptions: any /* grpc.DialOption */[];
   /**
    * HTTPClient is the HTTP client used with TransportREST. Nil uses
-   * http.DefaultClient.
+   * http.DefaultClient, or a TLS-cert-specific client when TLSCertPath
+   * is set.
    */
   hTTPClient?: any /* http.Client */;
 }
@@ -227,8 +240,8 @@ export const WalletStateUnspecified: WalletState = 0;
  */
 export const WalletStateNone: WalletState = 1;
 /**
- * WalletStateLocked indicates an encrypted seed exists but the
- * decryption key has not been provided; signing is unavailable.
+ * WalletStateLocked indicates a wallet database exists but its
+ * password has not been provided; signing is unavailable.
  */
 export const WalletStateLocked: WalletState = 2;
 /**
@@ -473,9 +486,17 @@ export interface ListRequest {
    */
   limit: number /* uint32 */;
   /**
-   * Offset is the pagination offset within the chosen view.
+   * Offset is the pagination offset. It applies to the VTXOs and
+   * Onchain views; the Activity view paginates by Cursor and ignores
+   * Offset.
    */
   offset: number /* uint32 */;
+  /**
+   * Cursor is the opaque pagination token for the Activity view. Empty
+   * starts from the newest entry; otherwise pass the NextCursor returned
+   * by the previous ActivityList page.
+   */
+  cursor: string;
 }
 /**
  * ListResult is a tagged union: exactly one of Activity, VTXOs, or
@@ -507,7 +528,21 @@ export interface ListResult {
  */
 export interface ActivityList {
   entries: Entry[];
+  /**
+   * Total is the number of entries on this page, not a full-feed count:
+   * the feed is cursor-paged, so use HasMore to decide whether to fetch
+   * again.
+   */
   total: number /* uint32 */;
+  /**
+   * HasMore reports whether more entries exist after this page.
+   */
+  hasMore: boolean;
+  /**
+   * NextCursor is the token to pass as ListRequest.Cursor to fetch the
+   * next page. Empty when HasMore is false.
+   */
+  nextCursor: string;
 }
 /**
  * VTXOInventory is the live VTXO inventory returned by the vtxos view.
