@@ -1,6 +1,6 @@
-// A deterministic in-memory WalletDKClient for the provider/hook tests, modeled
+// A deterministic in-memory WalletDKClient for engine and hook tests, modeled
 // on core/base-client.test.ts's FakeClient but implementing the interface
-// directly: the provider needs subscribe/startActivity/ready, not just callRaw.
+// directly: the engine needs subscribe/startActivity/ready, not just callRaw.
 //
 // It records every call, replays canned per-method results (resolve or reject),
 // and exposes a real subscribe registry so a test can `emit` runtime events
@@ -65,10 +65,10 @@ export type RecordedCall = { method: string; args: unknown[] };
 /**
  * A hand-rolled WalletDKClient fake. Configure per-method results via the setter
  * helpers, drive lifecycle with resolveReady/rejectReady and emit, and read back
- * what the provider called through `calls`.
+ * what the engine and hook tests called through `calls`.
  */
 export class FakeWalletDKClient implements WalletDKClient {
-  /** Every method invocation in order, for asserting what the provider called. */
+  /** Every method invocation in order, for asserting what the engine and hook tests called. */
   readonly calls: RecordedCall[] = [];
 
   private readonly listeners = new Set<WalletDKListener>();
