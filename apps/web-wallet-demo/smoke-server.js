@@ -199,16 +199,21 @@ async function serveAPI(req, res, urlPath) {
   }
 
   if (apiPath === "/v1/swap/request-channel-id") {
-    // Proto field is route_hint_path (repeated RouteHint), not route_hint.
+    // Proto field is route_hint_paths (repeated RouteHintPath), each wrapping
+    // an ordered hop list; the legacy singular route_hint_path is reserved.
     // node_id is bytes in proto, so proto-JSON encodes it as base64.
     json(res, {
-      route_hint_path: [
+      route_hint_paths: [
         {
-          node_id: operatorPubkey,
-          channel_id: "42",
-          fee_base_msat: "0",
-          fee_proportional_ppm: "0",
-          cltv_expiry_delta: 40,
+          hops: [
+            {
+              node_id: operatorPubkey,
+              channel_id: "42",
+              fee_base_msat: "0",
+              fee_proportional_ppm: "0",
+              cltv_expiry_delta: 40,
+            },
+          ],
         },
       ],
     });

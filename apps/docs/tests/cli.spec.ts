@@ -11,7 +11,10 @@ test('every CLI nav entry resolves', async ({ page }) => {
 test('cli index documents global flags and exit codes', async ({ page }) => {
   await page.goto('/cli/');
   await expect(page.getByText('--rpcserver')).toBeVisible();
-  await expect(page.getByText('--no-tls')).toBeVisible();
+  // --no-tls also appears inside the regtest callout ("--no-tls --no-macaroons"),
+  // so match the flags-table cell exactly to stay unambiguous.
+  await expect(page.getByText('--no-tls', { exact: true })).toBeVisible();
+  await expect(page.getByText('--macaroonpath')).toBeVisible();
   await expect(page.getByText('exit code', { exact: false }).first()).toBeVisible();
 });
 

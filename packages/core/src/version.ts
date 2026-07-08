@@ -14,4 +14,4 @@
  * scripts/runtime-version.mjs, so keep the declaration in this exact
  * single-quoted literal form.
  */
-export const RUNTIME_MANIFEST_VERSION = '48a5f01';
+export const RUNTIME_MANIFEST_VERSION = '8187e40';

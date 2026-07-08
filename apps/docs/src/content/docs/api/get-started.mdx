@@ -32,15 +32,15 @@ Without the `walletdkrpc` tag, `WalletService` and `WalletInspectionService` are
 
 Every `WalletService` and `WalletInspectionService` method is reachable on both listeners with the same request and response shape, modulo JSON encoding. See [REST conventions](/api/rest/) for the route and body shape used by the gateway.
 
-<Callout type="caution" title="No TLS on the gRPC listener yet">
-The daemon's gRPC server does not currently wire up TLS credentials: it constructs a plain `grpc.NewServer` with no transport credentials, so connections are plaintext today. Treat `localhost:10029` and `localhost:10031` as loopback-only until TLS support lands, and do not expose either listener directly to an untrusted network.
+<Callout type="caution" title="The gRPC listener is secured by default">
+The daemon's gRPC server wires up TLS and macaroon authentication by default: it serves TLS credentials and enforces a macaroon on every call. For loopback development and regtest you can disable both with `--no-tls` and `--no-macaroons`; on a mainnet TCP listener neither can be disabled. The default macaroon is written to `admin.macaroon` under the daemon's network directory. The REST gateway (`localhost:10031`) is a local plaintext HTTP proxy: it forwards the `macaroon` HTTP header to the enforcing gRPC backend, so a call needs that header whenever macaroons are enabled.
 </Callout>
 
 ## Your first call
 
 With `darepod` running a `walletdkrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
 
-Over REST:
+Over REST (a local daemon started with `--no-macaroons`; otherwise add a `-H "macaroon: <hex>"` header):
 
 ```sh
 curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
@@ -49,10 +49,10 @@ curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
 Over the CLI, the equivalent is:
 
 ```sh
-darepocli getinfo --no-tls
+darepocli getinfo --no-tls --no-macaroons
 ```
 
-`getinfo` talks to the daemon's own `DaemonService` rather than `WalletService.Status` directly, but it is the fastest way to confirm `darepocli` can reach `darepod` at all before you start scripting `WalletService` calls. `--no-tls` matches the plaintext gRPC listener described above; it is the right flag for local and regtest use today.
+`getinfo` talks to the daemon's own `DaemonService` rather than `WalletService.Status` directly, but it is the fastest way to confirm `darepocli` can reach `darepod` at all before you start scripting `WalletService` calls. `--no-tls --no-macaroons` matches a daemon run with authentication disabled; it is the right pairing for local and regtest use.
 
 ## Where to go next
 

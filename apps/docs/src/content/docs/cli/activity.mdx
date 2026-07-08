@@ -20,7 +20,7 @@ darepocli activity --format json
 | `--pending` | `false` | Only show entries still in flight. |
 | `--kind` | (none) | Filter by kind (send, recv, deposit, exit); repeatable. |
 | `--limit` | `0` | Page size; 0 uses the daemon default. |
-| `--offset` | `0` | Pagination offset. |
+| `--cursor` | (none) | Activity page token from a prior page's `next_cursor`. Empty starts from the newest entry. |
 | `--format` | `table` | Output format: table, expanded, x, or json. |
 
 ## Example
