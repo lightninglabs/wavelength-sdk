@@ -13,11 +13,11 @@ Wallet history in WalletDK is an **activity stream**: a sequence of **Entry** ob
 
 You can read history in two ways:
 
-- `list({ view: 'activity' })` for a paginated snapshot (optionally filtered with `pendingOnly`, `limit`, and `offset`):
+- `list({ view: 'activity' })` for a paginated snapshot (optionally filtered with `pendingOnly` and paged with `limit` and `cursor`):
 
   ```ts
   const { activity } = await client.list({ view: 'activity' });
-  // activity.entries, activity.total
+  // activity.entries, activity.hasMore, activity.nextCursor
   ```
 
 - `startActivity()` for a live stream that pushes updates until you call `stopActivity()`.

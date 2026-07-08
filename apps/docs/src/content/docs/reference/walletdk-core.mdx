@@ -842,6 +842,7 @@ export const listRequestSig = `type ListRequest = {
   pendingOnly?: boolean;
   limit?: number;
   offset?: number;
+  cursor?: string;
 };`;
 export const listResultSig = `type ListResult = {
   view: ListView;
@@ -853,6 +854,8 @@ export const listViewSig = `type ListView = 'activity' | 'vtxos' | 'onchain';`;
 export const activityListSig = `type ActivityList = {
   entries: Entry[];
   total: number;
+  hasMore: boolean;
+  nextCursor: string;
 };`;
 
 export const subscribeSig = `subscribe(listener: WalletDKListener): () => void`;
@@ -937,7 +940,8 @@ A tagged union with only the field matching the requested view populated.
   { name: 'view', type: 'ListView', desc: "Optional. Which view to list: activity entries, VTXOs, or on-chain outputs. Default: 'activity'." },
   { name: 'pendingOnly', type: 'boolean', desc: 'Optional. When true, returns only pending items. Applies to the activity view only.' },
   { name: 'limit', type: 'number', desc: 'Optional. The maximum number of items to return; zero uses the daemon default.' },
-  { name: 'offset', type: 'number', desc: 'Optional. The number of items to skip for pagination.' },
+  { name: 'offset', type: 'number', desc: 'Optional. The number of items to skip for pagination. Applies to the vtxos and onchain views only; the activity view paginates by cursor and ignores offset.' },
+  { name: 'cursor', type: 'string', desc: "Optional. The opaque pagination token for the activity view. Empty starts from the newest entry; otherwise pass the nextCursor from the previous ActivityList page. Ignored by the vtxos and onchain views." },
 ]} />
 
 **`ListResult`**
@@ -971,7 +975,9 @@ the right field.
 
 <ParamsTable rows={[
   { name: 'entries', type: 'Entry[]', desc: 'The matching activity entries; see Entry.' },
-  { name: 'total', type: 'number', desc: 'The total number of matching entries (independent of limit/offset).' },
+  { name: 'total', type: 'number', desc: 'The number of entries on this page, not a full-feed count. The feed is cursor-paged, so use hasMore to decide whether to fetch again.' },
+  { name: 'hasMore', type: 'boolean', desc: 'Whether more entries exist after this page.' },
+  { name: 'nextCursor', type: 'string', desc: 'The token to pass as ListRequest.cursor to fetch the next page. Empty when hasMore is false.' },
 ]} />
 
 </ApiSymbol>
