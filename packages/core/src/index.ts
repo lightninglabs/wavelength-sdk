@@ -119,3 +119,10 @@ export { camelizeKeys } from './casing.ts';
 // destination. It never names a settlement rail; read that from prepareSend.
 export { classifyDestination } from './destination.ts';
 export type { Destination, InvoiceAmount } from './destination.ts';
+
+// The headless wallet engine: the framework-agnostic orchestrator that React
+// (and future bindings) subscribe to. Most apps construct one through a
+// transport factory (createWebWalletEngine / createNativeWalletEngine).
+export { createWalletEngine } from './engine/engine.ts';
+export type { DistributiveOmit, WalletEngine, WalletEngineOptions } from './engine/engine.ts';
+export type { RecoveryState, WalletSnapshot } from './engine/snapshot.ts';
