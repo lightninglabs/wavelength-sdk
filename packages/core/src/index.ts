@@ -106,3 +106,8 @@ export { RUNTIME_MANIFEST_VERSION } from './version.ts';
 // camelizeKeys maps a daemon PascalCase JSON response to the SDK's camelCase
 // shapes; every transport applies it at its response boundary.
 export { camelizeKeys } from './casing.ts';
+
+// classifyDestination decides which fields a send UI should render for a pasted
+// destination. It never names a settlement rail; read that from prepareSend.
+export { classifyDestination } from './destination.ts';
+export type { Destination, InvoiceAmount } from './destination.ts';
