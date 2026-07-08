@@ -13,7 +13,9 @@ import Callout from '~/components/mdx/Callout.astro';
 `@lightninglabs/walletdk-web` is the browser/wasm transport for WalletDK: it
 runs the embedded daemon as WebAssembly, either in a dedicated Web Worker (the
 default) or on the page's main thread, and exposes it as a standard
-[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient). It also ships the
+[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient). `createWebWalletEngine()`
+wraps that client in a [`WalletEngine`](/reference/walletdk-core/#WalletEngine)
+in one call, which is the entry point most apps want. It also ships the
 browser (WebAuthn/PRF) passkey ceremony.
 
 <Callout type="tip" title="One import for the client and every type">
@@ -34,6 +36,16 @@ export const webClientOptionsSig = `type WebClientOptions = {
   runtimeThread?: RuntimeThread;
   debug?: boolean;
 };`;
+
+export const createWebWalletEngineSig = `function createWebWalletEngine(
+  options?: WebWalletEngineOptions,
+): WalletEngine`;
+
+export const webWalletEngineOptionsSig = `type WebWalletEngineOptions = WebClientOptions &
+  (
+    | { config: RuntimeConfig; autoStart: true }
+    | { config?: RuntimeConfig; autoStart?: false }
+  );`;
 
 export const runtimeThreadSig = `type RuntimeThread = 'main' | 'worker';`;
 
@@ -98,10 +110,12 @@ export const receiveRequestSig = `type ReceiveRequest = {
 <ApiSymbol name="createWebClient" kind="function">
 
 Creates and returns a `WalletDKClient` that runs the embedded daemon in the
-browser. Call once at application startup, then pass the client to
-`WalletDKProvider` or call `start(defaultConfig(network))` directly. Defaults
-to the Web Worker transport ([`WorkerWalletDKClient`](#transports)); pass
-`runtimeThread: 'main'` to run on the page's main thread instead.
+browser. Call once at application startup, then wrap it with
+`createWalletEngine` from `@lightninglabs/walletdk-core` (or use
+[`createWebWalletEngine`](#creating-an-engine) below to do both in one call)
+or call `start(defaultConfig(network))` directly. Defaults to the Web Worker
+transport ([`WorkerWalletDKClient`](#transports)); pass `runtimeThread:
+'main'` to run on the page's main thread instead.
 
 <Signature title="walletdk-web.d.ts" code={createWebClientSig} />
 
@@ -140,6 +154,55 @@ main thread as an escape hatch (for example, environments without Worker
 support).
 
 <Signature title="walletdk-web.d.ts" code={runtimeThreadSig} />
+
+</ApiSymbol>
+
+## Creating an engine
+
+<ApiSymbol name="createWebWalletEngine" kind="function">
+
+Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the browser/wasm transport: the one-call setup for a web app. It builds the client with `createWebClient()` internally, so you only need this one factory. Pass the result to `WalletDKProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly without React.
+
+<Signature title="walletdk-web.d.ts" code={createWebWalletEngineSig} />
+
+<ParamsTable rows={[
+  { name: 'options', type: 'WebWalletEngineOptions', desc: 'Optional. The same browser-specific settings as createWebClient, plus the engine\'s config and autoStart.' },
+]} />
+
+<Returns type="WalletEngine">
+A live engine driving a freshly built web client. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) for its full behavior, including the background processes it runs automatically.
+</Returns>
+
+**`WebWalletEngineOptions`**
+
+The browser-specific settings from `WebClientOptions` combined with [`WalletEngineOptions`](/reference/walletdk-core/#createWalletEngine)'s config/autoStart union (minus `client`, which this factory builds for you): the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
+
+<Signature title="walletdk-web.d.ts" code={webWalletEngineOptionsSig} />
+
+<ParamsTable rows={[
+  { name: 'workerURL', type: 'string', desc: 'Same as WebClientOptions.workerURL.' },
+  { name: 'runtimeBaseUrl', type: 'string', desc: 'Same as WebClientOptions.runtimeBaseUrl.' },
+  { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Same as WebClientOptions.runtimeThread.' },
+  { name: 'debug', type: 'boolean', desc: 'Same as WebClientOptions.debug.' },
+  { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by the engine\'s start() when called with no argument.' },
+  { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config.' },
+]} />
+
+```tsx title="main.tsx"
+import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
+import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
+
+const engine = createWebWalletEngine({
+  runtimeBaseUrl: 'https://your-host/walletdk/',
+  config: defaultConfig('signet'),
+  autoStart: true,
+});
+
+export function Root() {
+  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
+}
+```
 
 </ApiSymbol>
 
@@ -273,7 +336,7 @@ for a complete self-hosting walkthrough.
 Browser (WebAuthn/PRF) implementation of the
 [`PasskeyCeremony`](/reference/walletdk-core/#PasskeyCeremony) contract. It is
 literally the three standalone functions below grouped into one object; pass
-it to `usePasskeyWallet` from walletdk-react, or call the functions directly.
+it to `useWalletPasskey` from walletdk-react, or call the functions directly.
 
 <Signature title="walletdk-web.d.ts" code={passkeyCeremonySig} />
 
@@ -421,6 +484,6 @@ Parameters accepted by `receive()`.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
-- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider` and the hooks that consume a client created here.
+- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
+- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider` and the hooks that consume an engine created here.
 - [Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for a full self-hosting walkthrough of the files listed above.

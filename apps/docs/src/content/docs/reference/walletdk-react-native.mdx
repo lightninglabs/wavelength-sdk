@@ -18,8 +18,10 @@ surface is stable; iOS passkey support is still experimental.
 `@lightninglabs/walletdk-react-native` is the React Native transport for
 WalletDK: the daemon compiled into the app binary via gomobile bindings,
 exposed as a standard [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient).
-It also ships the native (Android Credential Manager / iOS
-AuthenticationServices) passkey ceremony.
+`createNativeWalletEngine()` wraps that client in a
+[`WalletEngine`](/reference/walletdk-core/#WalletEngine) in one call, which is
+the entry point most apps want. It also ships the native (Android Credential
+Manager / iOS AuthenticationServices) passkey ceremony.
 
 <Callout type="tip" title="One import for the client and every type">
 This package re-exports the entire [`@lightninglabs/walletdk-core`](/reference/walletdk-core/)
@@ -30,6 +32,14 @@ no need to also depend on `@lightninglabs/walletdk-core` directly.
 </Callout>
 
 export const createNativeClientSig = `function createNativeClient(): WalletDKClient`;
+
+export const createNativeWalletEngineSig = `function createNativeWalletEngine(
+  options?: NativeWalletEngineOptions,
+): WalletEngine`;
+
+export const nativeWalletEngineOptionsSig = `type NativeWalletEngineOptions =
+  | { config: RuntimeConfig; autoStart: true }
+  | { config?: RuntimeConfig; autoStart?: false };`;
 
 export const createNativePasskeyCeremonySig = `function createNativePasskeyCeremony(
   options: NativePasskeyCeremonyOptions,
@@ -60,6 +70,48 @@ runtime is already compiled in) then `start(config)` to boot the daemon.
 
 </ApiSymbol>
 
+<ApiSymbol name="createNativeWalletEngine" kind="function">
+
+Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the React Native transport: the one-call setup for an RN app. It builds the client with `createNativeClient()` internally, so you only need this one factory. Pass the result to `WalletDKProvider` from [walletdk-react](/reference/walletdk-react/).
+
+<Signature title="walletdk-react-native.d.ts" code={createNativeWalletEngineSig} />
+
+<ParamsTable rows={[
+  { name: 'options', type: 'NativeWalletEngineOptions', desc: 'Optional. The engine\'s config and autoStart; createNativeClient() itself takes no options today.' },
+]} />
+
+<Returns type="WalletEngine">
+A live engine driving a freshly built native client. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) for its full behavior, including the background processes it runs automatically.
+</Returns>
+
+**`NativeWalletEngineOptions`**
+
+[`WalletEngineOptions`](/reference/walletdk-core/#createWalletEngine)'s config/autoStart union minus `client`, which this factory builds for you: the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
+
+<Signature title="walletdk-react-native.d.ts" code={nativeWalletEngineOptionsSig} />
+
+<ParamsTable rows={[
+  { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by the engine\'s start() when called with no argument.' },
+  { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config.' },
+]} />
+
+```tsx title="App.tsx"
+import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
+
+const engine = createNativeWalletEngine({
+  config: defaultConfig('signet'),
+  autoStart: true,
+});
+
+export default function Root() {
+  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
+}
+```
+
+</ApiSymbol>
+
 ## Passkeys (native)
 
 <ApiSymbol name="createNativePasskeyCeremony" kind="function">
@@ -67,7 +119,7 @@ runtime is already compiled in) then `start(config)` to boot the daemon.
 Creates the native implementation of the
 [`PasskeyCeremony`](/reference/walletdk-core/#PasskeyCeremony) contract
 (Android Credential Manager, iOS AuthenticationServices). Pass it to
-`usePasskeyWallet` from walletdk-react, or call its methods directly.
+`useWalletPasskey` from walletdk-react, or call its methods directly.
 
 <Signature title="walletdk-react-native.d.ts" code={createNativePasskeyCeremonySig} />
 
@@ -77,7 +129,7 @@ Creates the native implementation of the
 
 <Returns type="PasskeyCeremony">
 The native passkey ceremony. Its `supportsPasskeyPrf()` method is what backs
-`usePasskeyWallet`'s `supported` flag.
+`useWalletPasskey`'s `supported` flag.
 </Returns>
 
 Requires the relying-party domain to be associated with your app:
@@ -125,6 +177,6 @@ until the runtime has started.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
-- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider`, `usePasskeyWallet`, and the other hooks that consume a client created here.
+- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
+- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider`, `useWalletPasskey`, and the other hooks that consume an engine created here.
 - [Passkey setup](/react-native/get-started/passkey-setup/) for the Android and iOS domain-association walkthrough required by `createNativePasskeyCeremony`.
