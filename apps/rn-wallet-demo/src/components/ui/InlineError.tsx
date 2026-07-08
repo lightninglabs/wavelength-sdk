@@ -29,7 +29,11 @@ export function InlineError({ message }: { message: string }) {
   }
 
   return (
-    <View style={styles.row}>
+    <View
+      style={styles.row}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+    >
       <TriangleAlert size={15} color={palette.bad} style={{ marginTop: 2 }} />
       <Text style={styles.text}>{message}</Text>
     </View>

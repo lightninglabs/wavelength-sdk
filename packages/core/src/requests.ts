@@ -74,7 +74,7 @@ export type SendRequest =
   | {
       /** A Lightning invoice to pay. */
       invoice: string;
-      /** The amount to send, in sats. Omit to pay the invoice's own amount. */
+      /** The amount to send, in sats. Ignored on the invoice path: v1 requires an amount-bearing BOLT-11 invoice. */
       amountSat?: number;
       /** An optional note recorded with the activity. */
       note?: string;

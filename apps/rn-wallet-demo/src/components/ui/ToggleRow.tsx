@@ -47,7 +47,12 @@ export function ToggleRow({
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
-      <Toggle on={on} onChange={onChange} disabled={disabled} />
+      <Toggle
+        on={on}
+        onChange={onChange}
+        accessibilityLabel={title}
+        disabled={disabled}
+      />
     </View>
   );
 }

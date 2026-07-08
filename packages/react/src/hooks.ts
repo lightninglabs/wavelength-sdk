@@ -119,15 +119,30 @@ export function useReceive() {
 }
 
 /**
- * Exposes the send action with flat busy/error state for sending a payment.
+ * Returns the send actions and their status. `send` is the one-shot path;
+ * `prepareSend` + `sendPrepared` are the two-step quote-then-confirm path.
+ * `preparing` tracks the quote, `busy` tracks the dispatch.
  */
 export function useSend() {
-  const { send, operations, clearOperationError } = useWalletDK();
+  const {
+    send,
+    prepareSend,
+    sendPrepared,
+    operations,
+    clearOperationError,
+  } = useWalletDK();
 
   return {
     send,
+    prepareSend,
+    sendPrepared,
     busy: operations.send.busy,
+    preparing: operations.prepareSend.busy,
     error: operations.send.error,
-    clearError: () => clearOperationError("send"),
+    prepareError: operations.prepareSend.error,
+    clearError: () => {
+      clearOperationError("send");
+      clearOperationError("prepareSend");
+    },
   };
 }

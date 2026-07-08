@@ -32,10 +32,12 @@ const makeStyles = (p: Palette) => ({
 export function Toggle({
   on,
   onChange,
+  accessibilityLabel,
   disabled = false,
 }: {
   on: boolean;
   onChange: (next: boolean) => void;
+  accessibilityLabel?: string;
   disabled?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -44,8 +46,9 @@ export function Toggle({
     <Pressable
       onPress={() => onChange(!on)}
       disabled={disabled}
+      accessibilityLabel={accessibilityLabel}
       accessibilityRole="switch"
-      accessibilityState={{ checked: on }}
+      accessibilityState={{ checked: on, disabled }}
       style={[
         styles.track,
         on ? styles.trackOn : styles.trackOff,

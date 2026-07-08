@@ -685,7 +685,9 @@ export const sendRailSig = `type SendRail =
   | 'offchain_unknown'
   | 'in_ark'
   | 'lightning'
-  | 'onchain';`;
+  | 'onchain'
+  | 'credit'
+  | 'mixed';`;
 
 Sending a payment follows a quote &rarr; confirm &rarr; pay flow.
 [`prepareSend()`](#prepareSend) validates the request and returns a quote (the
@@ -761,7 +763,7 @@ and `sweepAll` applies only to the on-chain arm.
 
 <ParamsTable rows={[
   { name: 'invoice', type: 'string', desc: 'A Lightning invoice to pay.' },
-  { name: 'amountSat', type: 'number', desc: "Optional. The amount to send, in sats. Omit to pay the invoice's own amount." },
+  { name: 'amountSat', type: 'number', desc: 'Optional. The amount to send, in sats. Ignored on the invoice path: v1 requires an amount-bearing BOLT-11 invoice.' },
   { name: 'note', type: 'string', desc: 'Optional. A note recorded with the activity.' },
   { name: 'maxFeeSat', type: 'number', desc: 'Optional. A cap on the fee, in sats.' },
 ]} />
@@ -831,6 +833,64 @@ Identifies the expected settlement rail for a prepared send.
 | `in_ark` | Settled directly within Ark, without leaving the protocol. |
 | `lightning` | Settled over Lightning (via a swap). |
 | `onchain` | Settled with an on-chain transaction. |
+| `credit` | Settled from the wallet's server-side credit balance. |
+| `mixed` | Settled by combining credit with the normal vHTLC path. |
+
+</ApiSymbol>
+
+export const destinationSig = `type Destination =
+  | { kind: 'empty' }
+  | { kind: 'invoice'; amount: InvoiceAmount }
+  | { kind: 'address' };`;
+
+export const invoiceAmountSig = `type InvoiceAmount =
+  | { status: 'known'; sat: number }
+  | { status: 'amountless' }
+  | { status: 'unrepresentable' };`;
+
+export const classifyDestinationSig = `function classifyDestination(raw: string): Destination`;
+
+<ApiSymbol name="classifyDestination" kind="function">
+
+Classifies a pasted destination string so a send UI can render only the fields
+that apply to it. Pure, synchronous, and offline: it reads a BOLT-11 amount from
+the invoice's human-readable part without decoding the bech32 payload, so an
+amountless invoice is detected before any network call.
+
+<Signature title="walletdk-core.d.ts" code={classifyDestinationSig} />
+
+<Callout type="note">
+`classifyDestination` deliberately does **not** name a settlement rail. A string it reports as `invoice` may still quote as `in_ark`, `credit`, or `mixed` (an address always settles `onchain`). Read [`rail`](#SendRail) from the [`PrepareSendResult`](#PrepareSendResult) for the authoritative answer, and treat any rail shown before that as provisional.
+</Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="Destination" kind="type">
+
+The result of [`classifyDestination()`](#classifyDestination).
+
+<Signature title="walletdk-core.d.ts" code={destinationSig} />
+
+<ParamsTable rows={[
+  { name: "{ kind: 'empty' }", type: 'variant', desc: 'The input is blank. Render no conditional fields.' },
+  { name: "{ kind: 'invoice', amount }", type: 'variant', desc: 'A BOLT-11 invoice. amount is the InvoiceAmount read from the human-readable part; see below. The daemon ignores a caller-supplied amountSat on the invoice path, and the current daemon rejects an amountless invoice outright, so a UI should never collect an amount for an invoice.' },
+  { name: "{ kind: 'address' }", type: 'variant', desc: 'Anything that is not a BOLT-11 invoice. Treat it as a payable address; the rail is still unknown.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="InvoiceAmount" kind="type">
+
+The amount an invoice carries, when it can be read from the human-readable
+part. A discriminated union keyed on `status`.
+
+<Signature title="walletdk-core.d.ts" code={invoiceAmountSig} />
+
+<ParamsTable rows={[
+  { name: "{ status: 'known', sat }", type: 'variant', desc: 'A whole number of satoshis, read directly from the invoice.' },
+  { name: "{ status: 'amountless' }", type: 'variant', desc: 'The invoice carries no amount at all. The payer must supply one; the current daemon rejects such an invoice outright.' },
+  { name: "{ status: 'unrepresentable' }", type: 'variant', desc: 'The invoice carries an amount that cannot be shown as a whole number of satoshis: a sub-satoshi figure, or one too large to represent exactly. The invoice is still amount-bearing and the daemon pays it (a sub-satoshi amount is rounded up to the next satoshi), so a UI must not ask the payer for an amount. It simply cannot display one.' },
+]} />
 
 </ApiSymbol>
 

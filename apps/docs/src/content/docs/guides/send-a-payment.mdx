@@ -27,22 +27,22 @@ quote before calling `sendPrepared()`. Check `feeKnown` before displaying
 
 ```tsx title="send.tsx"
 import { useState } from 'react';
-import { useWalletDK } from '@lightninglabs/walletdk-react';
+import { useSend } from '@lightninglabs/walletdk-react';
 import type { PrepareSendResult } from '@lightninglabs/walletdk-core';
 
 function SendLightning() {
-  const { client } = useWalletDK();
+  const { prepareSend, sendPrepared } = useSend();
   const [quote, setQuote] = useState<PrepareSendResult | null>(null);
 
   const prepare = async (bolt11: string) => {
     // prepareSend returns a fee quote and sendIntentId.
-    setQuote(await client.prepareSend({ invoice: bolt11 }));
+    setQuote(await prepareSend({ invoice: bolt11 }));
   };
 
   const confirm = async () => {
     if (!quote) return;
     // sendPrepared dispatches the payment.
-    await client.sendPrepared(quote);
+    await sendPrepared(quote);
     setQuote(null);
   };
 
@@ -93,6 +93,14 @@ function SendOnChain() {
     </button>
   );
 }
+```
+
+To drain the wallet to an address, set `sweepAll` instead of `amountSat`. The
+daemon snapshots the live VTXO set at prepare time and spends exactly that set,
+so quote and dispatch cannot disagree about what "all" means.
+
+```tsx title="sweep.tsx"
+await send({ onchainAddress: address, sweepAll: true });
 ```
 
 ## Handle errors

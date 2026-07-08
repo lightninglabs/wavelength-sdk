@@ -5,6 +5,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type {
   CreateWalletResult,
   Entry,
+  SendResult,
   WalletInfo,
 } from "@lightninglabs/walletdk-core";
 import { WalletDKProvider, useWalletDK } from "./provider.tsx";
@@ -1005,5 +1006,109 @@ describe("WalletDKProvider background recovery", () => {
 
     act(() => result.current.acknowledgeRecovery());
     assert.equal(result.current.recovery.status, "idle");
+  });
+});
+
+describe("WalletDKProvider two-step send", () => {
+  it("sendPrepared refreshes balance and activity on success", async () => {
+    const client = new FakeWalletDKClient();
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    client.resolveReady();
+    client.info = readyInfo;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    client.balanceValue = { confirmedSat: 4200 } as never;
+    client.listValue = { activity: { entries: [entry("e1")] } } as never;
+
+    await act(async () => {
+      const quote = await result.current.prepareSend({ invoice: "lnbc1p" });
+      await result.current.sendPrepared(quote);
+    });
+
+    await waitFor(() => {
+      assert.equal(result.current.balance?.confirmedSat, 4200);
+      assert.equal(result.current.activity.length, 1);
+    });
+  });
+
+  it("tracks prepareSend busy and error separately from send", async () => {
+    const client = new FakeWalletDKClient();
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    client.resolveReady();
+    client.info = readyInfo;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    client.prepareSend = () => Promise.reject(new Error("no route"));
+
+    await act(async () => {
+      await assert.rejects(
+        () => result.current.prepareSend({ invoice: "lnbc1p" }),
+        /no route/,
+      );
+    });
+
+    assert.equal(result.current.operations.prepareSend.error, "no route");
+    assert.equal(result.current.operations.prepareSend.busy, false);
+    assert.equal(result.current.operations.send.error, "");
+  });
+
+  it("sendPrepared resolves with the SendResult even when the post-send refresh fails", async () => {
+    const client = new FakeWalletDKClient();
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    client.resolveReady();
+    client.info = readyInfo;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    // Only the refresh triggered by sendPrepared should fail; the refresh
+    // above must succeed so the wallet is 'ready' before the send.
+    client.impl("getInfo", () => {
+      throw new Error("getInfo down");
+    });
+
+    let sendResult: SendResult | undefined;
+    await act(async () => {
+      const quote = await result.current.prepareSend({ invoice: "lnbc1p" });
+      sendResult = await result.current.sendPrepared(quote);
+    });
+
+    // The send settled and resolved despite the refresh failing.
+    assert.ok(sendResult);
+    assert.equal(result.current.operations.send.error, "");
+    assert.equal(result.current.operations.send.busy, false);
+    // The refresh's own failure surfaces on its own operation, so nothing was
+    // swallowed silently.
+    assert.equal(result.current.operations.refresh.error, "getInfo down");
+  });
+
+  it("send resolves with the SendResult even when the post-send refresh fails", async () => {
+    const client = new FakeWalletDKClient();
+    client.info = lockedInfo;
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    client.impl("getInfo", () => {
+      throw new Error("getInfo down");
+    });
+
+    let sendResult: SendResult | undefined;
+    await act(async () => {
+      sendResult = await result.current.send({ invoice: "lnbc1p" } as never);
+    });
+
+    assert.ok(sendResult);
+    assert.equal(result.current.operations.send.error, "");
+    assert.equal(result.current.operations.send.busy, false);
+    assert.equal(result.current.operations.refresh.error, "getInfo down");
   });
 });

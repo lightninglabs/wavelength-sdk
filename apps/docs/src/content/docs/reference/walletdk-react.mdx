@@ -81,6 +81,8 @@ export const walletDKReactStateSig = `type WalletDKReactState = {
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
   deposit(req?: DepositRequest): Promise<DepositResult>;
   receive(req: ReceiveRequest): Promise<ReceiveResult>;
+  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
+  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
   send(req: SendRequest): Promise<SendResult>;
   logs: WalletDKLogPayload[];
   clearLogs(): void;
@@ -123,6 +125,8 @@ Shape returned by `useWalletDK()`. The `phase` field tracks [`RuntimePhase`](/re
   { name: 'unlockWallet(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: "Unlocks an existing wallet with the same optimistic-info-patch, phase-to-'ready', and awaited refresh() sequence as createWallet, resolving with the UnlockWalletResult." },
   { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address, awaits refresh() on success, and resolves with the DepositResult. req defaults to {} when omitted.' },
   { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice, awaits refresh() on success, and resolves with the ReceiveResult.' },
+  { name: 'prepareSend(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it, resolving with the expected fee, rail, and a single-use sendIntentId. Does not refresh. Uses the "prepareSend" operation key. Safe to retry on failure.' },
+  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a payment quoted by prepareSend, awaits refresh() on success, and resolves with the SendResult. Runs under the "send" operation key, not "prepareSend", because it is the dispatch half. A rejection may mean the payment was already dispatched: check activity before retrying. The quote expires at expiresAtUnix; re-quote rather than dispatching a stale intent.' },
   { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment, awaits refresh() on success, and resolves with the SendResult. req is the SendRequest union (Lightning arm or on-chain arm).' },
   { name: 'logs', type: 'WalletDKLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
   { name: 'clearLogs()', type: '() => void', desc: 'Clears the buffered log tail.' },
@@ -132,7 +136,7 @@ Shape returned by `useWalletDK()`. The `phase` field tracks [`RuntimePhase`](/re
 `WalletOperation` and `OperationState`, used by the `operations` field above:
 
 <ParamsTable rows={[
-  { name: 'WalletOperation', type: "'runtime' | 'refresh' | 'createWallet' | 'unlockWallet' | 'deposit' | 'receive' | 'send'", desc: 'Identifies a single wallet operation whose busy/error state the provider tracks independently. Both start() and stop() use the "runtime" key; refresh(), useWalletBalance, and useWalletActivity all use the shared "refresh" key.' },
+  { name: 'WalletOperation', type: "'runtime' | 'refresh' | 'createWallet' | 'unlockWallet' | 'deposit' | 'receive' | 'prepareSend' | 'send'", desc: 'Identifies a single wallet operation whose busy/error state the provider tracks independently. Both start() and stop() use the "runtime" key; refresh(), useWalletBalance, and useWalletActivity all use the shared "refresh" key. prepareSend() uses the "prepareSend" key; sendPrepared() and send() both use the "send" key.' },
   { name: 'OperationState.busy', type: 'boolean', desc: 'True while the operation is in flight.' },
   { name: 'OperationState.error', type: 'string', desc: 'The last error message for the operation, or "" when there is none. Set when the operation\'s own async call rejects; unrelated to the top-level error field.' },
 ]} />
@@ -321,22 +325,30 @@ Exposes the receive action with flat busy/error state for requesting a Lightning
 
 export const useSendSig = `function useSend(): {
   send(req: SendRequest): Promise<SendResult>;
+  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
+  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
   busy: boolean;
+  preparing: boolean;
   error: string;
+  prepareError: string;
   clearError(): void;
 };`;
 
 <ApiSymbol name="useSend" kind="function">
 
-Exposes the send action with flat busy/error state for sending a payment.
+Exposes the send actions with flat busy/error state. `send` is the one-shot path. `prepareSend` + `sendPrepared` are the two-step quote-then-confirm path: quote first so the user can see the fee, then dispatch.
 
 <Signature title="walletdk-react.d.ts" code={useSendSig} />
 
 <ParamsTable rows={[
-  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment and refreshes state on success. req is the SendRequest union: a Lightning arm (invoice) or an on-chain arm (onchainAddress).' },
-  { name: 'busy', type: 'boolean', desc: 'Proxies operations.send.busy.' },
+  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment and refreshes state on success. req is the SendRequest union: a Lightning arm (invoice) or an on-chain arm (onchainAddress). Composes prepareSend + sendPrepared internally.' },
+  { name: 'prepareSend(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it. Read expectedFeeSat (guarded by feeKnown), rail, and warning to show the user what they are about to pay. Safe to retry on failure.' },
+  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a quote from prepareSend and refreshes state on success. The quote expires at expiresAtUnix: re-quote rather than dispatching a stale intent. A rejection may mean the payment already went out; check activity before retrying.' },
+  { name: 'busy', type: 'boolean', desc: 'Proxies operations.send.busy. True during send() and during sendPrepared().' },
+  { name: 'preparing', type: 'boolean', desc: 'Proxies operations.prepareSend.busy. True during prepareSend() only.' },
   { name: 'error', type: 'string', desc: 'Proxies operations.send.error.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears the "send" operation error.' },
+  { name: 'prepareError', type: 'string', desc: 'Proxies operations.prepareSend.error.' },
+  { name: 'clearError()', type: '() => void', desc: 'Clears both the "send" and "prepareSend" operation errors.' },
 ]} />
 
 </ApiSymbol>
