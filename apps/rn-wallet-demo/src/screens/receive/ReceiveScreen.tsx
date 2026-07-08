@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { Layers, Zap } from 'lucide-react-native';
-import { ReceiveRequest } from '@lightninglabs/walletdk-react';
+import { AlertTriangle, CheckCircle2, Layers, Zap } from 'lucide-react-native';
+import {
+  DepositResult,
+  Entry,
+  ReceiveRequest,
+  ReceiveResult,
+} from '@lightninglabs/walletdk-react';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
 import { Band } from '../../components/ui/Band';
@@ -13,6 +18,11 @@ import { Label } from '../../components/ui/Label';
 import { QRCode } from '../../components/ui/QRCode';
 import { Segmented } from '../../components/ui/Segmented';
 import { errorMessage } from '../../lib/errors';
+import { formatSats } from '../../lib/format';
+import {
+  hasPendingOnchain,
+  usePollWhileWaiting,
+} from '../../lib/usePollWhileWaiting';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -51,23 +61,50 @@ const makeStyles = (p: Palette) => ({
   resultCopy: {
     alignSelf: 'stretch' as const,
   },
+  waiting: {
+    color: p.muted,
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    textAlign: 'center' as const,
+  },
+  received: {
+    alignItems: 'center' as const,
+    gap: 12,
+    paddingVertical: 16,
+  },
+  receivedTitle: {
+    color: p.text,
+    fontFamily: fonts.sans,
+    fontSize: 18,
+    fontWeight: '600' as const,
+  },
+  receivedAmount: {
+    color: p.good,
+    fontFamily: fonts.mono,
+    fontSize: 26,
+    fontWeight: '600' as const,
+  },
 });
 
 // ReceiveScreen offers a Lightning invoice (amount + memo) or an on-chain
 // boarding address, each paired with a scannable QR. Values come from the
-// live receive()/deposit() calls.
+// live receive()/deposit() calls. Once a payment lands, the provider's
+// activity stream surfaces the matching entry, which flips the QR to a received
+// confirmation without any manual refresh.
 export function ReceiveScreen({
   onNavigate,
   onReceive,
   onDeposit,
+  activity,
   receiveBusy,
   receiveError,
   depositBusy,
   depositError,
 }: {
   onNavigate: (tab: AppTab) => void;
-  onReceive: (req: ReceiveRequest) => Promise<string>;
-  onDeposit: () => Promise<string>;
+  onReceive: (req: ReceiveRequest) => Promise<ReceiveResult>;
+  onDeposit: () => Promise<DepositResult>;
+  activity: Entry[];
   receiveBusy: boolean;
   receiveError: string;
   depositBusy: boolean;
@@ -81,20 +118,73 @@ export function ReceiveScreen({
   const [invoice, setInvoice] = useState('');
   const [address, setAddress] = useState('');
   const [localError, setLocalError] = useState('');
+  // The id of the entry each tab's request created, so the live activity list
+  // can be matched back to it when it settles. Keyed per tab: a Lightning
+  // invoice must keep its confirmation hook across a trip to the on-chain tab
+  // and back, since its QR stays on screen and only the id can match it.
+  const [pendingEntryId, setPendingEntryId] = useState<Record<Tab, string>>({
+    lightning: '',
+    onchain: '',
+  });
 
   const isLn = tab === 'lightning';
   // The QR block only appears once a value has been generated.
   const result = isLn ? invoice : address;
+  const trackedId = pendingEntryId[tab];
+  // The activity entry for this request. Lightning matches on the id receive()
+  // returned, which the daemon keeps stable. On-chain also matches the boarding
+  // address, because a confirmed deposit row is keyed deposit-<address>: that
+  // arm is what survives a reload, where the id from deposit() is lost.
+  const match = activity.find((e) => {
+    if (trackedId && e.id === trackedId) {
+      return true;
+    }
+
+    return !isLn && Boolean(address) && e.request?.onchainAddress === address;
+  });
+  // A receive that failed (expired invoice, rejected swap, timed-out HTLC) must
+  // not leave a live-looking QR on screen promising it updates automatically.
+  const failed = match?.status === 'failed' ? match : undefined;
+  // Treat it as received once complete, or, on-chain, as soon as the deposit is
+  // detected (pending): funds have arrived; boarding into a spendable VTXO just
+  // confirms afterward. A Lightning receive only counts when complete.
+  const settled =
+    !failed &&
+    match &&
+    (match.status === 'complete' || (!isLn && match.status === 'pending'))
+      ? match
+      : undefined;
+
+  // On-chain boarding deposits are not pushed on the activity stream, so poll
+  // while an on-chain address is shown and not yet detected. Once a pending
+  // on-chain entry exists, the app-level poll takes over tracking it, so stop
+  // here to avoid a double poll. Lightning receives arrive via the stream, and a
+  // failed receive is terminal, so neither keeps polling.
+  usePollWhileWaiting(
+    !isLn && Boolean(address) && !settled && !failed && !hasPendingOnchain(activity),
+  );
+
+  function trackEntry(forTab: Tab, id: string) {
+    setPendingEntryId((current) => ({ ...current, [forTab]: id }));
+  }
+
+  function switchTab(next: Tab) {
+    // Clear the local error so an invoice failure does not linger under the
+    // on-chain tab (and vice versa). Each tab keeps its own request.
+    setLocalError('');
+    setTab(next);
+  }
 
   async function createInvoice() {
     setLocalError('');
+    trackEntry('lightning', '');
     try {
-      setInvoice(
-        await onReceive({
-          amountSat: Number(amount) || 0,
-          memo: memo || undefined,
-        }),
-      );
+      const next = await onReceive({
+        amountSat: Number(amount) || 0,
+        memo: memo || undefined,
+      });
+      setInvoice(next.invoice);
+      trackEntry('lightning', next.entry.id);
     } catch (err) {
       setLocalError(errorMessage(err));
     }
@@ -102,8 +192,11 @@ export function ReceiveScreen({
 
   async function getAddress() {
     setLocalError('');
+    trackEntry('onchain', '');
     try {
-      setAddress(await onDeposit());
+      const next = await onDeposit();
+      setAddress(next.address);
+      trackEntry('onchain', next.entry.id);
     } catch (err) {
       setLocalError(errorMessage(err));
     }
@@ -122,12 +215,7 @@ export function ReceiveScreen({
         <View style={{ marginTop: 12 }}>
           <Segmented
             value={tab}
-            onChange={(next) => {
-              // Clear the local error so an invoice failure does not linger
-              // under the on-chain tab (and vice versa).
-              setLocalError('');
-              setTab(next);
-            }}
+            onChange={switchTab}
             options={[
               { value: 'lightning', label: 'Lightning' },
               { value: 'onchain', label: 'On-chain' },
@@ -179,7 +267,35 @@ export function ReceiveScreen({
         </View>
       </Band>
 
-      {result ? (
+      {failed ? (
+        <Band tinted>
+          <View style={styles.received}>
+            <AlertTriangle size={40} color={palette.bad} />
+            <Text style={styles.receivedTitle}>Payment failed</Text>
+            <Text style={styles.waiting}>
+              {failed.failureReason ||
+                'This request did not complete. Create a new one to try again.'}
+            </Text>
+            <GhostButton onPress={() => onNavigate('home')}>Done</GhostButton>
+          </View>
+        </Band>
+      ) : settled ? (
+        <Band tinted>
+          <View style={styles.received}>
+            <CheckCircle2 size={40} color={palette.good} />
+            <Text style={styles.receivedTitle}>Payment received</Text>
+            <Text style={styles.receivedAmount}>
+              +{formatSats(Math.abs(settled.amountSat))} sats
+            </Text>
+            {settled.status === 'pending' ? (
+              <Text style={styles.waiting}>
+                Confirming on-chain, boarding into Ark…
+              </Text>
+            ) : null}
+            <GhostButton onPress={() => onNavigate('home')}>Done</GhostButton>
+          </View>
+        </Band>
+      ) : result ? (
         <Band tinted>
           <View style={styles.result}>
             <QRCode value={result} size={176} />
@@ -189,6 +305,9 @@ export function ReceiveScreen({
                 value={result}
               />
             </View>
+            <Text style={styles.waiting}>
+              Waiting for payment. This updates automatically.
+            </Text>
           </View>
         </Band>
       ) : null}

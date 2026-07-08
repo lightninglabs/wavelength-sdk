@@ -32,6 +32,7 @@ import {
 } from "../../lib/balance";
 import { errorMessage } from "../../lib/errors";
 import { formatBtc, formatSats } from "../../lib/format";
+import { usePollWhileWaiting } from "../../lib/usePollWhileWaiting";
 import { Composition } from "./Composition";
 
 // HomeScreen is the authenticated overview: the balance hero with composition,
@@ -280,6 +281,11 @@ function EmptyWallet({
 }) {
   const [address, setAddress] = useState("");
   const [localError, setLocalError] = useState("");
+
+  // A boarding deposit is not pushed on the activity stream, so poll while the
+  // address is shown and the wallet is still empty (this view unmounts once it
+  // is funded, which stops the poll).
+  usePollWhileWaiting(Boolean(address));
 
   const fetchAddress = useCallback(async () => {
     setLocalError("");
