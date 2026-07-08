@@ -8,6 +8,12 @@ export * from "@lightninglabs/walletdk-core";
 // The provider, its context state type, operation types, and useWalletDK.
 export * from "./provider";
 
+// provider.tsx's RecoveryState (error as string) and core's engine RecoveryState
+// (error as Error) share a name but not a shape; the provider's existing surface
+// stays the one this package exports under that name until it migrates onto the
+// engine. This explicit re-export resolves the star-export name collision above.
+export type { RecoveryState } from "./provider";
+
 // The granular hooks built on top of useWalletDK.
 export * from "./hooks";
 
