@@ -163,3 +163,12 @@ export type SweepWalletRequest = {
   /** An optional confirmation target (in blocks) used to estimate fees. */
   confTarget?: number;
 };
+
+/**
+ * A restore-from-mnemonic request: creation options stay meaningful on import,
+ * and the mnemonic is mandatory.
+ */
+export type RestoreWalletRequest = CreateWalletRequest & {
+  /** The recovery phrase to restore from. */
+  mnemonic: string[];
+};
