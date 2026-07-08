@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { RefreshCw } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
+import { WipeDataButton } from '../../components/WipeDataButton';
 import { PrimaryButton } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { InlineError } from '../../components/ui/InlineError';
@@ -27,7 +28,7 @@ const makeStyles = (p: Palette) => ({
   errorBox: {
     gap: 12,
   },
-  retry: {
+  actions: {
     marginTop: 20,
   },
 });
@@ -43,12 +44,17 @@ export function LoadingScreen({
   sub,
   error,
   onRetry,
+  onWipe,
 }: {
   network: string;
   title: string;
   sub: string;
   error?: string;
   onRetry?: () => void;
+  // onWipe, when given, offers to clear the local wallet data alongside the
+  // retry: a failed start caused by the stored data itself is otherwise
+  // unrecoverable, as the settings screen never becomes reachable.
+  onWipe?: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const failed = Boolean(error);
@@ -69,10 +75,11 @@ export function LoadingScreen({
         )}
       </Card>
       {failed && onRetry ? (
-        <View style={styles.retry}>
+        <View style={styles.actions}>
           <PrimaryButton icon={RefreshCw} onPress={onRetry}>
             Try again
           </PrimaryButton>
+          {onWipe ? <WipeDataButton onWipe={onWipe} /> : null}
         </View>
       ) : null}
     </AuthLayout>
