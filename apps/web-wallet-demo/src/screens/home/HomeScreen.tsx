@@ -25,13 +25,13 @@ import { Label } from "../../components/ui/Label";
 import { cn } from "../../lib/cn";
 import {
   balanceSat,
-  effectivePendingIn,
-  effectivePendingOut,
   hasAnyValue,
-  normalizeActivity,
+  pendingInSat,
+  pendingOutSat,
 } from "../../lib/balance";
 import { errorMessage } from "../../lib/errors";
 import { formatBtc, formatSats } from "../../lib/format";
+import { usePollWhileWaiting } from "../../lib/usePollWhileWaiting";
 import { Composition } from "./Composition";
 
 // HomeScreen is the authenticated overview: the balance hero with composition,
@@ -61,9 +61,10 @@ export function HomeScreen({
   depositBusy: boolean;
   depositError: string;
 }) {
-  // Treat the wallet as funded when it holds or is receiving any value
-  // (including a pending boarding deposit) or has any activity.
-  const funded = hasAnyValue(balance, activity) || activity.length > 0;
+  // Treat the wallet as funded when the balance holds or is moving any value,
+  // or when there is any history to show. Value comes from the balance, history
+  // from the activity: the two are never mixed.
+  const funded = hasAnyValue(balance) || activity.length > 0;
 
   return (
     <div>
@@ -75,7 +76,6 @@ export function HomeScreen({
         <>
           <BalanceBand
             balance={balance}
-            activity={activity}
             onNavigate={onNavigate}
             onRefresh={onRefresh}
             refreshBusy={refreshBusy}
@@ -83,14 +83,10 @@ export function HomeScreen({
           <Band>
             <Label>Balance composition</Label>
             <div className="mt-4">
-              <Composition balance={balance} activity={activity} />
+              <Composition balance={balance} />
             </div>
           </Band>
-          <RecentActivityBand
-            activity={activity}
-            balance={balance}
-            onNavigate={onNavigate}
-          />
+          <RecentActivityBand activity={activity} onNavigate={onNavigate} />
           <RuntimeBand info={info} phaseLabel={phaseLabel} />
         </>
       ) : (
@@ -111,20 +107,18 @@ export function HomeScreen({
 // and the primary Send / Receive actions.
 function BalanceBand({
   balance,
-  activity,
   onNavigate,
   onRefresh,
   refreshBusy,
 }: {
   balance: Balance | null;
-  activity: Entry[];
   onNavigate: (t: AppTab) => void;
   onRefresh: () => void;
   refreshBusy: boolean;
 }) {
   const amount = balanceSat(balance);
-  const incoming = effectivePendingIn(balance, activity);
-  const outgoing = effectivePendingOut(balance, activity);
+  const incoming = pendingInSat(balance);
+  const outgoing = pendingOutSat(balance);
 
   return (
     <Band tinted>
@@ -281,6 +275,11 @@ function EmptyWallet({
   const [address, setAddress] = useState("");
   const [localError, setLocalError] = useState("");
 
+  // A boarding deposit is not pushed on the activity stream, so poll while the
+  // address is shown and the wallet is still empty (this view unmounts once it
+  // is funded, which stops the poll).
+  usePollWhileWaiting(Boolean(address));
+
   const fetchAddress = useCallback(async () => {
     setLocalError("");
     try {
@@ -382,14 +381,11 @@ function EmptyWallet({
 // RecentActivityBand lists the latest entries with a link to full history.
 function RecentActivityBand({
   activity,
-  balance,
   onNavigate,
 }: {
   activity: Entry[];
-  balance: Balance | null;
   onNavigate: (t: AppTab) => void;
 }) {
-  const rows = normalizeActivity(activity, balance);
 
   return (
     <Band tinted>
@@ -403,13 +399,13 @@ function RecentActivityBand({
           View all <ChevronRight size={13} />
         </button>
       </div>
-      {rows.length === 0 ? (
+      {activity.length === 0 ? (
         <div className="mt-2 border-t border-border py-8 text-center text-sm text-muted">
           No activity yet.
         </div>
       ) : (
         <div className="mt-2 divide-y divide-border border-t border-border">
-          {rows.slice(0, 4).map((entry) => (
+          {activity.slice(0, 4).map((entry) => (
             <ActivityRow key={entry.id} entry={entry} />
           ))}
         </div>

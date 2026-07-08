@@ -30,17 +30,51 @@ const STATUS_CLASS: Record<string, string> = {
   failed: "border-bad/40 bg-bad/10 text-bad",
 };
 
+// phaseHint renders the daemon's lifecycle label for an in-flight entry, which
+// explains why a row is still pending (the balance can settle before the entry
+// finalizes). It returns "" when the label adds nothing over what the row
+// already says: a boarding deposit, for one, carries the counterparty
+// "boarding" and the phase label "boarding".
+function phaseHint(
+  label: string | undefined,
+  title: string,
+  counterparty: string,
+): string {
+  const text = (label ?? "").replace(/_/g, " ").trim();
+  if (!text) {
+    return "";
+  }
+  const same = (other: string) =>
+    other.trim().toLowerCase() === text.toLowerCase();
+
+  return same(title) || same(counterparty) ? "" : text;
+}
+
 // ActivityRow renders a single dense transaction line from an SDK Entry. The
 // counterparty is a bare string (pubkey / address / invoice), so the local note
 // is the title and the raw counterparty is shown monospace beneath - never a
 // name (there is no contacts API).
 export function ActivityRow({ entry }: { entry: Entry }) {
-  const Icon = KIND_ICON[entry.kind] ?? Activity;
+  // The daemon uses one 'exit' kind for both a cooperative on-chain send (which
+  // carries the destination as an on-chain request) and a unilateral exit
+  // (which does not). Treat the cooperative case as a normal outbound send.
+  const cooperativeSend =
+    entry.kind === "exit" && Boolean(entry.request?.onchainAddress);
+  const Icon = cooperativeSend
+    ? ArrowUpRight
+    : (KIND_ICON[entry.kind] ?? Activity);
   const incoming = entry.kind === "receive" || entry.kind === "deposit";
   const failed = entry.status === "failed";
+  const pending = entry.status === "pending";
   const sign = incoming ? "+" : "-";
-  const title = entry.note || KIND_LABEL[entry.kind] || entry.kind;
+  const title =
+    entry.note ||
+    (cooperativeSend ? "Sent" : KIND_LABEL[entry.kind]) ||
+    entry.kind;
   const time = formatTimestamp(entry.createdAt);
+  const phase = pending
+    ? phaseHint(entry.progress?.phaseLabel, title, entry.counterparty)
+    : "";
 
   return (
     <div
@@ -65,6 +99,9 @@ export function ActivityRow({ entry }: { entry: Entry }) {
         ) : null}
         {failed && entry.failureReason ? (
           <div className="truncate text-xs text-bad">{entry.failureReason}</div>
+        ) : null}
+        {phase ? (
+          <div className="truncate text-xs text-muted">{phase}</div>
         ) : null}
       </div>
       <div className="hidden sm:block">

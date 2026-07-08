@@ -140,6 +140,18 @@ const MAX_LOGS = 200;
 // give-up threshold.
 const ACTIVITY_STREAM_FAILURE_LIMIT = 5;
 
+// Follow-up refresh delays (ms) used to reconcile a possibly-stale balance
+// after an activity event. The daemon can report an entry settled a beat before
+// balance() reflects the new funds, so a single refresh may read a stale value;
+// these bounded re-reads catch up to it.
+const SETTLE_RECONCILE_DELAYS_MS = [750, 1500, 3000];
+
+// Consecutive failed background refreshes before the wallet is treated as
+// unreachable and surfaced as an error, mirroring the activity stream's and the
+// syncing poll's give-up thresholds. Without this a daemon that stops answering
+// leaves the UI on a healthy 'ready' phase over a frozen balance.
+const BACKGROUND_REFRESH_FAILURE_LIMIT = 5;
+
 const defaultOperations: Record<WalletOperation, OperationState> = {
   runtime: { busy: false, error: "" },
   refresh: { busy: false, error: "" },
@@ -193,6 +205,9 @@ export function WalletDKProvider({
   const [error, setError] = useState("");
   const [info, setInfo] = useState<Partial<WalletInfo> | null>(null);
   const [balance, setBalance] = useState<Balance | null>(null);
+  // The last balance fetched, mirrored out of React state so the settle
+  // reconcile can compare against the value that predated an activity event.
+  const lastBalanceRef = useRef<Balance | null>(null);
   const [activity, setActivity] = useState<Entry[]>([]);
   const [operations, setOperations] = useState(defaultOperations);
   const [logs, setLogs] = useState<WalletDKLogPayload[]>([]);
@@ -235,6 +250,7 @@ export function WalletDKProvider({
         // 'stopped' instead of leaving the UI on a live phase like 'ready'.
         setInfo(null);
         setBalance(null);
+        lastBalanceRef.current = null;
         setActivity([]);
         setPhase("stopped");
       } else if (event.type === "log") {
@@ -273,25 +289,62 @@ export function WalletDKProvider({
     }
   }, [setOperation]);
 
-  const refresh = useCallback(async () => {
-    return runOperation("refresh", async () => {
+  // Re-fetches info, balance, and activity and returns the balance it read, so
+  // internal callers (the settle reconcile below) can tell when it has stopped
+  // changing. The public `refresh` wraps this and resolves with void.
+  //
+  // `silent` skips the refresh operation's busy/error tracking so a background,
+  // stream-driven re-read (the debounced refresh and the settle reconcile) does
+  // not flash the user-facing refresh indicator; only a user-initiated refresh
+  // toggles operations.refresh.
+  const doRefresh = useCallback(async (
+    opts?: { silent?: boolean },
+  ): Promise<Balance | null> => {
+    const fetchAll = async (): Promise<Balance | null> => {
       const nextInfo = await client.getInfo();
       setInfo(nextInfo);
       setPhase(phaseFromInfo(nextInfo));
 
       const nextBalance = await client.balance();
       setBalance(nextBalance);
+      // Mirror the balance into a ref so the settle reconcile can read the
+      // pre-event value without waiting for a re-render.
+      lastBalanceRef.current = nextBalance;
 
       const rows = await client.list({
         view: "activity",
         pendingOnly: false,
       });
       setActivity(activityEntries(rows));
-    });
-  }, [client, runOperation]);
 
-  const refreshRef = useRef(refresh);
-  refreshRef.current = refresh;
+      return nextBalance;
+    };
+
+    if (opts?.silent) {
+      // Silent means no busy indicator, not no error. A background re-read must
+      // not spin the user's refresh control, but a failing one still has to
+      // surface: otherwise the daemon can stop answering while the UI keeps
+      // rendering a healthy 'ready' wallet over a frozen balance.
+      try {
+        const nextBalance = await fetchAll();
+        setOperation("refresh", { error: "" });
+
+        return nextBalance;
+      } catch (err) {
+        setOperation("refresh", { error: errorMessage(err) });
+        throw err;
+      }
+    }
+
+    return runOperation("refresh", fetchAll);
+  }, [client, runOperation, setOperation]);
+
+  const refresh = useCallback(async () => {
+    await doRefresh();
+  }, [doRefresh]);
+
+  const refreshRef = useRef(doRefresh);
+  refreshRef.current = doRefresh;
 
   // Activity subscription pushes wallet updates from the daemon; refresh
   // balance and history when an entry changes instead of polling. If the
@@ -307,8 +360,14 @@ export function WalletDKProvider({
     let cancelled = false;
     let backoff = 1000;
     let failures = 0;
+    let refreshFailures = 0;
+    // Monotonic id for the current reconcile cycle. Every activity event bumps
+    // it, retiring any cycle still in flight.
+    let generation = 0;
+    let chain: Promise<unknown> = Promise.resolve();
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let debounce: ReturnType<typeof setTimeout> | undefined;
+    let reconcileTimer: ReturnType<typeof setTimeout> | undefined;
 
     const open = () => {
       client.startActivity({ includeExisting: true }).then(
@@ -352,12 +411,109 @@ export function WalletDKProvider({
 
     open();
 
+    // Background refreshes are serialized: two concurrent reads would race on
+    // setBalance/setInfo/setActivity, and the slower one would win with the
+    // staler snapshot.
+    const backgroundRefresh = (): Promise<Balance | null> => {
+      const run = () => refreshRef.current({ silent: true });
+      const next = chain.then(run, run);
+      chain = next.then(
+        () => undefined,
+        () => undefined,
+      );
+
+      return next;
+    };
+
+    const noteRefreshOk = () => {
+      refreshFailures = 0;
+    };
+
+    const noteRefreshFailed = () => {
+      refreshFailures += 1;
+      if (refreshFailures >= BACKGROUND_REFRESH_FAILURE_LIMIT) {
+        setError("the wallet stopped responding to background refreshes");
+        setPhase("error");
+      }
+    };
+
+    // Balance can lag the activity event that announced a settled entry: the
+    // daemon may report the entry complete a beat before balance() reflects the
+    // new VTXO. A single refresh would then capture a stale balance and, with no
+    // polling while ready, leave it stale until a manual refresh.
+    //
+    // `baseline` is the balance from before the event. Equality between two
+    // consecutive reads cannot distinguish a settled balance from one that is
+    // still lagging, so stop only once the balance has moved off `baseline` and
+    // then held steady. When it never moves, probe the whole bounded schedule
+    // rather than give up on the first repeat.
+    const reconcile = (
+      attempt: number,
+      gen: number,
+      baseline: Balance | null,
+      prev: Balance | null,
+    ) => {
+      if (attempt >= SETTLE_RECONCILE_DELAYS_MS.length) {
+        return;
+      }
+      reconcileTimer = setTimeout(() => {
+        reconcileTimer = undefined;
+        if (cancelled || gen !== generation) {
+          return;
+        }
+        backgroundRefresh().then(
+          (next) => {
+            if (cancelled || gen !== generation) {
+              return;
+            }
+            noteRefreshOk();
+            const moved = !balancesEqual(baseline, next);
+            const steady = balancesEqual(prev, next);
+            if (moved && steady) {
+              return;
+            }
+            reconcile(attempt + 1, gen, baseline, next);
+          },
+          () => {
+            if (!cancelled && gen === generation) {
+              noteRefreshFailed();
+            }
+          },
+        );
+      }, SETTLE_RECONCILE_DELAYS_MS[attempt]);
+    };
+
+    const refreshCycle = (gen: number) => {
+      // Stream-driven, so refresh silently: an incoming activity event should
+      // not spin the user's manual refresh control.
+      const baseline = lastBalanceRef.current;
+      backgroundRefresh().then(
+        (first) => {
+          if (cancelled || gen !== generation) {
+            return;
+          }
+          noteRefreshOk();
+          reconcile(0, gen, baseline, first);
+        },
+        () => {
+          if (!cancelled && gen === generation) {
+            noteRefreshFailed();
+          }
+        },
+      );
+    };
+
     const unsubscribe = client.subscribe((event) => {
       if (event.type === "activity") {
+        // A fresh change supersedes any in-flight reconcile. Bumping the
+        // generation retires the previous cycle wherever it is: clearTimeout
+        // alone would only cancel a scheduled probe, not a refresh already in
+        // flight, which would otherwise resume a stale chain on resolve.
+        generation += 1;
+        const gen = generation;
         clearTimeout(debounce);
-        debounce = setTimeout(() => {
-          refreshRef.current().catch(() => undefined);
-        }, 250);
+        clearTimeout(reconcileTimer);
+        debounce = setTimeout(() => refreshCycle(gen), 250);
 
         return;
       }
@@ -371,6 +527,7 @@ export function WalletDKProvider({
       cancelled = true;
       clearTimeout(debounce);
       clearTimeout(retryTimer);
+      clearTimeout(reconcileTimer);
       unsubscribe();
       client.stopActivity();
     };
@@ -480,6 +637,7 @@ export function WalletDKProvider({
       await client.stop();
       setInfo(null);
       setBalance(null);
+      lastBalanceRef.current = null;
       setActivity([]);
       setPhase("stopped");
     });
@@ -695,4 +853,24 @@ export function useWalletDK(): WalletDKReactState {
 
 function activityEntries(result: ListResult): Entry[] {
   return result.activity?.entries || [];
+}
+
+// Whether two balance snapshots carry the same figures. The settle reconcile
+// uses it to decide when a post-activity re-read has caught up: once the balance
+// stops changing across reads there is nothing left to reconcile.
+function balancesEqual(a: Balance | null, b: Balance | null): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (a[key as keyof Balance] !== b[key as keyof Balance]) {
+      return false;
+    }
+  }
+
+  return true;
 }

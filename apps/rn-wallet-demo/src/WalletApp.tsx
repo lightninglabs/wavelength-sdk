@@ -12,6 +12,10 @@ import { WalletMode } from './components/ui/WalletTypePicker';
 import { errorMessage } from './lib/errors';
 import { phaseConnected, statusLabel } from './lib/phase';
 import {
+  hasPendingOnchain,
+  usePollWhileWaiting,
+} from './lib/usePollWhileWaiting';
+import {
   RuntimeForm,
   defaultsForNetwork,
   signetDefaults,
@@ -49,6 +53,25 @@ export function WalletApp() {
   const wallet = useWalletDK();
   const passkey = usePasskeyWallet(passkeyCeremony);
   const walletKind = useWalletKind();
+
+  // Track pending on-chain activity to completion. Boarding deposits and
+  // exits/leaves are not pushed on the activity stream, so without this a
+  // pending row would sit stale until a manual refresh. Lightning/credit
+  // send+receive are stream-backed and excluded. Runs app-wide so it keeps
+  // going after the waiting screen unmounts.
+  usePollWhileWaiting(hasPendingOnchain(wallet.activity, wallet.balance));
+
+  // The refresh spinner should reflect only user-initiated refreshes, not the
+  // background poll (which shares operations.refresh via the provider). Track a
+  // local busy flag for the manual button instead.
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const onManualRefresh = useCallback(() => {
+    setManualRefreshing(true);
+    void wallet
+      .refresh()
+      .catch(() => undefined)
+      .finally(() => setManualRefreshing(false));
+  }, [wallet]);
 
   const [form, setForm] = useState<RuntimeForm>(signetDefaults);
   const [mnemonic, setMnemonic] = useState<string[]>([]);
@@ -492,8 +515,8 @@ export function WalletApp() {
           phaseLabel={phaseLabel}
           onNavigate={setTab}
           onDeposit={() => wallet.deposit().then((r) => r.address)}
-          onRefresh={() => void wallet.refresh().catch(() => undefined)}
-          refreshBusy={wallet.operations.refresh.busy}
+          onRefresh={onManualRefresh}
+          refreshBusy={manualRefreshing}
           depositBusy={wallet.operations.deposit.busy}
           depositError={wallet.operations.deposit.error}
         />
@@ -501,8 +524,10 @@ export function WalletApp() {
       {tab === 'receive' ? (
         <ReceiveScreen
           onNavigate={setTab}
-          onReceive={(req) => wallet.receive(req).then((r) => r.invoice)}
-          onDeposit={() => wallet.deposit().then((r) => r.address)}
+          onReceive={wallet.receive}
+          onDeposit={() => wallet.deposit()}
+          activity={wallet.activity}
+          balance={wallet.balance}
           receiveBusy={wallet.operations.receive.busy}
           receiveError={wallet.operations.receive.error}
           depositBusy={wallet.operations.deposit.busy}
@@ -520,10 +545,9 @@ export function WalletApp() {
       {tab === 'activity' ? (
         <ActivityScreen
           activity={wallet.activity}
-          balance={wallet.balance}
           onNavigate={setTab}
-          onRefresh={() => void wallet.refresh().catch(() => undefined)}
-          busy={wallet.operations.refresh.busy}
+          onRefresh={onManualRefresh}
+          busy={manualRefreshing}
         />
       ) : null}
       {tab === 'settings' ? (
