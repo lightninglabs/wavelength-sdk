@@ -14,5 +14,5 @@
     "target": "ES2022"
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts", "src/testing"]
 }
