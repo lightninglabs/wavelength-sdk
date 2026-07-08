@@ -1,24 +1,27 @@
-import { Balance, Entry } from "@lightninglabs/walletdk-react";
-import { BUCKET_TONE, compositionBuckets } from "../../lib/balance";
+import { Balance } from "@lightninglabs/walletdk-react";
+import {
+  ALWAYS_SHOWN_BUCKETS,
+  BUCKET_TONE,
+  compositionBuckets,
+} from "../../lib/balance";
 import { formatSats, pct } from "../../lib/format";
 
 // Composition is the balance-composition graph: a hairline segmented meter over
-// a three-column grid (Ark VTXO, incoming, outgoing) sourced from walletdkrpc
-// Balance with a pending-activity fallback when RPC inbound/outbound is zero.
-export function Composition({
-  balance,
-  activity,
-}: {
-  balance: Balance | null;
-  activity: Entry[];
-}) {
-  const buckets = compositionBuckets(balance, activity);
+// a grid, sourced solely from the walletdkrpc Balance snapshot. It renders one
+// bucket per Balance field, hiding the credit buckets until the wallet holds
+// credit. The grid tracks the bucket count, so the usual view is three columns
+// and the credit rails widen it rather than wrapping under a fixed three.
+export function Composition({ balance }: { balance: Balance | null }) {
+  const buckets = compositionBuckets(balance);
   const total = buckets.reduce((sum, b) => sum + b.sat, 0) || 1;
+  const shown = buckets.filter(
+    (b) => b.sat > 0 || ALWAYS_SHOWN_BUCKETS.includes(b.key),
+  );
 
   return (
     <div>
       <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-border">
-        {buckets.map((b) =>
+        {shown.map((b) =>
           b.sat > 0 ? (
             <div
               key={b.key}
@@ -30,8 +33,8 @@ export function Composition({
           ) : null,
         )}
       </div>
-      <div className="mt-5 grid grid-cols-3 gap-x-6 gap-y-4">
-        {buckets.map((b) => (
+      <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-4">
+        {shown.map((b) => (
           <div key={b.key}>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted">

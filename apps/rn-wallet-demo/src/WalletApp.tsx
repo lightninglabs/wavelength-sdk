@@ -545,7 +545,6 @@ export function WalletApp() {
       {tab === 'activity' ? (
         <ActivityScreen
           activity={wallet.activity}
-          balance={wallet.balance}
           onNavigate={setTab}
           onRefresh={onManualRefresh}
           busy={manualRefreshing}

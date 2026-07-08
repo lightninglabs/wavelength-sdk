@@ -1,11 +1,10 @@
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Balance, Entry } from '@lightninglabs/walletdk-react';
+import { Entry } from '@lightninglabs/walletdk-react';
 import { ActivityRow } from '../../components/ActivityRow';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
 import { Band } from '../../components/ui/Band';
 import { Label } from '../../components/ui/Label';
-import { normalizeActivity } from '../../lib/balance';
 import { dayLabel } from '../../lib/format';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -52,20 +51,18 @@ const makeStyles = (p: Palette) => ({
 // per day, refreshed by pull-to-refresh.
 export function ActivityScreen({
   activity,
-  balance,
   onNavigate,
   onRefresh,
   busy,
 }: {
   activity: Entry[];
-  balance: Balance | null;
   onNavigate: (tab: AppTab) => void;
   onRefresh: () => void;
   busy: boolean;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const groups = groupByDay(normalizeActivity(activity, balance));
+  const groups = groupByDay(activity);
 
   return (
     <ScrollView

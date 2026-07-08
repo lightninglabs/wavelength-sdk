@@ -26,10 +26,9 @@ import { QRCode } from '../../components/ui/QRCode';
 import { Spinner } from '../../components/ui/Spinner';
 import {
   balanceSat,
-  effectivePendingIn,
-  effectivePendingOut,
   hasAnyValue,
-  normalizeActivity,
+  pendingInSat,
+  pendingOutSat,
 } from '../../lib/balance';
 import { errorMessage } from '../../lib/errors';
 import { formatBtc, formatSats } from '../../lib/format';
@@ -278,7 +277,8 @@ export function HomeScreen({
   // refresh leaves it null). Render a loading state rather than the empty
   // wallet CTA, so a funded wallet never flashes "fund your wallet".
   const loading = balance === null && activity.length === 0;
-  const funded = hasAnyValue(balance, activity) || activity.length > 0;
+  // Value comes from the balance, history from the activity: never mixed.
+  const funded = hasAnyValue(balance) || activity.length > 0;
 
   return (
     <ScrollView>
@@ -292,7 +292,6 @@ export function HomeScreen({
         <>
           <BalanceBand
             balance={balance}
-            activity={activity}
             onNavigate={onNavigate}
             onRefresh={onRefresh}
             refreshBusy={refreshBusy}
@@ -300,14 +299,10 @@ export function HomeScreen({
           <Band>
             <Label>Balance composition</Label>
             <View style={{ marginTop: 16 }}>
-              <Composition balance={balance} activity={activity} />
+              <Composition balance={balance} />
             </View>
           </Band>
-          <RecentActivityBand
-            activity={activity}
-            balance={balance}
-            onNavigate={onNavigate}
-          />
+          <RecentActivityBand activity={activity} onNavigate={onNavigate} />
           <RuntimeBand info={info} phaseLabel={phaseLabel} />
         </>
       ) : (
@@ -348,13 +343,11 @@ function LoadingBalance() {
 // and the primary Send / Receive actions.
 function BalanceBand({
   balance,
-  activity,
   onNavigate,
   onRefresh,
   refreshBusy,
 }: {
   balance: Balance | null;
-  activity: Entry[];
   onNavigate: (t: AppTab) => void;
   onRefresh: () => void;
   refreshBusy: boolean;
@@ -362,8 +355,8 @@ function BalanceBand({
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const amount = balanceSat(balance);
-  const incoming = effectivePendingIn(balance, activity);
-  const outgoing = effectivePendingOut(balance, activity);
+  const incoming = pendingInSat(balance);
+  const outgoing = pendingOutSat(balance);
 
   return (
     <Band tinted>
@@ -567,16 +560,13 @@ function EmptyWallet({
 // RecentActivityBand lists the latest entries with a link to full history.
 function RecentActivityBand({
   activity,
-  balance,
   onNavigate,
 }: {
   activity: Entry[];
-  balance: Balance | null;
   onNavigate: (t: AppTab) => void;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const rows = normalizeActivity(activity, balance);
 
   return (
     <Band tinted>
@@ -591,11 +581,11 @@ function RecentActivityBand({
           <ChevronRight size={13} color={palette.accent} />
         </Pressable>
       </View>
-      {rows.length === 0 ? (
+      {activity.length === 0 ? (
         <Text style={styles.emptyList}>No activity yet.</Text>
       ) : (
         <View style={styles.list}>
-          {rows.slice(0, 4).map((entry, i) => (
+          {activity.slice(0, 4).map((entry, i) => (
             <View key={entry.id} style={i > 0 && styles.listDivider}>
               <ActivityRow entry={entry} />
             </View>

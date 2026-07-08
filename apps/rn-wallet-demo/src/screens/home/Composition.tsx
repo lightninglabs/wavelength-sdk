@@ -1,6 +1,10 @@
 import { Text, View } from 'react-native';
-import { Balance, Entry } from '@lightninglabs/walletdk-react';
-import { BucketKey, compositionBuckets } from '../../lib/balance';
+import { Balance } from '@lightninglabs/walletdk-react';
+import {
+  ALWAYS_SHOWN_BUCKETS,
+  BucketKey,
+  compositionBuckets,
+} from '../../lib/balance';
 import { formatSats, pct } from '../../lib/format';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -53,28 +57,28 @@ const makeStyles = (p: Palette) => ({
 
 // Composition is the balance-composition graph: a segmented meter over
 // per-bucket rows (Ark VTXO, incoming, outgoing).
-export function Composition({
-  balance,
-  activity,
-}: {
-  balance: Balance | null;
-  activity: Entry[];
-}) {
+export function Composition({ balance }: { balance: Balance | null }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
   // Bucket tones map to the palette (the web uses CSS variables for this).
+  // Spendable buckets share the accent family; in-flight ones are tinted apart.
   const tone: Record<BucketKey, string> = {
     vtxo: palette.accent,
+    creditAvailable: palette.accentSoft,
     incoming: palette.good,
     outgoing: palette.warn,
+    creditReserved: palette.muted,
   };
-  const buckets = compositionBuckets(balance, activity);
+  const buckets = compositionBuckets(balance);
   const total = buckets.reduce((sum, b) => sum + b.sat, 0) || 1;
+  const shown = buckets.filter(
+    (b) => b.sat > 0 || ALWAYS_SHOWN_BUCKETS.includes(b.key),
+  );
 
   return (
     <View>
       <View style={styles.meter}>
-        {buckets.map((b) =>
+        {shown.map((b) =>
           b.sat > 0 ? (
             <View
               key={b.key}
@@ -84,7 +88,7 @@ export function Composition({
         )}
       </View>
       <View style={styles.rows}>
-        {buckets.map((b) => (
+        {shown.map((b) => (
           <View key={b.key}>
             <View style={styles.bucketHead}>
               <View style={styles.bucketLabelRow}>
