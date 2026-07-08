@@ -14,6 +14,10 @@ type ButtonProps = {
   // block defaults to true (full-width). Pass false for an inline,
   // content-width button sitting inside a wide Band.
   block?: boolean;
+  // iconRight defaults to false (icon before the label). Pass true for a
+  // forward action, e.g. Continue, where the icon reads better trailing the
+  // label.
+  iconRight?: boolean;
 };
 
 const makeStyles = (p: Palette) => ({
@@ -86,6 +90,7 @@ export function PrimaryButton({
   disabled = false,
   busy = false,
   block = true,
+  iconRight = false,
 }: ButtonProps) {
   const styles = useThemedStyles(makeStyles);
   const off = disabled || busy;
@@ -94,6 +99,8 @@ export function PrimaryButton({
     <Pressable
       onPress={onPress}
       disabled={off}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: off }}
       style={[
         styles.base,
         styles.primary,
@@ -101,8 +108,9 @@ export function PrimaryButton({
         off && styles.disabled,
       ]}
     >
-      <ButtonIcon icon={icon} busy={busy} color="#ffffff" />
+      {iconRight ? null : <ButtonIcon icon={icon} busy={busy} color="#ffffff" />}
       <Text style={styles.primaryText}>{children}</Text>
+      {iconRight ? <ButtonIcon icon={icon} busy={busy} color="#ffffff" /> : null}
     </Pressable>
   );
 }
@@ -115,6 +123,7 @@ export function GhostButton({
   disabled = false,
   busy = false,
   block = true,
+  iconRight = false,
 }: ButtonProps) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -124,6 +133,8 @@ export function GhostButton({
     <Pressable
       onPress={onPress}
       disabled={off}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: off }}
       style={[
         styles.base,
         styles.ghost,
@@ -131,8 +142,9 @@ export function GhostButton({
         off && styles.disabled,
       ]}
     >
-      <ButtonIcon icon={icon} busy={busy} color={palette.text} />
+      {iconRight ? null : <ButtonIcon icon={icon} busy={busy} color={palette.text} />}
       <Text style={styles.ghostText}>{children}</Text>
+      {iconRight ? <ButtonIcon icon={icon} busy={busy} color={palette.text} /> : null}
     </Pressable>
   );
 }

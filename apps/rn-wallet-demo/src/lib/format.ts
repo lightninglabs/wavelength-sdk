@@ -76,3 +76,17 @@ export function dayLabel(iso?: string): string {
 
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
+
+// approx renders a sat value, prefixing a tilde when the daemon flagged it as
+// an estimate rather than an exact figure.
+export function approx(value: number, known: boolean): string {
+  return `${known ? "" : "~"}${formatSats(value)} sats`;
+}
+
+// countdown renders a remaining-seconds value as m:ss, flooring at zero.
+export function countdown(secondsLeft: number): string {
+  const safe = Math.max(0, secondsLeft);
+  const minutes = Math.floor(safe / 60);
+
+  return `${minutes}:${String(safe % 60).padStart(2, "0")}`;
+}
