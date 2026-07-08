@@ -4,6 +4,7 @@ import { webPasskeyCeremony } from "@lightninglabs/walletdk-web";
 import { AppShell } from "./components/layout/AppShell";
 import { RecoveryBanner } from "./components/RecoveryBanner";
 import { AppTab } from "./components/layout/nav";
+import { balanceSat } from "./lib/balance";
 import { phaseConnected, statusLabel } from "./lib/phase";
 import {
   hasPendingOnchain,
@@ -508,9 +509,10 @@ export function App() {
       {tab === "send" ? (
         <SendScreen
           onNavigate={setTab}
-          onSend={wallet.send}
+          onPrepare={wallet.prepareSend}
+          onSendPrepared={wallet.sendPrepared}
+          balanceSat={balanceSat(wallet.balance)}
           busy={wallet.operations.send.busy}
-          error={wallet.operations.send.error}
         />
       ) : null}
       {tab === "activity" ? (
