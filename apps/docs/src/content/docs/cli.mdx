@@ -18,13 +18,16 @@ from your own code, see the [API reference](/api/) for the underlying
 ## Connecting
 
 Every command talks to a running daemon over gRPC. The connection is
-configured with four persistent flags, available on every command:
+configured with a set of persistent flags, available on every command:
 
 | Flag | Default | Description |
 |---|---|---|
 | `--rpcserver` | `localhost:10029` | Daemon gRPC server address (`host:port`). |
+| `--network` | `mainnet` | Bitcoin network used to resolve the default TLS certificate and macaroon paths. |
 | `--tlscertpath` | (none) | Path to the daemon TLS certificate. |
+| `--macaroonpath` | (none) | Path to the daemon RPC macaroon. |
 | `--no-tls` | `false` | Disable TLS for the daemon connection (development and regtest). |
+| `--no-macaroons` | `false` | Disable macaroon authentication for the daemon connection (development and regtest). |
 | `--json` | (none) | Raw JSON request payload that maps directly to the RPC request proto. When set, the command's bespoke flags are ignored. |
 
 The `--json` flag is the raw-request escape hatch: pass a JSON object shaped
@@ -33,9 +36,10 @@ any command from a single serialized payload instead of assembling flags. It is
 distinct from the per-command `--format json` output selector.
 
 <Callout type="note" title="Regtest quickstart">
-A local regtest daemon typically runs without TLS on the default address, so
-disable TLS and keep the default server. Export the connection flags once, for
-example via a shell alias, so you do not repeat them on every call.
+A local regtest daemon typically runs without TLS or macaroon auth on the
+default address, so pass `--no-tls --no-macaroons` and keep the default server.
+Export the connection flags once, for example via a shell alias, so you do not
+repeat them on every call.
 </Callout>
 
 ## Output conventions
