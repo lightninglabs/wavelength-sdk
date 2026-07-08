@@ -332,6 +332,263 @@ describe("WalletDKProvider activity stream", () => {
     assert.ok(client.countOf("getInfo") > before);
   });
 
+  it("reconciles a balance that lags the settling activity event", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const { result } = await toReady(client);
+
+    // The activity event arrives before balance() reflects the settled funds:
+    // the debounced refresh reads 0, then the daemon catches up to 1,000.
+    client.balanceValue = { confirmedSat: 0 } as never;
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("settling") });
+      mock.timers.tick(250);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.balance?.confirmedSat, 0);
+
+    // The first settle re-read (750ms) now sees the real balance.
+    client.balanceValue = { confirmedSat: 1000 } as never;
+    await act(async () => {
+      mock.timers.tick(750);
+      await flushMicrotasks();
+    });
+    assert.equal(result.current.balance?.confirmedSat, 1000);
+  });
+
+  it("catches a balance that lags past the first settle probe", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    // Distinct objects per read, so balancesEqual compares fields rather than
+    // short-circuiting on identity. Installed before toReady so the reconcile's
+    // baseline is this same stale value: the daemon then stays stale through
+    // both the debounced read and the first probe, and two equal reads must NOT
+    // be mistaken for a settled balance. That is the case this exists to catch.
+    client.impl("balance", () => ({ confirmedSat: 0 }));
+    const { result } = await toReady(client);
+
+    const before = client.countOf("balance");
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("settling") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+    assert.equal(client.countOf("balance") - before, 1, "debounced read ran");
+
+    await act(async () => {
+      mock.timers.tick(750);
+      await flushMicrotasks(30);
+    });
+    assert.equal(client.countOf("balance") - before, 2, "first probe ran");
+    assert.equal(result.current.balance?.confirmedSat, 0);
+
+    // The daemon finally catches up; a later probe must still find it.
+    client.impl("balance", () => ({ confirmedSat: 1000 }));
+    await act(async () => {
+      mock.timers.tick(1500);
+      await flushMicrotasks(30);
+    });
+    assert.equal(client.countOf("balance") - before, 3, "second probe ran");
+    assert.equal(result.current.balance?.confirmedSat, 1000);
+  });
+
+  it("stops early once the balance moves off its pre-event value and holds", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    client.impl("balance", () => ({ confirmedSat: 0 }));
+    const { result } = await toReady(client);
+
+    // The debounced read already carries the settled balance, so one confirming
+    // probe is enough: the balance moved off its pre-event value and held.
+    client.impl("balance", () => ({ confirmedSat: 500 }));
+    const before = client.countOf("balance");
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("settled") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+    await act(async () => {
+      for (const delay of [750, 1500, 3000]) {
+        mock.timers.tick(delay);
+        await flushMicrotasks(30);
+      }
+    });
+
+    assert.equal(result.current.balance?.confirmedSat, 500);
+    // One debounced refresh plus one confirming probe: the later probes stop.
+    assert.equal(client.countOf("balance") - before, 2);
+  });
+
+  it("runs the full bounded schedule when the balance never moves", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    client.impl("balance", () => ({ confirmedSat: 7 }));
+    const { result } = await toReady(client);
+
+    // The balance never budges, so a settled read is indistinguishable from a
+    // stale one. Probe the whole schedule, then stop: bounded, never endless.
+    const before = client.countOf("balance");
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("nomove") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+    await act(async () => {
+      for (const delay of [750, 1500, 3000]) {
+        mock.timers.tick(delay);
+        await flushMicrotasks(30);
+      }
+    });
+    assert.equal(client.countOf("balance") - before, 4);
+
+    // Bounded: no further probes are scheduled beyond the schedule.
+    const after = client.countOf("balance");
+    await act(async () => {
+      mock.timers.tick(10000);
+      await flushMicrotasks(30);
+    });
+    assert.equal(client.countOf("balance"), after);
+    assert.equal(result.current.balance?.confirmedSat, 7);
+  });
+
+  it("a fresh activity event supersedes the in-flight reconcile", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    client.impl("balance", () => ({ confirmedSat: 0 }));
+    const { result } = await toReady(client);
+
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("first") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+
+    // A second event lands mid-reconcile. The first chain must be superseded,
+    // not merely have its next timer cleared: driving past the first chain's
+    // 750ms probe must not resurrect it.
+    client.impl("balance", () => ({ confirmedSat: 2000 }));
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("second") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+    assert.equal(result.current.balance?.confirmedSat, 2000);
+
+    const after = client.countOf("balance");
+    await act(async () => {
+      mock.timers.tick(750);
+      await flushMicrotasks(30);
+    });
+    // Exactly one probe runs: the superseded chain contributes none.
+    assert.equal(client.countOf("balance") - after, 1);
+  });
+
+  it("an in-flight cycle superseded mid-refresh schedules no reconcile", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    client.impl("balance", () => ({ confirmedSat: 0 }));
+    const { result } = await toReady(client);
+
+    // Hold the first cycle's balance() open, so it is still in flight when the
+    // next activity event supersedes it. clearTimeout cannot cancel that cycle:
+    // only the generation check stops it resuming a stale chain on resolve.
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let calls = 0;
+    client.impl("balance", () => {
+      calls += 1;
+
+      return calls === 1 ? gate.then(() => ({ confirmedSat: 0 })) : { confirmedSat: 2000 };
+    });
+
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("A") });
+      mock.timers.tick(250);
+      await flushMicrotasks(5);
+    });
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("B") });
+      mock.timers.tick(250);
+      await flushMicrotasks(5);
+    });
+    await act(async () => {
+      release();
+      await flushMicrotasks(40);
+    });
+    assert.equal(result.current.balance?.confirmedSat, 2000);
+
+    const after = client.countOf("balance");
+    await act(async () => {
+      mock.timers.tick(750);
+      await flushMicrotasks(30);
+    });
+    // Only the surviving cycle probes. The superseded one must contribute none.
+    assert.equal(client.countOf("balance") - after, 1);
+  });
+
+  it("a silent background refresh surfaces its error without a busy flash", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const { result } = await toReady(client);
+
+    // A stream-driven refresh must not spin the manual refresh control, but a
+    // failure still has to surface: a wallet that has gone blind cannot keep
+    // rendering as a healthy 'ready'.
+    client.fail("balance", new Error("worker gone"));
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("boom") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+
+    assert.equal(result.current.operations.refresh.error, "worker gone");
+    assert.equal(result.current.operations.refresh.busy, false);
+    assert.equal(result.current.phase, "ready");
+  });
+
+  it("escalates to error after repeated background refresh failures", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const { result } = await toReady(client);
+
+    client.fail("balance", new Error("worker gone"));
+    for (let i = 0; i < 5; i++) {
+      await act(async () => {
+        client.emit({ type: "activity", payload: entry(`fail-${i}`) });
+        mock.timers.tick(250);
+        await flushMicrotasks(30);
+      });
+    }
+
+    assert.equal(result.current.phase, "error");
+    assert.match(result.current.error, /refresh/i);
+  });
+
+  it("a background success clears a prior refresh error", async () => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+    const client = new FakeWalletDKClient();
+    const { result } = await toReady(client);
+
+    client.fail("balance", new Error("blip"));
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("blip") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+    assert.equal(result.current.operations.refresh.error, "blip");
+
+    client.impl("balance", () => ({ confirmedSat: 1 }));
+    await act(async () => {
+      client.emit({ type: "activity", payload: entry("ok") });
+      mock.timers.tick(250);
+      await flushMicrotasks(30);
+    });
+    assert.equal(result.current.operations.refresh.error, "");
+    assert.equal(result.current.phase, "ready");
+  });
+
   it("reopens the stream after an activityStream loss", async () => {
     mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
     const client = new FakeWalletDKClient();
