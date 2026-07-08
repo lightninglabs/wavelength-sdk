@@ -6,6 +6,7 @@ import {
   DepositResult,
   Entry,
   ListResult,
+  PrepareSendResult,
   ReceiveRequest,
   ReceiveResult,
   RuntimeConfig,
@@ -43,6 +44,7 @@ export type WalletOperation =
   | "unlockWallet"
   | "deposit"
   | "receive"
+  | "prepareSend"
   | "send";
 
 /** Per-operation status: whether it is in flight and its last error message. */
@@ -120,6 +122,19 @@ export type WalletDKReactState = {
   deposit(req?: DepositRequest): Promise<DepositResult>;
   /** Requests a Lightning receive and refreshes state on success. */
   receive(req: ReceiveRequest): Promise<ReceiveResult>;
+  /**
+   * Quotes a payment without dispatching it, resolving with the expected fee,
+   * rail, and a single-use `sendIntentId`. Pair it with {@link sendPrepared}
+   * to show the user a fee before they commit. The quote expires at
+   * `expiresAtUnix`; re-quote rather than dispatching a stale intent.
+   */
+  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
+  /**
+   * Dispatches a payment quoted by {@link prepareSend} and refreshes state on
+   * success. A rejection may mean the payment was already dispatched: check
+   * activity before retrying.
+   */
+  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
   /** Sends a payment and refreshes state on success. */
   send(req: SendRequest): Promise<SendResult>;
   /** A bounded tail of 'log' events from the runtime, newest last. */
@@ -159,6 +174,7 @@ const defaultOperations: Record<WalletOperation, OperationState> = {
   unlockWallet: { busy: false, error: "" },
   deposit: { busy: false, error: "" },
   receive: { busy: false, error: "" },
+  prepareSend: { busy: false, error: "" },
   send: { busy: false, error: "" },
 };
 
@@ -770,6 +786,22 @@ export function WalletDKProvider({
     });
   }, [client, refresh, runOperation]);
 
+  const prepareSend = useCallback(async (req: SendRequest) => {
+    return runOperation("prepareSend", () => client.prepareSend(req));
+  }, [client, runOperation]);
+
+  // sendPrepared refreshes on success for the same reason send() does: a settled
+  // payment invalidates both balance and activity. Keeping that here means a
+  // two-step caller cannot forget it.
+  const sendPrepared = useCallback(async (prepared: PrepareSendResult) => {
+    return runOperation("send", async () => {
+      const result = await client.sendPrepared(prepared);
+      await refresh();
+
+      return result;
+    });
+  }, [client, refresh, runOperation]);
+
   const send = useCallback(async (req: SendRequest) => {
     return runOperation("send", async () => {
       const result = await client.send(req);
@@ -799,11 +831,13 @@ export function WalletDKProvider({
     logs,
     operations,
     phase,
+    prepareSend,
     receive,
     recovery,
     refresh,
     restoreWallet,
     send,
+    sendPrepared,
     start,
     stop,
     unlockWallet,
@@ -821,11 +855,13 @@ export function WalletDKProvider({
     logs,
     operations,
     phase,
+    prepareSend,
     receive,
     recovery,
     refresh,
     restoreWallet,
     send,
+    sendPrepared,
     start,
     stop,
     unlockWallet,

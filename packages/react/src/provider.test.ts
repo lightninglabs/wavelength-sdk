@@ -1007,3 +1007,55 @@ describe("WalletDKProvider background recovery", () => {
     assert.equal(result.current.recovery.status, "idle");
   });
 });
+
+describe("WalletDKProvider two-step send", () => {
+  it("sendPrepared refreshes balance and activity on success", async () => {
+    const client = new FakeWalletDKClient();
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    client.resolveReady();
+    client.info = readyInfo;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    client.balanceValue = { confirmedSat: 4200 } as never;
+    client.listValue = { activity: { entries: [entry("e1")] } } as never;
+
+    await act(async () => {
+      const quote = await result.current.prepareSend({ invoice: "lnbc1p" });
+      await result.current.sendPrepared(quote);
+    });
+
+    await waitFor(() => {
+      assert.equal(result.current.balance?.confirmedSat, 4200);
+      assert.equal(result.current.activity.length, 1);
+    });
+  });
+
+  it("tracks prepareSend busy and error separately from send", async () => {
+    const client = new FakeWalletDKClient();
+    const { result } = renderWithProvider(client, () => useWalletDK());
+
+    client.resolveReady();
+    client.info = readyInfo;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    assert.equal(result.current.phase, "ready");
+
+    client.prepareSend = () => Promise.reject(new Error("no route"));
+
+    await act(async () => {
+      await assert.rejects(
+        () => result.current.prepareSend({ invoice: "lnbc1p" }),
+        /no route/,
+      );
+    });
+
+    assert.equal(result.current.operations.prepareSend.error, "no route");
+    assert.equal(result.current.operations.prepareSend.busy, false);
+    assert.equal(result.current.operations.send.error, "");
+  });
+});
