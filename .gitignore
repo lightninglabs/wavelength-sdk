@@ -12,6 +12,11 @@ apps/*/public/
 # Superpowers SDD scratch (briefs, reports, ledger, review diffs).
 .superpowers/
 
+# Per-checkout dev-server launch config: its port depends on what else is
+# already listening locally, so it never transfers between worktrees. Only this
+# one file is ignored; .claude/ is not ignored wholesale.
+.claude/launch.json
+
 # Staged gomobile bindings and native build output for the RN transport;
 # rebuilt from darepo-client by packages/react-native/scripts/fetch-bindings.sh.
 packages/react-native/android/libs/
