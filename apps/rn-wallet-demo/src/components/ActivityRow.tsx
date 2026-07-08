@@ -96,12 +96,22 @@ const makeStyles = (p: Palette) => ({
 export function ActivityRow({ entry }: { entry: Entry }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const Icon = KIND_ICON[entry.kind] ?? Activity;
+  // The daemon uses one 'exit' kind for both a cooperative on-chain send (which
+  // carries the destination as an on-chain request) and a unilateral exit
+  // (which does not). Treat the cooperative case as a normal outbound send.
+  const cooperativeSend =
+    entry.kind === 'exit' && Boolean(entry.request?.onchainAddress);
+  const Icon = cooperativeSend
+    ? ArrowUpRight
+    : (KIND_ICON[entry.kind] ?? Activity);
   const incoming = entry.kind === 'receive' || entry.kind === 'deposit';
   const failed = entry.status === 'failed';
   const pending = entry.status === 'pending';
   const sign = incoming ? '+' : '-';
-  const title = entry.note || KIND_LABEL[entry.kind] || entry.kind;
+  const title =
+    entry.note ||
+    (cooperativeSend ? 'Sent' : KIND_LABEL[entry.kind]) ||
+    entry.kind;
   const time = formatTimestamp(entry.createdAt);
   const meta = entry.counterparty
     ? `${shortKey(entry.counterparty, 10, 6)}${time ? ` · ${time}` : ''}`
