@@ -58,18 +58,17 @@ WalletDK embeds a self-custodial Lightning wallet in this app: Lightning
 payments with no node, channels, or liquidity to manage.
 
 - Packages: @lightninglabs/walletdk-web (browser transport, has
-  createWebClient), @lightninglabs/walletdk-react-native (React Native
-  transport, has createNativeClient, daemon compiled into the app binary),
-  @lightninglabs/walletdk-react (provider and hooks, takes an injected
-  client), @lightninglabs/walletdk-core (shared contract).
+  createWebWalletEngine), @lightninglabs/walletdk-react-native (React Native
+  transport, has createNativeWalletEngine, daemon compiled into the app
+  binary), @lightninglabs/walletdk-react (provider and hooks, takes an
+  injected engine), @lightninglabs/walletdk-core (shared contract).
 - Docs: https://dadocs.lightning.engineering/llms.txt. Every docs page has
   a markdown twin at the same URL with .md appended; fetch those.
-- Web: create the client with createWebClient() and inject it via
-  <WalletDKProvider client={...}>. Never import walletdk-web from
+- Web: create the engine with createWebWalletEngine() and inject it via
+  <WalletDKProvider engine={...}>. Never import walletdk-web from
   framework-agnostic code.
-- React Native: pass createNativeClient to <WalletDKProvider
-  createClient={createNativeClient}> as the factory prop instead of
-  constructing a client directly.
+- React Native: create the engine with createNativeWalletEngine() and
+  inject it via <WalletDKProvider engine={...}> the same way.
 - Self-host the wasm runtime assets and set runtimeBaseUrl; see
   https://dadocs.lightning.engineering/web/get-started/hosting-runtime-assets.md
 - Check npm for current package versions instead of memorized ones.
@@ -92,9 +91,9 @@ self-custodial Lightning wallet.
 3. Copy the wasm runtime assets into our static assets and configure
    runtimeBaseUrl per
    https://dadocs.lightning.engineering/web/get-started/hosting-runtime-assets.md
-4. Create the client with createWebClient() and mount <WalletDKProvider
-   client={...}> at the app root. Do not import walletdk-web anywhere
-   except where the client is created.
+4. Create the engine with createWebWalletEngine() and mount <WalletDKProvider
+   engine={...}> at the app root. Do not import walletdk-web anywhere
+   except where the engine is created.
 5. Add a minimal wallet screen: create or unlock, balance, receive invoice,
    send payment.
 6. Verify: the app builds, wallet creation reaches the ready state, an
@@ -114,9 +113,9 @@ embedded self-custodial Lightning wallet.
    @lightninglabs/walletdk-react at their current npm versions.
 3. Stage the native wallet runtime binaries before the first build per
    https://dadocs.lightning.engineering/react-native/get-started/installation.md
-4. Create the client with createNativeClient() and mount <WalletDKProvider
-   createClient={createNativeClient}> at the app root. Do not construct the
-   client directly outside the provider.
+4. Create the engine with createNativeWalletEngine() and mount
+   <WalletDKProvider engine={...}> at the app root. Do not construct the
+   engine outside the provider's module scope.
 5. Add a minimal wallet screen: create or unlock, balance, receive invoice,
    send payment.
 6. Verify: the app builds and launches on a device or simulator through a

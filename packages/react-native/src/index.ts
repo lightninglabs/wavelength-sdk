@@ -59,7 +59,7 @@ export function createNativeWalletEngine(
 /**
  * Creates the native (Android Credential Manager / iOS AuthenticationServices)
  * implementation of the {@link PasskeyCeremony} contract; pass it to
- * usePasskeyWallet, or drive it directly. Requires the relying-party domain
+ * useWalletPasskey, or drive it directly. Requires the relying-party domain
  * to be associated with your app (assetlinks.json on Android, an Associated
  * Domains entitlement plus apple-app-site-association on iOS). iOS support is
  * experimental and needs iOS 18 or newer at runtime.

@@ -41,9 +41,10 @@ function isNativeCancel(err: unknown): boolean {
 }
 
 // A passkey ceremony that neither resolves nor rejects within this bound has
-// wedged (a silent native provider); reject so usePasskeyWallet's busy flag
-// cannot stick until an app restart. Generous enough that a real user
-// completing biometrics or a PIN never trips it.
+// wedged (a silent native provider); reject so useWalletPasskey's
+// createPending/openPending flags cannot stick until an app restart.
+// Generous enough that a real user completing biometrics or a PIN never
+// trips it.
 const PASSKEY_TIMEOUT_MS = 120000;
 
 // withPasskeyTimeout rejects if the native ceremony call has not settled

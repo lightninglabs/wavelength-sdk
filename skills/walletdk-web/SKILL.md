@@ -1,6 +1,6 @@
 ---
 name: walletdk-web
-description: Embed a self-custodial Lightning wallet in a web app with the WalletDK SDK (@lightninglabs/walletdk-web, @lightninglabs/walletdk-react, @lightninglabs/walletdk-core). Use when integrating WalletDK into a browser or React app, creating a wallet client, sending or receiving Lightning payments in the browser, wiring WalletDKProvider, hosting wasm runtime assets, or adding passkey protection. Triggers include "walletdk", "embed a Lightning wallet", "createWebClient", "WalletDKProvider", "usePasskeyWallet", and "walletdk runtime assets".
+description: Embed a self-custodial Lightning wallet in a web app with the WalletDK SDK (@lightninglabs/walletdk-web, @lightninglabs/walletdk-react, @lightninglabs/walletdk-core). Use when integrating WalletDK into a browser or React app, creating a wallet client, sending or receiving Lightning payments in the browser, wiring WalletDKProvider, hosting wasm runtime assets, or adding passkey protection. Triggers include "walletdk", "embed a Lightning wallet", "createWebWalletEngine", "WalletDKProvider", "useWalletPasskey", and "walletdk runtime assets".
 ---
 
 # WalletDK web integration
@@ -17,9 +17,11 @@ has a markdown twin at the same URL with `.md` appended; fetch those.
 Check the npm registry for current versions; do not rely on memorized ones.
 
 - `@lightninglabs/walletdk-web`: the browser transport. `createWebClient()`
-  is the factory. Re-exports everything from core.
+  builds a raw client; `createWebWalletEngine()` wraps it in a `WalletEngine`
+  and is the factory to use with the React provider. Re-exports everything
+  from core.
 - `@lightninglabs/walletdk-react`: `<WalletDKProvider>` plus hooks. Takes an
-  injected client; it does not depend on the web package.
+  injected engine; it does not depend on the web package.
 - `@lightninglabs/walletdk-core`: the transport-agnostic contract and types.
   Install it directly only when building a custom binding.
 
@@ -37,8 +39,8 @@ Check the npm registry for current versions; do not rely on memorized ones.
 
 ## Critical rules
 
-- Create the client with `createWebClient()` from walletdk-web and inject it
-  into React via `<WalletDKProvider client={...}>`. Never import
+- Create the engine with `createWebWalletEngine()` from walletdk-web and
+  inject it into React via `<WalletDKProvider engine={...}>`. Never import
   walletdk-web inside framework-agnostic or react-only modules; the react
   package deliberately has no dependency on the web transport.
 - The wasm runtime assets are self-hosted by the embedding app. Copy them to
@@ -46,7 +48,7 @@ Check the npm registry for current versions; do not rely on memorized ones.
   default yet; a missing or wrong `runtimeBaseUrl` is the most common
   integration failure.
 - Passkey ceremonies are injected. Pass `webPasskeyCeremony` from
-  walletdk-web into `usePasskeyWallet(ceremony)`; do not implement WebAuthn
+  walletdk-web into `useWalletPasskey(ceremony)`; do not implement WebAuthn
   calls by hand.
 - The daemon persists to OPFS. Wallet state survives reloads; test flows
   must unlock an existing wallet rather than recreating it on every load.
@@ -56,6 +58,6 @@ Check the npm registry for current versions; do not rely on memorized ones.
 
 ## Verify the integration
 
-After wiring, confirm: the app builds, `createWebClient()` resolves, wallet
-creation reaches the ready state, and an invoice can be created. Reload the
+After wiring, confirm: the app builds, the engine's `phase` (from
+`useWallet()`) reaches `ready`, and an invoice can be created. Reload the
 page and unlock to confirm persistence.

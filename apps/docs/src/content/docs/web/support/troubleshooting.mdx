@@ -37,7 +37,7 @@ when needed (the demo self-hosts its fonts for this reason).
 
 ### Passkey unsupported or PRF missing
 
-`usePasskeyWallet(...).supported` stays `false`, or ceremonies fail with
+`useWalletPasskey(...).supported` stays `false`, or ceremonies fail with
 *"passkey PRF extension result was not returned by this authenticator"*.
 
 **Fix:** Passkeys require a **secure context** (HTTPS or localhost), a
@@ -47,7 +47,7 @@ extension (Safari 17.4+, Chrome 114+). There is no synchronous PRF probe;
 password creation/unlock or recovery-phrase restore when passkeys are
 unavailable.
 
-On the web, `usePasskeyWallet` (from `walletdk-react`) takes a `PasskeyCeremony`
+On the web, `useWalletPasskey` (from `walletdk-react`) takes a `PasskeyCeremony`
 implementation as its argument; pass `webPasskeyCeremony` from
 `@lightninglabs/walletdk-web`. See the [passkey guide](/guides/use-a-passkey/)
 for a full wiring example.
@@ -119,9 +119,9 @@ update when the refund completes.
 
 If an entry stays pending far longer than expected:
 
-1. Call **`refresh()`** (from `useWalletDK()` or `useWalletRuntime()` in
-   `walletdk-react`) or rely on the provider's activity subscription (the
-   React provider debounces activity-driven refreshes). Without React, call
+1. Call **`refresh()`** (from `useWalletRefresh()` in `walletdk-react`) or
+   rely on the engine's activity subscription (the engine debounces
+   activity-driven refreshes). Without React, call
    **`client.list({ pendingOnly: true })`** directly.
 2. Inspect daemon **`log`** events (`useWalletLogs()` or `client.subscribe()`).
 3. Confirm **`swapServerUrl`** is correct and swaps are enabled

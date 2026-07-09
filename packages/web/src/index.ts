@@ -99,7 +99,7 @@ export { assertPasskeyPrf, registerPasskeyWallet, supportsPasskeyPrf };
 
 /**
  * The browser (WebAuthn/PRF) implementation of the {@link PasskeyCeremony}
- * contract; pass it to usePasskeyWallet, or drive it directly.
+ * contract; pass it to useWalletPasskey, or drive it directly.
  */
 export const webPasskeyCeremony: PasskeyCeremony = {
   supportsPasskeyPrf,

@@ -12,7 +12,7 @@ your stack:
 |---|---|
 | `@lightninglabs/walletdk-core` | Types, the `WalletDKClient` interface, errors, and enums. Pulled in transitively; you rarely install it directly. |
 | `@lightninglabs/walletdk-web` | The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports everything from `core`. |
-| `@lightninglabs/walletdk-react` | React provider and hooks. Transport-agnostic: it takes an injected client and depends only on `core`. |
+| `@lightninglabs/walletdk-react` | React provider and hooks. Transport-agnostic: it takes an injected engine and depends only on `core`. |
 
 **React apps** need the web transport and the React bindings:
 
@@ -44,54 +44,48 @@ works:
 npm install react react-dom
 ```
 
-Build the web client once near the root of your app. `createWebClient` accepts
-`WebClientOptions` (for example `runtimeBaseUrl` pointing at hosted WASM
-assets, see [Hosting runtime assets](/web/get-started/hosting-runtime-assets/)).
-Booting the embedded daemon is a separate step: call `start(config)` with
-a `RuntimeConfig` after the runtime is ready.
+Build the wallet engine once near the root of your app. `createWebWalletEngine`
+accepts `WebWalletEngineOptions` (for example `runtimeBaseUrl` pointing at
+hosted WASM assets, see [Hosting runtime assets](/web/get-started/hosting-runtime-assets/)),
+plus `config` and `autoStart` to boot the embedded daemon as soon as the
+runtime is ready, no boot effect needed.
 
 ```tsx title="App.tsx"
-import { useEffect } from 'react';
-import { WalletDKProvider, useWalletDK, defaultConfig } from '@lightninglabs/walletdk-react';
-import { createWebClient } from '@lightninglabs/walletdk-web';
+import { WalletDKProvider, useWallet, useWalletBalance } from '@lightninglabs/walletdk-react';
+import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
 
 // Configure transport options once. runtimeBaseUrl points at the hosted WASM
 // asset folder.
-const client = createWebClient({
+const engine = createWebWalletEngine({
   runtimeBaseUrl: 'https://your-host/walletdk/',
+  config: defaultConfig('signet'),
+  autoStart: true,
 });
 
 export function App() {
   return (
-    <WalletDKProvider client={client}>
+    <WalletDKProvider engine={engine}>
       <Wallet />
     </WalletDKProvider>
   );
 }
 
 function Wallet() {
-  const wallet = useWalletDK();
+  const { phase, error } = useWallet();
+  const balance = useWalletBalance();
 
-  // Boot the embedded daemon once the WASM runtime has loaded.
-  useEffect(() => {
-    if (wallet.phase === 'runtimeReady') {
-      wallet.start(defaultConfig('signet')).catch(() => {});
-    }
-  }, [wallet.phase]);
-
-  if (wallet.phase !== 'ready') {
-    return <p>Loading… ({wallet.phase})</p>;
+  if (phase !== 'ready') {
+    return <p>Loading… ({phase})</p>;
   }
 
-  return <p>Spendable: {wallet.balance?.confirmedSat ?? 0} sats</p>;
+  return <p>Spendable: {balance?.confirmedSat ?? 0} sats</p>;
 }
 ```
 
-The `.catch(() => {})` above silently swallows a failed `start` call. In practice
-you'll want to surface that failure: `wallet.error` holds the last runtime-level
-error message, and `wallet.operations.runtime.error` holds the same message
-scoped to the `start`/`stop` operation. Render either one instead of dropping
-the error on the floor.
+`error` from `useWallet` holds the last fatal runtime-level error: set when
+the initial runtime load fails or when `start`/`stop` fails. Render it
+instead of dropping the failure on the floor.
 
 For a non-React app, skip the provider and call `start` on the client directly
 after `ready()` resolves:
