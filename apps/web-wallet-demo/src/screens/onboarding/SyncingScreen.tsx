@@ -1,22 +1,36 @@
+import { useMemo } from "react";
+import { useWalletInfo, useWalletLogs } from "@lightninglabs/walletdk-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { Card } from "../../components/ui/Card";
 import { formatSats } from "../../lib/format";
 
-export type LogRow = { time: string; message: string };
+type LogRow = { time: string; message: string };
+
+// MAX_LOGS bounds the log tail shown on the syncing screen.
+const MAX_LOGS = 8;
 
 // SyncingScreen serves the `syncing` phase: the wallet exists and is scanning
 // the chain to rebuild state. Progress is indeterminate (there is no synced-%
-// telemetry); it advances automatically once the wallet reports ready.
-export function SyncingScreen({
-  network,
-  blockHeight,
-  logs,
-}: {
-  network: string;
-  blockHeight?: number;
-  logs: LogRow[];
-}) {
+// telemetry); it advances automatically once the wallet reports ready. Chain
+// tip and the log tail are self-served from the provider.
+export function SyncingScreen({ network }: { network: string }) {
+  const info = useWalletInfo();
+  const { logs: engineLogs } = useWalletLogs();
+
+  // Map the engine's buffered log tail to this screen's row shape. The engine
+  // buffers newest-last and carries no per-line timestamp, so the window keeps
+  // only the most recent MAX_LOGS entries, newest first; the time column is
+  // left blank rather than faked.
+  const logs: LogRow[] = useMemo(
+    () =>
+      engineLogs
+        .slice(-MAX_LOGS)
+        .reverse()
+        .map((log) => ({ time: "", message: log.message })),
+    [engineLogs],
+  );
+
   return (
     <AuthLayout network={network}>
       <AuthHeader
@@ -24,11 +38,11 @@ export function SyncingScreen({
         sub="Scanning the chain and rebuilding wallet state."
       />
       <Card className="p-6">
-        {blockHeight ? (
+        {info?.blockHeight ? (
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted">Chain tip</span>
             <span className="font-mono tabular-nums text-fg">
-              block {formatSats(blockHeight)}
+              block {formatSats(info.blockHeight)}
             </span>
           </div>
         ) : null}

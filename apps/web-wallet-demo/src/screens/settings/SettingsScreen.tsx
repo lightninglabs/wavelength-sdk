@@ -12,7 +12,11 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { WalletInfo, WalletKind } from "@lightninglabs/walletdk-react";
+import {
+  WalletKind,
+  useWallet,
+  useWalletInfo,
+} from "@lightninglabs/walletdk-react";
 import { GatewayFields } from "../../components/GatewayFields";
 import { PageHead } from "../../components/layout/PageHead";
 import { AppTab } from "../../components/layout/nav";
@@ -24,6 +28,7 @@ import { SummaryRow } from "../../components/ui/SummaryRow";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { cn } from "../../lib/cn";
 import { formatSats, shortKey } from "../../lib/format";
+import { statusLabel } from "../../lib/phase";
 import { requestWipe } from "../../lib/wipeLocalData";
 import { RuntimeFieldSetter, RuntimeForm } from "../../lib/runtime-config";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -43,22 +48,21 @@ function TwoCol({ left, right }: { left: ReactNode; right: ReactNode }) {
 // security, advanced gateway configuration, build version and the runtime stop
 // control, consolidated into full-bleed Zones bands.
 export function SettingsScreen({
-  info,
-  phaseLabel,
   form,
   onField,
   walletKind,
   onStop,
   onNavigate,
 }: {
-  info: Partial<WalletInfo> | null;
-  phaseLabel: string;
   form: RuntimeForm;
   onField: RuntimeFieldSetter;
   walletKind: WalletKind | null;
   onStop: () => void;
   onNavigate: (tab: AppTab) => void;
 }) {
+  const { phase } = useWallet();
+  const info = useWalletInfo();
+  const phaseLabel = statusLabel(phase);
   const { theme, setTheme } = useTheme();
   const [advanced, setAdvanced] = useState(false);
   const [confirmWipe, setConfirmWipe] = useState(false);

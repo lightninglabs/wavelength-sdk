@@ -12,9 +12,18 @@ import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { createNativeClient } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { passkeyCeremony } from './src/lib/passkeyCeremony';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { WalletApp } from './src/WalletApp';
+
+// The engine is built once here and injected into the provider, which is
+// transport-agnostic.
+const engine = createNativeWalletEngine();
+
+// Warm the memoized passkey support probe now, before onboarding ever
+// mounts, so its result is already resolved by the time a screen reads it.
+void passkeyCeremony.supportsPasskeyPrf();
 
 // Themed mounts inside ThemeProvider so the status bar tracks the palette.
 function Themed() {
@@ -47,7 +56,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <WalletDKProvider createClient={createNativeClient}>
+        <WalletDKProvider engine={engine}>
           <Themed />
         </WalletDKProvider>
       </ThemeProvider>

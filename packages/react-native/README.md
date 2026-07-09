@@ -37,22 +37,24 @@ build.
 ## Quick start
 
 ```tsx
-import { WalletDKProvider, useWalletDK } from '@lightninglabs/walletdk-react';
-import { createNativeClient } from '@lightninglabs/walletdk-react-native';
+import { WalletDKProvider, useWallet } from '@lightninglabs/walletdk-react';
+import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+
+const engine = createNativeWalletEngine();
 
 export default function App() {
   return (
-    <WalletDKProvider createClient={createNativeClient}>
+    <WalletDKProvider engine={engine}>
       <Wallet />
     </WalletDKProvider>
   );
 }
 ```
 
-`createNativeClient()` builds a client backed by the wallet runtime compiled
-into your app; pass it to `WalletDKProvider` and use the same hooks
-(`useWalletDK`, `useWalletBalance`, `useSend`, `useReceive`,
-`useDepositAddress`, `useWalletActivity`) documented in
+`createNativeWalletEngine()` builds a `WalletEngine` backed by the wallet
+runtime compiled into your app; pass it to `WalletDKProvider` and use the
+same hooks (`useWallet`, `useWalletBalance`, `useWalletSend`,
+`useWalletReceive`, `useWalletDeposit`, `useWalletActivity`) documented in
 [`@lightninglabs/walletdk-react`](../react).
 
 ## Passkey wallets
@@ -61,19 +63,19 @@ The transport ships a native passkey ceremony, so users can create and unlock
 a wallet with a platform passkey instead of a password:
 
 ```tsx
-import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { useWalletPasskey } from '@lightninglabs/walletdk-react';
 import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'wallet.example.com' });
 
 function PasskeyButton() {
-  const passkey = usePasskeyWallet(ceremony);
+  const passkey = useWalletPasskey(ceremony);
   if (!passkey.supported) return null;
   return (
     <Button
       title="Create with passkey"
-      disabled={passkey.busy}
-      onPress={() => passkey.createPasskeyWallet('My Wallet App')}
+      disabled={passkey.createPending}
+      onPress={() => passkey.create('My Wallet App')}
     />
   );
 }

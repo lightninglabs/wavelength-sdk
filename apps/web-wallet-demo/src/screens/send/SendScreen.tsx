@@ -3,8 +3,10 @@ import { AlertTriangle, ArrowRight, Check, Info, Link2, Zap } from "lucide-react
 import {
   PrepareSendResult,
   SendRequest,
-  SendResult,
   classifyDestination,
+  errorMessage,
+  useWalletPrepareSend,
+  useWalletSend,
 } from "@lightninglabs/walletdk-react";
 import { PageHead } from "../../components/layout/PageHead";
 import { AppTab } from "../../components/layout/nav";
@@ -15,7 +17,6 @@ import { Field } from "../../components/ui/Field";
 import { InlineError } from "../../components/ui/InlineError";
 import { Label } from "../../components/ui/Label";
 import { ToggleRow } from "../../components/ui/ToggleRow";
-import { errorMessage } from "../../lib/errors";
 import { formatSats } from "../../lib/format";
 import { QuoteReview } from "./QuoteReview";
 
@@ -31,20 +32,18 @@ const QUOTE_TIMEOUT_MS = 60_000;
 
 // SendScreen walks a payment through form -> quote -> sent. Step one collects
 // only what cannot be derived from the destination; the quote supplies the
-// rest.
+// rest. Quoting and dispatch are self-served from the provider; only the
+// spendable balance (for the sweep-all guard) and tab routing come from the
+// caller.
 export function SendScreen({
   onNavigate,
-  onPrepare,
-  onSendPrepared,
   balanceSat,
-  busy,
 }: {
   onNavigate: (tab: AppTab) => void;
-  onPrepare: (req: SendRequest) => Promise<PrepareSendResult>;
-  onSendPrepared: (quote: PrepareSendResult) => Promise<SendResult>;
   balanceSat: number;
-  busy: boolean;
 }) {
+  const { prepare } = useWalletPrepareSend();
+  const { sendPrepared, sendPending } = useWalletSend();
   const [dest, setDest] = useState("");
   const [amount, setAmount] = useState("");
   const [sweepAll, setSweepAll] = useState(false);
@@ -121,11 +120,11 @@ export function SendScreen({
     };
   }
 
-  // prepare quotes the payment. A failure is safe to retry, so it surfaces
-  // inline and leaves the user on the form. quoting is local state rather than
-  // the provider's busy flag: a hung prepareSend never resolves that flag, so
-  // it cannot drive a timeout or a way back to the form.
-  async function prepare() {
+  // requestQuote quotes the payment. A failure is safe to retry, so it
+  // surfaces inline and leaves the user on the form. quoting is local state
+  // rather than the provider's busy flag: a hung prepare never resolves that
+  // flag, so it cannot drive a timeout or a way back to the form.
+  async function requestQuote() {
     const token = ++quoteToken.current;
     setLocalError("");
     setQuoting(true);
@@ -140,7 +139,7 @@ export function SendScreen({
     });
 
     try {
-      const result = await Promise.race([onPrepare(buildRequest()), timeout]);
+      const result = await Promise.race([prepare(buildRequest()), timeout]);
       clearTimeout(timer);
       // A stale token means the user has since cancelled or edited the
       // destination; a late response must not overwrite what they see now.
@@ -195,7 +194,7 @@ export function SendScreen({
 
     setLocalError("");
     try {
-      const result = await onSendPrepared(quote);
+      const result = await sendPrepared(quote);
       setSent({
         hash: result.paymentHash || result.entry?.id || "",
         amountSat:
@@ -292,10 +291,10 @@ export function SendScreen({
           expired={secondsLeft <= 0}
           secondsLeft={secondsLeft}
           quoting={quoting}
-          busy={busy}
+          busy={sendPending}
           error={localError}
           onConfirm={confirm}
-          onRefresh={prepare}
+          onRefresh={requestQuote}
         />
       </div>
     );
@@ -312,7 +311,7 @@ export function SendScreen({
         onSubmit={(e) => {
           e.preventDefault();
           if (canContinue) {
-            prepare();
+            requestQuote();
           }
         }}
       >

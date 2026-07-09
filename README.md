@@ -20,7 +20,7 @@ Your app drives it through a small, typed client.
 | [`@lightninglabs/walletdk-react`](packages/react) | React provider + hooks. |
 
 `walletdk-react` is transport-agnostic: it depends only on `core` and takes an
-injected client, so the same binding runs over both the web and React Native
+injected engine, so the same binding runs over both the web and React Native
 transports. `walletdk-web` and `walletdk-react-native` each re-export every
 type from `core`, so an app imports the client and its types from one place.
 
@@ -34,9 +34,9 @@ npm install @lightninglabs/walletdk-react @lightninglabs/walletdk-web
 npm install @lightninglabs/walletdk-web
 ```
 
-You build the client with `createWebClient()` from `walletdk-web` (or
-`createNativeClient()` from `walletdk-react-native` on mobile). In React you
-pass that client to `WalletDKProvider`; the provider itself is
+You build the engine with `createWebWalletEngine()` from `walletdk-web` (or
+`createNativeWalletEngine()` from `walletdk-react-native` on mobile). In React
+you pass that engine to `WalletDKProvider`; the provider itself is
 transport-agnostic and works the same way with either.
 
 ## Quickstart: React
@@ -44,48 +44,51 @@ transport-agnostic and works the same way with either.
 ```tsx
 import {
   WalletDKProvider,
-  useWalletDK,
-  defaultConfig,
+  useWallet,
+  useWalletBalance,
+  useWalletSend,
 } from "@lightninglabs/walletdk-react";
-import { createWebClient } from "@lightninglabs/walletdk-web";
-import { useEffect } from "react";
+import { createWebWalletEngine } from "@lightninglabs/walletdk-web";
+import { defaultConfig } from "@lightninglabs/walletdk-core";
 
-// Build the client once. runtimeBaseUrl points at the hosted wasm runtime
-// assets (see below).
-const client = createWebClient({ runtimeBaseUrl: "https://your-host/walletdk/" });
+// Build the engine once. runtimeBaseUrl points at the hosted wasm runtime
+// assets (see below). config + autoStart boot the embedded wallet as soon as
+// the wasm runtime is ready.
+const engine = createWebWalletEngine({
+  runtimeBaseUrl: "https://your-host/walletdk/",
+  config: defaultConfig("signet"),
+  autoStart: true,
+});
 
 function Root() {
   return (
-    <WalletDKProvider client={client}>
+    <WalletDKProvider engine={engine}>
       <Wallet />
     </WalletDKProvider>
   );
 }
 
 function Wallet() {
-  const wallet = useWalletDK();
+  const { phase } = useWallet();
+  const balance = useWalletBalance();
+  const { send } = useWalletSend();
 
-  // Boot the embedded wallet once the wasm runtime is ready.
-  useEffect(() => {
-    if (wallet.phase === "runtimeReady") {
-      wallet.start(defaultConfig("signet")).catch(() => {});
-    }
-  }, [wallet.phase]);
-
-  if (wallet.phase !== "ready") return <p>Loading… ({wallet.phase})</p>;
+  if (phase !== "ready") return <p>Loading… ({phase})</p>;
 
   return (
     <div>
-      <p>Spendable: {wallet.balance?.confirmedSat ?? 0} sats</p>
-      <button onClick={() => wallet.send({ invoice: "lnbc…" })}>Pay</button>
+      <p>Spendable: {balance?.confirmedSat ?? 0} sats</p>
+      <button onClick={() => send({ invoice: "lnbc…" })}>Pay</button>
     </div>
   );
 }
 ```
 
-Focused hooks are available when you only need a slice: `useWalletBalance()`,
-`useSend()`, `useReceive()`, `useDepositAddress()`, `useWalletActivity()`, each
-exposing flat `{ busy, error, clearError }` for its operation.
+Focused hooks are available when you only need a slice. State-reading hooks
+like `useWalletBalance()` and `useWalletActivity()` return their value directly.
+Mutation hooks like `useWalletSend()`, `useWalletReceive()`, and `useWalletDeposit()`
+each expose an action plus verb-prefixed state, e.g. `useWalletSend()` returns
+`{ send, sendPending, sendError, sendData, resetSend }`.
 
 ## Quickstart: vanilla / other frameworks
 

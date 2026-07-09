@@ -16,12 +16,12 @@ product; it exercises the same `@lightninglabs/walletdk-web` and
 
 What it demonstrates:
 
-- **`WalletDKProvider`** with an injected `createWebClient()` instance
+- **`WalletDKProvider`** with an injected `createWebWalletEngine()` engine
   (self-hosted runtime assets, worker mode, optional RPC debug logging).
-- **Phase-based routing** from `useWalletDK()`: connect, create/unlock, backup,
-  syncing, ready, stopped, and error screens driven by `phase` and `info`.
-- **Password and passkey onboarding** via `createWallet` / `unlockWallet` and
-  `usePasskeyWallet(webPasskeyCeremony)`, including credential id persistence
+- **Phase-based routing** from `useWallet()`: connect, create/unlock, backup,
+  syncing, ready, stopped, and error screens driven by `phase` and `useWalletInfo()`.
+- **Password and passkey onboarding** via `useWalletCreate` / `useWalletUnlock` and
+  `useWalletPasskey(webPasskeyCeremony)`, including credential id persistence
   in localStorage for scoped unlock (see `src/lib/walletKind.ts`).
 - **Core wallet flows**: deposit address, Lightning receive, send (prepare and
   confirm), balance and activity, settings, and runtime configuration forms.
@@ -33,12 +33,12 @@ What it demonstrates:
   local wipe path that clears OPFS and app markers (`src/lib/wipeLocalData.ts`).
 
 Treat the demo as the source of truth for wiring details that docs summarize.
-Key entry points: `src/main.tsx` (client bootstrap), `src/App.tsx` (orchestration),
+Key entry points: `src/main.tsx` (engine bootstrap), `src/App.tsx` (orchestration),
 and `src/lib/runtime-config.ts` (gateway defaults).
 
-See also: [`createWebClient`](/reference/walletdk-web/#createWebClient),
-[`useWalletDK`](/reference/walletdk-react/#useWalletDK), and
-[`usePasskeyWallet`](/reference/walletdk-react/#usePasskeyWallet) in the
+See also: [`createWebWalletEngine`](/reference/walletdk-web/#createWebWalletEngine),
+[`useWallet`](/reference/walletdk-react/#useWallet), and
+[`useWalletPasskey`](/reference/walletdk-react/#useWalletPasskey) in the
 API reference for details behind each of these bullets.
 
 ## How to run it

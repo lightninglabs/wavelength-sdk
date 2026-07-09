@@ -20,18 +20,19 @@ Before you enable send or receive, the wallet must exist, unlock, and finish syn
 
 The SDK maps the daemon's numeric proto enum to these strings at the boundary (`walletStateFromProto`). The wallet-ready flag is also exposed and is `true` exactly when wallet state equals `'ready'`.
 
-**RuntimePhase** is the broader lifecycle a host UI renders. It merges runtime boot/shutdown with wallet state:
+**RuntimePhase** is the broader lifecycle a host UI renders. It merges runtime boot/shutdown with wallet state, plus one phase the engine owns on its own:
 
-- **Runtime-owned phases**: `loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, `error`. `WalletDKProvider` (from `@lightninglabs/walletdk-react`) sets these while WASM loads, `start()` runs, or `stop()` tears down. If you are calling `walletdk-core`/`walletdk-web` directly without the React provider, you own deriving this state machine yourself.
+- **Runtime-owned phases**: `loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, `error`. The `WalletEngine` (from `@lightninglabs/walletdk-web`'s `createWebWalletEngine`, or the equivalent React Native factory) sets these while the runtime loads, `start()` runs, or `stop()` tears down. A failed `start()` or `stop()` lands directly on `'error'`; there is no separate failed sub-phase to branch on. `WalletDKProvider` (from `@lightninglabs/walletdk-react`) owns nothing here: it just publishes whichever engine you hand it. If you are calling `walletdk-core`/`walletdk-web` directly without an engine, you own deriving this state machine yourself.
 - **Wallet-owned phases** (derived by `phaseFromInfo()` in core): `needsWallet`, `locked`, `syncing`, `ready`.
+- **Engine-owned phase**: `restoring`. Unlike the wallet-owned phases, this one is never derived from `WalletInfo`; the engine enters it itself whenever `restoreWallet()` (`useWalletRestore()`'s `restore` in React) is called, and leaves it once the restored wallet reports ready. When the call sets `recoverState: true`, the server-assisted recovery scan is additionally tracked through `snapshot.recovery` for the lifetime of the scan. See [Restore a wallet](/guides/restore-a-wallet/) for the full flow.
 
-After `createWallet()` or a successful unlock, the daemon often lands in the syncing phase while it replays local state and reconciles with the operator. `WalletDKProvider` **automatically advances syncing to ready**: while its phase is `'syncing'`, it polls `refresh()` every 2000ms until the phase leaves syncing, so you do not call a separate "finish sync" API. If you are integrating `walletdk-core`/`walletdk-web` directly, you must poll `getInfo()` or subscribe to activity events yourself to detect the syncing-to-ready transition. Show a spinner on `'syncing'` and enable send/receive controls only on `'ready'`.
+After `createWallet()` or a successful unlock, the daemon often lands in the syncing phase while it replays local state and reconciles with the operator. The `WalletEngine` **automatically advances syncing to ready**: while its phase is `'syncing'`, it polls `refresh()` every 2000ms until the phase leaves syncing, so you do not call a separate "finish sync" API. If you are integrating `walletdk-core`/`walletdk-web` directly without an engine, you must poll `getInfo()` or subscribe to activity events yourself to detect the syncing-to-ready transition. Show a spinner on `'syncing'` (and `'restoring'`) and enable send/receive controls only on `'ready'`.
 
 <Callout type="caution">
 Treat `'none'` and `'locked'` as non-spendable. Do not infer readiness from a successful unlock alone; wait for `'ready'` (or `walletReady === true`) before exposing payment actions.
 </Callout>
 
-Use `getInfo()` / provider state for the current wallet state, and `phaseFromInfo()` when you want a single enum for gating UI across web and future native transports. See the [walletdk-core reference](/reference/walletdk-core/) for **WalletDKClient**, **WalletState**, and **RuntimePhase** definitions.
+Use `getInfo()` / `useWalletInfo()` for the current wallet state, and `phaseFromInfo()` when you want a single enum for gating UI across web and future native transports. See the [walletdk-core reference](/reference/walletdk-core/) for **WalletEngine**, **WalletState**, and **RuntimePhase** definitions.
 
 ## Password vs passkey
 
@@ -57,6 +58,8 @@ const phase = phaseFromInfo(info);
 // Render UI from phase: 'syncing' shows a spinner, 'ready' unlocks send/receive.
 ```
 
+In React, the same flow runs through `useWalletCreate()` and `useWalletUnlock()`, which wrap the calls above with verb-prefixed pending/error/data state (`createPending`/`createError`/`createData` and `unlockPending`/`unlockError`/`unlockData`) and refresh the engine's snapshot afterward, so `phase` from `useWallet()` advances on its own.
+
 **Passkey unlock** replaces the password with a **WebAuthn PRF output**:
 
 1. During setup, a platform **PasskeyCeremony** derives a deterministic secret (`prfOutput`) bound to the user's passkey.
@@ -64,39 +67,39 @@ const phase = phaseFromInfo(info);
 
 ```tsx title="passkey-flow.tsx"
 import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { useWalletPasskey } from '@lightninglabs/walletdk-react';
 
 function PasskeyOnboard() {
-  const { createPasskeyWallet, busy } = usePasskeyWallet(webPasskeyCeremony);
+  const { create, createPending } = useWalletPasskey(webPasskeyCeremony);
 
   // First run: register a passkey and create the wallet from its PRF output.
-  const create = () => createPasskeyWallet('My Wallet App');
+  const handleCreate = () => create('My Wallet App');
 
   return (
-    <button onClick={create} disabled={busy}>
+    <button onClick={handleCreate} disabled={createPending}>
       Create wallet with passkey
     </button>
   );
 }
 
 function PasskeyUnlock({ credentialId }: { credentialId: string }) {
-  const { openPasskeyWallet, busy } = usePasskeyWallet(webPasskeyCeremony);
+  const { open, openPending } = useWalletPasskey(webPasskeyCeremony);
 
   // Returning session: assert the existing passkey to unlock.
-  const unlock = () => openPasskeyWallet(credentialId);
+  const unlock = () => open(credentialId);
 
   return (
-    <button onClick={unlock} disabled={busy}>
+    <button onClick={unlock} disabled={openPending}>
       Unlock with passkey
     </button>
   );
 }
 ```
 
-Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). WalletDK folds passkey into the provider via an injected passkey ceremony; the core client only sees the PRF bytes.
+Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). WalletDK folds passkey into the engine via an injected passkey ceremony; the core client only sees the PRF bytes.
 
 <Callout type="note">
 WebAuthn registration, PRF extension availability, and credential persistence are platform mechanics. See [Use a passkey](/guides/use-a-passkey/) for browser-specific steps; this page is the shared mental model.
 </Callout>
 
-From the wallet lifecycle perspective both paths converge: after unlock the daemon enters syncing, then ready. Choose password for the simplest cross-device story; choose passkey when you want passwordless return visits on a trusted device.
+From the wallet lifecycle perspective both paths converge: after unlock the daemon enters syncing, then ready. A restore (either path) instead passes through the engine-owned `'restoring'` phase first; recovery tracking through `snapshot.recovery` only kicks in when the call sets `recoverState: true`. Choose password for the simplest cross-device story; choose passkey when you want passwordless return visits on a trusted device.

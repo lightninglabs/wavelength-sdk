@@ -16,6 +16,8 @@ export function statusLabel(phase: RuntimePhase): string {
     return "locked";
   case "syncing":
     return "syncing";
+  case "restoring":
+    return "restoring";
   case "ready":
     return "ready";
   case "stopping":
@@ -30,5 +32,5 @@ export function statusLabel(phase: RuntimePhase): string {
 // phaseConnected reports whether the runtime is connected to its gateways for
 // the chrome status indicator.
 export function phaseConnected(phase: RuntimePhase): boolean {
-  return phase === "ready" || phase === "syncing";
+  return phase === "ready" || phase === "syncing" || phase === "restoring";
 }

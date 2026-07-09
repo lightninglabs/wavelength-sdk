@@ -79,18 +79,22 @@ import { DEMO_APP_URL } from '~/config/site';
           <span class="wdk-hero__install-prompt">$</span>
           <code>npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react</code>
         </div>
-        <pre class="wdk-hero__code-body"><span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ createWebClient, defaultConfig }'}</span>
+        <pre class="wdk-hero__code-body"><span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ createWebWalletEngine }'}</span>
   <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-web'</span><span class="wdk-tok-punct">;</span>
 <span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ WalletDKProvider }'}</span>
   <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-react'</span><span class="wdk-tok-punct">;</span>
+<span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ defaultConfig }'}</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-core'</span><span class="wdk-tok-punct">;</span>
 
 <span class="wdk-tok-cm">// Self-custodial wallet. No node, no channels.</span>
-<span class="wdk-tok-kw">const</span> <span class="wdk-tok-id">client</span> <span class="wdk-tok-punct">=</span> <span class="wdk-tok-fn">createWebClient</span><span class="wdk-tok-punct">();</span>
-<span class="wdk-tok-kw">await</span> <span class="wdk-tok-id">client</span><span class="wdk-tok-punct">.</span><span class="wdk-tok-fn">start</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-fn">defaultConfig</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-str">'signet'</span><span class="wdk-tok-punct">));</span>
+<span class="wdk-tok-kw">const</span> <span class="wdk-tok-id">engine</span> <span class="wdk-tok-punct">=</span> <span class="wdk-tok-fn">createWebWalletEngine</span><span class="wdk-tok-punct">({'{'}</span>
+  <span class="wdk-tok-id">config</span><span class="wdk-tok-punct">:</span> <span class="wdk-tok-fn">defaultConfig</span><span class="wdk-tok-punct">(</span><span class="wdk-tok-str">'signet'</span><span class="wdk-tok-punct">),</span>
+  <span class="wdk-tok-id">autoStart</span><span class="wdk-tok-punct">:</span> <span class="wdk-tok-kw">true</span><span class="wdk-tok-punct">,</span>
+<span class="wdk-tok-punct">{'}'});</span>
 
 <span class="wdk-tok-kw">export</span> <span class="wdk-tok-kw">function</span> <span class="wdk-tok-fn">App</span><span class="wdk-tok-punct">() {'{'}</span>
   <span class="wdk-tok-kw">return</span> <span class="wdk-tok-punct">(</span>
-    <span class="wdk-tok-jsx">&lt;WalletDKProvider</span> <span class="wdk-tok-id">client</span><span class="wdk-tok-punct">={'{'}client{'}'}</span><span class="wdk-tok-jsx">&gt;</span>
+    <span class="wdk-tok-jsx">&lt;WalletDKProvider</span> <span class="wdk-tok-id">engine</span><span class="wdk-tok-punct">={'{'}engine{'}'}</span><span class="wdk-tok-jsx">&gt;</span>
       <span class="wdk-tok-jsx">&lt;Balance /&gt;</span>
       <span class="wdk-tok-jsx">&lt;SendButton /&gt;</span>
     <span class="wdk-tok-jsx">&lt;/WalletDKProvider&gt;</span>

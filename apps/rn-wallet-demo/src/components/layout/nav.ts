@@ -19,12 +19,3 @@ export const NAV: Array<{ id: AppTab; label: string; icon: LucideIcon }> = [
   { id: 'send', label: 'Send', icon: ArrowUpRight },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
-
-// ChromeStatus is the runtime summary the top bar renders: the connection dot,
-// the phase label, and the network. Identity lives on the Settings screen on
-// mobile, so no pubkey is carried here.
-export type ChromeStatus = {
-  phaseLabel: string;
-  network: string;
-  connected: boolean;
-};

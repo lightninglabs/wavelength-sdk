@@ -1,40 +1,42 @@
 ---
 title: React
-description: How to integrate WalletDK into a React application using the provider-injected client, the available hooks, and the passkey ceremony helpers.
+description: How to integrate WalletDK into a React application using the provider-injected engine, the available hooks, and the passkey ceremony helpers.
 ---
 
 import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
-## Provider (injected client)
+## Provider (injected engine)
 
 `@lightninglabs/walletdk-react` is **transport-agnostic**: it depends only on
 `@lightninglabs/walletdk-core` and never imports a specific transport. The
-provider takes any `WalletDKClient`; each transport ships its own factory to
-build one (`createWebClient` from [`@lightninglabs/walletdk-web`](/reference/walletdk-web/)
-for the web transport, `createNativeClient` from
+provider takes a prebuilt **`WalletEngine`**; each transport ships its own
+factory to build one (`createWebWalletEngine` from
+[`@lightninglabs/walletdk-web`](/reference/walletdk-web/) for the web
+transport, `createNativeWalletEngine` from
 [`@lightninglabs/walletdk-react-native`](/reference/walletdk-react-native/)
-for React Native), and you pass either the built client or the factory itself
-to `WalletDKProvider`.
+for React Native).
 
-The provider accepts either a prebuilt **`client`** or a **`createClient`**
-factory. The factory is called once and memoized, so an inline arrow function is
-safe. The web transport takes options (`runtimeBaseUrl`), so it builds the
-client outside the provider; the React Native transport takes none, so it
-can be passed directly as the factory:
+Build the engine once, typically at module scope outside any component, and
+pass it to `WalletDKProvider`. Set `autoStart: true` (with `config`) to boot
+the runtime as soon as it is ready, instead of wiring a boot `useEffect`
+yourself:
 
 <PlatformTabs>
 <div data-label="Web">
 
-```tsx title="App.tsx"
+```tsx title="main.tsx"
+import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { createWebClient } from '@lightninglabs/walletdk-web';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
 
-const client = createWebClient({
+const engine = createWebWalletEngine({
   runtimeBaseUrl: 'https://your-host/walletdk/',
+  config: defaultConfig('signet'),
+  autoStart: true,
 });
 
 export function App() {
-  return <WalletDKProvider client={client}>{/* your app */}</WalletDKProvider>;
+  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
 }
 ```
 
@@ -42,12 +44,18 @@ export function App() {
 <div data-label="React Native">
 
 ```tsx title="App.tsx"
+import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { createNativeClient } from '@lightninglabs/walletdk-react-native';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
 
-export function App() {
+const engine = createNativeWalletEngine({
+  config: defaultConfig('signet'),
+  autoStart: true,
+});
+
+export default function App() {
   return (
-    <WalletDKProvider createClient={createNativeClient}>
+    <WalletDKProvider engine={engine}>
       {/* your app */}
     </WalletDKProvider>
   );
@@ -57,73 +65,83 @@ export function App() {
 </div>
 </PlatformTabs>
 
-Alternatively, on web you can defer client construction to the provider:
-
-```tsx title="App.tsx"
-<WalletDKProvider
-  createClient={() =>
-    createWebClient({ runtimeBaseUrl: 'https://your-host/walletdk/' })
-  }
->
-  {/* your app */}
-</WalletDKProvider>
-```
-
-If neither prop is supplied, the provider throws. After mount it waits for
-`client.ready()`, sets `phase` to `'runtimeReady'`, and subscribes to runtime
-events (including a bounded log tail). Call **`start(config)`** with a
-`RuntimeConfig` to boot the embedded daemon; the provider derives phase from
-`getInfo()`, polls while `'syncing'`, and refreshes balance and activity when
-activity events arrive.
+The engine is built once outside the component tree, so `WalletDKProvider`
+owns nothing beyond publishing it to `useSyncExternalStore` subscribers: it
+never disposes the engine on unmount. Every lifecycle behavior (the sync-poll
+while `phase === 'syncing'`, activity-driven balance refresh, the restore
+readiness poll, and an unsolicited `'stopped'` transition on a runtime crash)
+is owned by the `WalletEngine` itself and works the same whether or not React
+is in the picture. If you would rather not use `autoStart`, call `start()`
+from [`useWallet()`](/reference/walletdk-react/#useWallet) yourself once
+`phase === 'runtimeReady'`.
 
 `phase` is a `RuntimePhase`, one of: `'loading'`, `'runtimeReady'`,
-`'starting'`, `'needsWallet'`, `'locked'`, `'syncing'`, `'ready'`,
-`'stopping'`, `'stopped'`, or `'error'`. The `loading`/`runtimeReady`/
-`starting`/`stopping`/`stopped`/`error` phases are owned by the start/stop
-flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from wallet info.
-See [Handle phases and errors](/guides/handle-phases-and-errors/) for the
-full state machine and how to react to each phase.
+`'starting'`, `'needsWallet'`, `'locked'`, `'syncing'`, `'restoring'`,
+`'ready'`, `'stopping'`, `'stopped'`, or `'error'`. The `loading`/
+`runtimeReady`/`starting`/`stopping`/`stopped`/`error` phases are owned by the
+start/stop flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from
+wallet info; `restoring` is owned by the engine while a background restore
+(recovery scan) is bringing a freshly restored wallet up. See
+[Handle phases and errors](/guides/handle-phases-and-errors/) for the full
+state machine and how to react to each phase.
 
-The package **re-exports every type and enum from `core`**, so a React app can
-import contracts from one place. It does **not** re-export any transport's
-client factory; keep the transport import separate so the same binding runs
-over any transport, web or React Native.
+The package **re-exports every type and enum from `core`**, including
+`WalletEngine` and `createWalletEngine`, so a React app can import contracts
+from one place. It does **not** re-export any transport's engine factory;
+keep the transport import separate so the same binding runs over any
+transport, web or React Native.
 
 ## Hooks
 
-**`useWalletDK()`** is the main hook. It returns the full provider state:
-`client`, `phase`, `error`, `info`, `balance`, `activity`, `logs`,
-`operations`, and the wallet methods (`start`, `stop`, `refresh`,
-`createWallet`, `unlockWallet`, `deposit`, `receive`, `send`). It throws outside
-a provider.
+**`useWallet()`** is the application-shell hook: `phase`, `error`, `start`,
+`stop`. It throws outside a provider. Read the rest of the state through the
+granular hooks below.
 
-For narrower surfaces, use the granular hooks. Each exposes flat
-`{ busy, error, clearError }` for its operation (matching `usePasskeyWallet`'s
-shape) so components do not reach into the `operations` record:
+**State-reading hooks** are plain selectors; each re-renders only when the
+slice it reads changes:
 
 | Hook | Returns |
 |---|---|
-| `useSend()` | `{ send, busy, error, clearError }` |
-| `useReceive()` | `{ receive, busy, error, clearError }` |
-| `useWalletBalance()` | `{ balance, refresh, busy, error, clearError }` |
-| `useDepositAddress()` | `{ deposit, busy, error, clearError }` |
-| `useWalletActivity()` | `{ activity, refresh, busy, error, clearError }` |
+| `useWalletInfo()` | `WalletInfo \| null` |
+| `useWalletBalance()` | `Balance \| null` |
+| `useWalletActivity()` | `Entry[]` |
+| `useWalletRecovery()` | `{ recovery, acknowledge }` |
+| `useWalletLogs()` | `{ logs, clear }` |
 
-For example, `useSend()` returns a `send(req)` action alongside its own
-`busy`/`error` state:
+**Mutation hooks** each expose an action plus verb-prefixed
+`{ <verb>Pending, <verb>Error, <verb>Data, reset<Verb> }` fields built on one
+shared convention, throw-and-capture: the action both settles its own promise
+(resolve with the result, or reject with the failure) and mirrors that outcome
+into the pending/error/data fields, so you can `await`/`catch` it imperatively
+or read the hook's fields declaratively, whichever fits. Error fields are
+always an `Error | null`, never a string:
+
+| Hook | Returns |
+|---|---|
+| `useWalletCreate()` | `{ create, createPending, createError, createData, resetCreate }` |
+| `useWalletRestore()` | `{ restore, restorePending, restoreError, restoreData, resetRestore }` |
+| `useWalletUnlock()` | `{ unlock, unlockPending, unlockError, unlockData, resetUnlock }` |
+| `useWalletDeposit()` | `{ deposit, depositPending, depositError, depositData, resetDeposit }` |
+| `useWalletReceive()` | `{ receive, receivePending, receiveError, receiveData, resetReceive }` |
+| `useWalletPrepareSend()` | `{ prepare, preparePending, prepareError, prepareData, resetPrepare }` |
+| `useWalletSend()` | `{ send, sendPrepared, sendPending, sendError, sendData, resetSend }` |
+| `useWalletRefresh()` | `{ refresh, refreshPending, refreshError, resetRefresh }` (no data field: `refresh()` resolves `void`) |
+
+For example, `useWalletSend()` returns a `send(req)` action alongside its own
+`sendPending`/`sendError` state:
 
 ```tsx title="SendButton.tsx"
-import { useSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/walletdk-react';
 
 function SendButton({ invoice }: { invoice: string }) {
-  const { send, busy, error } = useSend();
+  const { send, sendPending, sendError } = useWalletSend();
 
   return (
     <>
-      <button disabled={busy} onClick={() => send({ invoice })}>
+      <button disabled={sendPending} onClick={() => send({ invoice })}>
         Send payment
       </button>
-      {error && <p role="alert">{error}</p>}
+      {sendError && <p role="alert">{sendError.message}</p>}
     </>
   );
 }
@@ -135,60 +153,65 @@ See [Send a payment](/guides/send-a-payment/),
 [Show balance and activity](/guides/show-balance-and-activity/) for
 end-to-end usage of these hooks.
 
-Additional helpers split common concerns:
+`useWalletCreate()` and `useWalletRestore()` are two separate hooks (mirroring
+`WalletEngine.createWallet` and `WalletEngine.restoreWallet`) rather than one
+combined bootstrap hook, so a component only subscribes to the flow it drives:
 
-- **`useWalletRuntime()`**: `client`, `phase`, `error`, `info`, `start`,
-  `stop`, `refresh`, and runtime `operations`.
-- **`useWalletBootstrap()`**: `createWallet`, `unlockWallet`, `info`, and
-  bootstrap `operations`.
-- **`useWalletLogs()`**: `{ logs, clearLogs }` for the provider's bounded log
-  tail.
+```tsx title="Onboard.tsx"
+import { useWalletCreate } from '@lightninglabs/walletdk-react';
 
-Typical boot sequence inside the provider tree:
+function Onboard() {
+  const { create, createPending, createError } = useWalletCreate();
 
-```tsx title="WalletBoot.tsx"
-import { useEffect } from 'react';
-import { useWalletDK, defaultConfig } from '@lightninglabs/walletdk-react';
+  const handleCreate = async () => {
+    const { mnemonic } = await create({ password: 'a-strong-password' });
+    // Back up `mnemonic` securely before the user sends funds.
+    console.log('Wallet created');
+  };
 
-function WalletBoot() {
-  const { phase, start } = useWalletDK();
-
-  useEffect(() => {
-    if (phase === 'runtimeReady') {
-      start(defaultConfig('signet')).catch(() => {});
-    }
-  }, [phase, start]);
-
-  return null;
+  return (
+    <>
+      <button onClick={handleCreate} disabled={createPending}>
+        Create wallet
+      </button>
+      {createError && <p role="alert">{createError.message}</p>}
+    </>
+  );
 }
 ```
 
+Once `create` resolves, `phase` from `useWallet()` automatically advances
+(through `'syncing'` when the daemon needs to catch up) to `'ready'`, so any
+component watching `phase` updates without extra wiring.
+
 ## Passkey
 
-Passkeys are driven by **`usePasskeyWallet(ceremony)`**, where `ceremony` is a
+Passkeys are driven by **`useWalletPasskey(ceremony)`**, where `ceremony` is a
 `PasskeyCeremony` implementation injected from your transport. On web, pass
 **`webPasskeyCeremony`** from `@lightninglabs/walletdk-web`; on React Native,
 pass **`createNativePasskeyCeremony({ rpId })`** from
 `@lightninglabs/walletdk-react-native` (see
 [Passkey setup](/react-native/get-started/passkey-setup/) for the
-relying-party domain association it requires):
+relying-party domain association it requires). `create` and `open` track
+separately, each with its own `pending`/`error`/`reset`:
 
 <PlatformTabs>
 <div data-label="Web">
 
 ```tsx title="PasskeyUnlock.tsx"
-import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { useWalletPasskey } from '@lightninglabs/walletdk-react';
 import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
 
 function PasskeyUnlock() {
   const {
     supported,
-    busy,
-    error,
-    createPasskeyWallet,
-    openPasskeyWallet,
-    clearError,
-  } = usePasskeyWallet(webPasskeyCeremony);
+    create,
+    createPending,
+    createError,
+    open,
+    openPending,
+    openError,
+  } = useWalletPasskey(webPasskeyCeremony);
 
   if (!supported) {
     return <p>Passkeys are not available on this device.</p>;
@@ -196,19 +219,14 @@ function PasskeyUnlock() {
 
   return (
     <>
-      <button
-        disabled={busy}
-        onClick={() => createPasskeyWallet('My App')}
-      >
+      <button disabled={createPending} onClick={() => create('My App')}>
         Create with passkey
       </button>
-      <button
-        disabled={busy}
-        onClick={() => openPasskeyWallet(/* optional credential id */)}
-      >
+      <button disabled={openPending} onClick={() => open(/* optional credential id */)}>
         Unlock with passkey
       </button>
-      {error && <p role="alert">{error}</p>}
+      {createError && <p role="alert">{createError.message}</p>}
+      {openError && <p role="alert">{openError.message}</p>}
     </>
   );
 }
@@ -219,7 +237,7 @@ function PasskeyUnlock() {
 
 ```tsx title="PasskeyUnlock.tsx"
 import { Button, Text } from 'react-native';
-import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { useWalletPasskey } from '@lightninglabs/walletdk-react';
 import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'your-app-domain.example' });
@@ -227,12 +245,13 @@ const ceremony = createNativePasskeyCeremony({ rpId: 'your-app-domain.example' }
 function PasskeyUnlock() {
   const {
     supported,
-    busy,
-    error,
-    createPasskeyWallet,
-    openPasskeyWallet,
-    clearError,
-  } = usePasskeyWallet(ceremony);
+    create,
+    createPending,
+    createError,
+    open,
+    openPending,
+    openError,
+  } = useWalletPasskey(ceremony);
 
   if (!supported) {
     return <Text>Passkeys are not available on this device.</Text>;
@@ -241,16 +260,17 @@ function PasskeyUnlock() {
   return (
     <>
       <Button
-        disabled={busy}
-        onPress={() => createPasskeyWallet('My App')}
+        disabled={createPending}
+        onPress={() => create('My App')}
         title="Create with passkey"
       />
       <Button
-        disabled={busy}
-        onPress={() => openPasskeyWallet(/* optional credential id */)}
+        disabled={openPending}
+        onPress={() => open(/* optional credential id */)}
         title="Unlock with passkey"
       />
-      {error && <Text role="alert">{error}</Text>}
+      {createError && <Text role="alert">{createError.message}</Text>}
+      {openError && <Text role="alert">{openError.message}</Text>}
     </>
   );
 }
@@ -260,26 +280,29 @@ function PasskeyUnlock() {
 </PlatformTabs>
 
 The hook checks **`ceremony.supportsPasskeyPrf()`** on mount (platform
-authenticator availability). **`createPasskeyWallet(appName)`** runs
-`registerPasskeyWallet`, then `client.openWalletFromPasskey({ prfOutput })`,
-then refreshes provider state. **`openPasskeyWallet(allowCredentialId?)`**
-asserts an existing passkey (scoped when an id is passed, discoverable
-otherwise) and opens the wallet the same way. On success the provider phase
-advances automatically; persist the returned **`credentialId`** if you want
-scoped unlocks later.
+authenticator availability). **`create(appName)`** runs
+`registerPasskeyWallet`, then opens the wallet from the derived PRF output,
+then refreshes engine state. **`open(credentialId?)`** asserts an existing
+passkey (scoped when an id is passed, discoverable otherwise) and opens the
+wallet the same way. On success the engine's phase advances automatically;
+persist the returned **`credentialId`** if you want scoped unlocks later.
 
-Both `createPasskeyWallet` and `openPasskeyWallet` resolve to a
-`PasskeyWalletOutcome | null`: `null` when the ceremony fails (with `error`
-set to the failure message), or `{ result, credentialId }` on success. Capture
-`credentialId` from a successful result and store it so a later
-`openPasskeyWallet(credentialId)` call can perform a scoped unlock instead of
-a discoverable one:
+Unlike the rest of the hooks on this page, `create`/`open` are the one place
+where a failure can be something other than a real error: dismissing the OS
+passkey prompt rejects with a `PasskeyCancelledError`, which `useWalletPasskey`
+rethrows without recording into `createError`/`openError` (a cancelled prompt
+is not a failure worth displaying). Every other rejection behaves like the
+mutation hooks above: `await`/`catch` the call, or read `createError`/
+`openError`.
+
+Both `create` and `open` resolve to a `PasskeyWalletOutcome`:
+`{ result, credentialId }`. Capture `credentialId` from a successful result
+and store it so a later `open(credentialId)` call can perform a scoped unlock
+instead of a discoverable one:
 
 ```tsx title="PasskeyUnlock.tsx"
-const outcome = await createPasskeyWallet('My App');
-if (outcome) {
-  localStorage.setItem('passkeyCredentialId', outcome.credentialId);
-}
+const outcome = await create('My App');
+localStorage.setItem('passkeyCredentialId', outcome.credentialId);
 ```
 
 See [Use a passkey](/guides/use-a-passkey/) for end-to-end onboarding UX.

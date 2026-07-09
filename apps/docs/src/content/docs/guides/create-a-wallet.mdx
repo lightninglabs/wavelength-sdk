@@ -49,44 +49,34 @@ native runtime binaries before your first build.
 
 ## Add the provider
 
-Wrap your app in `WalletDKProvider` so every component below it can reach the
-wallet through hooks.
+Build a `WalletEngine` outside your component tree and wrap your app in
+`WalletDKProvider` so every component below it can reach the wallet through
+hooks. Pass `config` and `autoStart: true` so the engine boots the embedded
+daemon on its own as soon as the runtime is ready; no boot effect needed.
 
-Call `start(defaultConfig('signet'))` to boot the daemon after the runtime
-loads. Switch to `defaultConfig('mainnet')` only once you have key backup and
-recovery in place.
+Start with `defaultConfig('signet')`. Switch to `defaultConfig('mainnet')`
+only once you have key backup and recovery in place.
 
 <PlatformTabs>
 <div data-label="Web">
 
-`createWebClient()` returns a browser client. Build it outside the provider
-and pass it via `client`:
+`createWebWalletEngine()` builds the engine for the browser transport:
 
 ```tsx title="App.tsx"
-import { useEffect } from 'react';
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
-import { WalletDKProvider, useWalletRuntime } from '@lightninglabs/walletdk-react';
+import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
+import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
 
-const client = createWebClient({ runtimeBaseUrl: '/walletdk/' });
-
-function WalletApp({ children }: { children: React.ReactNode }) {
-  const { start, phase } = useWalletRuntime();
-
-  useEffect(() => {
-    if (phase === 'runtimeReady') {
-      start(defaultConfig('signet'));
-    }
-  }, [phase, start]);
-
-  return <>{children}</>;
-}
+const engine = createWebWalletEngine({
+  runtimeBaseUrl: '/walletdk/',
+  config: defaultConfig('signet'),
+  autoStart: true,
+});
 
 export function App() {
   return (
-    <WalletDKProvider client={client}>
-      <WalletApp>
-        {/* your app */}
-      </WalletApp>
+    <WalletDKProvider engine={engine}>
+      {/* your app */}
     </WalletDKProvider>
   );
 }
@@ -95,32 +85,22 @@ export function App() {
 </div>
 <div data-label="React Native">
 
-`createNativeClient` takes no options, so pass it directly to the provider's
-`createClient` factory prop instead of building a client beforehand:
+`createNativeWalletEngine()` builds the engine for the native transport:
 
 ```tsx title="App.tsx"
-import { useEffect } from 'react';
-import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider, useWalletRuntime } from '@lightninglabs/walletdk-react';
+import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/walletdk-core';
 
-function WalletApp({ children }: { children: React.ReactNode }) {
-  const { start, phase } = useWalletRuntime();
-
-  useEffect(() => {
-    if (phase === 'runtimeReady') {
-      start(defaultConfig('signet'));
-    }
-  }, [phase, start]);
-
-  return <>{children}</>;
-}
+const engine = createNativeWalletEngine({
+  config: defaultConfig('signet'),
+  autoStart: true,
+});
 
 export function App() {
   return (
-    <WalletDKProvider createClient={createNativeClient}>
-      <WalletApp>
-        {/* your app */}
-      </WalletApp>
+    <WalletDKProvider engine={engine}>
+      {/* your app */}
     </WalletDKProvider>
   );
 }
@@ -129,16 +109,21 @@ export function App() {
 </div>
 </PlatformTabs>
 
+The engine itself owns starting the runtime, so `App` needs no start effect.
+If you would rather call `start()` yourself (for example to prompt the user
+first), omit `autoStart` and drive it from `useWallet()`; see
+[Handle phases & errors](/guides/handle-phases-and-errors/).
+
 ## Create the wallet
 
-Call `useWalletBootstrap()` inside the provider to create or unlock a wallet.
-When `phase` is `'needsWallet'`, no wallet exists yet.
+Call `useWalletCreate()` inside the provider to create a wallet. When `phase`
+from `useWallet()` is `'needsWallet'`, no wallet exists yet.
 
-`createWallet({ password })` generates a fresh HD seed, encrypts it with the
+`create({ password })` generates a fresh HD seed, encrypts it with the
 password, and stores it locally. The password is whatever you pass in; the
 SDK does not enforce a minimum length or complexity, so validate it yourself
-before calling `createWallet`. The whole operation runs on-device and the
-seed never leaves it. After it resolves, `phase` becomes `'ready'`.
+before calling `create`. The whole operation runs on-device and the seed
+never leaves it. After it resolves, `phase` becomes `'ready'`.
 
 The resolved result includes `mnemonic`, the wallet's recovery phrase. This is
 the only time the SDK ever returns it, so show it to the user immediately and
@@ -148,16 +133,16 @@ existing recovery phrase instead of generating a new one, see
 
 ```tsx title="Onboard.tsx"
 import { useState } from 'react';
-import { useWalletBootstrap, useWalletDK } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletCreate } from '@lightninglabs/walletdk-react';
 
 function Onboard() {
-  const { createWallet, operations } = useWalletBootstrap();
-  const { phase } = useWalletDK();
+  const { phase } = useWallet();
+  const { create, createPending, createError } = useWalletCreate();
   const [mnemonic, setMnemonic] = useState<string[] | null>(null);
 
   const handleCreate = async () => {
     // Generate the HD seed on-device, encrypted with the password.
-    const result = await createWallet({ password: 'a-strong-password' });
+    const result = await create({ password: 'a-strong-password' });
     // Show the mnemonic once, right after creation: it is not retrievable later.
     setMnemonic(result.mnemonic);
   };
@@ -168,12 +153,10 @@ function Onboard() {
 
   return (
     <>
-      <button onClick={handleCreate} disabled={operations.createWallet.busy}>
+      <button onClick={handleCreate} disabled={createPending}>
         Create wallet
       </button>
-      {operations.createWallet.error && (
-        <p role="alert">{operations.createWallet.error}</p>
-      )}
+      {createError && <p role="alert">{createError.message}</p>}
       {mnemonic && (
         <p>Write down your recovery phrase: {mnemonic.join(' ')}</p>
       )}

@@ -22,6 +22,7 @@ export { WalletState, normalizeInfo, phaseFromInfo, walletStateFromProto } from 
 export type {
   RuntimePhase,
   WalletInfo,
+  WalletPhase,
   WalletStatus,
 } from './state.ts';
 
@@ -35,6 +36,7 @@ export type {
   ListRequest,
   OpenWalletFromPasskeyRequest,
   ReceiveRequest,
+  RestoreWalletRequest,
   SendRequest,
   SweepWalletRequest,
   UnlockWalletRequest,
@@ -77,7 +79,13 @@ export type { WalletDKClient } from './client.ts';
 export { BaseWalletDKClient } from './base-client.ts';
 
 // The SDK error type and its machine-readable codes.
-export { WalletDKError, errorMessage } from './errors.ts';
+export {
+  WalletDKError,
+  errorMessage,
+  isPasskeyCancelled,
+  PasskeyCancelledError,
+  toError,
+} from './errors.ts';
 export type { WalletDKErrorCode } from './errors.ts';
 
 // Passkey contract types, the wallet-kind label, and the shared PRF salt.
@@ -111,3 +119,10 @@ export { camelizeKeys } from './casing.ts';
 // destination. It never names a settlement rail; read that from prepareSend.
 export { classifyDestination } from './destination.ts';
 export type { Destination, InvoiceAmount } from './destination.ts';
+
+// The headless wallet engine: the framework-agnostic orchestrator that React
+// (and future bindings) subscribe to. Most apps construct one through a
+// transport factory (createWebWalletEngine / createNativeWalletEngine).
+export { createWalletEngine } from './engine/engine.ts';
+export type { DistributiveOmit, WalletEngine, WalletEngineOptions } from './engine/engine.ts';
+export type { RecoveryState, WalletSnapshot } from './engine/snapshot.ts';

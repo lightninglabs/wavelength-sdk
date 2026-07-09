@@ -1,13 +1,50 @@
-import { PASSKEY_PRF_SALT_HEX } from '@lightninglabs/walletdk-core';
+import {
+  PASSKEY_PRF_SALT_HEX,
+  PasskeyCancelledError,
+} from '@lightninglabs/walletdk-core';
 import type {
   PasskeyAssertion,
   PasskeyCeremony,
 } from '@lightninglabs/walletdk-core';
 
+// Whether a native ceremony rejection means the user dismissed the OS prompt.
+// iOS surfaces ASAuthorizationError code 1001 ("canceled"); Android surfaces
+// GetCredentialCancellationException / CreateCredentialCancellationException
+// with "cancel" in the type or message. Message matching is the only signal
+// that crosses the bridge uniformly, since the bridge flattens native
+// exceptions to a plain Error with no structured code. Known exception type
+// names are matched first, since they are unambiguous; the narrowed
+// "user cancel" regex is a fallback for messages that carry the platform
+// wording without the type name. A bare /cancel/i is deliberately avoided so
+// an unrelated failure whose message merely contains "cancel" (e.g.
+// "cancellation token invalid") is not misclassified as a user cancellation.
+// Follow-up: a native-side sentinel (an error code field rather than message
+// text) would make this exact instead of best-effort.
+function isNativeCancel(err: unknown): boolean {
+  const message =
+    err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+
+  if (
+    /GetCredentialCancellationException/.test(message) ||
+    /CreateCredentialCancellationException/.test(message)
+  ) {
+    return true;
+  }
+  if (/ASAuthorizationError/.test(message) && /\b1001\b/.test(message)) {
+    return true;
+  }
+  if (/\berror\s*1001\b/i.test(message)) {
+    return true;
+  }
+
+  return /\buser.{0,10}cancel/i.test(message);
+}
+
 // A passkey ceremony that neither resolves nor rejects within this bound has
-// wedged (a silent native provider); reject so usePasskeyWallet's busy flag
-// cannot stick until an app restart. Generous enough that a real user
-// completing biometrics or a PIN never trips it.
+// wedged (a silent native provider); reject so useWalletPasskey's
+// createPending/openPending flags cannot stick until an app restart.
+// Generous enough that a real user completing biometrics or a PIN never
+// trips it.
 const PASSKEY_TIMEOUT_MS = 120000;
 
 // withPasskeyTimeout rejects if the native ceremony call has not settled
@@ -69,6 +106,12 @@ export function nativePasskeyCeremony(
 ): PasskeyCeremony {
   const saltB64url = hexToBase64Url(PASSKEY_PRF_SALT_HEX);
 
+  // The memoized probe promise for this ceremony instance. The probe reads
+  // native.passkeySupported(), which does not depend on options (rpId etc.),
+  // but a fresh native module can be wired into a different ceremony
+  // instance, so the memo lives per instance rather than at module scope.
+  let supportsPasskeyPrfProbe: Promise<boolean> | null = null;
+
   const assertPasskeyPrf = async (
     allowCredentialId?: string,
   ): Promise<PasskeyAssertion> => {
@@ -81,21 +124,36 @@ export function nativePasskeyCeremony(
       userVerification: 'required',
       extensions: { prf: { eval: { first: saltB64url } } },
     };
-    const response = JSON.parse(
-      await withPasskeyTimeout(
+    let responseJson: string;
+    try {
+      responseJson = await withPasskeyTimeout(
         native.passkeyGet(JSON.stringify(request)),
         'authentication',
-      ),
-    ) as WebAuthnResponse;
+      );
+    } catch (err) {
+      throw isNativeCancel(err) ? new PasskeyCancelledError() : err;
+    }
+    const response = JSON.parse(responseJson) as WebAuthnResponse;
 
     return { prfOutput: requirePrfHex(response), credentialId: response.id };
   };
 
   return {
+    // Memoized per ceremony instance: the first call stores the in-flight
+    // probe and every later call reuses it. A rejection is not cached: the
+    // memo is cleared first so a later call retries the probe, and this
+    // call still degrades to false rather than leaving an unhandled
+    // rejection.
     async supportsPasskeyPrf() {
+      if (!supportsPasskeyPrfProbe) {
+        supportsPasskeyPrfProbe = native.passkeySupported();
+      }
+
       try {
-        return await native.passkeySupported();
+        return await supportsPasskeyPrfProbe;
       } catch {
+        supportsPasskeyPrfProbe = null;
+
         return false;
       }
     },
@@ -120,12 +178,16 @@ export function nativePasskeyCeremony(
         },
         extensions: { prf: { eval: { first: saltB64url } } },
       };
-      const response = JSON.parse(
-        await withPasskeyTimeout(
+      let responseJson: string;
+      try {
+        responseJson = await withPasskeyTimeout(
           native.passkeyCreate(JSON.stringify(request)),
           'registration',
-        ),
-      ) as WebAuthnResponse;
+        );
+      } catch (err) {
+        throw isNativeCancel(err) ? new PasskeyCancelledError() : err;
+      }
+      const response = JSON.parse(responseJson) as WebAuthnResponse;
 
       const first = prfFirst(response);
       if (first) {

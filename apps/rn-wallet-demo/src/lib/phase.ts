@@ -16,6 +16,8 @@ export function statusLabel(phase: RuntimePhase): string {
     return "locked";
   case "syncing":
     return "syncing";
+  case "restoring":
+    return "restoring";
   case "ready":
     return "ready";
   case "stopping":
@@ -31,5 +33,5 @@ export function statusLabel(phase: RuntimePhase): string {
 // for the chrome status dot. It is a phase proxy, not a live link check; real
 // server connectivity is info.serverConnected, shown on the settings screen.
 export function phaseConnected(phase: RuntimePhase): boolean {
-  return phase === "ready" || phase === "syncing";
+  return phase === "ready" || phase === "syncing" || phase === "restoring";
 }

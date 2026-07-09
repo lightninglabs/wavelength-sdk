@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Fingerprint, KeyRound, RotateCcw } from "lucide-react";
+import {
+  useWalletPasskey,
+  useWalletUnlock,
+} from "@lightninglabs/walletdk-react";
 import type { WalletKind } from "@lightninglabs/walletdk-react";
+import { webPasskeyCeremony } from "@lightninglabs/walletdk-web";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -8,43 +13,52 @@ import { Field } from "../../components/ui/Field";
 import { InlineError } from "../../components/ui/InlineError";
 import { GhostButton, PrimaryButton, TextLink } from "../../components/ui/Button";
 import { requestWipe } from "../../lib/wipeLocalData";
+import { readPasskeyCredentialId } from "../../lib/walletKind";
+import { LoadingScreen } from "./LoadingScreen";
 
 // UnlockScreen serves the `locked` phase: a wallet exists on this device and
 // must be unlocked. A passkey wallet is unlocked with a platform authenticator
 // (no local wrap needed, as the seed is re-derived from the passkey), while a
 // password wallet uses its password. The passkey affordance is gated only on
 // PRF support, so it remains available even on a device with no local marker.
+// The passkey ceremony is held behind a loading screen so a synced wallet is
+// never shown mid-biometric-prompt.
 export function UnlockScreen({
   network,
-  passkeySupported,
+  dataDir,
   walletKind,
-  onUnlock,
-  onUnlockPasskey,
+  onWalletUnlocked,
   onRecover,
-  busy,
-  error,
-  passkeyBusy,
-  passkeyError,
 }: {
   network: string;
-  passkeySupported: boolean;
+  dataDir: string;
   walletKind: WalletKind | null;
-  onUnlock: (password: string) => void;
-  onUnlockPasskey: () => void;
+  onWalletUnlocked: (kind: WalletKind, credentialId?: string) => void;
   onRecover: () => void;
-  busy: boolean;
-  error: string;
-  passkeyBusy: boolean;
-  passkeyError: string;
 }) {
   const [password, setPassword] = useState("");
   const [confirmWipe, setConfirmWipe] = useState(false);
-  const anyBusy = busy || passkeyBusy;
+  const { unlock, unlockPending, unlockError } = useWalletUnlock();
+  const passkey = useWalletPasskey(webPasskeyCeremony);
+  const anyBusy = unlockPending || passkey.openPending;
+
+  // Passkey support is still probing: hold on a loading screen rather than
+  // flash a password-only form that would flip to passkey-first a moment
+  // later. The probe is memoized and warmed at boot, so this rarely paints.
+  if (passkey.supported === null) {
+    return (
+      <LoadingScreen
+        network={network}
+        title="Unlock wallet"
+        sub="Checking device capabilities."
+      />
+    );
+  }
 
   // The passkey option does not depend on a locally stored wrap: it is offered
   // whenever the device supports PRF and the wallet is not explicitly a password
   // wallet (an unknown marker still permits a passkey attempt).
-  const showPasskey = passkeySupported && walletKind !== "password";
+  const showPasskey = passkey.supported && walletKind !== "password";
   const showPassword = walletKind === "password" || (!showPasskey && walletKind === null);
 
   // The subtitle names only the methods actually offered, so a passkey wallet
@@ -58,6 +72,46 @@ export function UnlockScreen({
           ? "Unlock with your password to sync the wallet."
           : "Unlock to sync the wallet.";
 
+  async function onUnlock(pw: string) {
+    try {
+      await unlock({ password: pw });
+    } catch {
+      // Surfaced via unlockError.
+      return;
+    }
+    // Outside the try: a throwing localStorage write in onWalletUnlocked
+    // must not be swallowed by unlock's own catch.
+    onWalletUnlocked("password");
+  }
+
+  // onUnlockPasskey opens an existing passkey wallet, scoped to the stored
+  // credential id when one is known. The seed and DB password are re-derived
+  // from the passkey.
+  async function onUnlockPasskey() {
+    let outcome;
+    try {
+      outcome = await passkey.open(readPasskeyCredentialId(dataDir) ?? undefined);
+    } catch {
+      // Surfaced via passkey.openError.
+      return;
+    }
+    // Outside the try: a throwing localStorage write in onWalletUnlocked
+    // must not be swallowed by the passkey ceremony's own catch.
+    onWalletUnlocked("passkey", outcome.credentialId);
+  }
+
+  // Passkey unlock in flight: hold on a loading screen behind the biometric
+  // prompt instead of leaving the unlock form visible underneath it.
+  if (passkey.openPending) {
+    return (
+      <LoadingScreen
+        network={network}
+        title="Unlocking wallet"
+        sub="Decrypting keys and syncing. This can take a few seconds."
+      />
+    );
+  }
+
   return (
     <AuthLayout network={network}>
       <AuthHeader title="Unlock wallet" sub={sub} />
@@ -66,11 +120,10 @@ export function UnlockScreen({
         <div className="mb-4 space-y-4">
           <GhostButton
             icon={Fingerprint}
-            onClick={onUnlockPasskey}
+            onClick={() => void onUnlockPasskey()}
             disabled={anyBusy}
-            busy={passkeyBusy}
           >
-            {passkeyBusy ? "Waiting for passkey…" : "Unlock with passkey"}
+            Unlock with passkey
           </GhostButton>
           {showPassword ? (
             <div className="flex items-center gap-3">
@@ -88,7 +141,7 @@ export function UnlockScreen({
           onSubmit={(e) => {
             e.preventDefault();
             if (!anyBusy && password.length > 0) {
-              onUnlock(password);
+              void onUnlock(password);
             }
           }}
         >
@@ -102,10 +155,10 @@ export function UnlockScreen({
           <PrimaryButton
             type="submit"
             icon={KeyRound}
-            busy={busy}
+            busy={unlockPending}
             disabled={anyBusy || password.length === 0}
           >
-            {busy ? "Unlocking…" : "Unlock"}
+            {unlockPending ? "Unlocking…" : "Unlock"}
           </PrimaryButton>
 
           {anyBusy ? (
@@ -116,7 +169,7 @@ export function UnlockScreen({
         </form>
       ) : null}
 
-      <InlineError message={error || passkeyError} />
+      <InlineError message={unlockError?.message || passkey.openError?.message || ""} />
 
       <div className="mt-5 flex items-center justify-center gap-1.5 text-xs text-faint">
         <RotateCcw size={13} />

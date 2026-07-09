@@ -1,6 +1,10 @@
 import {
   WalletDKClient,
   PasskeyCeremony,
+  createWalletEngine,
+  type DistributiveOmit,
+  type WalletEngine,
+  type WalletEngineOptions,
 } from '@lightninglabs/walletdk-core';
 import {
   assertPasskeyPrf,
@@ -24,7 +28,7 @@ export type RuntimeThread = 'main' | 'worker';
 export type WebClientOptions = {
   /**
    * Overrides the worker entry point. By default the worker client spawns the
-   * worker its bundler emits from new URL('./walletdk-worker.js',
+   * worker its bundler emits from new URL('../walletdk-worker.js',
    * import.meta.url); supply this to point at a custom-hosted copy.
    * runtimeBaseUrl is still sent to the worker regardless of this override.
    */
@@ -65,11 +69,37 @@ export function createWebClient(
     : new WorkerWalletDKClient(options);
 }
 
+/**
+ * Options for {@link createWebWalletEngine}: the web client options plus the
+ * engine's config/autoStart. See {@link WalletEngineOptions} for the
+ * config/autoStart field docs; the type requires config when autoStart is
+ * true.
+ */
+export type WebWalletEngineOptions = WebClientOptions &
+  DistributiveOmit<WalletEngineOptions, 'client'>;
+
+/**
+ * Creates a {@link WalletEngine} over the browser/wasm transport: the
+ * one-call setup for a web app. Pass the engine to WalletDKProvider from
+ * \@lightninglabs/walletdk-react, or drive it directly without React.
+ */
+export function createWebWalletEngine(
+  options: WebWalletEngineOptions = {},
+): WalletEngine {
+  const { workerURL, runtimeBaseUrl, runtimeThread, debug, ...engineOptions } =
+    options;
+
+  return createWalletEngine({
+    client: createWebClient({ workerURL, runtimeBaseUrl, runtimeThread, debug }),
+    ...engineOptions,
+  });
+}
+
 export { assertPasskeyPrf, registerPasskeyWallet, supportsPasskeyPrf };
 
 /**
  * The browser (WebAuthn/PRF) implementation of the {@link PasskeyCeremony}
- * contract; pass it to usePasskeyWallet, or drive it directly.
+ * contract; pass it to useWalletPasskey, or drive it directly.
  */
 export const webPasskeyCeremony: PasskeyCeremony = {
   supportsPasskeyPrf,

@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { RefreshCw, TriangleAlert } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
+import { WipeDataButton } from '../../components/WipeDataButton';
 import { PrimaryButton } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Palette, fonts } from '../../theme/tokens';
@@ -38,16 +39,20 @@ const makeStyles = (p: Palette) => ({
 });
 
 // ErrorScreen serves the `error` phase: the runtime failed to initialise or
-// start. It surfaces the message and offers a retry.
+// start. It surfaces the message and offers a retry, plus the wipe escape
+// hatch for when stored data (a stale database, say) is what keeps the
+// runtime from starting.
 export function ErrorScreen({
   network,
   message,
   onRetry,
+  onWipe,
   busy,
 }: {
   network: string;
   message: string;
   onRetry: () => void;
+  onWipe: () => void;
   busy: boolean;
 }) {
   const { palette } = useTheme();
@@ -71,6 +76,7 @@ export function ErrorScreen({
         <PrimaryButton icon={RefreshCw} onPress={onRetry} disabled={busy} busy={busy}>
           {busy ? 'Retrying…' : 'Try again'}
         </PrimaryButton>
+        <WipeDataButton onWipe={onWipe} />
       </View>
     </AuthLayout>
   );

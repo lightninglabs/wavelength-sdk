@@ -26,6 +26,8 @@ export function CreateWalletScreen({
   error,
   passkeyBusy,
   passkeyError,
+  restoreFailure,
+  onDismissRestoreFailure,
 }: {
   network: string;
   passkeySupported: boolean;
@@ -37,6 +39,10 @@ export function CreateWalletScreen({
   error: string;
   passkeyBusy: boolean;
   passkeyError: string;
+  /** A restore that failed before the wallet came up, or empty when none. */
+  restoreFailure?: string;
+  /** Dismisses the restore-failure message. */
+  onDismissRestoreFailure?: () => void;
 }) {
   // Default to a passkey wallet when supported; otherwise password is the only
   // option.
@@ -180,6 +186,18 @@ export function CreateWalletScreen({
             <div className="mt-2">
               <InlineError message={passkeyError} />
             </div>
+          </div>
+        ) : null}
+        {restoreFailure ? (
+          <div className="mb-4">
+            <InlineError message={restoreFailure} />
+            <button
+              type="button"
+              onClick={onDismissRestoreFailure}
+              className="mt-1 text-xs font-medium text-muted hover:text-fg"
+            >
+              Dismiss
+            </button>
           </div>
         ) : null}
         <p className="text-center text-xs text-faint">

@@ -10,10 +10,10 @@ import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 
-`@lightninglabs/walletdk-react` is the React binding for WalletDK: a context provider that owns a `WalletDKClient` and wires its state into React, plus hooks for reading that state and calling wallet operations.
+`@lightninglabs/walletdk-react` is the React binding for WalletDK: a context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
 
 <Callout type="note">
-This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/walletdk-react` instead of adding `@lightninglabs/walletdk-core` as a separate dependency. The transport is not re-exported: use `createWebClient` from [walletdk-web](/reference/walletdk-web/) or `createNativeClient` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `usePasskeyWallet`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
+This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/walletdk-react` instead of adding `@lightninglabs/walletdk-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [walletdk-web](/reference/walletdk-web/) or `createNativeWalletEngine` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
 </Callout>
 
 ## Provider
@@ -22,31 +22,24 @@ export const walletDKProviderSig = `function WalletDKProvider(props: WalletDKPro
 
 export const walletDKProviderPropsSig = `type WalletDKProviderProps = {
   children: ReactNode;
-  client?: WalletDKClient;
-  createClient?: () => WalletDKClient;
+  engine: WalletEngine;
 };`;
 
 <ApiSymbol name="WalletDKProvider" kind="class">
 
-Context provider that owns a [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient). Wrap your application root (or any subtree) with this component so child hooks can access wallet state and operations.
+Context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to descendants. Wrap your application root (or any subtree) with this component so child hooks can access wallet state and operations.
 
 <Signature title="walletdk-react.d.ts" code={walletDKProviderSig} />
 
 <ParamsTable rows={[
-  { name: 'client', type: 'WalletDKClient', desc: 'A prebuilt client from createWebClient() or another transport. Provide this or createClient, but not neither.' },
-  { name: 'createClient', type: '() => WalletDKClient', desc: 'Factory the provider calls once and memoizes, as an alternative to a prebuilt client. Safe to pass inline.' },
+  { name: 'engine', type: 'WalletEngine', desc: 'A WalletEngine from any transport, e.g. createWebWalletEngine() from walletdk-web or createNativeWalletEngine() from walletdk-react-native. Required; the provider throws synchronously if it is missing.' },
   { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call WalletDK hooks.' },
 ]} />
 
-Provide exactly one of `client` or `createClient`. If both are given, `client` wins. If neither is given, the provider throws synchronously (not just on first render effect) with an error asking for one of the two props.
-
 <Callout type="note">
-The provider drives several behaviors automatically so hosts do not each reimplement them:
+**The provider owns nothing.** `WalletDKProvider` does not build, start, poll, or dispose anything: it publishes the engine you hand it to `useSyncExternalStore` subscribers. Every lifecycle behavior described below (sync polling, activity-driven refresh, `autoStart`, the `stopped` transition on an unsolicited runtime stop) is owned by the `WalletEngine` itself, so it also applies to a vanilla (non-React) consumer that drives the same engine directly. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) on the walletdk-core reference for the full behavior list.
 
-- **Sync auto-poll**: while `phase` is `'syncing'`, the provider calls `refresh()` every 2000ms until the phase leaves `'syncing'`. After 5 consecutive `refresh()` failures it stops polling, sets the top-level `error`, and moves `phase` to `'error'` instead of polling forever.
-- **Activity-driven auto-refresh**: while `phase` is `'ready'`, the provider subscribes to `activity` events (via `startActivity({ includeExisting: true })`) and, on each event, calls `refresh()` after a 250ms debounce. This is how balance and activity stay current without a host-managed poll.
-- **Unsolicited `stopped` transition**: a `runtimeStopped` event, whether from a clean `stop()` or a worker crash/fatal surfaced by the transport, moves `phase` to `'stopped'` and wipes `info`, `balance`, and `activity` to `null`/`null`/`[]`, even if the host never called `stop()` itself.
-- **No automatic dispose**: the provider never calls `client.dispose()` on unmount, even for a client it built itself via `createClient`. The host is responsible for disposing the client when it is truly done with it.
+The provider never calls `engine.dispose()` on unmount. The code that constructed the engine (typically module scope, outside any component) owns its lifetime and is responsible for disposing it when the app is truly done with it.
 </Callout>
 
 </ApiSymbol>
@@ -59,311 +52,343 @@ Props for the `WalletDKProvider` component. `WalletDKProviderProps` is not itsel
 
 </ApiSymbol>
 
-## useWalletDK and WalletDKReactState
+export const useWalletEngineSig = `function useWalletEngine(): WalletEngine`;
 
-export const useWalletDKSig = `function useWalletDK(): WalletDKReactState`;
+<ApiSymbol name="useWalletEngine" kind="function">
 
-export const walletDKReactStateSig = `type WalletDKReactState = {
-  client: WalletDKClient;
-  phase: RuntimePhase;
-  error: string;
-  info: Partial<WalletInfo> | null;
-  balance: Balance | null;
-  activity: Entry[];
-  operations: Record<WalletOperation, OperationState>;
-  start(config: RuntimeConfig): Promise<WalletInfo>;
-  stop(): Promise<void>;
-  refresh(): Promise<void>;
-  createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
-  restoreWallet(req: CreateWalletRequest): void;
-  recovery: RecoveryState;
-  acknowledgeRecovery(): void;
-  unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
-  deposit(req?: DepositRequest): Promise<DepositResult>;
-  receive(req: ReceiveRequest): Promise<ReceiveResult>;
-  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
-  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
-  send(req: SendRequest): Promise<SendResult>;
-  logs: WalletDKLogPayload[];
-  clearLogs(): void;
-  clearOperationError(operation: WalletOperation): void;
-};`;
+Returns the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) from the nearest `WalletDKProvider`: the escape hatch for anything the granular hooks below do not cover (for example calling `engine.client` directly, or a method with no dedicated hook). Throws outside a provider.
 
-<ApiSymbol name="useWalletDK" kind="function">
+<Signature title="walletdk-react.d.ts" code={useWalletEngineSig} />
 
-Returns the full provider state: phase, balance, activity, operations, logs, and every wallet method. Prefer the granular hooks below when a component only needs one slice.
-
-<Signature title="walletdk-react.d.ts" code={useWalletDKSig} />
-
-<Returns type="WalletDKReactState">
-The complete provider state. Throws when called outside a `WalletDKProvider`.
+<Returns type="WalletEngine">
+The provider's engine instance.
 </Returns>
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKReactState" kind="type">
+## useWallet
 
-Shape returned by `useWalletDK()`. The `phase` field tracks [`RuntimePhase`](/reference/walletdk-core/#RuntimePhase); `info.walletState` carries the underlying [`WalletState`](/reference/walletdk-core/#WalletState).
-
-<Signature title="walletdk-react.d.ts" code={walletDKReactStateSig} />
-
-<ParamsTable rows={[
-  { name: 'client', type: 'WalletDKClient', desc: 'The underlying transport client backing every action.' },
-  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase.' },
-  { name: 'error', type: 'string', desc: 'The last runtime-level error message, or "" when there is none. Set only when the initial ready() call rejects, or after 5 consecutive sync-auto-poll failures. Per-operation failures (start, stop, createWallet, and so on) do not set this field; see operations below.' },
-  { name: 'info', type: 'Partial<WalletInfo> | null', desc: 'Most recent wallet info, or null before the runtime reports it. See "info is assembled incrementally" below.' },
-  { name: 'balance', type: 'Balance | null', desc: 'Most recent wallet balance, or null before known.' },
-  { name: 'activity', type: 'Entry[]', desc: "Most recent activity entries, newest-first as returned by the daemon. Always the result of list({ view: 'activity', pendingOnly: false }); it does not reflect the vtxos or onchain views." },
-  { name: 'operations', type: 'Record<WalletOperation, OperationState>', desc: 'Busy/error state keyed by WalletOperation.' },
-  { name: 'start(config)', type: '(config: RuntimeConfig) => Promise<WalletInfo>', desc: "Starts the runtime. Sets phase to 'starting' immediately, calls client.start(config), sets info and derives phase from it (needsWallet/locked/syncing/ready), then best-effort calls refresh() (a locked or empty wallet can fail balance/list until bootstrap; that failure is swallowed and does not set operations.runtime.error). Resolves with the WalletInfo from start()." },
-  { name: 'stop()', type: '() => Promise<void>', desc: "Sets phase to 'stopping', calls client.stop(), then clears info/balance/activity to null/null/[] and sets phase to 'stopped'. Uses the 'runtime' operation key, the same as start()." },
-  { name: 'refresh()', type: '() => Promise<void>', desc: "Re-fetches info (via getInfo()) and re-derives phase with phaseFromInfo(), then re-fetches balance() and the activity list. Uses the shared 'refresh' operation key; useWalletBalance and useWalletActivity read the same busy/error slot." },
-  { name: 'createWallet(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: "Creates a new wallet, optimistically patches info with the returned identityPubKey and walletState/walletReady set to ready, sets phase to 'ready', then awaits a full refresh() before resolving with the CreateWalletResult." },
-  { name: 'restoreWallet(req)', type: '(req: CreateWalletRequest) => void', desc: "Restores from a mnemonic without blocking on server-assisted recovery. Fire-and-forget: it starts createWallet(req) in the background, advances to phase 'ready' as soon as the daemon reports the wallet ready (which happens before the recovery scan finishes), and, when req.recoverState is set, tracks the scan through recovery below. Use this instead of createWallet for a restore-from-mnemonic flow so a long indexer scan does not pin the UI on the restore form." },
-  { name: 'recovery', type: 'RecoveryState', desc: "The background recovery status set by restoreWallet, a discriminated union on `status`: { status: 'idle' } | { status: 'restoring' } | { status: 'done', result: CreateWalletResult } | { status: 'failed', error: string }. 'restoring' while the scan runs; 'done' carries the recovery counters; 'failed' (wallet still usable) carries the error. Drive a 'restoring your balance and history' banner off this." },
-  { name: 'acknowledgeRecovery()', type: '() => void', desc: 'Resets recovery to idle, e.g. after the user dismisses the banner.' },
-  { name: 'unlockWallet(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: "Unlocks an existing wallet with the same optimistic-info-patch, phase-to-'ready', and awaited refresh() sequence as createWallet, resolving with the UnlockWalletResult." },
-  { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address, awaits refresh() on success, and resolves with the DepositResult. req defaults to {} when omitted.' },
-  { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice, awaits refresh() on success, and resolves with the ReceiveResult.' },
-  { name: 'prepareSend(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it, resolving with the expected fee, rail, and a single-use sendIntentId. Does not refresh. Uses the "prepareSend" operation key. Safe to retry on failure.' },
-  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a payment quoted by prepareSend, awaits refresh() on success, and resolves with the SendResult. Runs under the "send" operation key, not "prepareSend", because it is the dispatch half. A rejection may mean the payment was already dispatched: check activity before retrying. The quote expires at expiresAtUnix; re-quote rather than dispatching a stale intent.' },
-  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment, awaits refresh() on success, and resolves with the SendResult. req is the SendRequest union (Lightning arm or on-chain arm).' },
-  { name: 'logs', type: 'WalletDKLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
-  { name: 'clearLogs()', type: '() => void', desc: 'Clears the buffered log tail.' },
-  { name: 'clearOperationError(operation)', type: '(operation: WalletOperation) => void', desc: 'Clears the error for a single operation.' },
-]} />
-
-`WalletOperation` and `OperationState`, used by the `operations` field above:
-
-<ParamsTable rows={[
-  { name: 'WalletOperation', type: "'runtime' | 'refresh' | 'createWallet' | 'unlockWallet' | 'deposit' | 'receive' | 'prepareSend' | 'send'", desc: 'Identifies a single wallet operation whose busy/error state the provider tracks independently. Both start() and stop() use the "runtime" key; refresh(), useWalletBalance, and useWalletActivity all use the shared "refresh" key. prepareSend() uses the "prepareSend" key; sendPrepared() and send() both use the "send" key.' },
-  { name: 'OperationState.busy', type: 'boolean', desc: 'True while the operation is in flight.' },
-  { name: 'OperationState.error', type: 'string', desc: 'The last error message for the operation, or "" when there is none. Set when the operation\'s own async call rejects; unrelated to the top-level error field.' },
-]} />
-
-<Callout type="note">
-**Top-level `error` vs. `operations[op].error`.** The top-level `error` field is reserved for runtime-lifecycle failures the provider cannot attribute to a specific call: the initial `ready()` rejection, or exhausting the sync auto-poll's 5-failure bailout. Every operation you call directly (`start`, `stop`, `createWallet`, `unlockWallet`, `deposit`, `receive`, `send`, and the shared `refresh`) reports its own failure on `operations[op].error` instead, leaving the top-level `error` untouched.
-
-**`info` is assembled incrementally.** Right after `createWallet`/`unlockWallet`, only `identityPubKey`, `walletState`, and `walletReady` are guaranteed to be set (the provider patches just those fields optimistically). The remaining `WalletInfo` fields (version, commit, network, block height, and so on) arrive once the follow-up `refresh()` completes, which is why `info` is typed `Partial<WalletInfo> | null` rather than `WalletInfo | null`.
-
-**`refresh` is one shared operation.** Calling `useWalletDK().refresh()` and the `refresh` returned from `useWalletBalance()`/`useWalletActivity()` all invoke the exact same function and read the exact same `operations.refresh` busy/error slot, so a refresh triggered from one hook is visible as `busy` in every other hook that shares it.
-</Callout>
-
-</ApiSymbol>
-
-## Granular hooks
-
-All eight hooks below must be called within a `WalletDKProvider` subtree; each throws otherwise (the same requirement as `useWalletDK`).
-
-export const useWalletRuntimeSig = `function useWalletRuntime(): {
-  client: WalletDKClient;
-  error: string;
-  info: Partial<WalletInfo> | null;
-  operations: Record<WalletOperation, OperationState>;
+export const useWalletSig = `function useWallet(): {
   phase: RuntimePhase;
-  refresh(): Promise<void>;
-  start(config: RuntimeConfig): Promise<WalletInfo>;
+  error: Error | null;
+  start(config?: RuntimeConfig): Promise<WalletInfo>;
   stop(): Promise<void>;
 };`;
 
-<ApiSymbol name="useWalletRuntime" kind="function">
+<ApiSymbol name="useWallet" kind="function">
 
-Exposes the runtime client, lifecycle phase, info, and start/stop/refresh actions, for components that drive the runtime itself.
+The application-shell hook: the lifecycle phase to route your top-level UI on, the last fatal runtime error, and the start/stop actions. There are no `pending` flags here: `phase === 'starting'` / `'stopping'` already encode them.
 
-<Signature title="walletdk-react.d.ts" code={useWalletRuntimeSig} />
+<Signature title="walletdk-react.d.ts" code={useWalletSig} />
 
 <ParamsTable rows={[
-  { name: 'client', type: 'WalletDKClient', desc: 'The underlying transport client.' },
-  { name: 'error', type: 'string', desc: 'The provider\'s top-level error (see WalletDKReactState.error above).' },
-  { name: 'info', type: 'Partial<WalletInfo> | null', desc: 'Most recent wallet info.' },
-  { name: 'operations', type: 'Record<WalletOperation, OperationState>', desc: 'The full operations record (not filtered to runtime-related keys).' },
-  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase.' },
-  { name: 'refresh()', type: '() => Promise<void>', desc: 'Re-fetches info/balance/activity; shares the "refresh" operation with useWalletBalance and useWalletActivity.' },
-  { name: 'start(config)', type: '(config: RuntimeConfig) => Promise<WalletInfo>', desc: 'Same function as WalletDKReactState.start; starts the runtime.' },
-  { name: 'stop()', type: '() => Promise<void>', desc: 'Same function as WalletDKReactState.stop; stops the runtime.' },
+  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase. See RuntimePhase on the walletdk-core reference; note it now includes \'restoring\'.' },
+  { name: 'error', type: 'Error | null', desc: 'The last fatal runtime-level error, or null. Set when the initial runtime load fails, when start()/stop() fails, or after the engine\'s background processes exhaust their failure budget (e.g. repeated sync-poll or background-refresh failures).' },
+  { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: 'Starts the runtime. Falls back to the engine\'s configured config (the one passed to createWebWalletEngine/createNativeWalletEngine) when called with no argument; throws if neither exists. Resolves with the WalletInfo from startup.' },
+  { name: 'stop()', type: '() => Promise<void>', desc: 'Stops the runtime and clears the in-memory snapshot (info/balance/activity reset to null/null/[]); persisted wallet data is untouched.' },
 ]} />
+
+<Returns type="{ phase, error, start, stop }">
+The runtime lifecycle phase, last fatal error, and start/stop actions.
+</Returns>
 
 </ApiSymbol>
 
-export const useWalletBootstrapSig = `function useWalletBootstrap(): {
-  createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
-  restoreWallet(req: CreateWalletRequest): void;
+## Reading state
+
+The five hooks below each subscribe to one slice of the engine's snapshot via `useSyncExternalStore`, so a component re-renders only when the slice it reads actually changes. `useWalletInfo`, `useWalletBalance`, and `useWalletActivity` are plain selectors; `useWalletRecovery` and `useWalletLogs` also return an action (`acknowledge()` and `clear()` respectively) alongside their slice.
+
+export const useWalletInfoSig = `function useWalletInfo(): WalletInfo | null`;
+export const useWalletBalanceSig = `function useWalletBalance(): Balance | null`;
+export const useWalletActivitySig = `function useWalletActivity(): Entry[]`;
+export const useWalletRecoverySig = `function useWalletRecovery(): {
   recovery: RecoveryState;
-  acknowledgeRecovery(): void;
-  info: Partial<WalletInfo> | null;
-  operations: Record<WalletOperation, OperationState>;
-  unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
+  acknowledge(): void;
+};`;
+export const useWalletLogsSig = `function useWalletLogs(): {
+  logs: WalletDKLogPayload[];
+  clear(): void;
 };`;
 
-<ApiSymbol name="useWalletBootstrap" kind="function">
+<ApiSymbol name="useWalletInfo" kind="function">
 
-Exposes wallet creation, restore, and unlock actions together with the latest info and background-recovery status, for the bootstrap (create-or-unlock) flow.
+The most recent complete wallet info, or `null` before the runtime reports it.
 
-<Signature title="walletdk-react.d.ts" code={useWalletBootstrapSig} />
+<Signature title="walletdk-react.d.ts" code={useWalletInfoSig} />
 
-<ParamsTable rows={[
-  { name: 'createWallet(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet and refreshes state on success.' },
-  { name: 'restoreWallet(req)', type: '(req: CreateWalletRequest) => void', desc: 'Restores from a mnemonic without blocking on server-assisted recovery; recovery runs in the background and is tracked through recovery below. See WalletDKReactState.restoreWallet.' },
-  { name: 'recovery', type: 'RecoveryState', desc: "Background recovery status from restoreWallet ('idle' | 'restoring' | 'done' | 'failed'); drive a recovery banner off it. See WalletDKReactState.recovery." },
-  { name: 'acknowledgeRecovery()', type: '() => void', desc: 'Resets recovery to idle (e.g. on banner dismiss).' },
-  { name: 'info', type: 'Partial<WalletInfo> | null', desc: 'Most recent wallet info.' },
-  { name: 'operations', type: 'Record<WalletOperation, OperationState>', desc: 'The raw operations record: read operations.createWallet.busy / operations.unlockWallet.error directly. Unlike the other granular hooks, this hook does not flatten busy/error and has no clearError; call useWalletDK().clearOperationError(op) if you need to clear one.' },
-  { name: 'unlockWallet(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: 'Unlocks an existing wallet and refreshes state on success.' },
-]} />
+<Returns type="WalletInfo | null">
+The current `WalletInfo`, or `null` before the runtime reports it. Always a complete object: the engine refetches full info whenever the wallet comes up (create, unlock, passkey open, restore).
+</Returns>
 
 </ApiSymbol>
-
-export const useWalletBalanceSig = `function useWalletBalance(): {
-  balance: Balance | null;
-  refresh(): Promise<void>;
-  busy: boolean;
-  error: string;
-  clearError(): void;
-};`;
 
 <ApiSymbol name="useWalletBalance" kind="function">
 
-Exposes the current balance plus a refresh action with flat busy/error state.
+The most recent wallet balance, or `null` before it is known.
 
 <Signature title="walletdk-react.d.ts" code={useWalletBalanceSig} />
 
-<ParamsTable rows={[
-  { name: 'balance', type: 'Balance | null', desc: 'Most recent wallet balance, or null before known.' },
-  { name: 'refresh()', type: '() => Promise<void>', desc: 'The shared, global refresh: it also re-fetches info and activity, not just balance.' },
-  { name: 'busy', type: 'boolean', desc: 'Proxies operations.refresh.busy. Shared with useWalletActivity: a refresh triggered from either hook shows busy in both.' },
-  { name: 'error', type: 'string', desc: 'Proxies operations.refresh.error. Shared with useWalletActivity.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears the shared "refresh" operation error.' },
-]} />
+<Returns type="Balance | null">
+The current Balance, or null before known.
+</Returns>
 
 </ApiSymbol>
-
-export const useWalletActivitySig = `function useWalletActivity(): {
-  activity: Entry[];
-  refresh(): Promise<void>;
-  busy: boolean;
-  error: string;
-  clearError(): void;
-};`;
 
 <ApiSymbol name="useWalletActivity" kind="function">
 
-Exposes the current activity entries plus a refresh action with flat busy/error state.
+The most recent activity entries, newest-first as returned by the daemon.
 
 <Signature title="walletdk-react.d.ts" code={useWalletActivitySig} />
 
+<Returns type="Entry[]">
+Always the result of `list({ view: 'activity', pendingOnly: false })`; it does not reflect the vtxos or onchain views.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="useWalletRecovery" kind="function">
+
+The background recovery status set by [`useWalletRestore`](#useWalletRestore) and its acknowledge action.
+
+<Signature title="walletdk-react.d.ts" code={useWalletRecoverySig} />
+
 <ParamsTable rows={[
-  { name: 'activity', type: 'Entry[]', desc: "Most recent activity entries from the { view: 'activity' } list, newest-first." },
-  { name: 'refresh()', type: '() => Promise<void>', desc: 'The same shared, global refresh used by useWalletBalance (also re-fetches info and balance).' },
-  { name: 'busy', type: 'boolean', desc: 'Proxies operations.refresh.busy. Shares the "refresh" operation with useWalletBalance: they report the exact same busy/error state.' },
-  { name: 'error', type: 'string', desc: 'Proxies operations.refresh.error. Shared with useWalletBalance.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears the shared "refresh" operation error.' },
+  { name: 'recovery', type: 'RecoveryState', desc: "The background recovery status, a discriminated union on status: { status: 'idle' } | { status: 'restoring' } | { status: 'done', result: CreateWalletResult } | { status: 'failed', error: Error }. failed covers both a background scan that errored on an already-usable wallet and a restore that failed before the wallet came up at all, including an untracked restore; read phase from useWallet() alongside it to tell the two apart (ready vs. needsWallet). See RecoveryState on the walletdk-core reference. Drive a \"restoring your balance and history\" banner off the ready case, or a restore-failed message on the onboarding screen off the needsWallet case." },
+  { name: 'acknowledge()', type: '() => void', desc: "Resets recovery to { status: 'idle' }, e.g. after the user dismisses the banner." },
 ]} />
 
 </ApiSymbol>
 
-export const useWalletLogsSig = `function useWalletLogs(): {
-  logs: WalletDKLogPayload[];
-  clearLogs(): void;
-};`;
-
 <ApiSymbol name="useWalletLogs" kind="function">
 
-Exposes the buffered runtime log tail and a clear action. Unlike every other granular hook, this one has no `busy`/`error`: reading `logs` is synchronous state, not an async operation.
+The buffered runtime log tail and a clear action.
 
 <Signature title="walletdk-react.d.ts" code={useWalletLogsSig} />
 
 <ParamsTable rows={[
   { name: 'logs', type: 'WalletDKLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
-  { name: 'clearLogs()', type: '() => void', desc: 'Clears the buffered log tail.' },
+  { name: 'clear()', type: '() => void', desc: 'Clears the buffered log tail.' },
 ]} />
 
 </ApiSymbol>
 
-export const useDepositAddressSig = `function useDepositAddress(): {
+## Mutations
+
+The eight hooks below drive a wallet operation and carry hook-local, verb-prefixed `*Pending`/`*Error`/`*Data` state, all built on one shared convention:
+
+<Callout type="note" title="Mutation convention: throw-and-capture">
+Every mutation hook exposes the same shape, with its fields prefixed by the verb it performs: an action function (e.g. `create`), `<verb>Pending: boolean`, `<verb>Error: Error | null`, `<verb>Data` (the last successful result, or `null`), and `reset<Verb>(): void`. Calling the action clears the previous error/data, sets pending to `true`, awaits the underlying engine call, and on completion **both** updates the hook's state **and** settles the returned promise the normal way: it resolves with the result (and sets the data field) or rejects with the failure (and sets the error field to that same `Error` instance). This is throw-and-capture: read the `*Error`/`*Data` fields for a declarative render, or `await`/`try`/`catch` the action's return value for imperative flow, whichever fits the call site. Error fields are always `Error | null`, never a string. `reset<Verb>()` clears the pending/error/data trio back to idle without calling anything.
+
+The verb prefix is deliberate: a component composing several of these hooks (e.g. `create` and `deposit` side by side) never needs destructure aliases to avoid name collisions. [`useWalletPasskey`](#useWalletPasskey)'s `create`/`open` fields follow the same prefixing pattern, but this is one place the prefix does not save you: `useWalletCreate` and `useWalletPasskey` both expose a `create` verb, so destructuring both in the same component collides on all four of `create`, `createPending`, `createError`, and `resetCreate`. Keep one as a namespaced object (e.g. `const passkey = useWalletPasskey(...)`) instead of destructuring both. Each hook's return type is also exported as `UseWallet<Verb>Result` (`UseWalletCreateResult`, `UseWalletRestoreResult`, `UseWalletUnlockResult`, `UseWalletDepositResult`, `UseWalletReceiveResult`, `UseWalletPrepareSendResult`, `UseWalletSendResult`, `UseWalletRefreshResult`), for typing wrapper components around a hook without re-deriving its shape.
+
+A `PasskeyCancelledError` (the user dismissed the OS prompt) is the one exception: it rethrows without being recorded into the error field, since a dismissed prompt is not a failure to display.
+</Callout>
+
+export const useWalletCreateSig = `function useWalletCreate(): {
+  create(req: CreateWalletRequest): Promise<CreateWalletResult>;
+  createPending: boolean;
+  createError: Error | null;
+  createData: CreateWalletResult | null;
+  resetCreate(): void;
+};`;
+
+<ApiSymbol name="useWalletCreate" kind="function">
+
+Creates a new wallet, with hook-local createPending/createError/createData state.
+
+<Signature title="walletdk-react.d.ts" code={useWalletCreateSig} />
+
+<ParamsTable rows={[
+  { name: 'create(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet, refetches info, and kicks a background refresh. See createWallet on the walletdk-core reference.' },
+]} />
+
+<Returns type="{ create, createPending, createError, createData, resetCreate }">
+See the mutation convention above.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletRestoreSig = `function useWalletRestore(): {
+  restore(req: RestoreWalletRequest): Promise<WalletInfo>;
+  restorePending: boolean;
+  restoreError: Error | null;
+  restoreData: WalletInfo | null;
+  resetRestore(): void;
+};`;
+
+<ApiSymbol name="useWalletRestore" kind="function">
+
+Restores a wallet from a mnemonic, with hook-local restorePending/restoreError/restoreData state.
+
+<Signature title="walletdk-react.d.ts" code={useWalletRestoreSig} />
+
+<ParamsTable rows={[
+  { name: 'restore(req)', type: '(req: RestoreWalletRequest) => Promise<WalletInfo>', desc: 'Restores a wallet from req.mnemonic. See restoreWallet on the walletdk-core reference.' },
+]} />
+
+<Returns type="{ restore, restorePending, restoreError, restoreData, resetRestore }">
+See the mutation convention above, with one twist: `restore`'s promise (and therefore `restorePending`/`restoreError`) only covers getting the wallet up; it resolves as soon as the restored wallet is usable, not when the optional server-assisted recovery scan finishes, and it never rejects for a scan failure. Observe the scan, and a restore that fails before the wallet came up, separately through [`useWalletRecovery`](#useWalletRecovery): even a fire-and-forget `restore()` call whose promise is not awaited still surfaces a pre-usability failure there once `phase` falls back to `'needsWallet'`.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletUnlockSig = `function useWalletUnlock(): {
+  unlock(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
+  unlockPending: boolean;
+  unlockError: Error | null;
+  unlockData: UnlockWalletResult | null;
+  resetUnlock(): void;
+};`;
+
+<ApiSymbol name="useWalletUnlock" kind="function">
+
+Unlocks an existing wallet, with hook-local unlockPending/unlockError/unlockData state.
+
+<Signature title="walletdk-react.d.ts" code={useWalletUnlockSig} />
+
+<ParamsTable rows={[
+  { name: 'unlock(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: 'Unlocks an existing wallet, refetches info, and kicks a background refresh. See unlockWallet on the walletdk-core reference.' },
+]} />
+
+<Returns type="{ unlock, unlockPending, unlockError, unlockData, resetUnlock }">
+See the mutation convention above.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletDepositSig = `function useWalletDeposit(): {
   deposit(req?: DepositRequest): Promise<DepositResult>;
-  busy: boolean;
-  error: string;
-  clearError(): void;
+  depositPending: boolean;
+  depositError: Error | null;
+  depositData: DepositResult | null;
+  resetDeposit(): void;
 };`;
 
-<ApiSymbol name="useDepositAddress" kind="function">
+<ApiSymbol name="useWalletDeposit" kind="function">
 
-Exposes the deposit action with flat busy/error state for requesting an on-chain deposit address.
+Requests an on-chain deposit address, with hook-local depositPending/depositError/depositData state.
 
-<Signature title="walletdk-react.d.ts" code={useDepositAddressSig} />
+<Signature title="walletdk-react.d.ts" code={useWalletDepositSig} />
 
 <ParamsTable rows={[
-  { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address and refreshes state on success. req is optional and defaults to {} when omitted.' },
-  { name: 'busy', type: 'boolean', desc: 'Proxies operations.deposit.busy.' },
-  { name: 'error', type: 'string', desc: 'Proxies operations.deposit.error.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears the "deposit" operation error.' },
+  { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address and kicks a background refresh. req is optional and defaults to {} when omitted. See deposit on the walletdk-core reference.' },
 ]} />
+
+<Returns type="{ deposit, depositPending, depositError, depositData, resetDeposit }">
+See the mutation convention above.
+</Returns>
 
 </ApiSymbol>
 
-export const useReceiveSig = `function useReceive(): {
+export const useWalletReceiveSig = `function useWalletReceive(): {
   receive(req: ReceiveRequest): Promise<ReceiveResult>;
-  busy: boolean;
-  error: string;
-  clearError(): void;
+  receivePending: boolean;
+  receiveError: Error | null;
+  receiveData: ReceiveResult | null;
+  resetReceive(): void;
 };`;
 
-<ApiSymbol name="useReceive" kind="function">
+<ApiSymbol name="useWalletReceive" kind="function">
 
-Exposes the receive action with flat busy/error state for requesting a Lightning invoice.
+Requests a Lightning receive invoice, with hook-local receivePending/receiveError/receiveData state.
 
-<Signature title="walletdk-react.d.ts" code={useReceiveSig} />
+<Signature title="walletdk-react.d.ts" code={useWalletReceiveSig} />
 
 <ParamsTable rows={[
-  { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice and refreshes state on success.' },
-  { name: 'busy', type: 'boolean', desc: 'Proxies operations.receive.busy.' },
-  { name: 'error', type: 'string', desc: 'Proxies operations.receive.error.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears the "receive" operation error.' },
+  { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice and kicks a background refresh. See receive on the walletdk-core reference.' },
 ]} />
+
+<Returns type="{ receive, receivePending, receiveError, receiveData, resetReceive }">
+See the mutation convention above.
+</Returns>
 
 </ApiSymbol>
 
-export const useSendSig = `function useSend(): {
-  send(req: SendRequest): Promise<SendResult>;
-  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
-  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
-  busy: boolean;
-  preparing: boolean;
-  error: string;
-  prepareError: string;
-  clearError(): void;
+export const useWalletPrepareSendSig = `function useWalletPrepareSend(): {
+  prepare(req: SendRequest): Promise<PrepareSendResult>;
+  preparePending: boolean;
+  prepareError: Error | null;
+  prepareData: PrepareSendResult | null;
+  resetPrepare(): void;
 };`;
 
-<ApiSymbol name="useSend" kind="function">
+<ApiSymbol name="useWalletPrepareSend" kind="function">
 
-Exposes the send actions with flat busy/error state. `send` is the one-shot path. `prepareSend` + `sendPrepared` are the two-step quote-then-confirm path: quote first so the user can see the fee, then dispatch.
+Quotes a payment without dispatching it, with hook-local preparePending/prepareError/prepareData state.
 
-<Signature title="walletdk-react.d.ts" code={useSendSig} />
+<Signature title="walletdk-react.d.ts" code={useWalletPrepareSendSig} />
 
 <ParamsTable rows={[
-  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment and refreshes state on success. req is the SendRequest union: a Lightning arm (invoice) or an on-chain arm (onchainAddress). Composes prepareSend + sendPrepared internally.' },
-  { name: 'prepareSend(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it. Read expectedFeeSat (guarded by feeKnown), rail, and warning to show the user what they are about to pay. Safe to retry on failure.' },
-  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a quote from prepareSend and refreshes state on success. The quote expires at expiresAtUnix: re-quote rather than dispatching a stale intent. A rejection may mean the payment already went out; check activity before retrying.' },
-  { name: 'busy', type: 'boolean', desc: 'Proxies operations.send.busy. True during send() and during sendPrepared().' },
-  { name: 'preparing', type: 'boolean', desc: 'Proxies operations.prepareSend.busy. True during prepareSend() only.' },
-  { name: 'error', type: 'string', desc: 'Proxies operations.send.error.' },
-  { name: 'prepareError', type: 'string', desc: 'Proxies operations.prepareSend.error.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears both the "send" and "prepareSend" operation errors.' },
+  { name: 'prepare(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it; no refresh, since a quote moves no money. See prepareSend on the walletdk-core reference.' },
 ]} />
+
+<Returns type="{ prepare, preparePending, prepareError, prepareData, resetPrepare }">
+See the mutation convention above. `prepareData` holds the latest quote for a review screen; pair it with [`useWalletSend`](#useWalletSend)'s `sendPrepared` to dispatch it.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletSendSig = `function useWalletSend(): {
+  send(req: SendRequest): Promise<SendResult>;
+  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
+  sendPending: boolean;
+  sendError: Error | null;
+  sendData: SendResult | null;
+  resetSend(): void;
+};`;
+
+<ApiSymbol name="useWalletSend" kind="function">
+
+Dispatches a payment: `send` is the one-shot path, `sendPrepared` confirms a quote from [`useWalletPrepareSend`](#useWalletPrepareSend). The two verbs are alternative dispatch paths for the same payment and share one sendPending/sendError/sendData slot.
+
+<Signature title="walletdk-react.d.ts" code={useWalletSendSig} />
+
+<ParamsTable rows={[
+  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Quotes and dispatches a payment in one call, then kicks a background refresh. See send on the walletdk-core reference.' },
+  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a quote returned by useWalletPrepareSend, then kicks a background refresh. See sendPrepared on the walletdk-core reference.' },
+]} />
+
+<Returns type="{ send, sendPrepared, sendPending, sendError, sendData, resetSend }">
+See the mutation convention above.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletRefreshSig = `function useWalletRefresh(): {
+  refresh(): Promise<void>;
+  refreshPending: boolean;
+  refreshError: Error | null;
+  resetRefresh(): void;
+};`;
+
+<ApiSymbol name="useWalletRefresh" kind="function">
+
+Re-fetches info, balance, and activity.
+
+<Signature title="walletdk-react.d.ts" code={useWalletRefreshSig} />
+
+<ParamsTable rows={[
+  { name: 'refresh()', type: '() => Promise<void>', desc: 'Re-fetches info, balance, and activity concurrently. See refresh on the walletdk-core reference.' },
+]} />
+
+<Returns type="{ refresh, refreshPending, refreshError, resetRefresh }">
+The one mutation hook with no data field: `refresh()` resolves `void`, so there is nothing to hold. `refreshPending` tracks only this hook instance's own calls, not the engine's own background refreshes (the sync poll, the activity-driven settle reconcile, or the refresh kicked automatically after another mutation): those never flip it. Use it as what a pull-to-refresh spinner should show.
+</Returns>
 
 </ApiSymbol>
 
 ## Passkeys
 
-export const usePasskeyWalletSig = `function usePasskeyWallet(ceremony: PasskeyCeremony): UsePasskeyWallet`;
-
-export const usePasskeyWalletReturnSig = `type UsePasskeyWallet = {
-  supported: boolean;
-  busy: boolean;
-  error: string;
-  createPasskeyWallet(appName: string): Promise<PasskeyWalletOutcome | null>;
-  openPasskeyWallet(allowCredentialId?: string): Promise<PasskeyWalletOutcome | null>;
-  clearError(): void;
+export const useWalletPasskeySig = `function useWalletPasskey(ceremony: PasskeyCeremony): {
+  supported: boolean | null;
+  create(appName: string): Promise<PasskeyWalletOutcome>;
+  createPending: boolean;
+  createError: Error | null;
+  resetCreate(): void;
+  open(credentialId?: string): Promise<PasskeyWalletOutcome>;
+  openPending: boolean;
+  openError: Error | null;
+  resetOpen(): void;
 };`;
 
 export const passkeyWalletOutcomeSig = `type PasskeyWalletOutcome = {
@@ -384,46 +409,37 @@ type PasskeyCeremony = {
   assertPasskeyPrf(allowCredentialId?: string): Promise<PasskeyAssertion>;
 };`;
 
-<ApiSymbol name="usePasskeyWallet" kind="function">
+<ApiSymbol name="useWalletPasskey" kind="function">
 
-Drives a passkey ceremony and opens the wallet through the provider's client, refreshing provider state on success so the phase advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; the React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)). Must be called within a `WalletDKProvider` subtree; throws otherwise.
+Drives a passkey ceremony and opens the wallet through the engine, refreshing engine state on success so `phase` advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; the React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)). Creation and opening track separately (`create*`/`open*` fields below) because apps render them on different screens. Must be called within a `WalletDKProvider` subtree; throws otherwise.
 
-<Signature title="walletdk-react.d.ts" code={usePasskeyWalletSig} />
+<Signature title="walletdk-react.d.ts" code={useWalletPasskeySig} />
 
 <ParamsTable rows={[
   { name: 'ceremony', type: 'PasskeyCeremony', desc: 'Platform ceremony implementation. In the browser, pass webPasskeyCeremony from walletdk-web.' },
 ]} />
 
-<Returns type="UsePasskeyWallet">
-Passkey registration and unlock helpers with flat busy/error/clearError fields.
-</Returns>
-
-</ApiSymbol>
-
-<ApiSymbol name="UsePasskeyWallet" kind="type">
-
-Return type of `usePasskeyWallet`.
-
-<Signature title="walletdk-react.d.ts" code={usePasskeyWalletReturnSig} />
-
 <ParamsTable rows={[
-  { name: 'supported', type: 'boolean', desc: 'Whether the environment supports passkey PRF. Starts false and updates asynchronously once ceremony.supportsPasskeyPrf() resolves; if that probe rejects, supported degrades to false rather than throwing.' },
-  { name: 'busy', type: 'boolean', desc: 'True while a ceremony (createPasskeyWallet or openPasskeyWallet) is in flight.' },
-  { name: 'error', type: 'string', desc: 'The last error message, or "" when there is none.' },
-  { name: 'createPasskeyWallet(appName)', type: '(appName: string) => Promise<PasskeyWalletOutcome | null>', desc: 'Registers a passkey, opens the wallet from its assertion, and best-effort refreshes provider state (a refresh failure here is swallowed, so a successful outcome does not guarantee the provider state has already updated). On failure, resolves to null and populates error instead of throwing.' },
-  { name: 'openPasskeyWallet(allowCredentialId?)', type: '(allowCredentialId?: string) => Promise<PasskeyWalletOutcome | null>', desc: 'Asserts a passkey (scoped to allowCredentialId when provided, discoverable otherwise), opens the wallet from its assertion, and best-effort refreshes provider state (same swallowed-refresh-failure caveat as createPasskeyWallet). On failure, resolves to null and populates error instead of throwing.' },
-  { name: 'clearError()', type: '() => void', desc: 'Clears the current error message.' },
+  { name: 'supported', type: 'boolean | null', desc: 'Whether the environment supports passkey PRF. Starts null while ceremony.supportsPasskeyPrf() is in flight, then settles to true or false once it resolves; if that probe rejects, supported settles to false rather than throwing. Treat null as still-checking and gate passkey UI on it accordingly, not as a falsy unsupported state. The probe is memoized per ceremony instance, so warming it once at app boot means supported is usually already settled by the time a screen reads it.' },
+  { name: 'create(appName)', type: '(appName: string) => Promise<PasskeyWalletOutcome>', desc: 'Registers a passkey and creates the wallet from it. Follows the same throw-and-capture convention as the mutation hooks above: it both resolves/rejects and updates createPending/createError/reset via resetCreate.' },
+  { name: 'createPending', type: 'boolean', desc: 'True while create() is in flight.' },
+  { name: 'createError', type: 'Error | null', desc: 'The last error from create(), or null. A PasskeyCancelledError is never recorded here.' },
+  { name: 'resetCreate()', type: '() => void', desc: 'Clears createPending/createError back to idle.' },
+  { name: 'open(credentialId?)', type: '(credentialId?: string) => Promise<PasskeyWalletOutcome>', desc: 'Asserts a passkey (scoped to credentialId when provided, discoverable otherwise) and imports/unlocks the wallet.' },
+  { name: 'openPending', type: 'boolean', desc: 'True while open() is in flight.' },
+  { name: 'openError', type: 'Error | null', desc: 'The last error from open(), or null. A PasskeyCancelledError is never recorded here.' },
+  { name: 'resetOpen()', type: '() => void', desc: 'Clears openPending/openError back to idle.' },
 ]} />
 
-<Callout type="note">
-**`usePasskeyWallet` never throws.** Unlike every other method on this page (`start`, `stop`, `createWallet`, `unlockWallet`, `deposit`, `receive`, `send`, all of which reject their promise on failure), `createPasskeyWallet` and `openPasskeyWallet` catch their own failures internally: they resolve to `null` and set `error` instead of rejecting. Always check for a `null` result rather than wrapping these calls in `try`/`catch`.
+<Callout type="caution" title="A cancelled ceremony still rejects">
+`create()` and `open()` reject with errors when they fail; a `PasskeyCancelledError` (user dismissed the OS prompt) is rethrown but never recorded into `createError`/`openError`. Always `await`/`catch` these calls, or read `createError`/`openError` for a declarative render.
 </Callout>
 
 </ApiSymbol>
 
 <ApiSymbol name="PasskeyWalletOutcome" kind="type">
 
-Pairs the Go-side open result with the credential id used in the ceremony, so the app can persist it and scope future unlocks to the same passkey. Returned by both `createPasskeyWallet` and `openPasskeyWallet`.
+Pairs the daemon-side open result with the credential id used in the ceremony, so the app can persist it and scope future unlocks to the same passkey. Returned by both `create` and `open`.
 
 <Signature title="walletdk-react.d.ts" code={passkeyWalletOutcomeSig} />
 
@@ -436,7 +452,7 @@ Pairs the Go-side open result with the credential id used in the ceremony, so th
 
 <ApiSymbol name="PasskeyCeremony" kind="type">
 
-The per-platform contract `usePasskeyWallet` drives. It is defined in `walletdk-core` but documented here since this package is its primary consumer; the browser implementation, `webPasskeyCeremony`, lives in [`walletdk-web`](/reference/walletdk-web/#webPasskeyCeremony). The React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)) as its implementation of the same contract.
+The per-platform contract `useWalletPasskey` drives. It is defined in `walletdk-core` but documented here since this package is its primary consumer; the browser implementation, `webPasskeyCeremony`, lives in [`walletdk-web`](/reference/walletdk-web/#webPasskeyCeremony). The React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)) as its implementation of the same contract.
 
 <Signature title="walletdk-react.d.ts" code={passkeyCeremonySig} />
 
@@ -453,10 +469,10 @@ The per-platform contract `usePasskeyWallet` drives. It is defined in `walletdk-
 
 ## Re-exported from walletdk-core
 
-`@lightninglabs/walletdk-react` re-exports the full `@lightninglabs/walletdk-core` surface (`export * from '@lightninglabs/walletdk-core'`), so `WalletDKClient`, `RuntimeConfig`, `defaultConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, and every request/result/enum type are all importable directly from this package. The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
+`@lightninglabs/walletdk-react` re-exports the full `@lightninglabs/walletdk-core` surface (`export * from '@lightninglabs/walletdk-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `defaultConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
-- [walletdk-web reference](/reference/walletdk-web/) for `createWebClient()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
-- [walletdk-react-native reference](/reference/walletdk-react-native/) for `createNativeClient()` and `createNativePasskeyCeremony()`, the React Native transport and passkey ceremony used with this package.
+- [walletdk-core reference](/reference/walletdk-core/) for `WalletEngine`, `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
+- [walletdk-web reference](/reference/walletdk-web/) for `createWebWalletEngine()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
+- [walletdk-react-native reference](/reference/walletdk-react-native/) for `createNativeWalletEngine()` and `createNativePasskeyCeremony()`, the React Native transport and passkey ceremony used with this package.

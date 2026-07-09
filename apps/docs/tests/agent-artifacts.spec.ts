@@ -115,7 +115,7 @@ test('agents page markdown mirror keeps all four prompts', async ({ request }) =
   // assert on content unique to each panel instead so we still confirm the
   // markdown mirror kept all four prompts as plain content.
   expect(body).toContain('mount <WalletDKProvider');
-  expect(body).toContain('createNativeClient()');
+  expect(body).toContain('createNativeWalletEngine()');
   expect(body).toContain('gRPC or REST');
   expect(body).toContain('Write automation for the WalletDK wallet using darepocli.');
   expect(body).toContain('darepocli mcp');

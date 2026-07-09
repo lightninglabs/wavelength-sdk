@@ -13,9 +13,9 @@ related:
 This guide assumes your app already renders inside a `WalletDKProvider` with a
 wallet unlocked and ready. See [Create a wallet](/guides/create-a-wallet/).
 
-`deposit()` creates a tracked boarding address from your wallet key. Send any
-amount of on-chain bitcoin to this address and the Ark server will sweep it into
-your VTXO balance in the next round.
+`deposit()` from `useWalletDeposit()` creates a tracked boarding address from
+your wallet key. Send any amount of on-chain bitcoin to this address and the
+Ark server will sweep it into your VTXO balance in the next round.
 
 The returned `DepositResult` includes both the address string and an initial
 activity entry. Display the address as text, or render it as a QR code with a
@@ -23,10 +23,10 @@ library of your choice for easy scanning.
 
 ```tsx title="deposit.tsx"
 import { useState } from 'react';
-import { useDepositAddress } from '@lightninglabs/walletdk-react';
+import { useWalletDeposit } from '@lightninglabs/walletdk-react';
 
 function DepositAddress() {
-  const { deposit, busy, error, clearError } = useDepositAddress();
+  const { deposit, depositPending, depositError, resetDeposit } = useWalletDeposit();
   const [address, setAddress] = useState<string | null>(null);
 
   const getAddress = async () => {
@@ -36,13 +36,13 @@ function DepositAddress() {
 
   return (
     <div>
-      <button onClick={getAddress} disabled={busy}>
+      <button onClick={getAddress} disabled={depositPending}>
         Get deposit address
       </button>
       {address && <p>{address}</p>}
-      {error && (
+      {depositError && (
         <p role="alert">
-          {error} <button onClick={clearError}>Dismiss</button>
+          {depositError.message} <button onClick={resetDeposit}>Dismiss</button>
         </p>
       )}
     </div>
@@ -59,7 +59,7 @@ const result = await deposit({ amountSatHint: 100000 });
 
 ## Watch for confirmation
 
-Use `useWalletActivity()` to watch for your deposit to land. The provider
+Use `useWalletActivity()` to watch for your deposit to land. The engine
 subscribes to the activity stream and refreshes automatically, so pending
 entries appear as soon as the server sees the boarding transaction and flip to
 `'complete'` once the round settles. An entry can also flip to `'failed'`; in
@@ -72,7 +72,7 @@ the full feed with status badges so the user can see the progress.
 import { useWalletActivity } from '@lightninglabs/walletdk-react';
 
 function WatchDeposit() {
-  const { activity } = useWalletActivity();
+  const activity = useWalletActivity();
 
   const deposits = activity.filter(entry => entry.kind === 'deposit');
 

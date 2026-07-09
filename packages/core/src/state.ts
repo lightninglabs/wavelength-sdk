@@ -67,8 +67,7 @@ export function walletStateFromProto(
  * The daemon's Info with walletState normalized to the string union and the
  * walletReady predicate backfilled (the facade exposes it as a Go method, so it
  * is absent from the JSON). The client always returns this complete shape from
- * `getInfo()`/`start()`; the React provider holds a `Partial<WalletInfo>` while
- * it builds state incrementally across create/unlock.
+ * `getInfo()`/`start()`; the engine snapshot holds it as `WalletInfo | null`.
  */
 export type WalletInfo = Omit<Info, 'walletState'> & {
   /** The wallet lifecycle as the SDK string union. */
@@ -104,7 +103,9 @@ export function normalizeInfo(raw: unknown): WalletInfo {
  * (loading/runtimeReady/starting/stopping/stopped/error) are owned by the host's
  * start/stop flow; the wallet phases (needsWallet/locked/syncing/ready) are
  * derived from {@link WalletInfo} by {@link phaseFromInfo}. It lives in core so
- * non-React (and future React-Native) consumers share one vocabulary.
+ * non-React and React Native consumers share one vocabulary. 'restoring'
+ * means a background restore is bringing a fresh wallet up; the engine owns it
+ * (like 'starting'), it is never returned by phaseFromInfo.
  */
 export type RuntimePhase =
   | 'loading'
@@ -113,22 +114,31 @@ export type RuntimePhase =
   | 'needsWallet'
   | 'locked'
   | 'syncing'
+  | 'restoring'
   | 'ready'
   | 'stopping'
   | 'stopped'
   | 'error';
 
 /**
+ * The subset of {@link RuntimePhase} derivable from wallet info: the phases
+ * {@link phaseFromInfo} can return. The runtime-owned phases (loading,
+ * runtimeReady, starting, restoring, stopping, stopped, error) are not
+ * representable here.
+ */
+export type WalletPhase = 'needsWallet' | 'locked' | 'syncing' | 'ready';
+
+/**
  * Derives the wallet-state phase from a {@link WalletInfo}. Runtime phases are
  * not represented here; the caller owns those.
  *
  * @param info - The wallet state and readiness to derive the phase from.
- * @returns The wallet-state {@link RuntimePhase}.
+ * @returns The wallet-state {@link WalletPhase}.
  */
 export function phaseFromInfo(info: {
   walletState?: WalletState;
   walletReady?: boolean;
-}): RuntimePhase {
+}): WalletPhase {
   if (info.walletReady || info.walletState === WalletState.Ready) {
     return 'ready';
   }

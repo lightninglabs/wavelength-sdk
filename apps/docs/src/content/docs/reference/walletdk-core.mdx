@@ -12,11 +12,12 @@ import Callout from '~/components/mdx/Callout.astro';
 import FieldCards from '~/components/mdx/FieldCards.astro';
 
 `@lightninglabs/walletdk-core` is the framework-agnostic contract every
-WalletDK transport implements: a typed `WalletDKClient` interface, the request
+WalletDK transport implements: a typed `WalletDKClient` interface, the
+[`WalletEngine`](#WalletEngine) orchestrator built on top of it, the request
 and result shapes its methods take and return, and the shared error and event
 model. It has no browser or React dependency: [`walletdk-web`](/reference/walletdk-web/)
 implements it for the browser, and [`walletdk-react`](/reference/walletdk-react/)
-re-exports it and layers hooks on top.
+re-exports it and layers hooks on top of a `WalletEngine`.
 
 Every method response is camelCase-normalized at the boundary: the embedded
 daemon speaks PascalCase JSON, and the client rewrites every key to camelCase
@@ -259,6 +260,171 @@ afterward; construct a new one to start again.
 <Returns type="void">
 Nothing; the client is torn down synchronously.
 </Returns>
+
+</ApiSymbol>
+
+## Wallet engine
+
+export const walletEngineOptionsSig = `type WalletEngineOptions =
+  | { client: WalletDKClient; config: RuntimeConfig; autoStart: true }
+  | { client: WalletDKClient; config?: RuntimeConfig; autoStart?: false };`;
+
+export const createWalletEngineSig = `function createWalletEngine(options: WalletEngineOptions): WalletEngine`;
+
+export const walletEngineSig = `interface WalletEngine {
+  readonly client: WalletDKClient;
+  getSnapshot(): WalletSnapshot;
+  subscribe(listener: () => void): () => void;
+  start(config?: RuntimeConfig): Promise<WalletInfo>;
+  stop(): Promise<void>;
+  refresh(): Promise<void>;
+  createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
+  restoreWallet(req: RestoreWalletRequest): Promise<WalletInfo>;
+  acknowledgeRecovery(): void;
+  unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
+  openWalletFromPasskey(req: OpenWalletFromPasskeyRequest): Promise<OpenWalletFromPasskeyResult>;
+  deposit(req?: DepositRequest): Promise<DepositResult>;
+  receive(req: ReceiveRequest): Promise<ReceiveResult>;
+  prepareSend(req: SendRequest): Promise<PrepareSendResult>;
+  sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
+  send(req: SendRequest): Promise<SendResult>;
+  clearLogs(): void;
+  dispose(): void;
+}`;
+
+export const restoreWalletRequestSig = `type RestoreWalletRequest = CreateWalletRequest & {
+  mnemonic: string[];
+};`;
+
+`WalletEngine` is the headless wallet orchestrator every framework binding is built on: it owns the lifecycle phase machine, the state snapshot (`phase`, `info`, `balance`, `activity`, `recovery`, `logs`), and the background processes that keep them fresh. Build one over any transport with [`createWalletEngine()`](#createWalletEngine), or reach for a transport's own factory (`createWebWalletEngine()` from [walletdk-web](/reference/walletdk-web/), `createNativeWalletEngine()` from [walletdk-react-native](/reference/walletdk-react-native/)), which builds the client for you. Pass the engine to `WalletDKProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly: `getSnapshot()`/`subscribe()` work the same for a vanilla consumer as for a framework binding.
+
+<ApiSymbol name="createWalletEngine" kind="function">
+
+Creates a `WalletEngine` over any transport client.
+
+<Signature title="walletdk-core.d.ts" code={createWalletEngineSig} />
+
+<ParamsTable rows={[
+  { name: 'options', type: 'WalletEngineOptions', desc: 'The client to drive, plus optional default config and autoStart.' },
+]} />
+
+<Returns type="WalletEngine">
+A live engine. It calls `client.ready()` immediately; `getSnapshot().phase` moves from `'loading'` to `'runtimeReady'` once that resolves (and, when `autoStart` is set, `start()` follows automatically).
+</Returns>
+
+**`WalletEngineOptions`**
+
+A discriminated union: the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
+
+<Signature title="walletdk-core.d.ts" code={walletEngineOptionsSig} />
+
+<ParamsTable rows={[
+  { name: 'client', type: 'WalletDKClient', desc: 'The transport client the engine drives.' },
+  { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by start() when called with no argument.' },
+  { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config; start() still throws if later called with no argument and no config.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletEngine" kind="type">
+
+The engine interface. Every method mirrors the matching `WalletDKClient` method plus engine bookkeeping: refetching info, kicking a background refresh, or advancing the phase machine.
+
+<Signature title="walletdk-core.d.ts" code={walletEngineSig} />
+
+<ParamsTable rows={[
+  { name: 'client', type: 'WalletDKClient', desc: 'The underlying transport client, as an escape hatch.' },
+  { name: 'getSnapshot()', type: '() => WalletSnapshot', desc: 'The current immutable state snapshot; see WalletSnapshot below.' },
+  { name: 'subscribe(listener)', type: '(listener: () => void) => () => void', desc: 'Subscribes to snapshot changes; returns the unsubscribe function. Framework bindings call this via useSyncExternalStore.' },
+  { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: "Starts the runtime. Falls back to the engine's configured config when called without an argument; throws if neither exists. A failure moves phase to 'error' and rejects. On success it best-effort calls refresh() (a locked or empty wallet can fail balance/list until bootstrap; that failure is swallowed)." },
+  { name: 'stop()', type: '() => Promise<void>', desc: "Stops the runtime and clears the in-memory snapshot (info/balance/activity reset to null/null/[]); persisted wallet data is untouched. A failure moves phase to 'error'." },
+  { name: 'refresh()', type: '() => Promise<void>', desc: 'Re-fetches info, balance, and activity concurrently.' },
+  { name: 'createWallet(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet, refetches info, and kicks a background refresh.' },
+  { name: 'restoreWallet(req)', type: '(req: RestoreWalletRequest) => Promise<WalletInfo>', desc: "Restores a wallet from req.mnemonic. Resolves as soon as the restored wallet is usable; the optional server-assisted recovery scan (req.recoverState) continues in the background, observed through snapshot.recovery. Rejects only when the restore fails before the wallet came up; if the scan itself fails after the wallet is usable, the promise still resolves and the failure surfaces as recovery.status === 'failed' instead. See RestoreWalletRequest below." },
+  { name: 'acknowledgeRecovery()', type: '() => void', desc: "Resets snapshot.recovery to { status: 'idle' } (e.g. after dismissing a banner)." },
+  { name: 'unlockWallet(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: 'Unlocks an existing wallet, refetches info, and kicks a background refresh.' },
+  { name: 'openWalletFromPasskey(req)', type: '(req: OpenWalletFromPasskeyRequest) => Promise<OpenWalletFromPasskeyResult>', desc: 'Opens the wallet from a passkey PRF output, refetches info, and kicks a background refresh.' },
+  { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address and kicks a background refresh.' },
+  { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive and kicks a background refresh.' },
+  { name: 'prepareSend(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it. No refresh: a quote moves no money.' },
+  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a payment quoted by prepareSend and kicks a background refresh.' },
+  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment and kicks a background refresh.' },
+  { name: 'clearLogs()', type: '() => void', desc: 'Clears the buffered log tail.' },
+  { name: 'dispose()', type: '() => void', desc: 'Tears down subscriptions, polls, and streams. The engine is done after this; build a new one to start again.' },
+]} />
+
+<Callout type="note" title="Background processes the engine owns">
+The engine runs several processes automatically, keyed off `phase`, so hosts never reimplement them:
+
+- **Activity-stream auto-refresh**: while `phase` is `'ready'`, the engine opens the transport's activity stream and, on each event, runs a bounded settle-reconcile: an immediate `refresh()` followed by up to three follow-up re-reads (at 750ms, 1500ms, and 3000ms) that stop early once the balance has moved off its pre-event baseline and then held steady across two reads. This covers the daemon reporting an entry settled a beat before `balance()` reflects the new funds.
+- **Sync auto-poll**: while `phase` is `'syncing'`, the engine calls `refresh()` every 2000ms until the phase leaves `'syncing'`. After 5 consecutive failures it stops polling and escalates to `phase: 'error'` instead of polling forever.
+- **Restore readiness poll**: while `phase` is `'restoring'` (any `restoreWallet()` in flight; when the request sets `recoverState: true` the recovery scan is additionally tracked through `snapshot.recovery`), the engine polls `getInfo()` every 1500ms until the wallet reports ready, then settles the `restoreWallet()` promise and kicks a refresh.
+- **Background-refresh failure budget**: any refresh kicked after a mutation (create/unlock/restore/deposit/receive/send) or by a poll above shares one consecutive-failure counter. At 5 consecutive failures the engine sets `snapshot.error` and escalates `phase` to `'error'`, so a dead daemon cannot hide behind a healthy-looking ready wallet.
+- **Unsolicited `stopped` transition**: a `runtimeStopped` client event, whether from a clean `stop()` or a worker crash/fatal surfaced by the transport, moves `phase` to `'stopped'` and wipes `info`/`balance`/`activity` to `null`/`null`/`[]`, even if the host never called `stop()` itself.
+</Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletSnapshot" kind="type">
+
+The engine's immutable state snapshot, returned by [`getSnapshot()`](#WalletEngine) and delivered to [`subscribe()`](#WalletEngine) listeners. A new object per change; refresh fetches that changed nothing keep the previous field references, so consumers can cheaply compare slices with `Object.is`.
+
+<Signature title="walletdk-core.d.ts" code={`type WalletSnapshot = {
+  phase: RuntimePhase;
+  error: Error | null;
+  info: WalletInfo | null;
+  balance: Balance | null;
+  activity: Entry[];
+  recovery: RecoveryState;
+  logs: WalletDKLogPayload[];
+};`} />
+
+<ParamsTable rows={[
+  { name: 'phase', type: 'RuntimePhase', desc: 'The current runtime/wallet lifecycle phase.' },
+  { name: 'error', type: 'Error | null', desc: 'The last fatal runtime-level error, or null.' },
+  { name: 'info', type: 'WalletInfo | null', desc: 'The most recent complete wallet info, or null before the runtime reports it.' },
+  { name: 'balance', type: 'Balance | null', desc: 'The most recent wallet balance, or null before it is known.' },
+  { name: 'activity', type: 'Entry[]', desc: 'The most recent activity entries, newest-first as returned by the daemon.' },
+  { name: 'recovery', type: 'RecoveryState', desc: 'The background recovery status set by restoreWallet(); see RecoveryState below.' },
+  { name: 'logs', type: 'WalletDKLogPayload[]', desc: "A bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="RecoveryState" kind="type">
+
+The state of a background wallet recovery started by `restoreWallet()`, a discriminated union keyed on `status`.
+
+<Signature title="walletdk-core.d.ts" code={`type RecoveryState =
+  | { status: 'idle' }
+  | { status: 'restoring' }
+  | { status: 'done'; result: CreateWalletResult }
+  | { status: 'failed'; error: Error; walletUsable: boolean };`} />
+
+<ParamsTable rows={[
+  { name: "{ status: 'idle' }", type: 'variant', desc: 'No tracked restore in flight, and none has run since the last acknowledgeRecovery() (or ever).' },
+  { name: "{ status: 'restoring' }", type: 'variant', desc: "While the daemon's server-assisted scan runs. The wallet is already usable at this point; restoreWallet()'s promise has typically already resolved." },
+  { name: "{ status: 'done', result }", type: 'variant', desc: 'Once the scan completes successfully. result carries the same CreateWalletResult recovery counters (recoveredVTXOs, recoveredBoardingUTXOs, and so on) documented under CreateWalletResult above.' },
+  { name: "{ status: 'failed', error, walletUsable }", type: 'variant', desc: 'walletUsable is true when the background scan errored on an already-usable wallet (its state may just be incomplete), and false when the restore itself failed before the wallet came up at all. This also covers an untracked restore (a restoreWallet() call whose promise was not awaited, or whose caller unmounted): the failure still lands here, surviving the unmount.' },
+]} />
+
+Read it to drive a "restoring your balance and history" banner while the wallet is already usable (`walletUsable: true`), or a restore-failed message on the onboarding screen when the restore never got that far (`walletUsable: false`), and call `acknowledgeRecovery()` to dismiss it back to `'idle'`.
+
+</ApiSymbol>
+
+<ApiSymbol name="RestoreWalletRequest" kind="type">
+
+Parameters for [`WalletEngine.restoreWallet()`](#WalletEngine): everything [`CreateWalletRequest`](#createWallet) accepts, with `mnemonic` promoted from optional to required, since a restore is meaningless without one.
+
+<Signature title="walletdk-core.d.ts" code={restoreWalletRequestSig} />
+
+<ParamsTable rows={[
+  { name: 'mnemonic', type: 'string[]', desc: 'The recovery phrase to restore from. Required (unlike CreateWalletRequest.mnemonic, which is optional).' },
+  { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
+  { name: 'seedPassphrase', type: 'string', desc: 'Optional. A BIP-39 passphrase applied on top of the mnemonic.' },
+  { name: 'recoverState', type: 'boolean', desc: 'Optional. Opt into server-assisted recovery, tracked through snapshot.recovery. Set this for a restore so funds and activity come back; see CreateWalletRequest.recoverState above for the full description. Defaults to false.' },
+  { name: 'recoveryWindow', type: 'number', desc: 'Optional. The per-key-family address look-ahead used during recovery. Only meaningful when recoverState is true.' },
+]} />
 
 </ApiSymbol>
 
@@ -1643,6 +1809,7 @@ export const runtimePhaseSig = `type RuntimePhase =
   | 'needsWallet'
   | 'locked'
   | 'syncing'
+  | 'restoring'
   | 'ready'
   | 'stopping'
   | 'stopped'
@@ -1681,7 +1848,12 @@ boundary via [`walletStateFromProto()`](#walletStateFromProto).
 Lifecycle phase a UI renders. Runtime phases (`loading`, `runtimeReady`,
 `starting`, `stopping`, `stopped`, `error`) are owned by the host start/stop
 flow. Wallet phases (`needsWallet`, `locked`, `syncing`, `ready`) are derived
-from `WalletInfo` via [`phaseFromInfo()`](#phaseFromInfo).
+from `WalletInfo` via [`phaseFromInfo()`](#phaseFromInfo). `restoring` is
+owned by the [`WalletEngine`](#WalletEngine) itself (like `starting`): it is
+never returned by `phaseFromInfo()`, and appears whenever an engine
+`restoreWallet()` call is in flight. When the call sets `recoverState: true`,
+the server-assisted recovery scan is additionally tracked through
+`snapshot.recovery`.
 
 <Signature title="walletdk-core.d.ts" code={runtimePhaseSig} />
 
@@ -1693,6 +1865,7 @@ from `WalletInfo` via [`phaseFromInfo()`](#phaseFromInfo).
 | `needsWallet` | Wallet | No wallet exists yet (`WalletState.None`). |
 | `locked` | Wallet | A wallet exists but is locked. |
 | `syncing` | Wallet | The wallet is unlocked and catching up with the chain. |
+| `restoring` | Engine | A background restore (`WalletEngine.restoreWallet()`) is bringing a freshly restored wallet up; `recoverState: true` additionally tracks the recovery scan through the recovery state. |
 | `ready` | Wallet | The wallet is unlocked and ready (`walletReady` or `WalletState.Ready`). |
 | `stopping` | Host | `stop()` has been called and has not yet resolved. |
 | `stopped` | Host | The daemon has stopped. |
@@ -1891,6 +2064,40 @@ compatibility while still offering autocomplete on the known codes.
 
 </ApiSymbol>
 
+export const passkeyCancelledErrorSig = `class PasskeyCancelledError extends Error {
+  constructor(message?: string);
+}`;
+
+export const toErrorSig = `function toError(value: unknown): Error`;
+
+<ApiSymbol name="PasskeyCancelledError" kind="class">
+
+Thrown by passkey ceremonies when the user dismisses the OS prompt, so hosts can suppress cancellation copy without string-matching the message. `walletdk-react`'s `useWalletPasskey` rethrows it without recording it into `createError`/`openError`.
+
+<Signature title="walletdk-core.d.ts" code={passkeyCancelledErrorSig} />
+
+<ParamsTable rows={[
+  { name: 'message', type: 'string', desc: "Optional. Defaults to 'passkey ceremony was cancelled'." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="toError" kind="function">
+
+Normalizes an unknown thrown value to an `Error`, preserving an existing `Error` instance (and therefore its stack and `cause`) unchanged. Used throughout the SDK, including by every mutation hook's throw-and-capture convention, to guarantee `error` fields are always `Error | null`, never a string or other thrown value.
+
+<Signature title="walletdk-core.d.ts" code={toErrorSig} />
+
+<ParamsTable rows={[
+  { name: 'value', type: 'unknown', desc: 'The thrown value to normalize; may already be an Error.' },
+]} />
+
+<Returns type="Error">
+`value` unchanged if it is already an `Error`; otherwise a new `Error` built from it via `errorMessage()`.
+</Returns>
+
+</ApiSymbol>
+
 ## Passkeys
 
 export const walletKindSig = `type WalletKind = 'passkey' | 'password';`;
@@ -1939,7 +2146,7 @@ The per-platform passkey ceremony contract a host injects to drive
 consumers of this contract free of any transport dependency:
 [`walletdk-web`](/reference/walletdk-web/) supplies the browser
 (WebAuthn/PRF) implementation as `webPasskeyCeremony`, and
-`walletdk-react`'s `usePasskeyWallet` hook drives whichever implementation
+`walletdk-react`'s `useWalletPasskey` hook drives whichever implementation
 you pass it. The React Native transport supplies its own implementation,
 `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)).
 
