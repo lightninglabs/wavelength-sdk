@@ -8,6 +8,10 @@ related:
   - guides/show-balance-and-activity
 ---
 
+Exiting is a client-level operation: there is no dedicated mutation hook for
+it, so reach it through `useWalletEngine().client`, the escape hatch every
+granular hook is built on.
+
 ## Preview with getExitPlan
 
 Before initiating a unilateral exit, call `client.getExitPlan({ outpoints })`
@@ -24,11 +28,11 @@ unresponsive.
 
 ```tsx title="exit.tsx"
 import { useState } from 'react';
-import { useWalletDK } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/walletdk-react';
 import type { GetExitPlanResult } from '@lightninglabs/walletdk-react';
 
 function ExitPlan({ outpoints }: { outpoints: string[] }) {
-  const { client } = useWalletDK();
+  const { client } = useWalletEngine();
   const [plan, setPlan] = useState<GetExitPlanResult | null>(null);
 
   const preview = async () => {
@@ -75,7 +79,7 @@ Do not call `exit` twice for the same outpoint. Check `client.exitStatus()`
 first if the user may have already started an exit in a previous session.
 
 ```tsx title="exit.tsx"
-import { useWalletDK } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/walletdk-react';
 
 function StartExit({
   outpoint,
@@ -84,7 +88,7 @@ function StartExit({
   outpoint: string;
   destination?: string;
 }) {
-  const { client } = useWalletDK();
+  const { client } = useWalletEngine();
 
   const startExit = async () => {
     await client.exit({ outpoint, destination });
@@ -118,11 +122,11 @@ broadcast would cost and net before they commit to it. If
 
 ```tsx title="exit.tsx"
 import { useState } from 'react';
-import { useWalletDK } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/walletdk-react';
 import type { ExitStatusResult } from '@lightninglabs/walletdk-react';
 
 function SweepStatus({ outpoint }: { outpoint: string }) {
-  const { client } = useWalletDK();
+  const { client } = useWalletEngine();
   const [status, setStatus] = useState<ExitStatusResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 

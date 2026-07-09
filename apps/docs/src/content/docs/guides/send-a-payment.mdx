@@ -12,38 +12,37 @@ related:
 ## Send over Lightning
 
 WalletDK uses a send swap to route a Lightning payment from your Ark balance.
-Call `prepareSend({ invoice })` to get a fee quote and a single-use
-`sendIntentId`. Pass the result to `sendPrepared()` to execute.
+Call `prepare({ invoice })` from `useWalletPrepareSend()` to get a fee quote
+and a single-use `sendIntentId`. Pass the result to `sendPrepared()` from
+`useWalletSend()` to execute.
 
 The two-step flow lets you show the user the fee before committing. If the
 user cancels, discard the quote and call nothing. For a one-step path, call
-`send({ invoice })` instead.
+`send({ invoice })` from `useWalletSend()` instead.
 
-The quote returned by `prepareSend()` expires at `expiresAtUnix`. If the user
-waits too long before confirming, call `prepareSend()` again to get a fresh
+The quote returned by `prepare()` expires at `expiresAtUnix`. If the user
+waits too long before confirming, call `prepare()` again to get a fresh
 quote before calling `sendPrepared()`. Check `feeKnown` before displaying
 `expectedFeeSat`: when `feeKnown` is `false` the fee is only an estimate, and
 `warning` may contain additional detail to show the user.
 
 ```tsx title="send.tsx"
-import { useState } from 'react';
-import { useSend } from '@lightninglabs/walletdk-react';
-import type { PrepareSendResult } from '@lightninglabs/walletdk-core';
+import { useWalletPrepareSend, useWalletSend } from '@lightninglabs/walletdk-react';
 
 function SendLightning() {
-  const { prepareSend, sendPrepared } = useSend();
-  const [quote, setQuote] = useState<PrepareSendResult | null>(null);
+  const { prepare, prepareData: quote, resetPrepare } = useWalletPrepareSend();
+  const { sendPrepared } = useWalletSend();
 
-  const prepare = async (bolt11: string) => {
-    // prepareSend returns a fee quote and sendIntentId.
-    setQuote(await prepareSend({ invoice: bolt11 }));
+  const doPrepare = async (bolt11: string) => {
+    // prepare returns a fee quote and sendIntentId; prepareData holds it after.
+    await prepare({ invoice: bolt11 });
   };
 
   const confirm = async () => {
     if (!quote) return;
     // sendPrepared dispatches the payment.
     await sendPrepared(quote);
-    setQuote(null);
+    resetPrepare();
   };
 
   if (quote) {
@@ -55,12 +54,12 @@ function SendLightning() {
         </p>
         {quote.warning && <p role="alert">{quote.warning}</p>}
         <button onClick={confirm}>Confirm payment</button>
-        <button onClick={() => setQuote(null)}>Cancel</button>
+        <button onClick={resetPrepare}>Cancel</button>
       </div>
     );
   }
 
-  return <button onClick={() => prepare('lnbc...')}>Pay invoice</button>;
+  return <button onClick={() => doPrepare('lnbc...')}>Pay invoice</button>;
 }
 ```
 
@@ -71,14 +70,14 @@ transaction that moves your VTXO value to a plain Bitcoin address. This is
 faster and cheaper than a unilateral exit because the round happens in one
 confirmation.
 
-Pass `onchainAddress` and `amountSat` to `send()`. The returned `SendResult`
-includes the activity entry and `actualAmountSat`.
+Pass `onchainAddress` and `amountSat` to `send()` from `useWalletSend()`. The
+returned `SendResult` includes the activity entry and `actualAmountSat`.
 
 ```tsx title="send.tsx"
-import { useSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/walletdk-react';
 
 function SendOnChain() {
-  const { send, busy } = useSend();
+  const { send, sendPending } = useWalletSend();
 
   const handleSend = async (address: string, amountSat: number) => {
     await send({
@@ -88,7 +87,7 @@ function SendOnChain() {
   };
 
   return (
-    <button onClick={() => handleSend('bc1q...', 50_000)} disabled={busy}>
+    <button onClick={() => handleSend('bc1q...', 50_000)} disabled={sendPending}>
       Send on-chain
     </button>
   );
@@ -105,23 +104,22 @@ await send({ onchainAddress: address, sweepAll: true });
 
 ## Handle errors
 
-Wallet operations throw a `WalletDKError` on failure. Check `err.code` for a
-machine-readable reason. Display `err.message` to the user.
+`send` and `sendPrepared` from `useWalletSend()` throw a `WalletDKError` on
+failure and set the hook's `sendError`, which is always `Error | null`. Check
+`err.code` for a machine-readable reason. Display `err.message` to the user.
 
-When using `useSend()`, read `error` from the hook or call `clearError()`
-after handling the failure. Errors thrown
-during `prepareSend` are safe to retry. Errors thrown during `sendPrepared`
-may indicate the payment was already sent; check the activity feed before
-retrying.
+Errors thrown during `prepare` (from `useWalletPrepareSend()`) are safe to
+retry. Errors thrown during `sendPrepared` may indicate the payment was
+already sent; check the activity feed before retrying.
 
 ```tsx title="send.tsx"
-import { useSend, WalletDKError } from '@lightninglabs/walletdk-react';
+import { useWalletSend, WalletDKError } from '@lightninglabs/walletdk-react';
 
 function SafeSend() {
-  const { send, error, clearError } = useSend();
+  const { send, sendError, resetSend } = useWalletSend();
 
   const pay = async (bolt11: string) => {
-    clearError();
+    resetSend();
     try {
       await send({ invoice: bolt11 });
     } catch (err) {
@@ -134,7 +132,7 @@ function SafeSend() {
   return (
     <>
       <button onClick={() => pay('lnbc...')}>Pay</button>
-      {error && <p role="alert">{error}</p>}
+      {sendError && <p role="alert">{sendError.message}</p>}
     </>
   );
 }

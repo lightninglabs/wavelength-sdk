@@ -12,9 +12,16 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Create a passkey-protected wallet
 
-`usePasskeyWallet(ceremony)` drives the passkey ceremony and opens the wallet
-through the provider client. The `ceremony` argument is injected from your
-transport:
+`useWalletPasskey(ceremony)` drives the passkey ceremony and opens the wallet
+through the engine, refreshing engine state on success so `phase` advances
+automatically. The `ceremony` argument is injected from your transport:
+
+`supported` is `boolean | null`, not a plain boolean: it starts `null` while
+the platform capability probe is in flight and settles to `true` or `false`
+once it resolves. Treat `null` as "still checking" and hold the UI on a
+loading state rather than falling into the unsupported branch, or a
+capable device will flash a password-only form before flipping to the
+passkey option a moment later:
 
 <PlatformTabs>
 <div data-label="Web">
@@ -24,24 +31,23 @@ implementation.
 
 ```tsx title="passkey.tsx"
 import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { useWalletPasskey } from '@lightninglabs/walletdk-react';
 
 function PasskeyOnboard() {
-  const { createPasskeyWallet, supported, busy } =
-    usePasskeyWallet(webPasskeyCeremony);
+  const { create, supported, createPending } =
+    useWalletPasskey(webPasskeyCeremony);
 
-  const create = async () => {
-    const outcome = await createPasskeyWallet('My Wallet App');
-    if (outcome) {
-      // Persist outcome.credentialId to scope future unlocks.
-      console.log('Wallet ready:', outcome.result.identityPubKey);
-    }
+  const handleCreate = async () => {
+    const outcome = await create('My Wallet App');
+    // Persist outcome.credentialId to scope future unlocks.
+    console.log('Wallet ready:', outcome.result.identityPubKey);
   };
 
+  if (supported === null) return <p>Checking device capabilities…</p>;
   if (!supported) return <p>Passkeys are not supported on this device.</p>;
 
   return (
-    <button onClick={create} disabled={busy}>
+    <button onClick={handleCreate} disabled={createPending}>
       Create wallet with passkey
     </button>
   );
@@ -59,29 +65,27 @@ Pass `createNativePasskeyCeremony({ rpId })` from
 ```tsx title="passkey.tsx"
 import { Button, Text } from 'react-native';
 import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
-import { usePasskeyWallet } from '@lightninglabs/walletdk-react';
+import { useWalletPasskey } from '@lightninglabs/walletdk-react';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'wallet.example.com' });
 
 function PasskeyOnboard() {
-  const { createPasskeyWallet, supported, busy } =
-    usePasskeyWallet(ceremony);
+  const { create, supported, createPending } = useWalletPasskey(ceremony);
 
-  const create = async () => {
-    const outcome = await createPasskeyWallet('My Wallet App');
-    if (outcome) {
-      // Persist outcome.credentialId to scope future unlocks.
-      console.log('Wallet ready:', outcome.result.identityPubKey);
-    }
+  const handleCreate = async () => {
+    const outcome = await create('My Wallet App');
+    // Persist outcome.credentialId to scope future unlocks.
+    console.log('Wallet ready:', outcome.result.identityPubKey);
   };
 
+  if (supported === null) return <Text>Checking device capabilities…</Text>;
   if (!supported) return <Text>Passkeys are not supported on this device.</Text>;
 
   return (
     <Button
       title="Create wallet with passkey"
-      onPress={create}
-      disabled={busy}
+      onPress={handleCreate}
+      disabled={createPending}
     />
   );
 }
@@ -90,21 +94,32 @@ function PasskeyOnboard() {
 </div>
 </PlatformTabs>
 
-`createPasskeyWallet(appName)` registers a device-bound credential (Face ID,
-Touch ID, Windows Hello, or a hardware security key) and derives the wallet
-seed from the PRF output. No password is stored or transmitted.
+`create(appName)` registers a device-bound credential (Face ID, Touch ID,
+Windows Hello, or a hardware security key) and derives the wallet seed from
+the PRF output. No password is stored or transmitted. Creation and opening
+track separately (`create`/`createPending`/`createError` versus
+`open`/`openPending`/`openError`) because apps typically render them on
+different screens.
+
+The underlying capability probe (`ceremony.supportsPasskeyPrf()`) is
+memoized: only the first call per ceremony instance actually runs it, and
+every `useWalletPasskey` call sharing that instance resolves from the same
+promise. Because of this, it is worth warming the probe once at app boot,
+before onboarding ever mounts (`void webPasskeyCeremony.supportsPasskeyPrf();`
+alongside your engine setup). By the time the first screen reads `supported`,
+the probe has usually already resolved, so the loading branch above rarely
+paints in practice.
 
 ## Unlock with a passkey
 
 The samples below use the web ceremony for brevity; on React Native, substitute the `ceremony` you created in the tabbed section above.
 
-When `phase === 'locked'`, call `openPasskeyWallet(allowCredentialId)`.
-The platform presents the passkey dialog. On success, the runtime decrypts
-the seed and the provider transitions through `'syncing'` to `'ready'`. If
-the ceremony fails or times out, the provider instead moves to the
-`'error'` phase; see
-[Handle phases & errors](/guides/handle-phases-and-errors/) for how to
-detect and recover from that path.
+When `phase === 'locked'`, call `open(credentialId?)`. The platform presents
+the passkey dialog. On success, the engine refreshes and `phase` advances
+through `'syncing'` to `'ready'` on its own. If the ceremony fails, `open`
+rejects and `openError` is set; see
+[Handle phases & errors](/guides/handle-phases-and-errors/) for how errors
+and phases interact more broadly.
 
 Pass the stored `credentialId` to scope the assertion to the same passkey.
 Omit it for a discoverable credential flow, useful when the app has not
@@ -114,51 +129,92 @@ where a synced passkey is already available:
 ```tsx
 // No credentialId: the platform prompts with any discoverable passkey
 // registered for this origin.
-await openPasskeyWallet();
+await open();
 ```
 
 ```tsx title="passkey.tsx"
 import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { usePasskeyWallet, useWalletDK } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletPasskey } from '@lightninglabs/walletdk-react';
 
 function PasskeyUnlock({ credentialId }: { credentialId: string }) {
-  const { phase } = useWalletDK();
-  const { openPasskeyWallet, busy, error } =
-    usePasskeyWallet(webPasskeyCeremony);
+  const { phase } = useWallet();
+  const { open, openPending, openError } = useWalletPasskey(webPasskeyCeremony);
 
   const unlock = async () => {
-    await openPasskeyWallet(credentialId);
+    await open(credentialId);
   };
 
   return (
     <div>
       {phase === 'locked' && (
-        <button onClick={unlock} disabled={busy}>
+        <button onClick={unlock} disabled={openPending}>
           Unlock with passkey
         </button>
       )}
-      {error && <p role="alert">{error}</p>}
+      {openError && <p role="alert">{openError.message}</p>}
     </div>
   );
 }
 ```
 
+## Handle a cancelled ceremony
+
+If the user dismisses the OS passkey prompt, `create`/`open` reject with a
+`PasskeyCancelledError` instead of a regular failure, and that rejection is
+never recorded into `createError`/`openError`: a dismissed prompt is not a
+failure to display. Check for it with `instanceof` and treat it as a no-op
+rather than showing an error:
+
+```tsx title="passkey.tsx"
+import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+import { PasskeyCancelledError, useWalletPasskey } from '@lightninglabs/walletdk-react';
+
+function PasskeyUnlock({ credentialId }: { credentialId: string }) {
+  const { open } = useWalletPasskey(webPasskeyCeremony);
+
+  const unlock = async () => {
+    try {
+      await open(credentialId);
+    } catch (err) {
+      if (err instanceof PasskeyCancelledError) {
+        // The user dismissed the prompt; nothing to show.
+        return;
+      }
+      // A genuine failure: openError is already set for a declarative render,
+      // or handle err here for imperative flow.
+    }
+  };
+
+  return <button onClick={unlock}>Unlock with passkey</button>;
+}
+```
+
+### Troubleshooting: a ceremony that always "cancels"
+
+Browsers collapse most WebAuthn failures into the same `NotAllowedError`
+signal used for a genuine user dismissal: a permissions-policy block, an
+iframe restriction, or an `rpId` that does not match the page's association
+file all surface as `PasskeyCancelledError` here, indistinguishable from the
+user tapping away. If a ceremony instantly "cancels" on every attempt, before
+assuming users are backing out, check the configuration angle first: confirm
+`rpId` matches the domain hosting the app, and that the
+`.well-known/assetlinks.json` (Android) or `apple-app-site-association` (iOS)
+association file for that `rpId` is reachable and lists the app.
+
 ## Provide a recovery-phrase fallback
 
 If the passkey credential is unavailable (for example, the user is on a new
-device or has lost access to the registered authenticator), the passkey flow
-will fail and `openPasskeyWallet` resolves to `null`. Detect this by checking
-for a `null` outcome rather than the `error` field, since `error` is only
-updated on the next render and is not reliable to read immediately after the
-`await`.
+device or has lost access to the registered authenticator), `open` rejects
+with a genuine error (not a `PasskeyCancelledError`). Catch it and offer a
+recovery-phrase fallback instead of leaving the user stuck.
 
 Every successful passkey outcome includes `outcome.result.imported`, a
 boolean that is `true` when the ceremony created a new local wallet from the
 derived seed (a fresh device) and `false` when it unlocked an existing local
 wallet. `outcome.result.mnemonic` is populated only when `imported` is
 `true`, so check `imported` before reading `mnemonic` for backup display. To
-restore on a new device without a passkey, call
-`createWallet({ password, mnemonic })` with a new wallet password and the
+restore on a new device without a passkey, call `create({ password,
+mnemonic })` from `useWalletCreate()` with a new wallet password and the
 saved recovery phrase; `password` is required by `CreateWalletRequest`. This
 is why users should record their recovery phrase when they first create the
 wallet.
@@ -166,20 +222,24 @@ wallet.
 ```tsx title="passkey.tsx"
 import { useState } from 'react';
 import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { usePasskeyWallet, useWalletBootstrap } from '@lightninglabs/walletdk-react';
+import {
+  PasskeyCancelledError,
+  useWalletCreate,
+  useWalletPasskey,
+} from '@lightninglabs/walletdk-react';
 
 function UnlockWithFallback({ credentialId }: { credentialId: string }) {
-  const { openPasskeyWallet, error, clearError } =
-    usePasskeyWallet(webPasskeyCeremony);
-  const { createWallet } = useWalletBootstrap();
+  const { open } = useWalletPasskey(webPasskeyCeremony);
+  const { create } = useWalletCreate();
   const [recovering, setRecovering] = useState(false);
   const [password, setPassword] = useState('');
   const [mnemonic, setMnemonic] = useState('');
 
   const tryPasskey = async () => {
-    clearError();
-    const outcome = await openPasskeyWallet(credentialId);
-    if (outcome === null) {
+    try {
+      await open(credentialId);
+    } catch (err) {
+      if (err instanceof PasskeyCancelledError) return;
       setRecovering(true);
     }
   };
@@ -188,7 +248,7 @@ function UnlockWithFallback({ credentialId }: { credentialId: string }) {
     return (
       <form onSubmit={e => {
         e.preventDefault();
-        createWallet({ password, mnemonic: mnemonic.trim().split(/\s+/) });
+        create({ password, mnemonic: mnemonic.trim().split(/\s+/) });
       }}>
         <input
           type="password"

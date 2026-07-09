@@ -80,8 +80,9 @@ your target environment before relying on it.
 **WebAuthn passkeys:** WalletDK derives wallet keys from the WebAuthn **PRF**
 extension. `webPasskeyCeremony.supportsPasskeyPrf()` checks for a user-verifying
 platform authenticator, but the authenticator must still return a PRF result at
-ceremony time. Gate passkey UI on the hook's `supported` flag and offer a
-password or recovery-phrase path when it is false. See the
+ceremony time. Gate passkey UI on the hook's `supported` flag: it is `null`
+while the probe is in flight, so hold a loading state until it settles, then
+offer a password or recovery-phrase path when it is `false`. See the
 [passkey guide](/guides/use-a-passkey/) for a full example using
 `usePasskeyWallet`.
 

@@ -13,9 +13,10 @@ wallet unlocked and ready. See [Create a wallet](/guides/create-a-wallet/).
 
 ## Read the balance
 
-The `useWalletBalance()` hook returns the current `Balance` and a `busy` flag
-while a refresh is in flight. Re-renders are triggered automatically whenever
-the balance changes, for example after a payment settles.
+`useWalletBalance()` is a plain selector: it returns the current `Balance`
+directly (`null` before it is known), and re-renders your component only when
+the balance actually changes, for example after a payment settles. There is
+no `pending`/`busy` flag on it; a `null` balance is your loading signal.
 
 Display `confirmedSat` as spendable balance. Add `pendingInSat` and
 `pendingOutSat` when you want to show in-flight funds.
@@ -24,10 +25,9 @@ Display `confirmedSat` as spendable balance. Add `pendingInSat` and
 import { useWalletBalance } from '@lightninglabs/walletdk-react';
 
 function Balance() {
-  const { balance, busy } = useWalletBalance();
+  const balance = useWalletBalance();
 
-  if (busy && !balance) return <p>Loading...</p>;
-  if (!balance) return <p>No balance yet.</p>;
+  if (!balance) return <p>Loading...</p>;
 
   return (
     <p>
@@ -39,15 +39,16 @@ function Balance() {
 
 ## Subscribe to activity
 
-`useWalletActivity()` returns the full transaction history. Each `Entry` has
-`id`, `kind` (`send`, `receive`, `deposit`, or `exit`), `amountSat`, `status`
-(`pending`, `complete`, or `failed`), and timestamps. It also carries `feeSat`,
+`useWalletActivity()` is the same kind of selector: it returns the full
+transaction history array directly. Each `Entry` has `id`, `kind` (`send`,
+`receive`, `deposit`, or `exit`), `amountSat`, `status` (`pending`,
+`complete`, or `failed`), and timestamps. It also carries `feeSat`,
 `counterparty`, `note`, and `failureReason` (a human-readable message set when
 `status` is `failed`).
 
-The provider stays live: new entries arrive through the activity stream and
+The engine stays live: new entries arrive through the activity stream and
 pending entries update in place when they settle. This live-update behavior
-comes from the `WalletDKProvider` wrapping your app; see
+comes from the `WalletEngine` your `WalletDKProvider` wraps; see
 [Create a wallet](/guides/create-a-wallet/) for how it is set up. No
 polling or manual refresh is needed.
 
@@ -55,9 +56,9 @@ polling or manual refresh is needed.
 import { useWalletActivity } from '@lightninglabs/walletdk-react';
 
 function ActivityFeed() {
-  const { activity, busy } = useWalletActivity();
+  const activity = useWalletActivity();
 
-  if (busy && activity.length === 0) return <p>Loading activity...</p>;
+  if (activity.length === 0) return <p>No activity yet.</p>;
 
   return (
     <ul>
@@ -82,9 +83,30 @@ function ActivityFeed() {
 }
 ```
 
-`busy` and `error` on both `useWalletBalance()` and `useWalletActivity()`
-reflect the same shared `refresh` operation, so they toggle together whenever
-either balance or activity data is being refreshed.
+## Pull-to-refresh
+
+`useWalletBalance()` and `useWalletActivity()` update on their own as the
+engine's background processes (the activity stream, the settle reconcile, the
+sync poll) keep the snapshot fresh, so most UIs need nothing more. For an
+explicit pull-to-refresh control, call `refresh()` from `useWalletRefresh()`
+and show its `refreshPending` flag while the call is in flight. That
+`refreshPending` is scoped to this hook instance's own calls; the engine's own
+background refreshes never flip it, so it only lights up when the user
+actually asked for a refresh.
+
+```tsx title="balance.tsx"
+import { useWalletRefresh } from '@lightninglabs/walletdk-react';
+
+function RefreshButton() {
+  const { refresh, refreshPending } = useWalletRefresh();
+
+  return (
+    <button onClick={() => refresh()} disabled={refreshPending}>
+      {refreshPending ? 'Refreshing...' : 'Refresh'}
+    </button>
+  );
+}
+```
 
 ## Filter and group
 
@@ -101,7 +123,7 @@ same hook call without additional network requests.
 import { useWalletActivity } from '@lightninglabs/walletdk-react';
 
 function FilteredFeed() {
-  const { activity } = useWalletActivity();
+  const activity = useWalletActivity();
 
   const sends = activity.filter(entry => entry.kind === 'send');
   const receives = activity.filter(entry => entry.kind === 'receive');

@@ -11,9 +11,9 @@ related:
 
 ## Create a Lightning invoice
 
-`receive()` triggers a receive swap: the Ark server sets up a Lightning payment
-path that deposits into your VTXO once the payer settles. Pass `amountSat` and
-an optional `memo` for the invoice.
+`receive()` from `useWalletReceive()` triggers a receive swap: the Ark server
+sets up a Lightning payment path that deposits into your VTXO once the payer
+settles. Pass `amountSat` and an optional `memo` for the invoice.
 
 The returned `ReceiveResult.invoice` is a standard BOLT11 string that any
 compatible wallet can pay. Display it as a QR code alongside the raw string
@@ -21,10 +21,10 @@ so the payer has both options.
 
 ```tsx title="receive.tsx"
 import { useState } from 'react';
-import { useReceive } from '@lightninglabs/walletdk-react';
+import { useWalletReceive } from '@lightninglabs/walletdk-react';
 
 function CreateInvoice() {
-  const { receive, busy } = useReceive();
+  const { receive, receivePending } = useWalletReceive();
   const [invoice, setInvoice] = useState<string | null>(null);
 
   const generate = async () => {
@@ -37,7 +37,7 @@ function CreateInvoice() {
 
   return (
     <div>
-      <button onClick={generate} disabled={busy}>
+      <button onClick={generate} disabled={receivePending}>
         Generate invoice
       </button>
       {invoice && <pre>{invoice}</pre>}
@@ -48,11 +48,12 @@ function CreateInvoice() {
 
 ## Wait for settlement
 
-`useWalletActivity()` streams live updates. Match the entry by invoice string
-in `entry.request?.lightningInvoice` and watch its `status` field: the entry
-appears as `'pending'` when the payer sends and switches to `'complete'` once
-the receive swap round completes. Like any entry, a receive swap can also
-terminate as `'failed'`, so handle that branch too.
+`useWalletActivity()` returns the live activity array and streams updates in
+place. Match the entry by invoice string in `entry.request?.lightningInvoice`
+and watch its `status` field: the entry appears as `'pending'` when the payer
+sends and switches to `'complete'` once the receive swap round completes.
+Like any entry, a receive swap can also terminate as `'failed'`, so handle
+that branch too.
 
 Render a loading state until the entry appears, then show a pending indicator
 while it settles, a failure message if it fails, and a success message once
@@ -62,7 +63,7 @@ while it settles, a failure message if it fails, and a success message once
 import { useWalletActivity } from '@lightninglabs/walletdk-react';
 
 function InvoiceStatus({ bolt11 }: { bolt11: string }) {
-  const { activity } = useWalletActivity();
+  const activity = useWalletActivity();
 
   const payment = activity.find(
     entry =>
