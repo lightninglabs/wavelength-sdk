@@ -6,8 +6,13 @@
  * paths, multi-word strings): a table forces either horizontal scroll or
  * mid-word wrapping, both bad for skimming. A card per group lets each field
  * sit on its own line and wrap naturally at any viewport width. First used
- * for the Network reference's defaultConfig() gateway presets, but generic
- * for any "one card per named group of fields" data.
+ * for the Network reference's gateway presets, but generic for any "one card
+ * per named group of fields" data.
+ *
+ * A field value is either a plain string or a per-transport variant object
+ * ({ rest, grpc }). When any card carries variant values, a REST/gRPC
+ * segmented toggle renders above the grid and swaps every variant value in
+ * this instance at once. REST is the no-JS default.
  *
  * Props:
  *   cards - array of { title, accent, fields, tags, empty }.
@@ -17,7 +22,7 @@
  */
 interface Field {
   label: string;
-  value: string;
+  value: string | { rest: string; grpc: string };
 }
 
 interface Card {
@@ -33,38 +38,58 @@ interface Props {
 }
 
 const { cards } = Astro.props;
+
+const hasVariants = cards.some((c) =>
+  c.fields?.some((f) => typeof f.value !== 'string'),
+);
 ---
 
-<div class="wdk-field-cards">
-  {cards.map((c, i) => {
-    const titleId = `wdk-field-card-title-${i}-${c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-    return (
-      <section class:list={['wdk-field-card', c.empty && 'wdk-field-card--empty']} data-accent={c.accent ?? 'orange'} aria-labelledby={titleId}>
-        <header class="wdk-field-card__head">
-          <span class="wdk-field-card__title" id={titleId}>{c.title}</span>
-        </header>
+<div class="wdk-field-cards-scope">
+  {hasVariants && (
+    <div class="wdk-field-cards__toggle" role="group" aria-label="Endpoint flavor">
+      <button type="button" data-variant="rest" aria-pressed="true">REST</button>
+      <button type="button" data-variant="grpc" aria-pressed="false">gRPC</button>
+    </div>
+  )}
 
-        {c.empty ? (
-          <p class="wdk-field-card__empty-note">{c.empty}</p>
-        ) : (
-          <dl class="wdk-field-card__fields">
-            {c.fields?.map((f) => (
-              <div class="wdk-field-card__field">
-                <dt>{f.label}</dt>
-                <dd><code>{f.value}</code></dd>
-              </div>
-            ))}
-          </dl>
-        )}
+  <div class="wdk-field-cards">
+    {cards.map((c, i) => {
+      const titleId = `wdk-field-card-title-${i}-${c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+      return (
+        <section class:list={['wdk-field-card', c.empty && 'wdk-field-card--empty']} data-accent={c.accent ?? 'orange'} aria-labelledby={titleId}>
+          <header class="wdk-field-card__head">
+            <span class="wdk-field-card__title" id={titleId}>{c.title}</span>
+          </header>
 
-        {c.tags && c.tags.length > 0 && (
-          <div class="wdk-field-card__tags">
-            {c.tags.map((t) => <code class="wdk-field-card__tag">{t}</code>)}
-          </div>
-        )}
-      </section>
-    );
-  })}
+          {c.empty ? (
+            <p class="wdk-field-card__empty-note">{c.empty}</p>
+          ) : (
+            <dl class="wdk-field-card__fields">
+              {c.fields?.map((f) => (
+                <div class="wdk-field-card__field">
+                  <dt>{f.label}</dt>
+                  {typeof f.value === 'string' ? (
+                    <dd><code>{f.value}</code></dd>
+                  ) : (
+                    <dd>
+                      <code data-variant="rest">{f.value.rest}</code>
+                      <code data-variant="grpc" hidden>{f.value.grpc}</code>
+                    </dd>
+                  )}
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {c.tags && c.tags.length > 0 && (
+            <div class="wdk-field-card__tags">
+              {c.tags.map((t) => <code class="wdk-field-card__tag">{t}</code>)}
+            </div>
+          )}
+        </section>
+      );
+    })}
+  </div>
 </div>
 
 <style>
@@ -75,6 +100,41 @@ const { cards } = Astro.props;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 14px;
     margin: 20px 0 28px;
+  }
+
+  /* The REST/gRPC flavor toggle, rendered only when a card carries variant
+     values. It sits above the grid and controls every card in this instance. */
+  .wdk-field-cards__toggle {
+    display: inline-flex;
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+
+  .wdk-field-cards__toggle button {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 4px 14px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+
+  .wdk-field-cards__toggle button + button {
+    border-left: 1px solid var(--border);
+  }
+
+  .wdk-field-cards__toggle button[aria-pressed='true'] {
+    color: var(--teal);
+    background: color-mix(in srgb, var(--teal) 12%, transparent);
+  }
+
+  .wdk-field-cards__toggle + .wdk-field-cards {
+    margin-top: 12px;
   }
 
   .wdk-field-card {
@@ -190,3 +250,35 @@ const { cards } = Astro.props;
     line-height: 1.6;
   }
 </style>
+
+<script>
+  // Wire every REST/gRPC toggle on the page. The buttons swap which variant
+  // of each field value is visible within their own FieldCards instance.
+  // Re-initialise on astro:page-load with a per-element bound guard, since
+  // the docs site uses ClientRouter and this script does not re-run on its
+  // own after a client-side navigation, matching the lifecycle pattern in
+  // PlatformTabs.astro.
+  function setupFieldCards() {
+    for (const scope of document.querySelectorAll<HTMLElement>('.wdk-field-cards-scope')) {
+      if (scope.dataset.wdkBound) continue;
+      scope.dataset.wdkBound = '1';
+      const buttons = scope.querySelectorAll<HTMLButtonElement>(
+        '.wdk-field-cards__toggle button',
+      );
+      for (const button of buttons) {
+        button.addEventListener('click', () => {
+          const active = button.dataset.variant;
+          for (const b of buttons) {
+            b.setAttribute('aria-pressed', String(b === button));
+          }
+          const values = scope.querySelectorAll<HTMLElement>('code[data-variant]');
+          for (const code of values) {
+            code.hidden = code.dataset.variant !== active;
+          }
+        });
+      }
+    }
+  }
+  setupFieldCards();
+  document.addEventListener('astro:page-load', setupFieldCards);
+</script>
