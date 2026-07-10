@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { ChevronDown, Power } from "lucide-react";
+import { DEBUG_LEVELS } from "@lightninglabs/walletdk-web";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { WipeDataButton } from "../../components/WipeDataButton";
 import { Field } from "../../components/ui/Field";
+import { Select } from "../../components/ui/Select";
 import { InlineError } from "../../components/ui/InlineError";
 import { PrimaryButton } from "../../components/ui/Button";
 import { Segmented } from "../../components/ui/Segmented";
@@ -111,10 +113,11 @@ export function ConnectScreen({
                   mono
                 />
               </div>
-              <Field
+              <Select
                 label="Debug level"
                 value={form.debugLevel}
                 onChange={(v) => onField("debugLevel", v)}
+                options={DEBUG_LEVELS}
               />
               <ToggleRow
                 title="Allow insecure transport"
