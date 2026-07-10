@@ -89,6 +89,7 @@ export type {
   WalletdkPasskeyNativeModule,
 } from './passkey';
 
+export { defaultConfig } from './config';
 export { NativeWalletDKClient } from './client';
 export type {
   NativeActivityEvent,
