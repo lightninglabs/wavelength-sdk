@@ -1,8 +1,9 @@
+import { defaultConfig } from "@lightninglabs/walletdk-web";
 import { RuntimeConfig } from "@lightninglabs/walletdk-react";
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
 // excluded - this build targets test networks only.
-export const NETWORKS = ["signet", "testnet", "regtest"] as const;
+export const NETWORKS = ["signet", "testnet", "testnet4", "regtest"] as const;
 
 // RuntimeNetwork is the demo's selectable network union. RuntimeConfig.network is
 // a plain string, so RuntimeForm narrows it for controlled network pickers.
@@ -21,16 +22,11 @@ export type RuntimeFieldSetter = <K extends keyof RuntimeForm>(
   value: RuntimeForm[K],
 ) => void;
 
-// testnetDefaults are the default runtime gateways for Bitcoin testnet3, from
-// lightning-infra docs/userguide/walletdk-guide.md. REST hostnames follow the
-// same -rest suffix pattern as signet; Esplora uses mempool.space per the guide.
-export const testnetDefaults: RuntimeForm = {
-  network: "testnet",
+// demoFieldDefaults are the demo-only fields layered under every network
+// preset so the connect/settings forms are always fully populated.
+const demoFieldDefaults = {
   dataDir: "/walletdk-demo",
   allowMainnet: false,
-  arkServerUrl: "https://arkd-rest.testnet.lightningcluster.com",
-  esploraUrl: "https://mempool.space/testnet/api",
-  swapServerUrl: "https://swapd-rest.testnet.lightningcluster.com",
   swapDatabaseFileName: "/walletdk-swaps.db",
   serverInsecure: false,
   swapServerInsecure: false,
@@ -38,36 +34,44 @@ export const testnetDefaults: RuntimeForm = {
   debugLevel: "info",
 };
 
-// signetDefaults are the default runtime gateways for the signet test network,
-// preserved from the original demo.
-export const signetDefaults: RuntimeForm = {
-  network: "signet",
-  dataDir: "/walletdk-demo",
-  allowMainnet: false,
-  arkServerUrl: "https://arkd-signet-rest.testnet.lightningcluster.com",
-  esploraUrl: "https://mempool-signet.testnet.lightningcluster.com/api",
-  swapServerUrl: "https://swapd-signet-rest.testnet.lightningcluster.com",
-  swapDatabaseFileName: "/walletdk-swaps.db",
-  serverInsecure: false,
-  swapServerInsecure: false,
-  disableSwaps: false,
-  debugLevel: "info",
-};
+// hostedDefaults builds the form for a hosted test network from the SDK's own
+// REST preset, so the demo never hand-copies gateway URLs.
+function hostedDefaults(
+  network: "signet" | "testnet" | "testnet4",
+): RuntimeForm {
+  const preset = defaultConfig(network);
+
+  return {
+    ...demoFieldDefaults,
+    network,
+    arkServerUrl: preset.arkServerUrl ?? "",
+    esploraUrl: preset.esploraUrl ?? "",
+    swapServerUrl: preset.swapServerUrl ?? "",
+  };
+}
+
+// signetDefaults are the default runtime gateways for the signet test network.
+export const signetDefaults: RuntimeForm = hostedDefaults("signet");
+
+// testnetDefaults are the default runtime gateways for Bitcoin testnet3.
+export const testnetDefaults: RuntimeForm = hostedDefaults("testnet");
+
+// testnet4Defaults are the default runtime gateways for Bitcoin testnet4.
+export const testnet4Defaults: RuntimeForm = hostedDefaults("testnet4");
 
 // regtestDefaults target the local frontend-regtest swapdk overlay
-// (regtest swapdk info). Swap gateway uses host port 10032 because
-// darepod's default HTTP gateway also binds localhost:10031.
+// (regtest swapdk info). The SDK ships no regtest preset (local ports vary
+// per machine), so this form is fully demo-local; swap gateway uses host
+// port 10032 because darepod's default HTTP gateway also binds
+// localhost:10031.
 export const regtestDefaults: RuntimeForm = {
+  ...demoFieldDefaults,
   network: "regtest",
-  dataDir: "/walletdk-demo",
-  allowMainnet: false,
   arkServerUrl: "http://127.0.0.1:7071",
   esploraUrl: "http://127.0.0.1:8501",
   swapServerUrl: "http://127.0.0.1:10032",
-  swapDatabaseFileName: "/walletdk-swaps.db",
   serverInsecure: true,
   swapServerInsecure: true,
-  disableSwaps: false,
   debugLevel: "debug",
 };
 
@@ -78,6 +82,8 @@ export function defaultsForNetwork(network: RuntimeNetwork): RuntimeForm {
     return regtestDefaults;
   case "testnet":
     return testnetDefaults;
+  case "testnet4":
+    return testnet4Defaults;
   default:
     return signetDefaults;
   }
