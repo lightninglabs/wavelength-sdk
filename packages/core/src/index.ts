@@ -13,9 +13,11 @@ export type {
   WalletDKLogPayload,
 } from './events.ts';
 
-// Network selection and runtime configuration.
-export { defaultConfig } from './config.ts';
-export type { Network, RuntimeConfig } from './config.ts';
+// Network selection and runtime configuration. App code normally builds a
+// config through a transport package's defaultConfig helper; networkDefaults
+// is the shared endpoint table those helpers compose over.
+export { DEBUG_LEVELS, networkDefaults } from './config.ts';
+export type { DebugLevel, Network, PresetNetwork, RuntimeConfig } from './config.ts';
 
 // Wallet lifecycle state and the phases a UI renders.
 export { WalletState, normalizeInfo, phaseFromInfo, walletStateFromProto } from './state.ts';

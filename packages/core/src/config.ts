@@ -1,12 +1,49 @@
+import type { ServerTransport } from './facade.ts';
+
 /**
- * Selects the Bitcoin network the embedded daemon runs against.
+ * Selects the Bitcoin network the embedded daemon runs against. Names match
+ * the daemon's network selector: 'testnet' is Bitcoin testnet3 and 'testnet4'
+ * is Bitcoin testnet4.
  */
-export type Network = 'mainnet' | 'testnet' | 'signet' | 'regtest';
+export type Network =
+  | 'mainnet'
+  | 'testnet'
+  | 'testnet4'
+  | 'signet'
+  | 'regtest';
+
+/**
+ * The networks that carry a public endpoint preset, and so can be passed to a
+ * transport package's defaultConfig helper. mainnet and regtest are excluded:
+ * mainnet has no public deployment yet, and regtest's ports vary per
+ * development environment. A {@link RuntimeConfig} for either is built by hand.
+ */
+export type PresetNetwork = 'testnet' | 'testnet4' | 'signet';
+
+/**
+ * The daemon log verbosity levels accepted by {@link RuntimeConfig.debugLevel},
+ * from most to least verbose. Exported for UIs that render a level picker.
+ * debugLevel itself stays a plain string because the daemon also accepts a
+ * per-subsystem list such as 'ROND=debug,info'.
+ */
+export const DEBUG_LEVELS = [
+  'trace',
+  'debug',
+  'info',
+  'warn',
+  'error',
+  'critical',
+  'off',
+] as const;
+
+/** One of the daemon log verbosity levels in {@link DEBUG_LEVELS}. */
+export type DebugLevel = (typeof DEBUG_LEVELS)[number];
 
 /**
  * The configuration passed to `client.start()`. For the common case prefer
- * {@link defaultConfig}, which preloads the canonical public endpoints, and
- * override only the fields you need.
+ * the defaultConfig helper exported by your transport package (walletdk-web
+ * or walletdk-react-native), which preloads the canonical public endpoints
+ * in that transport's flavor, and override only the fields you need.
  */
 export type RuntimeConfig = {
   /** The Bitcoin network to run against. Required. Use 'mainnet' only together with allowMainnet. */
@@ -29,51 +66,90 @@ export type RuntimeConfig = {
   swapServerInsecure?: boolean;
   /** Turns off the Lightning swap subsystem entirely. */
   disableSwaps?: boolean;
-  /** The daemon's log verbosity (e.g. 'info', 'debug'). Distinct from the client's RPC-payload debug option. */
+  /** The daemon's log verbosity (e.g. 'info', 'debug'). Distinct from the client's RPC-payload debug option. See {@link DEBUG_LEVELS}. */
   debugLevel?: string;
 };
 
 /**
- * Holds the canonical public gateway endpoints per network, so the common case
- * is {@link defaultConfig} with no URLs to look up. mainnet has no public preset
- * yet; supply the endpoints (and allowMainnet) yourself.
+ * The endpoints of one hosted service in both transport flavors: a REST
+ * gateway URL for the web transport and a host:port gRPC address for native
+ * transports.
  */
-const NETWORK_PRESETS: Record<Network, Partial<RuntimeConfig>> = {
+type ServiceEndpoints = Record<ServerTransport, string>;
+
+/**
+ * The canonical public deployment of one network, mirroring the daemon's own
+ * per-network defaults. The Esplora endpoint is a plain HTTP API on every
+ * transport, so it carries a single URL.
+ */
+type NetworkEndpoints = {
+  ark: ServiceEndpoints;
+  swap: ServiceEndpoints;
+  esplora: string;
+};
+
+// The hosted public deployments per network, mirroring the daemon's own
+// per-network defaults. Record over PresetNetwork so that adding a preset
+// network without its endpoints here is a compile error.
+const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
   signet: {
-    arkServerUrl: 'https://arkd-signet-rest.testnet.lightningcluster.com',
-    esploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
-    swapServerUrl: 'https://swapd-signet-rest.testnet.lightningcluster.com',
+    ark: {
+      rest: 'https://arkd-signet-rest.staging.lightningcluster.com',
+      grpc: 'arkd-signet.staging.lightningcluster.com:443',
+    },
+    swap: {
+      rest: 'https://swapd-signet-rest.staging.lightningcluster.com',
+      grpc: 'swapd-signet.staging.lightningcluster.com:443',
+    },
+    esplora: 'https://mempool-signet.testnet.lightningcluster.com/api',
   },
   testnet: {
-    arkServerUrl: 'https://arkd-rest.testnet.lightningcluster.com',
-    esploraUrl: 'https://mempool.space/testnet/api',
-    swapServerUrl: 'https://swapd-rest.testnet.lightningcluster.com',
+    ark: {
+      rest: 'https://arkd-rest.testnet.lightningcluster.com',
+      grpc: 'arkd.testnet.lightningcluster.com:443',
+    },
+    swap: {
+      rest: 'https://swapd-rest.testnet.lightningcluster.com',
+      grpc: 'swapd.testnet.lightningcluster.com:443',
+    },
+    esplora: 'https://mempool.space/testnet/api',
   },
-  regtest: {
-    arkServerUrl: 'http://127.0.0.1:7071',
-    esploraUrl: 'http://127.0.0.1:8501',
-    swapServerUrl: 'http://127.0.0.1:10032',
-    serverInsecure: true,
-    swapServerInsecure: true,
+  testnet4: {
+    ark: {
+      rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com',
+      grpc: 'arkd-testnet4.testnet.lightningcluster.com:443',
+    },
+    swap: {
+      rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com',
+      grpc: 'swapd-testnet4.testnet.lightningcluster.com:443',
+    },
+    esplora: 'https://mempool.space/testnet4/api',
   },
-  mainnet: {},
 };
 
 /**
- * Returns a ready-to-use {@link RuntimeConfig} for a network, preloaded with the
- * canonical public gateway endpoints and merged with any overrides. Pass
- * overrides to set dataDir or point at your own infrastructure, e.g.
- * `defaultConfig('signet', { dataDir: 'my-wallet' })`. The presets carry the
- * web transport's REST gateway URLs; the native (gRPC) transport needs
- * host:port addresses instead, so supply your own endpoints there.
+ * Returns the canonical public endpoint preset for a network in one
+ * transport's flavor: REST gateway URLs for 'rest' (the web transport),
+ * host:port gRPC addresses for 'grpc' (native transports). This is the
+ * building block the transport packages' defaultConfig helpers compose over;
+ * app code normally calls those instead.
  *
- * @param network - The Bitcoin network to build a config for.
- * @param overrides - Fields that override the network preset's defaults.
- * @returns The merged runtime configuration.
+ * Only the preset networks are accepted (see {@link PresetNetwork}); mainnet
+ * and regtest have no preset and their {@link RuntimeConfig} is built by hand.
+ *
+ * @param network - The Bitcoin network to look up.
+ * @param transport - The endpoint flavor the caller's transport dials.
+ * @returns The preset config fields for that network and transport.
  */
-export function defaultConfig(
-  network: Network,
-  overrides: Partial<RuntimeConfig> = {},
-): RuntimeConfig {
-  return { network, ...NETWORK_PRESETS[network], ...overrides };
+export function networkDefaults(
+  network: PresetNetwork,
+  transport: ServerTransport,
+): Partial<RuntimeConfig> {
+  const endpoints = NETWORK_ENDPOINTS[network];
+
+  return {
+    arkServerUrl: endpoints.ark[transport],
+    esploraUrl: endpoints.esplora,
+    swapServerUrl: endpoints.swap[transport],
+  };
 }
