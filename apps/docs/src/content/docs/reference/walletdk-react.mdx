@@ -469,7 +469,7 @@ The per-platform contract `useWalletPasskey` drives. It is defined in `walletdk-
 
 ## Re-exported from walletdk-core
 
-`@lightninglabs/walletdk-react` re-exports the full `@lightninglabs/walletdk-core` surface (`export * from '@lightninglabs/walletdk-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `defaultConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
+`@lightninglabs/walletdk-react` re-exports the full `@lightninglabs/walletdk-core` surface (`export * from '@lightninglabs/walletdk-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/walletdk-web`, `@lightninglabs/walletdk-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
 
 ## See also
 

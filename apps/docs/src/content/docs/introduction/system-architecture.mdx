@@ -19,7 +19,7 @@ The daemon also owns local persistence (wallet database, swap state) and signing
 
 ## The three backend gateways
 
-Once started, the daemon reaches **three external REST gateways**. These are the only network services WalletDK depends on. Configure them in `RuntimeConfig` (or use `defaultConfig(network)` for public signet, testnet, and regtest presets):
+Once started, the daemon reaches **three external REST gateways**. These are the only network services WalletDK depends on. Configure them in `RuntimeConfig` (or use your transport package's `defaultConfig(network)` for the public signet, testnet, and testnet4 presets):
 
 <PlatformTabs>
 <div data-label="Web">

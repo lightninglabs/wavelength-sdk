@@ -25,9 +25,8 @@ yourself:
 <div data-label="Web">
 
 ```tsx title="main.tsx"
-import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-core';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: 'https://your-host/walletdk/',
@@ -44,9 +43,8 @@ export function App() {
 <div data-label="React Native">
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-core';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),

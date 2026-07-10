@@ -54,8 +54,9 @@ Build a `WalletEngine` outside your component tree and wrap your app in
 hooks. Pass `config` and `autoStart: true` so the engine boots the embedded
 daemon on its own as soon as the runtime is ready; no boot effect needed.
 
-Start with `defaultConfig('signet')`. Switch to `defaultConfig('mainnet')`
-only once you have key backup and recovery in place.
+Start with `defaultConfig('signet')`. Move to a hand-built mainnet config
+(with `allowMainnet: true`) only once you have key backup and recovery in
+place.
 
 <PlatformTabs>
 <div data-label="Web">
@@ -63,9 +64,8 @@ only once you have key backup and recovery in place.
 `createWebWalletEngine()` builds the engine for the browser transport:
 
 ```tsx title="App.tsx"
-import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-core';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: '/walletdk/',
@@ -88,9 +88,8 @@ export function App() {
 `createNativeWalletEngine()` builds the engine for the native transport:
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-core';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),

@@ -57,36 +57,34 @@ const client = createWebClient();
 await client.start(defaultConfig('signet'));
 ```
 
-Presets also exist for `testnet`. No local backend is required for signet or
-testnet.
+Presets also exist for `testnet` and `testnet4`. No local backend is required
+for any hosted network.
 
-**Regtest (local development)** targets services you run yourself. The
-`defaultConfig('regtest')` preset assumes default ports from a local
-[arktest](https://github.com/lightninglabs/darepo-client) environment (Ark
-server, Esplora, swap server). Start arktest, note the ports it prints, and
-override URLs if yours differ:
+**Regtest (local development)** targets services you run yourself, so there
+is no `defaultConfig` preset for it; local ports vary per machine, and the
+URLs are the whole point of a preset. Start
+[arktest](https://github.com/lightninglabs/darepo-client), note the ports it
+prints, and build the config by hand, including the insecure-transport flags
+for plain-HTTP local gateways:
 
 ```ts title="config.ts"
-import { defaultConfig } from '@lightninglabs/walletdk-web';
-
-await client.start(
-  defaultConfig('regtest', {
-    arkServerUrl: 'http://127.0.0.1:7071',
-    esploraUrl: 'http://127.0.0.1:8501',
-    swapServerUrl: 'http://127.0.0.1:10032',
-    serverInsecure: true,
-    swapServerInsecure: true,
-  }),
-);
+await client.start({
+  network: 'regtest',
+  arkServerUrl: 'http://127.0.0.1:7071',
+  esploraUrl: 'http://127.0.0.1:8501',
+  swapServerUrl: 'http://127.0.0.1:10032',
+  serverInsecure: true,
+  swapServerInsecure: true,
+});
 ```
 
-**Mainnet** has no public preset yet. Supply your own gateway URLs and set
-`allowMainnet: true` before going live:
+**Mainnet** has no public preset yet, so like regtest there is no
+`defaultConfig` for it. Build the config by hand with your own gateway URLs
+and set `allowMainnet: true` before going live:
 
 ```ts title="config.ts"
-import { defaultConfig } from '@lightninglabs/walletdk-web';
-
-const config = defaultConfig('mainnet', {
+await client.start({
+  network: 'mainnet',
   arkServerUrl: 'https://your-ark-server.example.com',
   esploraUrl: 'https://your-esplora.example.com/api',
   swapServerUrl: 'https://your-swap-server.example.com',
