@@ -232,6 +232,7 @@ export const walletDKClientSig = `interface WalletDKClient {
   list(req?: ListRequest): Promise<ListResult>;
   exit(req: ExitRequest): Promise<ExitResult>;
   exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>;
+  exitSummary(req: ExitSummaryRequest): Promise<ExitSummaryResult>;
   getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
   sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
   callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
@@ -1577,12 +1578,46 @@ export const exitPathSig = `type ExitPath = 'cooperative' | 'unilateral' | 'unil
 export const exitStatusSig = `exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>`;
 export const exitStatusRequestSig = `type ExitStatusRequest = {
   outpoint: string;
+  detailed?: boolean;
 };`;
 export const exitStatusResultSig = `type ExitStatusResult = {
   found: boolean;
   status: ExitJobStatus;
   sweepTxid: string;
   lastError: string;
+  phaseDetail: string;
+  progress?: ExitProgress;
+  cSV?: ExitCSV;
+  fees?: ExitFees;
+  bestCaseBlocksRemaining: number;
+  currentHeight: number;
+};`;
+export const exitProgressSig = `type ExitProgress = {
+  confirmedTxs: number;
+  inFlightTxs: number;
+  readyTxs: number;
+  blockedTxs: number;
+  totalTxs: number;
+  currentLayer: number;
+  totalLayers: number;
+  targetConfirmed: boolean;
+  allProofConfirmed: boolean;
+};`;
+export const exitCSVSig = `type ExitCSV = {
+  targetConfirmHeight: number;
+  maturityHeight: number;
+  blocksRemaining: number;
+  mature: boolean;
+};`;
+export const exitFeesSig = `type ExitFees = {
+  cPFPFeeSat: number;
+  sweepFeeSat: number;
+  totalCostSat: number;
+  spentSoFarSat: number;
+  vTXOAmountSat: number;
+  netRecoveredSat: number;
+  feeRateSatVByte: number;
+  sweepFeeActual: boolean;
 };`;
 export const exitJobStatusSig = `type ExitJobStatus =
   | 'unspecified'
@@ -1592,6 +1627,23 @@ export const exitJobStatusSig = `type ExitJobStatus =
   | 'sweeping'
   | 'completed'
   | 'failed';`;
+
+export const exitSummarySig = `exitSummary(req: ExitSummaryRequest): Promise<ExitSummaryResult>`;
+export const exitSummaryRequestSig = `type ExitSummaryRequest = Record<string, never>;`;
+export const exitSummaryResultSig = `type ExitSummaryResult = {
+  exits: ExitSummaryEntry[];
+  totalExits: number;
+  totalVTXOAmountSat: number;
+  totalEstFeeSat: number;
+  totalEstNetRecoveredSat: number;
+};`;
+export const exitSummaryEntrySig = `type ExitSummaryEntry = {
+  outpoint: string;
+  status: ExitJobStatus;
+  vTXOAmountSat: number;
+  estTotalFeeSat: number;
+  estNetRecoveredSat: number;
+};`;
 
 export const getExitPlanSig = `getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>`;
 export const getExitPlanRequestSig = `type GetExitPlanRequest = {
@@ -1615,12 +1667,19 @@ export const exitPlanEntrySig = `type ExitPlanEntry = {
   recommendedTotalFundingSat: number;
   fundingShortfallSat: number;
   canStart: boolean;
+  infeasibilityReason: ExitInfeasibilityReason;
   exitJobFound: boolean;
   exitStatus: ExitJobStatus;
   sweepTxid: string;
   lastError: string;
   err: string;
 };`;
+export const exitInfeasibilityReasonSig = `type ExitInfeasibilityReason =
+  | 'unspecified'
+  | 'sweep_below_dust'
+  | 'uneconomical'
+  | 'wallet_underfunded'
+  | 'wallet_too_few_inputs';`;
 
 export const sweepWalletSig = `sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>`;
 export const sweepWalletRequestSig = `type SweepWalletRequest = {
@@ -1730,12 +1789,15 @@ Whether a job exists for the outpoint, and its current status.
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint whose exit status is queried.' },
+  { name: 'detailed', type: 'boolean', desc: 'Optional. Request recovery-tree progress, a CSV maturity countdown, a fee breakdown, and a best-case block countdown. It costs one live actor round-trip plus a fee estimate, so leave it false for a coarse, cheaper phase-only status.' },
 ]} />
 
 <ApiTypeLabel name="ExitStatusResult" />
 
 `found` is false when no job exists for the requested outpoint; that is not
-an error condition.
+an error condition. The detailed fields (`phaseDetail`, `progress`, `cSV`,
+`fees`, `bestCaseBlocksRemaining`, `currentHeight`) are populated only when the
+request set `detailed`; otherwise they are empty, nil, or zero.
 
 <Signature title="walletdk-core.d.ts" code={exitStatusResultSig} />
 
@@ -1744,6 +1806,64 @@ an error condition.
   { name: 'status', type: 'ExitJobStatus', desc: 'The job’s current status. Meaningful only when found is true.' },
   { name: 'sweepTxid', type: 'string', desc: 'The sweep transaction id, once known.' },
   { name: 'lastError', type: 'string', desc: 'The last error the job recorded, if any.' },
+  { name: 'phaseDetail', type: 'string', desc: 'A one-line human description of the current phase. Empty on a coarse (non-detailed) query.' },
+  { name: 'progress', type: 'ExitProgress', desc: 'Recovery-tree materialization progress. Nil on a coarse query, or when no live actor backs the job.' },
+  { name: 'cSV', type: 'ExitCSV', desc: 'The target’s CSV maturity countdown. Nil until the target confirms.' },
+  { name: 'fees', type: 'ExitFees', desc: 'The on-chain cost breakdown for the exit. Nil on a coarse query.' },
+  { name: 'bestCaseBlocksRemaining', type: 'number', desc: 'The optimistic block count until a confirmed sweep. Zero on a coarse query.' },
+  { name: 'currentHeight', type: 'number', desc: 'The best block height the exit job has observed. Zero on a coarse query, or when no live actor backs the job.' },
+]} />
+
+<ApiTypeLabel name="ExitProgress" />
+
+Materialization progress through the recovery tree. Populated only for a
+detailed query against a live exit job.
+
+<Signature title="walletdk-core.d.ts" code={exitProgressSig} />
+
+<ParamsTable rows={[
+  { name: 'confirmedTxs', type: 'number', desc: 'Proof transactions confirmed on-chain.' },
+  { name: 'inFlightTxs', type: 'number', desc: 'Proof transactions broadcast but not yet observed confirmed.' },
+  { name: 'readyTxs', type: 'number', desc: 'Proof transactions ready to broadcast now.' },
+  { name: 'blockedTxs', type: 'number', desc: 'Proof transactions still waiting on an unconfirmed in-proof parent.' },
+  { name: 'totalTxs', type: 'number', desc: 'Total transactions in the exit proof tree.' },
+  { name: 'currentLayer', type: 'number', desc: 'The frontier layer index: the shallowest topological layer (roots first) that still holds an unconfirmed transaction.' },
+  { name: 'totalLayers', type: 'number', desc: 'The depth of the exit proof tree.' },
+  { name: 'targetConfirmed', type: 'boolean', desc: 'True once the target VTXO transaction has confirmed.' },
+  { name: 'allProofConfirmed', type: 'boolean', desc: 'True once every proof-tree transaction has confirmed, so only the CSV wait and final sweep remain.' },
+]} />
+
+<ApiTypeLabel name="ExitCSV" />
+
+The target’s CSV maturity countdown. Populated only once the target
+transaction has confirmed.
+
+<Signature title="walletdk-core.d.ts" code={exitCSVSig} />
+
+<ParamsTable rows={[
+  { name: 'targetConfirmHeight', type: 'number', desc: 'The height at which the target transaction confirmed.' },
+  { name: 'maturityHeight', type: 'number', desc: 'The height at which the CSV timelock matures.' },
+  { name: 'blocksRemaining', type: 'number', desc: 'Blocks remaining until maturity.' },
+  { name: 'mature', type: 'boolean', desc: 'Whether the CSV timelock has matured.' },
+]} />
+
+<ApiTypeLabel name="ExitFees" />
+
+The on-chain cost breakdown for the exit. The CPFP total is estimated;
+`sweepFeeActual` reports whether `sweepFeeSat` is the real built-sweep fee
+rather than an estimate.
+
+<Signature title="walletdk-core.d.ts" code={exitFeesSig} />
+
+<ParamsTable rows={[
+  { name: 'cPFPFeeSat', type: 'number', desc: 'The estimated total CPFP fee, in sats.' },
+  { name: 'sweepFeeSat', type: 'number', desc: 'The sweep fee, in sats. Real rather than estimated when sweepFeeActual is true.' },
+  { name: 'totalCostSat', type: 'number', desc: 'The projected on-chain cost of the whole exit, in sats.' },
+  { name: 'spentSoFarSat', type: 'number', desc: 'The estimated fee committed so far, in sats.' },
+  { name: 'vTXOAmountSat', type: 'number', desc: 'The VTXO value being recovered, in sats.' },
+  { name: 'netRecoveredSat', type: 'number', desc: 'The estimated net recoverable after fees, in sats.' },
+  { name: 'feeRateSatVByte', type: 'number', desc: 'The fee rate used, in sat/vByte.' },
+  { name: 'sweepFeeActual', type: 'boolean', desc: 'Whether sweepFeeSat is the real built-sweep fee rather than an estimate.' },
 ]} />
 
 <ApiTypeLabel name="ExitJobStatus" />
@@ -1762,6 +1882,57 @@ set.
 | `sweeping` | The sweep transaction has been broadcast. |
 | `completed` | The exit finished successfully. |
 | `failed` | The job reached a terminal failure. |
+
+</ApiSymbol>
+
+<ApiSymbol name="exitSummary" kind="function">
+
+Summarizes all in-progress exits: one entry per active exit plus wallet-wide
+totals for the amount being recovered, the estimated fees, and the estimated
+net recoverable. Completed and failed exits are omitted; they have no amount
+left to recover.
+
+<Signature title="walletdk-core.d.ts" code={exitSummarySig} />
+
+<ParamsTable rows={[
+  { name: 'req', type: 'ExitSummaryRequest', desc: 'Takes no arguments; the daemon reports the wallet-wide portfolio.' },
+]} />
+
+<Returns type="Promise<ExitSummaryResult>">
+The in-progress exits plus aggregate totals.
+</Returns>
+
+<ApiTypeLabel name="ExitSummaryRequest" />
+
+Takes no arguments.
+
+<Signature title="walletdk-core.d.ts" code={exitSummaryRequestSig} />
+
+<ApiTypeLabel name="ExitSummaryResult" />
+
+<Signature title="walletdk-core.d.ts" code={exitSummaryResultSig} />
+
+<ParamsTable rows={[
+  { name: 'exits', type: 'ExitSummaryEntry[]', desc: 'One entry per in-progress exit.' },
+  { name: 'totalExits', type: 'number', desc: 'The number of in-progress exits.' },
+  { name: 'totalVTXOAmountSat', type: 'number', desc: 'The combined VTXO value being recovered, in sats.' },
+  { name: 'totalEstFeeSat', type: 'number', desc: 'The combined estimated on-chain fees, in sats.' },
+  { name: 'totalEstNetRecoveredSat', type: 'number', desc: 'The combined estimated net recoverable after fees, in sats.' },
+]} />
+
+<ApiTypeLabel name="ExitSummaryEntry" />
+
+One in-progress exit’s coarse contribution to the portfolio.
+
+<Signature title="walletdk-core.d.ts" code={exitSummaryEntrySig} />
+
+<ParamsTable rows={[
+  { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint being exited.' },
+  { name: 'status', type: 'ExitJobStatus', desc: 'The exit job’s current status.' },
+  { name: 'vTXOAmountSat', type: 'number', desc: 'The VTXO value being recovered, in sats.' },
+  { name: 'estTotalFeeSat', type: 'number', desc: 'The estimated total on-chain fee for this exit, in sats.' },
+  { name: 'estNetRecoveredSat', type: 'number', desc: 'The estimated net recoverable after fees, in sats.' },
+]} />
 
 </ApiSymbol>
 
@@ -1821,12 +1992,29 @@ previewed VTXO outpoint.
   { name: 'recommendedTotalFundingSat', type: 'number', desc: 'The recommended total funding amount, in sats.' },
   { name: 'fundingShortfallSat', type: 'number', desc: 'The funding still needed before this outpoint can exit, in sats.' },
   { name: 'canStart', type: 'boolean', desc: 'Whether this outpoint is ready to exit right now.' },
+  { name: 'infeasibilityReason', type: 'ExitInfeasibilityReason', desc: 'Why canStart is false: a structural block (a dust or uneconomical VTXO) or a funding shortfall the wallet could cover. It is "unspecified" when canStart is true.' },
   { name: 'exitJobFound', type: 'boolean', desc: 'Whether an exit job already exists for this outpoint.' },
   { name: 'exitStatus', type: 'ExitJobStatus', desc: 'The existing job’s status, when exitJobFound is true.' },
   { name: 'sweepTxid', type: 'string', desc: 'The sweep transaction id, once known.' },
   { name: 'lastError', type: 'string', desc: 'The last error the existing job recorded, if any.' },
   { name: 'err', type: 'string', desc: 'A per-outpoint failure encountered while building this plan entry (empty on success).' },
 ]} />
+
+<ApiTypeLabel name="ExitInfeasibilityReason" />
+
+Explains why a previewed exit cannot start. A structural block (dust or
+uneconomical) is one no amount of wallet funding fixes; the others are funding
+shortfalls the wallet could cover.
+
+<Signature title="walletdk-core.d.ts" code={exitInfeasibilityReasonSig} />
+
+| Value | Meaning |
+|---|---|
+| `unspecified` | The exit is feasible, or the block is a plain funding shortfall reported via `fundingShortfallSat`. |
+| `sweep_below_dust` | The swept output, after the sweep fee, would fall at or below the dust limit, so the sweep could never relay. Impossible regardless of funding. |
+| `uneconomical` | The total on-chain cost to recover the VTXO exceeds the configured fraction of its value. |
+| `wallet_underfunded` | The confirmed on-chain wallet balance is too small to cover the CPFP fees. Funding the wallet resolves it. |
+| `wallet_too_few_inputs` | The wallet has fewer usable confirmed UTXOs than the VTXO has independent ancestry paths, so it lacks distinct CPFP fee inputs. |
 
 </ApiSymbol>
 

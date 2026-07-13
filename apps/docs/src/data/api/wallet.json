@@ -19,6 +19,7 @@
         "SweepWallet",
         "Exit",
         "ExitStatus",
+        "ExitSummary",
         "SubscribeWallet"
       ]
     },
@@ -238,7 +239,8 @@
       },
       "referencedTypes": [
         "ExitPlanEntry",
-        "ExitJobStatus"
+        "ExitJobStatus",
+        "ExitInfeasibilityReason"
       ]
     },
     {
@@ -289,6 +291,27 @@
         "path": "/v1/wallet/exit-status"
       },
       "referencedTypes": [
+        "ExitJobStatus",
+        "ExitProgress",
+        "ExitCSV",
+        "ExitFees"
+      ]
+    },
+    {
+      "name": "ExitSummary",
+      "slug": "exit-summary",
+      "service": "WalletService",
+      "comment": "ExitSummary reports the wallet-wide portfolio of in-progress exits:\none row per active exit plus aggregate totals for the amount still\nbeing recovered, the estimated fees, and the estimated net recoverable.",
+      "requestType": "ExitSummaryRequest",
+      "responseType": "ExitSummaryResponse",
+      "requestStream": false,
+      "responseStream": false,
+      "rest": {
+        "method": "POST",
+        "path": "/v1/wallet/exit-summary"
+      },
+      "referencedTypes": [
+        "ExitSummaryItem",
         "ExitJobStatus"
       ]
     },
@@ -296,9 +319,9 @@
       "name": "SubscribeWallet",
       "slug": "subscribe-wallet",
       "service": "WalletService",
-      "comment": "SubscribeWallet streams normalized WalletEntry updates as they\nhappen. When include_existing is set, the daemon emits the current\nsnapshot before live updates.",
+      "comment": "SubscribeWallet streams activity updates as they happen. The stream\nis resumable: each response carries a monotonic cursor the client can\nreconnect from to replay everything after it without gaps.",
       "requestType": "SubscribeWalletRequest",
-      "responseType": "WalletEntry",
+      "responseType": "SubscribeWalletResponse",
       "requestStream": false,
       "responseStream": true,
       "rest": {
@@ -307,6 +330,7 @@
       },
       "referencedTypes": [
         "EntryKind",
+        "WalletEntry",
         "EntryStatus",
         "WalletEntryRequest",
         "LightningInvoiceRequest",
@@ -314,7 +338,8 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
-        "EntryFailureCode"
+        "EntryFailureCode",
+        "SubscribeGap"
       ]
     },
     {
@@ -1707,6 +1732,14 @@
           "optional": false,
           "oneof": null,
           "comment": "error is a per-outpoint failure (e.g. VTXO not found) so one bad\noutpoint does not fail the whole batch. Empty on success."
+        },
+        {
+          "name": "infeasibility_reason",
+          "type": "ExitInfeasibilityReason",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "infeasibility_reason explains why can_start is false. It may be a\nstructural block - a dust or uneconomical VTXO the wallet can never\nmake exitable (funding_shortfall_sat is zero) - or a funding\nshortfall the wallet could cover (wallet underfunded or too few fee\ninputs, also reflected in funding_shortfall_sat). It is\nEXIT_INFEASIBILITY_REASON_UNSPECIFIED when can_start is true."
         }
       ]
     },
@@ -1927,6 +1960,14 @@
           "optional": false,
           "oneof": null,
           "comment": "outpoint is the VTXO outpoint to query, formatted as\n\"txid:index\"."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "detailed enriches the response with tree/CSV progress and a fee\nbreakdown. It costs one extra child actor round-trip plus a fee\nestimate, so it should be set only for interactive status commands, not\nautomated polling."
         }
       ]
     },
@@ -1965,6 +2006,337 @@
           "optional": false,
           "oneof": null,
           "comment": "last_error contains the failure reason if the job is in FAILED\nstatus."
+        },
+        {
+          "name": "phase_detail",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "phase_detail is a human-readable one-line description of the current\nphase, e.g. \"materializing layer 2 of 4 (3/7 txs confirmed)\". Set only\non a detailed query."
+        },
+        {
+          "name": "progress",
+          "type": "ExitProgress",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "progress is the tree materialization progress. Set only on a detailed\nquery against a live job."
+        },
+        {
+          "name": "csv",
+          "type": "ExitCSV",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "csv is the CSV maturity countdown. Set only on a detailed query, once\nthe target has confirmed."
+        },
+        {
+          "name": "fees",
+          "type": "ExitFees",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fees is the on-chain cost breakdown for the exit. Set only on a detailed\nquery."
+        },
+        {
+          "name": "best_case_blocks_remaining",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "best_case_blocks_remaining is the optimistic block count until a\nconfirmed sweep. Set only on a detailed query."
+        },
+        {
+          "name": "current_height",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "current_height is the best block height the exit job has observed. Set\nonly on a detailed query against a live job."
+        }
+      ]
+    },
+    "ExitProgress": {
+      "name": "ExitProgress",
+      "comment": "ExitProgress describes materialization progress through the exit proof tree.\nIt is populated only for a detailed query against a live exit job.",
+      "fields": [
+        {
+          "name": "confirmed_txs",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "confirmed_txs is the number of proof transactions confirmed on-chain."
+        },
+        {
+          "name": "in_flight_txs",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "in_flight_txs is the number of proof transactions broadcast but not yet\nobserved confirmed."
+        },
+        {
+          "name": "ready_txs",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "ready_txs is the number of proof transactions ready to broadcast now."
+        },
+        {
+          "name": "blocked_txs",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "blocked_txs is the number of proof transactions still waiting on an\nunconfirmed in-proof parent."
+        },
+        {
+          "name": "total_txs",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_txs is the total number of transactions in the exit proof tree."
+        },
+        {
+          "name": "current_layer",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "current_layer is the frontier layer index: the shallowest topological\nlayer (roots first) that still holds an unconfirmed transaction."
+        },
+        {
+          "name": "total_layers",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_layers is the depth of the exit proof tree."
+        },
+        {
+          "name": "target_confirmed",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "target_confirmed is true once the target VTXO transaction has confirmed."
+        },
+        {
+          "name": "all_proof_confirmed",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "all_proof_confirmed is true once every proof-tree transaction has\nconfirmed, so only the CSV wait and final sweep remain."
+        }
+      ]
+    },
+    "ExitCSV": {
+      "name": "ExitCSV",
+      "comment": "ExitCSV describes the target's CSV maturity countdown. It is populated only\nonce the target transaction has confirmed.",
+      "fields": [
+        {
+          "name": "target_confirm_height",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "target_confirm_height is the block height at which the target confirmed."
+        },
+        {
+          "name": "maturity_height",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "maturity_height is the block height at which the target becomes\ntimeout-spendable."
+        },
+        {
+          "name": "blocks_remaining",
+          "type": "int32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "blocks_remaining is how many blocks remain until CSV maturity."
+        },
+        {
+          "name": "mature",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "mature is true once the current height is at or past maturity."
+        }
+      ]
+    },
+    "ExitFees": {
+      "name": "ExitFees",
+      "comment": "ExitFees breaks down the on-chain cost of the exit. The CPFP total is\nestimated from the current fee rate; the sweep fee is the actual built-sweep\nfee once known, otherwise estimated.",
+      "fields": [
+        {
+          "name": "cpfp_fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "cpfp_fee_sat is the wallet-funded CPFP fee across every recovery\ntransaction (estimated)."
+        },
+        {
+          "name": "sweep_fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "sweep_fee_sat is the fee the final sweep pays out of the VTXO value."
+        },
+        {
+          "name": "total_cost_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_cost_sat is cpfp_fee_sat + sweep_fee_sat."
+        },
+        {
+          "name": "vtxo_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "vtxo_amount_sat is the value of the VTXO being exited."
+        },
+        {
+          "name": "net_recovered_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "net_recovered_sat is vtxo_amount_sat - sweep_fee_sat."
+        },
+        {
+          "name": "fee_rate_sat_vbyte",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "fee_rate_sat_vbyte is the fee rate used for the estimate."
+        },
+        {
+          "name": "sweep_fee_actual",
+          "type": "bool",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "sweep_fee_actual is true when sweep_fee_sat is the real built-sweep fee\nrather than an estimate."
+        },
+        {
+          "name": "spent_so_far_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "spent_so_far_sat is the estimated on-chain fee already committed at this\npoint in the exit: CPFP for the confirmed and in-flight recovery\ntransactions, plus the sweep fee once the sweep is broadcast. It is an\nestimate, not a realized total; total_cost_sat remains the projected cost\nof the whole exit."
+        }
+      ]
+    },
+    "ExitSummaryRequest": {
+      "name": "ExitSummaryRequest",
+      "comment": "ExitSummaryRequest asks for the wallet-wide portfolio of in-progress exits.",
+      "fields": []
+    },
+    "ExitSummaryResponse": {
+      "name": "ExitSummaryResponse",
+      "comment": "ExitSummaryResponse is the wallet-wide portfolio of in-progress exits plus\naggregate totals. Only non-terminal exits are included: a completed or failed\nexit has no amount \"left\" to recover.",
+      "fields": [
+        {
+          "name": "exits",
+          "type": "ExitSummaryItem",
+          "repeated": true,
+          "optional": false,
+          "oneof": null,
+          "comment": "exits is one row per in-progress exit."
+        },
+        {
+          "name": "total_exits",
+          "type": "uint32",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_exits is the number of in-progress exits."
+        },
+        {
+          "name": "total_vtxo_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_vtxo_amount_sat is the summed value of every VTXO still being\nexited: the total amount currently locked in in-progress exits."
+        },
+        {
+          "name": "total_est_fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_est_fee_sat is the summed projected on-chain fee across every\nin-progress exit."
+        },
+        {
+          "name": "total_est_net_recovered_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "total_est_net_recovered_sat is the summed estimated value that will land\nback in the wallet once every in-progress exit completes."
+        }
+      ]
+    },
+    "ExitSummaryItem": {
+      "name": "ExitSummaryItem",
+      "comment": "ExitSummaryItem is one in-progress exit's coarse contribution to the\nportfolio. It is intentionally cheap (phase plus amounts and estimated fees\nfrom the persisted descriptor), so the summary does not query each live\nactor; use ExitStatus --detailed for one exit's tree/CSV progress.",
+      "fields": [
+        {
+          "name": "outpoint",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "outpoint is the exiting VTXO outpoint, formatted as \"txid:index\"."
+        },
+        {
+          "name": "status",
+          "type": "ExitJobStatus",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "status is the current high-level phase of the exit job."
+        },
+        {
+          "name": "vtxo_amount_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "vtxo_amount_sat is the value of the VTXO being exited."
+        },
+        {
+          "name": "est_total_fee_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "est_total_fee_sat is the projected total on-chain fee for this exit\n(estimated CPFP total plus sweep fee)."
+        },
+        {
+          "name": "est_net_recovered_sat",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "est_net_recovered_sat is the estimated value that lands back in the\nwallet after the sweep fee."
         }
       ]
     },
@@ -1978,7 +2350,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "include_existing instructs the daemon to emit the current\nsnapshot before the live subscription is registered."
+          "comment": "include_existing replays the full activity history before live\nupdates. It is ignored when cursor is set (cursor already selects the\nreplay start)."
         },
         {
           "name": "kinds",
@@ -1986,7 +2358,59 @@
           "repeated": true,
           "optional": false,
           "oneof": null,
-          "comment": "kinds optionally narrows the live stream to specific entry\ncategories. When empty, all kinds are streamed."
+          "comment": "kinds optionally narrows the stream to specific entry categories.\nWhen empty, all kinds are streamed."
+        },
+        {
+          "name": "cursor",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "cursor resumes the stream from a prior SubscribeWalletResponse.cursor:\nthe daemon replays every event after it, then continues live. Zero\n(unset) starts from the full history when include_existing is set, or\nfrom the current tip otherwise."
+        }
+      ]
+    },
+    "SubscribeWalletResponse": {
+      "name": "SubscribeWalletResponse",
+      "comment": "SubscribeWalletResponse is one item in the SubscribeWallet stream: either a\nprojected activity row or a gap signal telling the subscriber it fell behind\nand must reconcile.",
+      "fields": [
+        {
+          "name": "cursor",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "cursor is the monotonic event-log position of this update. A client\npersists it and reconnects with SubscribeWalletRequest.cursor set to the\nlast value it processed to resume without gaps. The sequence is\nmonotonic but NOT contiguous: a value may be skipped, so a client treats\nany cursor past its last as new and never infers a dropped event from a\ngap in the numbers."
+        },
+        {
+          "name": "entry",
+          "type": "WalletEntry",
+          "repeated": false,
+          "optional": false,
+          "oneof": "update",
+          "comment": "entry is a projected activity row at cursor."
+        },
+        {
+          "name": "gap",
+          "type": "SubscribeGap",
+          "repeated": false,
+          "optional": false,
+          "oneof": "update",
+          "comment": "gap signals the subscriber fell behind the live buffer and should\nreconcile current state via List, then resume from cursor."
+        }
+      ]
+    },
+    "SubscribeGap": {
+      "name": "SubscribeGap",
+      "comment": "SubscribeGap tells a subscriber the daemon could not keep it current on the\nlive stream (a slow consumer overflowed the send buffer). The subscriber\nshould reconcile via List and resume from the enclosing cursor. No activity\nis lost: the canonical event log retains every event, so the resume replays\nanything missed.",
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "reason is a short human-readable description of why the gap was emitted."
         }
       ]
     },
@@ -2713,6 +3137,37 @@
           "name": "EXIT_JOB_STATUS_FAILED",
           "value": 6,
           "comment": "EXIT_JOB_STATUS_FAILED - terminal: an unrecoverable error\noccurred."
+        }
+      ]
+    },
+    "ExitInfeasibilityReason": {
+      "name": "ExitInfeasibilityReason",
+      "comment": "ExitInfeasibilityReason enumerates why a unilateral exit was judged\ninfeasible. It mirrors the daemon's unroll feasibility verdict so a\ncaller can distinguish a dust/uneconomical block (no amount of wallet\nfunding fixes it) from a plain funding shortfall.",
+      "values": [
+        {
+          "name": "EXIT_INFEASIBILITY_REASON_UNSPECIFIED",
+          "value": 0,
+          "comment": "EXIT_INFEASIBILITY_REASON_UNSPECIFIED - the proto zero value; the\nexit is feasible, or the block is a plain funding shortfall reported\nvia funding_shortfall_sat instead."
+        },
+        {
+          "name": "EXIT_INFEASIBILITY_REASON_SWEEP_BELOW_DUST",
+          "value": 1,
+          "comment": "EXIT_INFEASIBILITY_REASON_SWEEP_BELOW_DUST - the swept output, after\ndeducting the sweep fee from the VTXO value, would fall at or below\nthe dust limit, so the sweep could never relay. The exit is\nimpossible regardless of wallet funding."
+        },
+        {
+          "name": "EXIT_INFEASIBILITY_REASON_UNECONOMICAL",
+          "value": 2,
+          "comment": "EXIT_INFEASIBILITY_REASON_UNECONOMICAL - the total on-chain cost to\nrecover the VTXO exceeds the configured fraction of its value. The\nexit could technically complete but burns more than it returns."
+        },
+        {
+          "name": "EXIT_INFEASIBILITY_REASON_WALLET_UNDERFUNDED",
+          "value": 3,
+          "comment": "EXIT_INFEASIBILITY_REASON_WALLET_UNDERFUNDED - the confirmed on-chain\nwallet balance is too small to cover the CPFP fees. Funding the\nwallet and retrying resolves it (also reported via\nfunding_shortfall_sat)."
+        },
+        {
+          "name": "EXIT_INFEASIBILITY_REASON_WALLET_TOO_FEW_INPUTS",
+          "value": 4,
+          "comment": "EXIT_INFEASIBILITY_REASON_WALLET_TOO_FEW_INPUTS - the wallet has\nfewer usable confirmed UTXOs than the VTXO has independent ancestry\npaths, so it lacks distinct CPFP fee inputs."
         }
       ]
     },

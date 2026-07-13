@@ -185,6 +185,7 @@ export const API_NAV: NavGroup[] = [
       { slug: 'api/wallet/get-exit-plan', label: 'GetExitPlan', section: 'api-exit' },
       { slug: 'api/wallet/exit', label: 'Exit', section: 'api-exit' },
       { slug: 'api/wallet/exit-status', label: 'ExitStatus', section: 'api-exit' },
+      { slug: 'api/wallet/exit-summary', label: 'ExitSummary', section: 'api-exit' },
       { slug: 'api/wallet/sweep-wallet', label: 'SweepWallet', section: 'api-exit' },
     ],
   },

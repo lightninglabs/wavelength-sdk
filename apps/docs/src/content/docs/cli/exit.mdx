@@ -46,17 +46,35 @@ darepocli --no-tls exit --outpoint 4b2e9f1a7c3d5e6f...:0
 
 ### `exit status`
 
-Returns the current phase of a forced unroll job for one outpoint: job phase,
-sweep txid, and any errors.
+Returns the status of a forced unroll job for one outpoint. By default the
+response includes recovery-tree progress (layer and transaction counts), the
+CSV maturity countdown, a best-case block estimate to full exit, and the
+on-chain fee breakdown, alongside the job phase, sweep txid, and any errors.
+The endpoint stays queryable after the exit completes.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--outpoint` | (none) | Required. VTXO outpoint to check, as `txid:vout`. |
+| `--detailed` | `true` | Include tree/CSV progress, the best-case block countdown, and the fee breakdown. Pass `--detailed=false` for a coarse, cheaper phase-only status. |
 
 Calls [`WalletService.ExitStatus`](/api/wallet/exit-status/).
 
 ```bash title="Terminal"
 darepocli exit status --outpoint TXID:VOUT
+darepocli exit status --outpoint TXID:VOUT --detailed=false
+```
+
+### `exit summary`
+
+Lists every in-progress unilateral exit and the aggregate totals across them:
+the amount still being recovered, the estimated on-chain fees, and the
+estimated net recoverable. Completed and failed exits are omitted; they have no
+amount left to recover. Takes no flags.
+
+Calls [`WalletService.ExitSummary`](/api/wallet/exit-summary/).
+
+```bash title="Terminal"
+darepocli exit summary
 ```
 
 ### `exit plan`
@@ -88,5 +106,6 @@ A forced unroll pays on-chain fees and cannot be combined with a custom
 ## Underlying RPC
 
 The default cooperative path calls [`WalletService.Exit`](/api/wallet/exit/).
-The subcommands call [`WalletService.ExitStatus`](/api/wallet/exit-status/) and
+The subcommands call [`WalletService.ExitStatus`](/api/wallet/exit-status/),
+[`WalletService.ExitSummary`](/api/wallet/exit-summary/), and
 [`WalletService.GetExitPlan`](/api/wallet/get-exit-plan/).

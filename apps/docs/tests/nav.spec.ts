@@ -55,14 +55,15 @@ test('prev/next never crosses a slice boundary', () => {
   expect(prevNext(lastCli.slug).next).toBeUndefined();
 });
 
-test('api nav lists all fifteen wallet method pages', () => {
+test('api nav lists all sixteen wallet method pages', () => {
   const slugs = flattenNav(API_NAV)
     .filter((i) => i.slug.startsWith('api/wallet/'))
     .map((i) => i.slug);
-  expect(slugs).toHaveLength(15);
-  expect(new Set(slugs).size).toBe(15);
+  expect(slugs).toHaveLength(16);
+  expect(new Set(slugs).size).toBe(16);
   expect(slugs).toContain('api/wallet/prepare-send');
   expect(slugs).toContain('api/wallet/inspect-activity');
+  expect(slugs).toContain('api/wallet/exit-summary');
 });
 
 test('every nav item has an accent', () => {
