@@ -59,7 +59,8 @@ export interface Config {
    */
   allowMainnet: boolean;
   /**
-   * ServerAddress is the Ark operator mailbox edge server address.
+   * ServerAddress is the Ark operator mailbox edge server address. Empty
+   * selects the daemon network+transport default.
    */
   serverAddress: string;
   /**
@@ -114,7 +115,7 @@ export interface Config {
   walletBtcwalletFilterHeadersSource: string;
   /**
    * SwapServerAddress is the swapdk-server address for the selected
-   * transport.
+   * transport. Empty selects the daemon network+transport default.
    */
   swapServerAddress: string;
   /**
@@ -141,6 +142,11 @@ export interface Config {
    */
   maxOperatorFeeSat: number /* int64 */;
   /**
+   * SigningWorkers bounds concurrent VTXO MuSig2 signer sessions. Zero
+   * selects the wallet-backend default and one forces serial signing.
+   */
+  signingWorkers: number /* int */;
+  /**
    * EagerRoundJoin makes the embedded daemon's wallet drive
    * round-joining without waiting for a follow-up Board /
    * LeaveVTXOs RPC. With the flag on, freshly confirmed boarding
@@ -160,6 +166,27 @@ export interface Config {
    * BufferSize overrides the bufconn listener buffer size.
    */
   bufferSize: number /* int */;
+}
+
+//////////
+// source: errors.go
+
+/**
+ * SubscribeGapError signals that a live SubscribeWallet stream fell behind (the
+ * server-side send buffer overflowed). No activity is lost: the consumer should
+ * open a new subscription with SubscribeRequest.Cursor set to Cursor, and the
+ * replay from it is gap-free because the event log retains everything after it.
+ */
+export interface SubscribeGapError {
+  /**
+   * Cursor is the resume point: the last event-log position the stream
+   * is known to have covered before falling behind.
+   */
+  cursor: number /* int64 */;
+  /**
+   * Reason is the daemon's human-readable description of the gap.
+   */
+  reason: string;
 }
 
 //////////
@@ -687,6 +714,13 @@ export interface ExitResult {
  */
 export interface ExitStatusRequest {
   outpoint: string;
+  /**
+   * Detailed requests recovery-tree progress, a CSV maturity countdown,
+   * a fee breakdown, and a best-case block countdown. It costs one live
+   * actor round-trip plus a fee estimate, so leave it false for a coarse,
+   * cheaper phase-only status.
+   */
+  detailed: boolean;
 }
 /**
  * ExitJobStatus collapses the underlying unroll job phases to a short
@@ -709,6 +743,103 @@ export interface ExitStatusResult {
   status: ExitJobStatus;
   sweepTxid: string;
   lastError: string;
+  /**
+   * PhaseDetail is a one-line human description of the current phase.
+   * Empty on a coarse (non-detailed) query.
+   */
+  phaseDetail: string;
+  /**
+   * Progress is the recovery-tree materialization progress. Nil on a
+   * coarse query, or when no live actor backs the job.
+   */
+  progress?: ExitProgress;
+  /**
+   * CSV is the target's CSV maturity countdown. Nil until the target
+   * confirms.
+   */
+  cSV?: ExitCSV;
+  /**
+   * Fees is the on-chain cost breakdown for the exit. Nil on a coarse
+   * query.
+   */
+  fees?: ExitFees;
+  /**
+   * BestCaseBlocksRemaining is the optimistic block count until a
+   * confirmed sweep. Zero on a coarse query.
+   */
+  bestCaseBlocksRemaining: number /* int32 */;
+  /**
+   * CurrentHeight is the best block height the exit job has observed.
+   * Zero on a coarse query, or when no live actor backs the job.
+   */
+  currentHeight: number /* int32 */;
+}
+/**
+ * ExitProgress describes materialization progress through the recovery tree.
+ */
+export interface ExitProgress {
+  confirmedTxs: number /* uint32 */;
+  inFlightTxs: number /* uint32 */;
+  readyTxs: number /* uint32 */;
+  blockedTxs: number /* uint32 */;
+  totalTxs: number /* uint32 */;
+  currentLayer: number /* uint32 */;
+  totalLayers: number /* uint32 */;
+  targetConfirmed: boolean;
+  allProofConfirmed: boolean;
+}
+/**
+ * ExitCSV describes the target's CSV maturity countdown, populated once the
+ * target transaction confirms.
+ */
+export interface ExitCSV {
+  targetConfirmHeight: number /* int32 */;
+  maturityHeight: number /* int32 */;
+  blocksRemaining: number /* int32 */;
+  mature: boolean;
+}
+/**
+ * ExitFees breaks down the on-chain cost of the exit. The CPFP total is
+ * estimated; SweepFeeActual reports whether SweepFeeSat is the real built-sweep
+ * fee rather than an estimate. SpentSoFarSat is the estimated fee committed so
+ * far, while TotalCostSat is the projected cost of the whole exit.
+ */
+export interface ExitFees {
+  cPFPFeeSat: number /* int64 */;
+  sweepFeeSat: number /* int64 */;
+  totalCostSat: number /* int64 */;
+  spentSoFarSat: number /* int64 */;
+  vTXOAmountSat: number /* int64 */;
+  netRecoveredSat: number /* int64 */;
+  feeRateSatVByte: number /* int64 */;
+  sweepFeeActual: boolean;
+}
+/**
+ * ExitSummaryRequest asks for the wallet-wide portfolio of in-progress exits.
+ */
+export interface ExitSummaryRequest {
+}
+/**
+ * ExitSummaryResult is the wallet-wide portfolio of in-progress exits plus
+ * aggregate totals. Only non-terminal exits are included.
+ */
+export interface ExitSummaryResult {
+  exits: ExitSummaryEntry[];
+  totalExits: number /* uint32 */;
+  totalVTXOAmountSat: number /* int64 */;
+  totalEstFeeSat: number /* int64 */;
+  totalEstNetRecoveredSat: number /* int64 */;
+}
+/**
+ * ExitSummaryEntry is one in-progress exit's coarse contribution to the
+ * portfolio.
+ */
+export interface ExitSummaryEntry {
+  outpoint: string;
+  status: ExitJobStatus;
+  vTXOAmountSat: number /* int64 */;
+  estTotalFeeSat: number /* int64 */;
+  estNetRecoveredSat: number /* int64 */;
 }
 /**
  * GetExitPlanRequest previews unilateral-exit readiness for a slice of VTXOs.
@@ -731,6 +862,15 @@ export interface ExitPlanEntry {
   recommendedTotalFundingSat: number /* int64 */;
   fundingShortfallSat: number /* int64 */;
   canStart: boolean;
+  /**
+   * InfeasibilityReason explains why CanStart is false. It may be a
+   * structural block - a dust or uneconomical VTXO the wallet can never
+   * make exitable (FundingShortfallSat is zero) - or a funding shortfall
+   * the wallet could cover (wallet underfunded or too few fee inputs,
+   * also reflected in FundingShortfallSat). It is
+   * ExitInfeasibilityReasonUnspecified when CanStart is true.
+   */
+  infeasibilityReason: ExitInfeasibilityReason;
   exitJobFound: boolean;
   exitStatus: ExitJobStatus;
   sweepTxid: string;
@@ -740,6 +880,19 @@ export interface ExitPlanEntry {
    */
   err: string;
 }
+/**
+ * ExitInfeasibilityReason explains why a previewed exit cannot start. The
+ * block may be structural (a dust or uneconomical VTXO) or a funding
+ * shortfall the wallet could cover (wallet underfunded or too few fee
+ * inputs). It is a wrapper-owned lowercase string set, decoupled from the
+ * proto enum numbering.
+ */
+export type ExitInfeasibilityReason = "unspecified" | "sweep_below_dust" | "uneconomical" | "wallet_underfunded" | "wallet_too_few_inputs";
+export const ExitInfeasibilityReasonUnspecified: ExitInfeasibilityReason = "unspecified";
+export const ExitInfeasibilityReasonSweepBelowDust: ExitInfeasibilityReason = "sweep_below_dust";
+export const ExitInfeasibilityReasonUneconomical: ExitInfeasibilityReason = "uneconomical";
+export const ExitInfeasibilityReasonWalletUnderfunded: ExitInfeasibilityReason = "wallet_underfunded";
+export const ExitInfeasibilityReasonWalletTooFewInputs: ExitInfeasibilityReason = "wallet_too_few_inputs";
 /**
  * GetExitPlanResult describes the combined backing-wallet funding plan for
  * every previewed outpoint plus aggregate totals.
@@ -796,6 +949,13 @@ export interface Status {
 export interface SubscribeRequest {
   includeExisting: boolean;
   kinds: EntryKind[];
+  /**
+   * Cursor resumes the stream after a prior Entry.Cursor (or a
+   * *SubscribeGapError.Cursor): the daemon replays every activity event
+   * after it, then streams live. Zero replays the full history when
+   * IncludeExisting is set, or streams live-only otherwise.
+   */
+  cursor: number /* int64 */;
 }
 /**
  * EntryKind is the user-visible wallet activity category.
@@ -847,6 +1007,13 @@ export interface Entry {
   updatedAt: string;
   note: string;
   failureReason: string;
+  /**
+   * Cursor is the monotonic event-log position of this update on a
+   * SubscribeWallet stream. Persist it and pass it back as
+   * SubscribeRequest.Cursor to resume without gaps. It is zero outside
+   * the subscription path (List / Send / Recv / Deposit results).
+   */
+  cursor: number /* int64 */;
   /**
    * Progress carries the lifecycle metadata the daemon already
    * normalized for this entry (phase, payment hash, txid, confirmation

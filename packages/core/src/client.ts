@@ -6,6 +6,7 @@ import type {
   DepositRequest,
   ExitRequest,
   ExitStatusRequest,
+  ExitSummaryRequest,
   GetExitPlanRequest,
   ListRequest,
   OpenWalletFromPasskeyRequest,
@@ -20,6 +21,7 @@ import type {
   DepositResult,
   ExitResult,
   ExitStatusResult,
+  ExitSummaryResult,
   GetExitPlanResult,
   ListResult,
   OpenWalletFromPasskeyResult,
@@ -76,6 +78,12 @@ export interface WalletDKClient {
   exit(req: ExitRequest): Promise<ExitResult>;
   /** Queries the status of an exit. */
   exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>;
+  /**
+   * Summarizes all in-progress exits: one entry per active exit plus
+   * wallet-wide totals for the amount being recovered, the estimated fees, and
+   * the estimated net recoverable. Completed and failed exits are omitted.
+   */
+  exitSummary(req?: ExitSummaryRequest): Promise<ExitSummaryResult>;
   /**
    * Previews unilateral-exit readiness (and the backing-wallet funding required)
    * for a set of VTXO outpoints, without moving funds.

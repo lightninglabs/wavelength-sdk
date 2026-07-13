@@ -90,16 +90,18 @@ test("wallet create and address state persist with OPFS SQLite", async ({
   await expect(page.getByText(/lnbcrt/)).toBeVisible({ timeout: 60000 });
 
   // List(ACTIVITY) reads from the daemon's canonical activity store, which
-  // surfaces a receive only once its swap settles; an unpaid invoice is not
-  // yet in the feed (the same way a freshly issued boarding address is not a
-  // deposit row until it confirms). Simulating swap settlement is out of scope
-  // for the hermetic mock, so a just-created invoice shows the empty state.
-  // The OPFS-persistence assertions after the reload are the gold standard.
+  // records a receive as a pending entry as soon as its invoice is created,
+  // before the inbound payment settles. So the just-created 1,000-sat invoice
+  // surfaces immediately as a pending "Received" row in the "waiting for
+  // payment" phase; settlement (out of scope for the hermetic mock) would move
+  // it to settled. The OPFS-persistence assertions after the reload are the
+  // gold standard.
   await page.getByRole("button", { name: "Activity" }).click();
   await page.getByRole("button", { name: "Refresh" }).click();
-  await expect(page.getByText("No activity yet.")).toBeVisible({
+  await expect(page.getByText("Received").first()).toBeVisible({
     timeout: 30000,
   });
+  await expect(page.getByText("waiting for payment").first()).toBeVisible();
 
   await testInfo.attach("dashboard", {
     body: await page.screenshot({ fullPage: true }),

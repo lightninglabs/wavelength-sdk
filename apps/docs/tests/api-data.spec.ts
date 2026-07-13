@@ -14,8 +14,8 @@ const doc = apiDocSchema.parse(
   JSON.parse(readFileSync(new URL('../src/data/api/wallet.json', import.meta.url), 'utf8')),
 );
 
-test('wallet.json validates and holds all fifteen methods', () => {
-  expect(doc.methods).toHaveLength(15);
+test('wallet.json validates and holds all sixteen methods', () => {
+  expect(doc.methods).toHaveLength(16);
   expect(doc.services.map((s) => s.name)).toEqual([
     'WalletService',
     'WalletInspectionService',

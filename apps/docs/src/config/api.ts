@@ -20,6 +20,7 @@ export const API_CLI: Record<string, string | null> = {
   GetExitPlan: 'exit',
   Exit: 'exit',
   ExitStatus: 'exit',
+  ExitSummary: 'exit',
   SweepWallet: 'wallet-sweep',
   SubscribeWallet: null,
   InspectActivity: 'activity',
@@ -47,6 +48,7 @@ export const API_CLI_INVOCATION: Record<string, string | null> = {
   Exit: 'darepocli exit --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
   ExitStatus:
     'darepocli exit status --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
+  ExitSummary: 'darepocli exit summary',
   SweepWallet: 'darepocli wallet-sweep --destination bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
   SubscribeWallet: null,
   InspectActivity:
@@ -96,7 +98,9 @@ export const API_SAMPLES: Record<string, Record<string, unknown>> = {
   },
   ExitStatus: {
     outpoint: '4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
+    detailed: true,
   },
+  ExitSummary: {},
   SweepWallet: {
     destination_address: 'bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
     broadcast: false,

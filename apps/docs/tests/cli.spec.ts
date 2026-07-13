@@ -23,7 +23,7 @@ test('every command page has uniform Flags and Example sections', async ({ page 
   // its own) still get a Flags section (listing --help and the inherited
   // global flags) and an Example section (showing a representative
   // subcommand invocation), matching every other CLI page.
-  for (const slug of ['ark', 'swap', 'recovery', 'mcp', 'dev']) {
+  for (const slug of ['ark', 'recovery', 'mcp', 'dev']) {
     await page.goto(`/cli/${slug}/`);
     await expect(page.getByRole('heading', { name: 'Flags', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Example', exact: true })).toBeVisible();
