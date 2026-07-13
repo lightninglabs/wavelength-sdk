@@ -1,4 +1,6 @@
 ---
+import { resolveApiLink } from '~/config/api-links';
+
 /**
  * Returns.astro - Return value block for a reference symbol.
  *
@@ -17,7 +19,13 @@ const { type } = Astro.props;
 
 <div class="wdk-returns">
   <span class="wdk-returns__label">Returns</span>
-  <code class="wdk-returns__type">{type}</code>
+  {resolveApiLink(type) ? (
+    <a class="wdk-returns__type-link" href={resolveApiLink(type)?.href}>
+      <code class="wdk-returns__type">{type}</code>
+    </a>
+  ) : (
+    <code class="wdk-returns__type">{type}</code>
+  )}
   <div class="wdk-returns__desc">
     <slot />
   </div>
@@ -58,6 +66,25 @@ const { type } = Astro.props;
     border-radius: 3px;
     padding: 0.1em 0.4em;
     flex-shrink: 0;
+  }
+
+  .wdk-returns__type-link {
+    text-decoration: none;
+  }
+
+  .wdk-returns__type-link .wdk-returns__type {
+    border-bottom: 1px dashed color-mix(in srgb, currentColor 55%, transparent);
+    transition: border-color 0.12s ease;
+  }
+
+  .wdk-returns__type-link:hover .wdk-returns__type,
+  .wdk-returns__type-link:focus-visible .wdk-returns__type {
+    border-bottom-color: currentColor;
+  }
+
+  .wdk-returns__type-link:focus-visible {
+    outline: 2px solid color-mix(in srgb, currentColor 60%, transparent);
+    outline-offset: 3px;
   }
 
   /* Description prose below the type label. */
