@@ -69,5 +69,105 @@ const pageTitle = title === 'WalletDK' ? title : `${title} | WalletDK`;
     <RightRailCap />
     <slot />
     <Footer insetLeft={footerInsetLeft} />
+
+    <script is:inline>
+      // Reference pages need this listener to exist even when navigation starts
+      // on a guide page. The shared BaseLayout persists across Astro view
+      // transitions, so the rail can initialize after a client-side swap.
+      function setupSymbolRail() {
+        const navEl = document.querySelector('[data-symbol-list]');
+        if (!(navEl instanceof HTMLElement) || navEl.dataset.wdkBound) return;
+        const nav = navEl;
+        nav.dataset.wdkBound = '1';
+
+        const sections = Array.from(document.querySelectorAll('[data-symbol]'));
+        if (sections.length === 0) return;
+
+        const content = document.querySelector('.wdk-ref__content');
+        const nodes = content
+          ? Array.from(content.querySelectorAll('h2:not(.wdk-symbol__name), [data-symbol]'))
+          : sections;
+
+        nodes.forEach((node) => {
+          if (node.hasAttribute('data-symbol')) {
+            const id = node.id;
+            const name = node.querySelector('.wdk-symbol__name')?.textContent ?? id;
+            const kind = node.querySelector('.wdk-symbol__badge')?.textContent ?? '';
+
+            const a = document.createElement('a');
+            a.href = `#${id}`;
+            a.className = 'wdk-ref__rail-link';
+            a.dataset.symbolLink = id;
+            a.innerHTML = `
+              <span class="wdk-ref__rail-link-name">${name}</span>
+              ${kind ? `<span class="wdk-ref__rail-link-kind">${kind}</span>` : ''}
+            `;
+            nav.appendChild(a);
+          } else {
+            const id = node.id;
+            const label = document.createElement(id ? 'a' : 'span');
+            label.className = 'wdk-ref__rail-group';
+            if (id && label instanceof HTMLAnchorElement) label.href = `#${id}`;
+            label.textContent = (node.textContent ?? '').trim();
+            nav.appendChild(label);
+          }
+        });
+
+        const links = Array.from(nav.querySelectorAll('[data-symbol-link]'));
+        function activate(id) {
+          links.forEach((a) => {
+            const isActive = a instanceof HTMLElement && a.dataset.symbolLink === id;
+            a.classList.toggle('is-active', isActive);
+            if (isActive) a.setAttribute('aria-current', 'true');
+            else a.removeAttribute('aria-current');
+          });
+        }
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            const vis = entries
+              .filter((e) => e.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (vis) activate(vis.target.id);
+          },
+          { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.25, 0.5, 1] }
+        );
+        sections.forEach((s) => io.observe(s));
+
+        const hashId = window.location.hash.slice(1);
+        const initialSection = sections.find((section) => section.id === hashId) ?? sections[0];
+        if (initialSection) activate(initialSection.id);
+
+        const alignHashTarget = () => {
+          const currentHashId = window.location.hash.slice(1);
+          if (!currentHashId) return;
+          const target = document.getElementById(currentHashId);
+          if (!target) return;
+          activate(currentHashId);
+          target.scrollIntoView({ block: 'start' });
+        };
+        const alignAfterLayout = () => {
+          requestAnimationFrame(() => {
+            alignHashTarget();
+            window.setTimeout(alignHashTarget, 250);
+          });
+        };
+        window.addEventListener('hashchange', alignAfterLayout);
+        document.fonts?.ready.then(alignAfterLayout);
+        window.setTimeout(alignAfterLayout, 500);
+        window.setTimeout(alignAfterLayout, 1500);
+
+        function teardown() {
+          io.disconnect();
+          nav.innerHTML = '';
+          delete nav.dataset.wdkBound;
+          window.removeEventListener('hashchange', alignAfterLayout);
+          document.removeEventListener('astro:before-swap', teardown);
+        }
+        document.addEventListener('astro:before-swap', teardown);
+      }
+
+      document.addEventListener('astro:page-load', setupSymbolRail);
+    </script>
   </body>
 </html>

@@ -10,14 +10,14 @@ related:
 
 ## Get a boarding address
 
-This guide assumes your app already renders inside a `WalletDKProvider` with a
+This guide assumes your app already renders inside a [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider) with a
 wallet unlocked and ready. See [Create a wallet](/guides/create-a-wallet/).
 
-`deposit()` from `useWalletDeposit()` creates a tracked boarding address from
+`deposit()` from [`useWalletDeposit()`](/reference/walletdk-react/#useWalletDeposit) creates a tracked boarding address from
 your wallet key. Send any amount of on-chain bitcoin to this address and the
 Ark server will sweep it into your VTXO balance in the next round.
 
-The returned `DepositResult` includes both the address string and an initial
+The returned [`DepositResult`](/reference/walletdk-core/#DepositResult) includes both the address string and an initial
 activity entry. Display the address as text, or render it as a QR code with a
 library of your choice for easy scanning.
 
@@ -59,7 +59,7 @@ const result = await deposit({ amountSatHint: 100000 });
 
 ## Watch for confirmation
 
-Use `useWalletActivity()` to watch for your deposit to land. The engine
+Use [`useWalletActivity()`](/reference/walletdk-react/#useWalletActivity) to watch for your deposit to land. The engine
 subscribes to the activity stream and refreshes automatically, so pending
 entries appear as soon as the server sees the boarding transaction and flip to
 `'complete'` once the round settles. An entry can also flip to `'failed'`; in

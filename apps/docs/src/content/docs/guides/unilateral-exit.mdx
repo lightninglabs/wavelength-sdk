@@ -9,7 +9,7 @@ related:
 ---
 
 Exiting is a client-level operation: there is no dedicated mutation hook for
-it, so reach it through `useWalletEngine().client`, the escape hatch every
+it, so reach it through [`useWalletEngine()`](/reference/walletdk-react/#useWalletEngine).client, the escape hatch every
 granular hook is built on.
 
 ## Preview with getExitPlan
@@ -58,7 +58,7 @@ function ExitPlan({ outpoints }: { outpoints: string[] }) {
 ## Initiate the exit
 
 `client.exit({ outpoint, destination })` starts the exit for a single VTXO.
-It resolves with an `ExitResult` whose `path` discriminates cooperative,
+It resolves with an [`ExitResult`](/reference/walletdk-core/#ExitResult) whose `path` discriminates cooperative,
 unilateral, and fallback outcomes.
 
 `exit` always tries a cooperative leave with the Ark server first. It only
@@ -66,7 +66,7 @@ falls back to a unilateral, on-chain exit automatically when the server is
 unavailable or unresponsive, so the same call is safe to use as the single
 entry point for exiting a VTXO.
 
-Which fields on `ExitResult` are populated depends on `path`:
+Which fields on [`ExitResult`](/reference/walletdk-core/#ExitResult) are populated depends on `path`:
 
 | Field | Populated when |
 | --- | --- |
@@ -104,7 +104,7 @@ function StartExit({
 that VTXO, including `found`, `status`, and `sweepTxid` when available. Poll
 this periodically until the job completes.
 
-`ExitStatusResult` also includes `lastError: string`. Surface it whenever
+[`ExitStatusResult`](/reference/walletdk-core/#ExitStatusResult) also includes `lastError: string`. Surface it whenever
 `status === 'failed'` so the user knows why the job stopped instead of
 leaving them with a bare status label.
 

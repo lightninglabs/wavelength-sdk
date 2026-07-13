@@ -28,7 +28,7 @@ Until hosted binary distribution ships, the native wallet runtime must be staged
 
 <Step title="Wire the provider">
 
-Create a `WalletEngine` with `createNativeWalletEngine`, and wrap your app with `WalletDKProvider`. Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
+Create a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) with [`createNativeWalletEngine()`](/reference/walletdk-react-native/#createNativeWalletEngine), and wrap your app with [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
 
 ```tsx title="App.tsx"
 import { Text } from 'react-native';
@@ -64,7 +64,7 @@ mainnet has no preset: build its `RuntimeConfig` by hand with `allowMainnet: tru
 
 <Step title="Create a wallet">
 
-Call `create` from `useWalletCreate` to generate a new HD seed on the device. The seed is encrypted locally and never transmitted.
+Call `create` from [`useWalletCreate`](/reference/walletdk-react/#useWalletCreate) to generate a new HD seed on the device. The seed is encrypted locally and never transmitted.
 
 ```tsx title="Onboard.tsx"
 import { Button } from 'react-native';
@@ -95,7 +95,7 @@ Once `create` resolves, `phase` from `useWallet` automatically advances (through
 
 <Step title="Try it">
 
-Call `send` from `useWalletSend` with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
+Call `send` from [`useWalletSend`](/reference/walletdk-react/#useWalletSend) with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
 
 ```tsx title="SendButton.tsx"
 import { Button } from 'react-native';

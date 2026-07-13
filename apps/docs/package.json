@@ -9,7 +9,7 @@
     "preview": "astro preview",
     "typecheck": "astro check",
     "test": "pnpm test:unit && playwright test",
-    "test:unit": "node --test scripts/agent-artifacts/convert.test.ts scripts/agent-artifacts/paths.test.ts scripts/agent-artifacts/llms.test.ts scripts/agent-artifacts/skills.test.ts"
+    "test:unit": "node --test src/config/api-links.test.ts scripts/agent-artifacts/convert.test.ts scripts/agent-artifacts/paths.test.ts scripts/agent-artifacts/llms.test.ts scripts/agent-artifacts/skills.test.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.0",

@@ -1,4 +1,6 @@
 ---
+import { resolveApiLink } from '~/config/api-links';
+
 /**
  * ParamsTable.astro - Parameter/option table for a reference symbol.
  *
@@ -42,7 +44,15 @@ const hasRows = rows && rows.length > 0;
         ? rows.map((r) => (
             <tr>
               <td class="param-name"><code>{r.name}</code></td>
-              <td class="param-type"><code>{r.type}</code></td>
+              <td class="param-type">
+                {resolveApiLink(r.type) ? (
+                  <a href={resolveApiLink(r.type)?.href} class="param-type-link">
+                    <code>{r.type}</code>
+                  </a>
+                ) : (
+                  <code>{r.type}</code>
+                )}
+              </td>
               <td class="param-desc">{r.desc}</td>
             </tr>
           ))
@@ -129,6 +139,25 @@ const hasRows = rows && rows.length > 0;
     border-radius: 3px;
     padding: 0.05em 0.3em;
     white-space: nowrap;
+  }
+
+  .param-type-link {
+    text-decoration: none;
+  }
+
+  .param-type-link code {
+    border-bottom: 1px dashed color-mix(in srgb, currentColor 55%, transparent);
+    transition: border-color 0.12s ease;
+  }
+
+  .param-type-link:hover code,
+  .param-type-link:focus-visible code {
+    border-bottom-color: currentColor;
+  }
+
+  .param-type-link:focus-visible {
+    outline: 2px solid color-mix(in srgb, currentColor 60%, transparent);
+    outline-offset: 3px;
   }
 
   /* Description column: lighter prose text. */

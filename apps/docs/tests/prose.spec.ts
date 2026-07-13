@@ -58,3 +58,17 @@ test('in-content h2 uses display font and correct size', async ({ page }) => {
   // Font weight must be 600.
   expect(h2Styles!.fontWeight).toBe('600');
 });
+
+test('linked inline code is visually distinct from an unlinked code chip', async ({ page }) => {
+  await page.goto('/guides/create-a-wallet/');
+
+  const linkedCode = page.locator('.wdk-guide__content a[href*="WalletEngine"] code').first();
+  const unlinkedCode = page.locator('.wdk-guide__content code').filter({ hasText: 'autoStart: true' }).first();
+
+  await expect(linkedCode).toBeVisible();
+  await expect(unlinkedCode).toBeVisible();
+  expect(await linkedCode.evaluate((el) => getComputedStyle(el).color)).not.toBe(
+    await unlinkedCode.evaluate((el) => getComputedStyle(el).color),
+  );
+  await expect(linkedCode.locator('..')).toHaveCSS('border-bottom-style', 'none');
+});

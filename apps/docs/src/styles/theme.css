@@ -297,29 +297,58 @@ code, pre, kbd {
   border: 1px solid color-mix(in srgb, var(--sl-accent) 25%, transparent);
 }
 
-/* Links - muted prose color, underline on hover. Nav chrome (prev/next,
-   related cards) keeps its own hover treatment. */
-:is(.wdk-doc__content, .wdk-guide__content) a {
+/* Links - visible but restrained in prose and reference introductions. Nav
+   chrome (prev/next, related cards) and generated type badges keep their own
+   treatment. */
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.param-type-link):not(.wdk-returns__type-link) {
   color: var(--link-prose);
   text-decoration: none;
-  transition: color 0.12s ease;
+  border-bottom: 1px dashed color-mix(in srgb, currentColor 55%, transparent);
+  transition: color 0.12s ease, border-color 0.12s ease;
 }
 
-:is(.wdk-doc__content, .wdk-guide__content) a:hover {
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.param-type-link):not(.wdk-returns__type-link):hover {
   color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  border-bottom-color: currentColor;
 }
 
-:is(.wdk-doc__content, .wdk-guide__content) a.wdk-prevnext__link,
-:is(.wdk-doc__content, .wdk-guide__content) a.wdk-related__card {
-  color: inherit;
+/* Linked inline code needs its own color: the code-chip styles otherwise give
+   it the same muted color as an unlinked code span. Keep the chip border, but
+   remove the prose link underline for this compact API treatment. */
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.param-type-link):not(.wdk-returns__type-link) > code {
+  color: var(--link-prose);
+  border-bottom-color: var(--border);
 }
 
-:is(.wdk-doc__content, .wdk-guide__content) a.wdk-prevnext__link:hover,
-:is(.wdk-doc__content, .wdk-guide__content) a.wdk-related__card:hover {
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.param-type-link):not(.wdk-returns__type-link):has(> code) {
+  border-bottom: none;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.param-type-link):not(.wdk-returns__type-link):hover > code {
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content) a:focus-visible {
+  outline: 2px solid color-mix(in srgb, currentColor 60%, transparent);
+  outline-offset: 3px;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content) a.wdk-prevnext__link,
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content) a.wdk-related__card {
   color: inherit;
-  text-decoration: none;
+  border-bottom: none;
+}
+
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content) a.wdk-prevnext__link:hover,
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content) a.wdk-related__card:hover {
+  color: inherit;
+  border-bottom: none;
 }
 
 /* Inline code - from r4-final :not(pre) > code. */

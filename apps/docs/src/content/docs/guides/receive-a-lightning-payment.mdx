@@ -11,7 +11,7 @@ related:
 
 ## Create a Lightning invoice
 
-`receive()` from `useWalletReceive()` triggers a receive swap: the Ark server
+`receive()` from [`useWalletReceive()`](/reference/walletdk-react/#useWalletReceive) triggers a receive swap: the Ark server
 sets up a Lightning payment path that deposits into your VTXO once the payer
 settles. Pass `amountSat` and an optional `memo` for the invoice.
 
@@ -48,7 +48,7 @@ function CreateInvoice() {
 
 ## Wait for settlement
 
-`useWalletActivity()` returns the live activity array and streams updates in
+[`useWalletActivity()`](/reference/walletdk-react/#useWalletActivity) returns the live activity array and streams updates in
 place. Match the entry by invoice string in `entry.request?.lightningInvoice`
 and watch its `status` field: the entry appears as `'pending'` when the payer
 sends and switches to `'complete'` once the receive swap round completes.
