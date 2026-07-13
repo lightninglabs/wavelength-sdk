@@ -52,8 +52,7 @@ runtime is ready, no boot effect needed.
 
 ```tsx title="App.tsx"
 import { WalletDKProvider, useWallet, useWalletBalance } from '@lightninglabs/walletdk-react';
-import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
-import { defaultConfig } from '@lightninglabs/walletdk-core';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
 
 // Configure transport options once. runtimeBaseUrl points at the hosted WASM
 // asset folder.

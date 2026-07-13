@@ -48,8 +48,7 @@ import {
   useWalletBalance,
   useWalletSend,
 } from "@lightninglabs/walletdk-react";
-import { createWebWalletEngine } from "@lightninglabs/walletdk-web";
-import { defaultConfig } from "@lightninglabs/walletdk-core";
+import { createWebWalletEngine, defaultConfig } from "@lightninglabs/walletdk-web";
 
 // Build the engine once. runtimeBaseUrl points at the hosted wasm runtime
 // assets (see below). config + autoStart boot the embedded wallet as soon as
@@ -117,7 +116,7 @@ const { invoice } = await client.receive({ amountSat: 1000 });
 ## Configuration
 
 `defaultConfig(network)` returns a ready-to-use config preloaded with the
-canonical public endpoints for `signet`, `testnet`, and `regtest`. Override only
+canonical public endpoints for `signet`, `testnet`, and `testnet4`. Override only
 what you need:
 
 ```ts
@@ -125,12 +124,25 @@ import { defaultConfig } from "@lightninglabs/walletdk-web";
 
 defaultConfig("signet");
 defaultConfig("signet", { dataDir: "my-wallet" });
-defaultConfig("regtest", { esploraUrl: "http://localhost:3002" });
+```
+
+There is no regtest preset (local ports vary per machine); build that config
+by hand with your stack's endpoints and the insecure-transport flags:
+
+```ts
+const config = {
+  network: "regtest",
+  arkServerUrl: "http://localhost:7071",
+  esploraUrl: "http://localhost:3002",
+  swapServerUrl: "http://localhost:10032",
+  serverInsecure: true,
+  swapServerInsecure: true,
+};
 ```
 
 Every field is documented on the [`RuntimeConfig`](packages/core/src/config.ts)
-type. `mainnet` has no public preset yet; supply the endpoints and
-`allowMainnet: true` yourself.
+type. `mainnet` has no public preset yet, so like regtest it is built by hand:
+supply the endpoints and `allowMainnet: true` yourself.
 
 ## Runtime assets
 

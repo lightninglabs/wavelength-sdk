@@ -58,14 +58,14 @@ Daemon logs or network errors show `connection refused` or failed fetches to
 `arkServerUrl`, `esploraUrl`, or `swapServerUrl`.
 
 **Fix:** Verify each gateway is reachable from the browser (not just from your
-shell). For **regtest**, start arktest and match the ports in your
-`RuntimeConfig` to what the environment prints (`./arktest env` or the
+shell). For **regtest**, start arktest and match the URLs in your
+`RuntimeConfig` to the ports the environment prints (`./arktest env` or the
 `frontend-regtest` overlay). URLs must include the scheme (`http://` or
-`https://`). The demo's regtest defaults assume Ark on `7071`, Esplora on
-`8501`, and the swap REST gateway on `10032` (these are the regtest defaults
-returned by `defaultConfig('regtest')`).
+`https://`). There is no `defaultConfig` preset for regtest, so every
+regtest URL comes from you; the demo app ships its own local defaults (Ark
+on `7071`, Esplora on `8501`, swap on `10032`).
 
-Signet and testnet presets from `defaultConfig()` should work without a local
+Signet, testnet, and testnet4 presets from `defaultConfig()` should work without a local
 backend; if they fail, check corporate proxies or ad blockers first.
 
 ### 401 Unauthorized from a gateway

@@ -32,9 +32,8 @@ Create a `WalletEngine` with `createNativeWalletEngine`, and wrap your app with 
 
 ```tsx title="App.tsx"
 import { Text } from 'react-native';
-import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
 import { WalletDKProvider, useWallet } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-core';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -59,7 +58,7 @@ function Status() {
 
 `defaultConfig(network, overrides?)` returns a `RuntimeConfig` preloaded with public gateway endpoints for that network, merged with any overrides you pass. See [Networks & config](/concepts/networks-and-config/) for the full list of `RuntimeConfig` fields.
 
-Use `defaultConfig('mainnet')` only after you have key-backup UX in place and set `allowMainnet: true`.
+mainnet has no preset: build its `RuntimeConfig` by hand with `allowMainnet: true`, and only after you have key-backup UX in place.
 
 </Step>
 

@@ -107,6 +107,8 @@ export const webPasskeyCeremony: PasskeyCeremony = {
   assertPasskeyPrf,
 };
 
+export { defaultConfig } from './config';
+
 export { MainThreadWalletDKClient } from './clients/main';
 
 export { RUNTIME_ASSETS, RUNTIME_ASSET_FILES } from './runtime-manifest';

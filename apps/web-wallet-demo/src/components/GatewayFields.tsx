@@ -1,4 +1,6 @@
+import { DEBUG_LEVELS } from "@lightninglabs/walletdk-web";
 import { Field } from "./ui/Field";
+import { Select } from "./ui/Select";
 import { ToggleRow } from "./ui/ToggleRow";
 import { RuntimeFieldSetter, RuntimeForm } from "../lib/runtime-config";
 
@@ -53,10 +55,11 @@ export function GatewayFields({
           disabled={disabled}
         />
       </div>
-      <Field
+      <Select
         label="Debug level"
         value={form.debugLevel}
         onChange={(v) => onField("debugLevel", v)}
+        options={DEBUG_LEVELS}
         disabled={disabled}
       />
       <ToggleRow

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { defaultConfig } from '@lightninglabs/walletdk-react-native';
 import { RuntimeConfig } from '@lightninglabs/walletdk-react';
 
 // The Android emulator reaches the host machine as 10.0.2.2; the iOS
@@ -7,7 +8,7 @@ const HOST = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
 // excluded: this build targets test networks only.
-export const NETWORKS = ['signet', 'testnet', 'regtest'] as const;
+export const NETWORKS = ['signet', 'testnet', 'testnet4', 'regtest'] as const;
 
 // RuntimeNetwork is the demo's selectable network union. RuntimeConfig.network
 // is optional and includes 'mainnet', so RuntimeForm narrows it to this
@@ -29,15 +30,11 @@ export type RuntimeFieldSetter = <K extends keyof RuntimeForm>(
   value: RuntimeForm[K],
 ) => void;
 
-// signetDefaults target the public signet deployment over TLS; they also work
-// on physical devices.
-export const signetDefaults: RuntimeForm = {
-  network: 'signet',
+// demoFieldDefaults are the demo-only fields layered under every network
+// preset so the connect/settings forms are always fully populated.
+const demoFieldDefaults = {
   dataDir: '',
   allowMainnet: false,
-  arkServerUrl: 'arkd-signet.testnet.lightningcluster.com:443',
-  esploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
-  swapServerUrl: 'swapd-signet.testnet.lightningcluster.com:443',
   // An empty value lets the daemon choose its own location for the swap
   // database. A bare relative filename resolves against the process working
   // directory on native, which on Android is the filesystem root and hangs
@@ -49,18 +46,37 @@ export const signetDefaults: RuntimeForm = {
   debugLevel: 'info',
 };
 
-// testnetDefaults are the Bitcoin testnet3 gateways.
-export const testnetDefaults: RuntimeForm = {
-  ...signetDefaults,
-  network: 'testnet',
-  arkServerUrl: 'arkd.testnet.lightningcluster.com:443',
-  esploraUrl: 'https://mempool.space/testnet/api',
-  swapServerUrl: 'swapd.testnet.lightningcluster.com:443',
-};
+// hostedDefaults builds the form for a hosted test network from the SDK's own
+// gRPC preset, so the demo never hand-copies server addresses. The hosted
+// deployments speak TLS and also work on physical devices.
+function hostedDefaults(
+  network: 'signet' | 'testnet' | 'testnet4',
+): RuntimeForm {
+  const preset = defaultConfig(network);
+
+  return {
+    ...demoFieldDefaults,
+    network,
+    arkServerUrl: preset.arkServerUrl ?? '',
+    esploraUrl: preset.esploraUrl ?? '',
+    swapServerUrl: preset.swapServerUrl ?? '',
+  };
+}
+
+// signetDefaults are the default runtime servers for the signet test network.
+export const signetDefaults: RuntimeForm = hostedDefaults('signet');
+
+// testnetDefaults are the default runtime servers for Bitcoin testnet3.
+export const testnetDefaults: RuntimeForm = hostedDefaults('testnet');
+
+// testnet4Defaults are the default runtime servers for Bitcoin testnet4.
+export const testnet4Defaults: RuntimeForm = hostedDefaults('testnet4');
 
 // regtestDefaults target the local frontend-regtest stack over plaintext gRPC.
+// The SDK ships no regtest preset (local ports vary per machine), so this
+// form is fully demo-local.
 export const regtestDefaults: RuntimeForm = {
-  ...signetDefaults,
+  ...demoFieldDefaults,
   network: 'regtest',
   arkServerUrl: `${HOST}:7070`,
   esploraUrl: `http://${HOST}:8501`,
@@ -77,6 +93,8 @@ export function defaultsForNetwork(network: RuntimeNetwork): RuntimeForm {
       return regtestDefaults;
     case 'testnet':
       return testnetDefaults;
+    case 'testnet4':
+      return testnet4Defaults;
     default:
       return signetDefaults;
   }

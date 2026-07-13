@@ -1,5 +1,7 @@
 import { View } from 'react-native';
+import { DEBUG_LEVELS } from '@lightninglabs/walletdk-react-native';
 import { Field } from './ui/Field';
+import { Select } from './ui/Select';
 import { ToggleRow } from './ui/ToggleRow';
 import { RuntimeFieldSetter, RuntimeForm } from '../lib/runtime-config';
 
@@ -53,10 +55,11 @@ export function GatewayFields({
         mono
         disabled={disabled}
       />
-      <Field
+      <Select
         label="Debug level"
         value={form.debugLevel}
         onChange={(v) => onField('debugLevel', v)}
+        options={DEBUG_LEVELS}
         disabled={disabled}
       />
       <ToggleRow

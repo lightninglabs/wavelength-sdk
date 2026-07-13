@@ -30,10 +30,16 @@ descriptive message.
 
 ## Configuration
 
-export const defaultConfigSig = `function defaultConfig(
-  network: Network,
-  overrides?: Partial<RuntimeConfig>,
-): RuntimeConfig`;
+export const networkDefaultsSig = `function networkDefaults(
+  network: PresetNetwork,
+  transport: ServerTransport,
+): Partial<RuntimeConfig>`;
+
+export const debugLevelsSig = `const DEBUG_LEVELS = [
+  'trace', 'debug', 'info', 'warn', 'error', 'critical', 'off',
+] as const;
+
+type DebugLevel = (typeof DEBUG_LEVELS)[number];`;
 
 export const runtimeConfigSig = `type RuntimeConfig = {
   network?: Network;
@@ -49,31 +55,52 @@ export const runtimeConfigSig = `type RuntimeConfig = {
   debugLevel?: string;
 };`;
 
-export const networkSig = `type Network = 'mainnet' | 'testnet' | 'signet' | 'regtest';`;
+export const networkSig = `type Network = 'mainnet' | 'testnet' | 'testnet4' | 'signet' | 'regtest';
 
-<ApiSymbol name="defaultConfig" kind="function">
+type PresetNetwork = 'testnet' | 'testnet4' | 'signet';`;
 
-Returns a ready-to-use `RuntimeConfig` for a network, preloaded with canonical
-public gateway endpoints. Pass overrides to set `dataDir` or point at your own
-infrastructure, e.g. `defaultConfig('signet', { dataDir: 'my-wallet' })`.
+<ApiSymbol name="networkDefaults" kind="function">
 
-<Signature title="walletdk-core.d.ts" code={defaultConfigSig} />
+Returns the canonical public endpoint preset for a network in one transport's
+flavor: REST gateway URLs for `'rest'` (the web transport), host:port gRPC
+addresses for `'grpc'` (native transports). This is the building block the
+transport packages' `defaultConfig` helpers compose over; app code normally
+calls [walletdk-web's](/reference/walletdk-web/#defaultConfig) or
+[walletdk-react-native's](/reference/walletdk-react-native/#defaultConfig)
+`defaultConfig` instead.
+
+Only the preset networks are accepted. `mainnet` and `regtest` have no
+preset: a `RuntimeConfig` for either is built by hand.
+
+<Signature title="walletdk-core.d.ts" code={networkDefaultsSig} />
 
 <ParamsTable rows={[
-  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Use signet for development and testing.' },
-  { name: 'overrides', type: 'Partial<RuntimeConfig>', desc: 'Optional. Fields that override the network preset’s defaults. Default: {}.' },
+  { name: 'network', type: 'PresetNetwork', desc: 'The Bitcoin network to look up; mainnet and regtest are excluded because they have no preset.' },
+  { name: 'transport', type: 'ServerTransport', desc: "The endpoint flavor the caller's transport dials: 'rest' or 'grpc'." },
 ]} />
 
-<Returns type="RuntimeConfig">
-A complete configuration object passed to `client.start()`.
+<Returns type="Partial<RuntimeConfig>">
+The preset config fields for that network and transport.
 </Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="DEBUG_LEVELS" kind="const">
+
+The daemon log verbosity levels accepted by `RuntimeConfig.debugLevel`, from
+most to least verbose. Exported for UIs that render a level picker;
+`debugLevel` itself stays a plain string because the daemon also accepts a
+per-subsystem list such as `'ROND=debug,info'`.
+
+<Signature title="walletdk-core.d.ts" code={debugLevelsSig} />
 
 </ApiSymbol>
 
 <ApiSymbol name="RuntimeConfig" kind="type">
 
 Configuration passed to `WalletDKClient.start()`. For the common case, start
-from `defaultConfig(network)` and override only the fields you need.
+from your transport package's `defaultConfig(network)` and override only the
+fields you need.
 
 <Signature title="walletdk-core.d.ts" code={runtimeConfigSig} />
 
@@ -96,52 +123,57 @@ from `defaultConfig(network)` and override only the fields you need.
 <ApiSymbol name="Network" kind="type">
 
 Selects the Bitcoin network the embedded daemon runs against.
+`PresetNetwork` narrows the union to the networks that carry a public
+endpoint preset (the domain of `networkDefaults` and the transports'
+`defaultConfig`). mainnet and regtest are excluded: mainnet has no public
+deployment yet, and regtest's local ports vary per development environment.
 
 <Signature title="walletdk-core.d.ts" code={networkSig} />
 
-`defaultConfig()` holds a canonical public gateway preset per network, so the
-common case needs no URLs looked up:
+The transport packages' `defaultConfig()` helpers draw from one canonical
+endpoint table per network, so the common case needs no URLs looked up.
+Toggle between the REST gateway URLs (web transport) and the gRPC host:port
+addresses (React Native transport):
 
 <FieldCards cards={[
   {
     title: 'signet',
     accent: 'teal',
     fields: [
-      { label: 'arkServerUrl', value: 'https://arkd-signet-rest.testnet.lightningcluster.com' },
+      { label: 'arkServerUrl', value: { rest: 'https://arkd-signet-rest.staging.lightningcluster.com', grpc: 'arkd-signet.staging.lightningcluster.com:443' } },
       { label: 'esploraUrl', value: 'https://mempool-signet.testnet.lightningcluster.com/api' },
-      { label: 'swapServerUrl', value: 'https://swapd-signet-rest.testnet.lightningcluster.com' },
+      { label: 'swapServerUrl', value: { rest: 'https://swapd-signet-rest.staging.lightningcluster.com', grpc: 'swapd-signet.staging.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'testnet',
     accent: 'sky',
     fields: [
-      { label: 'arkServerUrl', value: 'https://arkd-rest.testnet.lightningcluster.com' },
+      { label: 'arkServerUrl', value: { rest: 'https://arkd-rest.testnet.lightningcluster.com', grpc: 'arkd.testnet.lightningcluster.com:443' } },
       { label: 'esploraUrl', value: 'https://mempool.space/testnet/api' },
-      { label: 'swapServerUrl', value: 'https://swapd-rest.testnet.lightningcluster.com' },
+      { label: 'swapServerUrl', value: { rest: 'https://swapd-rest.testnet.lightningcluster.com', grpc: 'swapd.testnet.lightningcluster.com:443' } },
     ],
   },
   {
-    title: 'regtest',
+    title: 'testnet4',
     accent: 'lime',
     fields: [
-      { label: 'arkServerUrl', value: 'http://127.0.0.1:7071' },
-      { label: 'esploraUrl', value: 'http://127.0.0.1:8501' },
-      { label: 'swapServerUrl', value: 'http://127.0.0.1:10032' },
+      { label: 'arkServerUrl', value: { rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com', grpc: 'arkd-testnet4.testnet.lightningcluster.com:443' } },
+      { label: 'esploraUrl', value: 'https://mempool.space/testnet4/api' },
+      { label: 'swapServerUrl', value: { rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com', grpc: 'swapd-testnet4.testnet.lightningcluster.com:443' } },
     ],
-    tags: ['serverInsecure: true', 'swapServerInsecure: true'],
   },
   {
     title: 'mainnet',
-    empty: 'No public preset yet - supply arkServerUrl, esploraUrl, and swapServerUrl yourself.',
+    empty: 'No public preset - build the RuntimeConfig by hand with your own arkServerUrl, esploraUrl, swapServerUrl, and allowMainnet.',
   },
 ]} />
 
 <Callout type="caution" title="mainnet has no public preset">
-`defaultConfig('mainnet')` returns an empty preset (just `{ network: 'mainnet' }`).
-There is no canonical public gateway for mainnet yet, so you must supply your
-own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or `disableSwaps`) and
-pass `allowMainnet: true`, or `start()` will refuse to run.
+mainnet is not a `PresetNetwork`, so there is no `defaultConfig` for it. There
+is no canonical public gateway for mainnet yet, so build the `RuntimeConfig` by
+hand: supply your own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or
+`disableSwaps`) and pass `allowMainnet: true`, or `start()` will refuse to run.
 </Callout>
 
 </ApiSymbol>
@@ -222,7 +254,7 @@ initial [`WalletInfo`](#WalletInfo).
 <Signature title="walletdk-core.d.ts" code={startSig} />
 
 <ParamsTable rows={[
-  { name: 'config', type: 'RuntimeConfig', desc: 'The runtime configuration to start the daemon with. Build it with defaultConfig(network) plus any overrides.' },
+  { name: 'config', type: 'RuntimeConfig', desc: 'The runtime configuration to start the daemon with. Build it with your transport package\'s defaultConfig(network) plus any overrides.' },
 ]} />
 
 <Returns type="Promise<WalletInfo>">

@@ -1,7 +1,7 @@
 const { expect, test } = require("@playwright/test");
 
-const arkGatewayURL = "https://arkd-signet-rest.testnet.lightningcluster.com";
-const swapGatewayURL = "https://swapd-signet-rest.testnet.lightningcluster.com";
+const arkGatewayURL = "https://arkd-signet-rest.staging.lightningcluster.com";
+const swapGatewayURL = "https://swapd-signet-rest.staging.lightningcluster.com";
 const esploraURL = "https://mempool-signet.testnet.lightningcluster.com/api";
 
 test("walletdk demo starts with live signet defaults", async ({

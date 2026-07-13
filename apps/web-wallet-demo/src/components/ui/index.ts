@@ -3,6 +3,7 @@ export { Card } from "./Card";
 export { Label } from "./Label";
 export { GhostButton, PrimaryButton, TextLink } from "./Button";
 export { Field } from "./Field";
+export { Select } from "./Select";
 export { Toggle } from "./Toggle";
 export { CopyButton } from "./CopyButton";
 export { CopyRow } from "./CopyRow";
