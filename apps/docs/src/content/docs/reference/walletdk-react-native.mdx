@@ -9,6 +9,7 @@ import Signature from '~/components/mdx/Signature.astro';
 import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
+import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
 <Callout type="note" title="Pre-release">
 The React Native SDK is pre-release and not yet published to npm. The API
@@ -18,7 +19,7 @@ surface is stable; iOS passkey support is still experimental.
 `@lightninglabs/walletdk-react-native` is the React Native transport for
 WalletDK: the daemon compiled into the app binary via gomobile bindings,
 exposed as a standard [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient).
-`createNativeWalletEngine()` wraps that client in a
+[`createNativeWalletEngine()`](#createNativeWalletEngine) wraps that client in a
 [`WalletEngine`](/reference/walletdk-core/#WalletEngine) in one call, which is
 the entry point most apps want. It also ships the native (Android Credential
 Manager / iOS AuthenticationServices) passkey ceremony.
@@ -124,7 +125,7 @@ Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the Reac
 A live engine driving a freshly built native client. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) for its full behavior, including the background processes it runs automatically.
 </Returns>
 
-**`NativeWalletEngineOptions`**
+<ApiTypeLabel name="NativeWalletEngineOptions" />
 
 [`WalletEngineOptions`](/reference/walletdk-core/#createWalletEngine)'s config/autoStart union minus `client`, which this factory builds for you: the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
 

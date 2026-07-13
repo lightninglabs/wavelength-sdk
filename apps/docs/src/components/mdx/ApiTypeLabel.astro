@@ -1,0 +1,18 @@
+---
+interface Props {
+  name: string;
+}
+
+const { name } = Astro.props;
+---
+
+<p id={name} data-symbol class="wdk-api-type-label"><strong><code>{name}</code></strong></p>
+
+<style>
+  /* Inline types participate in the reference rail without becoming full
+     heavyweight ApiSymbol sections. The id is the deep-link target and the
+     data-symbol marker lets ReferenceLayout scroll-spy and list it. */
+  .wdk-api-type-label {
+    scroll-margin-top: calc(var(--header-height, 56px) + 24px);
+  }
+</style>

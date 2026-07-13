@@ -9,6 +9,7 @@ import Signature from '~/components/mdx/Signature.astro';
 import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
+import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
 `@lightninglabs/walletdk-web` is the browser/wasm transport for WalletDK: it
 runs the embedded daemon as WebAssembly, either in a dedicated Web Worker (the
@@ -151,7 +152,7 @@ The per-network endpoint values are on the
 
 Creates and returns a `WalletDKClient` that runs the embedded daemon in the
 browser. Call once at application startup, then wrap it with
-`createWalletEngine` from `@lightninglabs/walletdk-core` (or use
+[`createWalletEngine`](/reference/walletdk-core/#createWalletEngine) from `@lightninglabs/walletdk-core` (or use
 [`createWebWalletEngine`](#creating-an-engine) below to do both in one call)
 or call `start(defaultConfig(network))` directly. Defaults to the Web Worker
 transport ([`WorkerWalletDKClient`](#transports)); pass `runtimeThread:
@@ -213,7 +214,7 @@ Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the brow
 A live engine driving a freshly built web client. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) for its full behavior, including the background processes it runs automatically.
 </Returns>
 
-**`WebWalletEngineOptions`**
+<ApiTypeLabel name="WebWalletEngineOptions" />
 
 The browser-specific settings from `WebClientOptions` combined with [`WalletEngineOptions`](/reference/walletdk-core/#createWalletEngine)'s config/autoStart union (minus `client`, which this factory builds for you): the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
 

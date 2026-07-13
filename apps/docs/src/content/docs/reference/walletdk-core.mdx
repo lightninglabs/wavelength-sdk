@@ -10,9 +10,10 @@ import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 import FieldCards from '~/components/mdx/FieldCards.astro';
+import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
 `@lightninglabs/walletdk-core` is the framework-agnostic contract every
-WalletDK transport implements: a typed `WalletDKClient` interface, the
+WalletDK transport implements: a typed [`WalletDKClient`](#WalletDKClient) interface, the
 [`WalletEngine`](#WalletEngine) orchestrator built on top of it, the request
 and result shapes its methods take and return, and the shared error and event
 model. It has no browser or React dependency: [`walletdk-web`](/reference/walletdk-web/)
@@ -55,9 +56,23 @@ export const runtimeConfigSig = `type RuntimeConfig = {
   debugLevel?: string;
 };`;
 
-export const networkSig = `type Network = 'mainnet' | 'testnet' | 'testnet4' | 'signet' | 'regtest';
-
-type PresetNetwork = 'testnet' | 'testnet4' | 'signet';`;
+export const networkSig = `type Network = 'mainnet' | 'testnet' | 'testnet4' | 'signet' | 'regtest';`;
+export const serverTransportSig = `type ServerTransport = 'rest' | 'grpc';`;
+export const mobileConfigSig = `type MobileConfig = {
+  data_dir?: string;
+  network?: string;
+  allow_mainnet?: boolean;
+  debug_level?: string;
+  wallet_type?: string;
+  wallet_esplora_url?: string;
+  server_address?: string;
+  server_transport?: ServerTransport;
+  server_insecure?: boolean;
+  swap_server_address?: string;
+  swap_server_transport?: ServerTransport;
+  swap_server_insecure?: boolean;
+  swap_database_file_name?: string;
+};`;
 
 <ApiSymbol name="networkDefaults" kind="function">
 
@@ -175,6 +190,25 @@ is no canonical public gateway for mainnet yet, so build the `RuntimeConfig` by
 hand: supply your own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or
 `disableSwaps`) and pass `allowMainnet: true`, or `start()` will refuse to run.
 </Callout>
+
+</ApiSymbol>
+
+<ApiSymbol name="ServerTransport" kind="type">
+
+The wire protocol used by a transport to connect to the Ark and swap servers.
+Browser transports use `rest`; native transports use `grpc`.
+
+<Signature title="walletdk-core.d.ts" code={serverTransportSig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="MobileConfig" kind="type">
+
+The flat configuration shape passed to the embedded mobile facade. Application
+code normally supplies [`RuntimeConfig`](#RuntimeConfig) instead; this type is
+useful when implementing or debugging a transport.
+
+<Signature title="walletdk-core.d.ts" code={mobileConfigSig} />
 
 </ApiSymbol>
 
@@ -300,6 +334,8 @@ Nothing; the client is torn down synchronously.
 export const walletEngineOptionsSig = `type WalletEngineOptions =
   | { client: WalletDKClient; config: RuntimeConfig; autoStart: true }
   | { client: WalletDKClient; config?: RuntimeConfig; autoStart?: false };`;
+export const distributiveOmitSig = `type DistributiveOmit<T, K extends PropertyKey> =
+  T extends unknown ? Omit<T, K> : never;`;
 
 export const createWalletEngineSig = `function createWalletEngine(options: WalletEngineOptions): WalletEngine`;
 
@@ -344,7 +380,7 @@ Creates a `WalletEngine` over any transport client.
 A live engine. It calls `client.ready()` immediately; `getSnapshot().phase` moves from `'loading'` to `'runtimeReady'` once that resolves (and, when `autoStart` is set, `start()` follows automatically).
 </Returns>
 
-**`WalletEngineOptions`**
+<ApiTypeLabel name="WalletEngineOptions" />
 
 A discriminated union: the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
 
@@ -355,6 +391,14 @@ A discriminated union: the types require a config when autoStart is enabled, so 
   { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by start() when called with no argument.' },
   { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config; start() still throws if later called with no argument and no config.' },
 ]} />
+
+<ApiTypeLabel name="DistributiveOmit" />
+
+An advanced utility type used to omit a property from each member of a
+discriminated union independently. It is exported for transport and binding
+implementers; application code rarely needs it directly.
+
+<Signature title="walletdk-core.d.ts" code={distributiveOmitSig} />
 
 </ApiSymbol>
 
@@ -519,7 +563,7 @@ The generated (or imported) mnemonic, the daemon identity, and recovery
 counters.
 </Returns>
 
-**`CreateWalletRequest`**
+<ApiTypeLabel name="CreateWalletRequest" />
 
 <Signature title="walletdk-core.d.ts" code={createWalletRequestSig} />
 
@@ -531,7 +575,7 @@ counters.
   { name: 'recoveryWindow', type: 'number', desc: 'Optional. The per-key-family address look-ahead used during recovery. Only meaningful when recoverState is true; omit to let the daemon resolve its own default.' },
 ]} />
 
-**`CreateWalletResult`**
+<ApiTypeLabel name="CreateWalletResult" />
 
 <Signature title="walletdk-core.d.ts" code={createWalletResultSig} />
 
@@ -563,7 +607,7 @@ Unlocks an existing wallet with the given password.
 The daemon identity after unlock.
 </Returns>
 
-**`UnlockWalletRequest`**
+<ApiTypeLabel name="UnlockWalletRequest" />
 
 <Signature title="walletdk-core.d.ts" code={unlockWalletRequestSig} />
 
@@ -571,7 +615,7 @@ The daemon identity after unlock.
   { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
 ]} />
 
-**`UnlockWalletResult`**
+<ApiTypeLabel name="UnlockWalletResult" />
 
 <Signature title="walletdk-core.d.ts" code={unlockWalletResultSig} />
 
@@ -598,7 +642,7 @@ Whether a wallet was freshly created from the derived seed, plus the mnemonic
 (on import only) and the daemon identity.
 </Returns>
 
-**`OpenWalletFromPasskeyRequest`**
+<ApiTypeLabel name="OpenWalletFromPasskeyRequest" />
 
 <Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyRequestSig} />
 
@@ -606,7 +650,7 @@ Whether a wallet was freshly created from the derived seed, plus the mnemonic
   { name: 'prfOutput', type: 'string', desc: 'The PRF output (hex) derived from the passkey ceremony. See PasskeyAssertion.' },
 ]} />
 
-**`OpenWalletFromPasskeyResult`**
+<ApiTypeLabel name="OpenWalletFromPasskeyResult" />
 
 <Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyResultSig} />
 
@@ -781,7 +825,7 @@ Generates an on-chain deposit (boarding) address.
 The boarding address and its initial [`Entry`](#Entry) in the activity feed.
 </Returns>
 
-**`DepositRequest`**
+<ApiTypeLabel name="DepositRequest" />
 
 <Signature title="walletdk-core.d.ts" code={depositRequestSig} />
 
@@ -789,7 +833,7 @@ The boarding address and its initial [`Entry`](#Entry) in the activity feed.
   { name: 'amountSatHint', type: 'number', desc: 'Optional. A hint for the amount (in sats) the caller intends to deposit.' },
 ]} />
 
-**`DepositResult`**
+<ApiTypeLabel name="DepositResult" />
 
 <Signature title="walletdk-core.d.ts" code={depositResultSig} />
 
@@ -814,7 +858,7 @@ Generates a receive invoice for the requested amount.
 The invoice and its initial [`Entry`](#Entry) in the activity feed.
 </Returns>
 
-**`ReceiveRequest`**
+<ApiTypeLabel name="ReceiveRequest" />
 
 <Signature title="walletdk-core.d.ts" code={receiveRequestSig} />
 
@@ -823,7 +867,7 @@ The invoice and its initial [`Entry`](#Entry) in the activity feed.
   { name: 'memo', type: 'string', desc: 'Optional. A memo attached to the invoice.' },
 ]} />
 
-**`ReceiveResult`**
+<ApiTypeLabel name="ReceiveResult" />
 
 <Signature title="walletdk-core.d.ts" code={receiveResultSig} />
 
@@ -1115,6 +1159,33 @@ export const activityListSig = `type ActivityList = {
   hasMore: boolean;
   nextCursor: string;
 };`;
+export const vtxoInventorySig = `type VTXOInventory = {
+  vtxos: WalletVTXO[];
+  total: number;
+};`;
+export const walletVtxoSig = `type WalletVTXO = {
+  outpoint: string;
+  amountSat: number;
+  status: string;
+  batchExpiry: number;
+  relativeExpiry: number;
+  commitmentTxid: string;
+};`;
+export const onchainHistorySig = `type OnchainHistory = {
+  txs: OnchainTx[];
+  total: number;
+  hasMore: boolean;
+};`;
+export const onchainTxSig = `type OnchainTx = {
+  txid: string;
+  kind: string;
+  amountSat: number;
+  feeSat: number;
+  status: string;
+  confirmationHeight: number;
+  createdAt: string;
+  description: string;
+};`;
 
 export const subscribeSig = `subscribe(listener: WalletDKListener): () => void`;
 export const walletDKListenerSig = `type WalletDKListener = (event: WalletDKEvent) => void;`;
@@ -1190,7 +1261,7 @@ Lists wallet activity or UTXOs per the request.
 A tagged union with only the field matching the requested view populated.
 </Returns>
 
-**`ListRequest`**
+<ApiTypeLabel name="ListRequest" />
 
 <Signature title="walletdk-core.d.ts" code={listRequestSig} />
 
@@ -1202,7 +1273,7 @@ A tagged union with only the field matching the requested view populated.
   { name: 'cursor', type: 'string', desc: "Optional. The opaque pagination token for the activity view. Empty starts from the newest entry; otherwise pass the nextCursor from the previous ActivityList page. Ignored by the vtxos and onchain views." },
 ]} />
 
-**`ListResult`**
+<ApiTypeLabel name="ListResult" />
 
 A tagged union on `view`: exactly one of `activity`, `vtxos`, or `onchain` is
 populated, matching the requested (or default) view. Switch on `view` to read
@@ -1217,7 +1288,7 @@ the right field.
   { name: 'onchain', type: 'OnchainHistory', desc: "Populated when view === 'onchain'." },
 ]} />
 
-**`ListView`**
+<ApiTypeLabel name="ListView" />
 
 <Signature title="walletdk-core.d.ts" code={listViewSig} />
 
@@ -1227,7 +1298,7 @@ the right field.
 | `vtxos` | The live VTXO inventory. |
 | `onchain` | The on-chain transaction history (boarding, sweeps, leave outputs). |
 
-**`ActivityList`**
+<ApiTypeLabel name="ActivityList" />
 
 <Signature title="walletdk-core.d.ts" code={activityListSig} />
 
@@ -1237,6 +1308,49 @@ the right field.
   { name: 'hasMore', type: 'boolean', desc: 'Whether more entries exist after this page.' },
   { name: 'nextCursor', type: 'string', desc: 'The token to pass as ListRequest.cursor to fetch the next page. Empty when hasMore is false.' },
 ]} />
+
+<ApiSymbol name="VTXOInventory" kind="type">
+
+The paginated inventory returned for the `vtxos` list view.
+
+<Signature title="walletdk-core.d.ts" code={vtxoInventorySig} />
+
+<ParamsTable rows={[
+  { name: 'vtxos', type: 'WalletVTXO[]', desc: 'The VTXOs on the current page.' },
+  { name: 'total', type: 'number', desc: 'The total number of matching VTXOs.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletVTXO" kind="type">
+
+One spendable or spent VTXO in a wallet inventory.
+
+<Signature title="walletdk-core.d.ts" code={walletVtxoSig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="OnchainHistory" kind="type">
+
+The paginated history returned for the `onchain` list view.
+
+<Signature title="walletdk-core.d.ts" code={onchainHistorySig} />
+
+<ParamsTable rows={[
+  { name: 'txs', type: 'OnchainTx[]', desc: 'The on-chain transactions on the current page.' },
+  { name: 'total', type: 'number', desc: 'The total number of matching transactions.' },
+  { name: 'hasMore', type: 'boolean', desc: 'Whether another page is available.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="OnchainTx" kind="type">
+
+One transaction in the on-chain history returned by the daemon.
+
+<Signature title="walletdk-core.d.ts" code={onchainTxSig} />
+
+</ApiSymbol>
 
 </ApiSymbol>
 
@@ -1553,7 +1667,7 @@ destination.
 The outcome, discriminated by `path`.
 </Returns>
 
-**`ExitRequest`**
+<ApiTypeLabel name="ExitRequest" />
 
 When `destination` is set, the SDK first attempts a cooperative leave with
 the leave output bound for that on-chain address; unilateral unroll is
@@ -1567,7 +1681,7 @@ is not exposed as a plain SDK field.
   { name: 'destination', type: 'string', desc: 'Optional. An on-chain address that receives the leave output when the cooperative path succeeds. Empty asks the daemon to generate a fresh backing-wallet destination internally.' },
 ]} />
 
-**`ExitResult`**
+<ApiTypeLabel name="ExitResult" />
 
 A tagged union over the three exit paths. Read `path` first and only inspect
 the variant fields associated with that path; the remaining fields are
@@ -1584,7 +1698,7 @@ zero-valued.
   { name: 'cooperativeError', type: 'string', desc: 'Retained for source compatibility with a prior SDK fallback shape; current daemon behavior returns cooperative failures directly rather than populating this.' },
 ]} />
 
-**`ExitPath`**
+<ApiTypeLabel name="ExitPath" />
 
 <Signature title="walletdk-core.d.ts" code={exitPathSig} />
 
@@ -1610,7 +1724,7 @@ Queries the status of an exit.
 Whether a job exists for the outpoint, and its current status.
 </Returns>
 
-**`ExitStatusRequest`**
+<ApiTypeLabel name="ExitStatusRequest" />
 
 <Signature title="walletdk-core.d.ts" code={exitStatusRequestSig} />
 
@@ -1618,7 +1732,7 @@ Whether a job exists for the outpoint, and its current status.
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint whose exit status is queried.' },
 ]} />
 
-**`ExitStatusResult`**
+<ApiTypeLabel name="ExitStatusResult" />
 
 `found` is false when no job exists for the requested outpoint; that is not
 an error condition.
@@ -1632,7 +1746,7 @@ an error condition.
   { name: 'lastError', type: 'string', desc: 'The last error the job recorded, if any.' },
 ]} />
 
-**`ExitJobStatus`**
+<ApiTypeLabel name="ExitJobStatus" />
 
 Collapses the underlying unroll job phases to a short wallet-facing string
 set.
@@ -1666,7 +1780,7 @@ for a set of VTXO outpoints, without moving funds.
 Per-outpoint funding plans plus aggregate totals.
 </Returns>
 
-**`GetExitPlanRequest`**
+<ApiTypeLabel name="GetExitPlanRequest" />
 
 <Signature title="walletdk-core.d.ts" code={getExitPlanRequestSig} />
 
@@ -1675,7 +1789,7 @@ Per-outpoint funding plans plus aggregate totals.
   { name: 'confTarget', type: 'number', desc: 'Optional. A confirmation target (in blocks) used to estimate fees.' },
 ]} />
 
-**`GetExitPlanResult`**
+<ApiTypeLabel name="GetExitPlanResult" />
 
 Describes the combined backing-wallet funding plan for every previewed
 outpoint plus aggregate totals.
@@ -1690,7 +1804,7 @@ outpoint plus aggregate totals.
   { name: 'totalRecommendedFundingSat', type: 'number', desc: 'The combined recommended backing-wallet funding across all outpoints.' },
 ]} />
 
-**`ExitPlanEntry`**
+<ApiTypeLabel name="ExitPlanEntry" />
 
 Describes how to fund the backing wallet before `exit()` for a single
 previewed VTXO outpoint.
@@ -1731,7 +1845,7 @@ Previews or broadcasts a sweep of the backing wallet. Call it with
 The selected inputs, fees, and (on broadcast) the resulting txid.
 </Returns>
 
-**`SweepWalletRequest`**
+<ApiTypeLabel name="SweepWalletRequest" />
 
 <Signature title="walletdk-core.d.ts" code={sweepWalletRequestSig} />
 
@@ -1742,7 +1856,7 @@ The selected inputs, fees, and (on broadcast) the resulting txid.
   { name: 'confTarget', type: 'number', desc: 'Optional. A confirmation target (in blocks) used to estimate fees.' },
 ]} />
 
-**`SweepWalletResult`**
+<ApiTypeLabel name="SweepWalletResult" />
 
 <Signature title="walletdk-core.d.ts" code={sweepWalletResultSig} />
 
@@ -1757,7 +1871,7 @@ The selected inputs, fees, and (on broadcast) the resulting txid.
   { name: 'failureReason', type: 'string', desc: 'A human-readable reason the sweep cannot broadcast, when canBroadcast is false.' },
 ]} />
 
-**`WalletSweepInput`**
+<ApiTypeLabel name="WalletSweepInput" />
 
 Describes one backing-wallet UTXO selected by `sweepWallet()`.
 
@@ -1846,6 +1960,7 @@ export const runtimePhaseSig = `type RuntimePhase =
   | 'stopping'
   | 'stopped'
   | 'error';`;
+export const walletPhaseSig = `type WalletPhase = 'needsWallet' | 'locked' | 'syncing' | 'ready';`;
 
 export const phaseFromInfoSig = `function phaseFromInfo(info: {
   walletState?: WalletState;
@@ -1902,6 +2017,16 @@ the server-assisted recovery scan is additionally tracked through
 | `stopping` | Host | `stop()` has been called and has not yet resolved. |
 | `stopped` | Host | The daemon has stopped. |
 | `error` | Host | The host encountered an unrecoverable error starting or running the client. |
+
+</ApiSymbol>
+
+<ApiSymbol name="WalletPhase" kind="type">
+
+The subset of lifecycle phases derived from wallet information by
+[`phaseFromInfo()`](#phaseFromInfo). Runtime-owned phases such as `starting`
+and `stopped` are represented by `RuntimePhase`, not this type.
+
+<Signature title="walletdk-core.d.ts" code={walletPhaseSig} />
 
 </ApiSymbol>
 
@@ -1975,6 +2100,7 @@ export const walletDKEventSig = `type WalletDKEvent =
   | { type: 'runtimeReady' }
   | { type: 'runtimeStopped' }
   | { type: 'activity'; payload: Entry }
+  | { type: 'activityStream'; payload: ActivityStreamPayload }
   | { type: 'log'; payload: WalletDKLogPayload };`;
 
 export const walletDKEventTypeSig = `type WalletDKEventType = WalletDKEvent['type'];`;
@@ -1985,6 +2111,10 @@ export const walletDKLogPayloadSig = `type WalletDKLogPayload = {
 };`;
 
 export const walletDKLogLevelSig = `type WalletDKLogLevel = 'debug' | 'info' | 'warn' | 'error';`;
+export const activityStreamStateSig = `type ActivityStreamState = 'ended' | 'failed';`;
+export const activityStreamPayloadSig = `type ActivityStreamPayload =
+  | { state: 'ended' }
+  | { state: 'failed'; message: string };`;
 
 <ApiSymbol name="WalletDKEvent" kind="type">
 
@@ -2000,7 +2130,26 @@ events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
 | `runtimeReady` | (none) | The runtime finished loading. |
 | `runtimeStopped` | (none) | The daemon stopped, including an unsolicited stop from a worker crash. |
 | `activity` | `Entry` | An activity entry changed; delivered while `startActivity()` is active. |
+| `activityStream` | `ActivityStreamPayload` | The activity stream ended or failed without a consumer-initiated close. |
 | `log` | `WalletDKLogPayload` | A daemon log line. |
+
+</ApiSymbol>
+
+<ApiSymbol name="ActivityStreamState" kind="type">
+
+Whether an activity stream ended normally or failed unexpectedly. A
+consumer-initiated close emits no stream-status event.
+
+<Signature title="walletdk-core.d.ts" code={activityStreamStateSig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="ActivityStreamPayload" kind="type">
+
+The payload carried by an `activityStream` event. Narrow on `state` to access
+the failure message.
+
+<Signature title="walletdk-core.d.ts" code={activityStreamPayloadSig} />
 
 </ApiSymbol>
 
