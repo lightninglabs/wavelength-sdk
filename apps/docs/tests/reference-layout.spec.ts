@@ -57,6 +57,78 @@ test('exactly one symbol link is .is-active on load', async ({ page }) => {
   await expect(page.locator('[data-symbol-list] a.is-active')).toHaveCount(1);
 });
 
+test('reference type badges link to their documented API symbols', async ({ page }) => {
+  await page.goto('/reference/walletdk-core/');
+
+  const factory = page.locator('[data-symbol]#createWalletEngine');
+  await expect(factory.locator('.param-type-link').first()).toHaveAttribute(
+    'href',
+    '/reference/walletdk-core/#WalletEngineOptions',
+  );
+  await expect(factory.locator('.wdk-returns__type-link')).toHaveAttribute(
+    'href',
+    '/reference/walletdk-core/#WalletEngine',
+  );
+
+  // Literal and compound labels stay plain code rather than becoming noisy
+  // links with an imprecise destination.
+  await expect(factory.locator('.param-type-link')).toHaveCount(3);
+  await expect(
+    factory.locator('.param-type').filter({ hasText: 'true | false' }).locator('.param-type-link'),
+  ).toHaveCount(0);
+});
+
+test('authored reference links use the same visible prose treatment', async ({ page }) => {
+  await page.goto('/reference/walletdk-react-native/');
+
+  const link = page.locator('.wdk-ref__content a[href*="WalletDKClient"]').first();
+  await expect(link).toBeVisible();
+  await expect(link).toHaveCSS('border-bottom-style', 'none');
+  await expect(link).toHaveCSS('text-decoration-line', 'none');
+});
+
+test('inline result types have exact deep-link anchors', async ({ page }) => {
+  await page.goto('/reference/walletdk-core/');
+
+  for (const name of ['DepositResult', 'ExitResult', 'ExitStatusResult', 'WalletEngineOptions']) {
+    await expect(page.locator(`#${name}`)).toBeVisible();
+    await expect(page.locator(`[data-symbol]#${name}`)).toBeVisible();
+    await expect(page.locator(`[data-symbol-list] a[href="#${name}"]`)).toBeVisible();
+  }
+});
+
+test('inline type rail links navigate to the requested definition', async ({ page }) => {
+  await page.goto('/reference/walletdk-core/#DepositResult');
+  await expect(page).toHaveURL(/\/reference\/walletdk-core\/#DepositResult$/);
+  await expect(page.locator('[data-symbol]#DepositResult')).toBeVisible();
+  await expect(page.locator('[data-symbol-list] a[href="#DepositResult"]')).toHaveClass(/is-active/);
+  await expect.poll(async () => page.locator('#DepositResult').evaluate((el) => el.getBoundingClientRect().top)).toBeLessThan(140);
+});
+
+test('in-page hash changes realign the requested inline type', async ({ page }) => {
+  await page.goto('/reference/walletdk-core/');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => { window.location.hash = 'DepositResult'; });
+  await expect.poll(async () => page.locator('#DepositResult').evaluate((el) => el.getBoundingClientRect().top)).toBeLessThan(140);
+  await expect(page.locator('[data-symbol-list] a[href="#DepositResult"]')).toHaveClass(/is-active/);
+});
+
+test('public nested and lifecycle types have reference sections', async ({ page }) => {
+  await page.goto('/reference/walletdk-core/');
+
+  for (const name of [
+    'ActivityStreamPayload',
+    'ActivityStreamState',
+    'WalletPhase',
+    'ServerTransport',
+    'MobileConfig',
+    'VTXOInventory',
+    'OnchainHistory',
+  ]) {
+    await expect(page.locator(`#${name}`)).toBeVisible();
+  }
+});
+
 // Smoke checks for the sibling reference pages.
 
 test('walletdk-web reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
@@ -94,8 +166,8 @@ test('walletdk-react-native reference page renders symbol sections, rail, and te
 test('reference signature code block renders an Expressive Code frame with a visible filename header', async ({ page }) => {
   await page.goto('/reference/walletdk-core/');
 
-  // The first symbol on the page is defaultConfig; its Signature block is
-  // titled "walletdk-core.d.ts" so the frame's tab bar shows that filename.
+  // The first reference symbol's Signature block is titled
+  // "walletdk-core.d.ts", so the frame's tab bar shows that filename.
   const tabBar = page.locator('.expressive-code .frame:not(.is-terminal) .title').first();
   await expect(tabBar).toBeVisible();
   await expect(tabBar).toHaveText('walletdk-core.d.ts');
