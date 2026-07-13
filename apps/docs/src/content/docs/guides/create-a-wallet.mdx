@@ -49,23 +49,24 @@ native runtime binaries before your first build.
 
 ## Add the provider
 
-Build a `WalletEngine` outside your component tree and wrap your app in
-`WalletDKProvider` so every component below it can reach the wallet through
+Build a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) outside your component tree and wrap your app in
+[`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider) so every component below it can reach the wallet through
 hooks. Pass `config` and `autoStart: true` so the engine boots the embedded
 daemon on its own as soon as the runtime is ready; no boot effect needed.
 
-Start with `defaultConfig('signet')`. Move to a hand-built mainnet config
+Start with [`defaultConfig('signet')`](/reference/walletdk-web/#defaultConfig). Move to a hand-built mainnet config
 (with `allowMainnet: true`) only once you have key backup and recovery in
 place.
 
 <PlatformTabs>
 <div data-label="Web">
 
-`createWebWalletEngine()` builds the engine for the browser transport:
+[`createWebWalletEngine()`](/reference/walletdk-web/#createWebWalletEngine) builds the engine for the browser transport:
 
 ```tsx title="App.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/walletdk-web';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: '/walletdk/',
@@ -85,11 +86,12 @@ export function App() {
 </div>
 <div data-label="React Native">
 
-`createNativeWalletEngine()` builds the engine for the native transport:
+[`createNativeWalletEngine()`](/reference/walletdk-react-native/#createNativeWalletEngine) builds the engine for the native transport:
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
 import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/walletdk-react-native';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -110,13 +112,13 @@ export function App() {
 
 The engine itself owns starting the runtime, so `App` needs no start effect.
 If you would rather call `start()` yourself (for example to prompt the user
-first), omit `autoStart` and drive it from `useWallet()`; see
+first), omit `autoStart` and drive it from [`useWallet()`](/reference/walletdk-react/#useWallet); see
 [Handle phases & errors](/guides/handle-phases-and-errors/).
 
 ## Create the wallet
 
-Call `useWalletCreate()` inside the provider to create a wallet. When `phase`
-from `useWallet()` is `'needsWallet'`, no wallet exists yet.
+Call [`useWalletCreate()`](/reference/walletdk-react/#useWalletCreate) inside the provider to create a wallet. When `phase`
+from [`useWallet()`](/reference/walletdk-react/#useWallet) is `'needsWallet'`, no wallet exists yet.
 
 `create({ password })` generates a fresh HD seed, encrypts it with the
 password, and stores it locally. The password is whatever you pass in; the
