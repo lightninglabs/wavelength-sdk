@@ -229,7 +229,6 @@ export const CLI_NAV: NavGroup[] = [
     items: [
       { slug: 'cli/ark', label: 'ark', section: 'cli-advanced' },
       { slug: 'cli/recovery', label: 'recovery', section: 'cli-advanced' },
-      { slug: 'cli/swap', label: 'swap', section: 'cli-advanced' },
       { slug: 'cli/dev', label: 'dev', section: 'cli-advanced' },
     ],
   },
