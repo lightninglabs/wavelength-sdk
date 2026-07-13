@@ -135,7 +135,21 @@ export type ExitRequest = {
 export type ExitStatusRequest = {
   /** The VTXO outpoint whose exit status is queried. */
   outpoint: string;
+  /**
+   * Request recovery-tree progress, a CSV maturity countdown, a fee breakdown,
+   * and a best-case block countdown. It costs one live actor round-trip plus a
+   * fee estimate, so leave it unset or false (both give the coarse, cheaper
+   * phase-only status). Omitting it defaults to false; the darepocli `exit
+   * status` command defaults to true instead.
+   */
+  detailed?: boolean;
 };
+
+/**
+ * Parameters for summarizing all in-progress exits. Takes no arguments; the
+ * daemon reports the wallet-wide portfolio.
+ */
+export type ExitSummaryRequest = Record<string, never>;
 
 /**
  * Previews unilateral-exit readiness for a set of VTXO outpoints (funding the

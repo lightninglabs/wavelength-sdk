@@ -39,10 +39,28 @@ export type {
 } from './generated.ts';
 
 /**
- * Plan- and sweep-input types re-exported verbatim from the generated daemon
- * facade types.
+ * Detailed exit-status sub-shapes re-exported verbatim from the generated
+ * daemon facade types. They populate {@link ExitStatusResult} when its request
+ * sets `detailed`.
  */
-export type { ExitPlanEntry, WalletSweepInput } from './generated.ts';
+export type { ExitProgress, ExitCSV, ExitFees } from './generated.ts';
+
+/**
+ * Exit portfolio types re-exported verbatim from the generated daemon facade
+ * types: the wallet-wide summary and its per-exit entry.
+ */
+export type { ExitSummaryResult, ExitSummaryEntry } from './generated.ts';
+
+/**
+ * Plan- and sweep-input types re-exported verbatim from the generated daemon
+ * facade types. `ExitInfeasibilityReason` explains why an {@link ExitPlanEntry}
+ * cannot start.
+ */
+export type {
+  ExitPlanEntry,
+  ExitInfeasibilityReason,
+  WalletSweepInput,
+} from './generated.ts';
 
 /**
  * Activity and entry types re-exported verbatim from the generated daemon facade

@@ -17,6 +17,8 @@ import type {
   ExitResult,
   ExitStatusRequest,
   ExitStatusResult,
+  ExitSummaryRequest,
+  ExitSummaryResult,
   GetExitPlanRequest,
   GetExitPlanResult,
   ListRequest,
@@ -229,6 +231,10 @@ export class FakeWalletDKClient implements WalletDKClient {
 
   exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult> {
     return this.run('exitStatus', [req], () => ({}) as ExitStatusResult);
+  }
+
+  exitSummary(req: ExitSummaryRequest = {}): Promise<ExitSummaryResult> {
+    return this.run('exitSummary', [req], () => ({}) as ExitSummaryResult);
   }
 
   getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult> {

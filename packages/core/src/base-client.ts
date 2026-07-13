@@ -3,6 +3,7 @@ import type {
   DepositRequest,
   ExitRequest,
   ExitStatusRequest,
+  ExitSummaryRequest,
   GetExitPlanRequest,
   ListRequest,
   OpenWalletFromPasskeyRequest,
@@ -17,6 +18,7 @@ import type {
   DepositResult,
   ExitResult,
   ExitStatusResult,
+  ExitSummaryResult,
   GetExitPlanResult,
   ListResult,
   OpenWalletFromPasskeyResult,
@@ -150,6 +152,10 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
 
   exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult> {
     return this.callRaw<ExitStatusResult>('exitStatus', req);
+  }
+
+  exitSummary(req: ExitSummaryRequest = {}): Promise<ExitSummaryResult> {
+    return this.callRaw<ExitSummaryResult>('exitSummary', req);
   }
 
   getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult> {
