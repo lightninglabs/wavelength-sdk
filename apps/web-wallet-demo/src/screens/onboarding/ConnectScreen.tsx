@@ -83,20 +83,20 @@ export function ConnectScreen({
             <div className="space-y-4 border-t border-border px-4 pb-4 pt-4">
               <Field
                 label="Ark gateway URL"
-                value={form.arkServerUrl}
-                onChange={(v) => onField("arkServerUrl", v)}
+                value={form.arkServerAddress}
+                onChange={(v) => onField("arkServerAddress", v)}
                 mono
               />
               <Field
                 label="Wallet Esplora URL"
-                value={form.esploraUrl}
-                onChange={(v) => onField("esploraUrl", v)}
+                value={form.walletEsploraUrl}
+                onChange={(v) => onField("walletEsploraUrl", v)}
                 mono
               />
               <Field
                 label="Swap server gateway URL"
-                value={form.swapServerUrl}
-                onChange={(v) => onField("swapServerUrl", v)}
+                value={form.swapServerAddress}
+                onChange={(v) => onField("swapServerAddress", v)}
                 mono
               />
               <div className="grid grid-cols-2 gap-3">
@@ -116,14 +116,16 @@ export function ConnectScreen({
               <Select
                 label="Debug level"
                 value={form.debugLevel}
-                onChange={(v) => onField("debugLevel", v)}
+                onChange={(v) =>
+                  onField("debugLevel", v as RuntimeForm["debugLevel"])
+                }
                 options={DEBUG_LEVELS}
               />
               <ToggleRow
                 title="Allow insecure transport"
                 subtitle="Permit non-TLS Ark gateway connections"
-                on={form.serverInsecure}
-                onChange={(v) => onField("serverInsecure", v)}
+                on={form.arkServerInsecure}
+                onChange={(v) => onField("arkServerInsecure", v)}
               />
               <ToggleRow
                 title="Allow insecure swap transport"

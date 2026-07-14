@@ -1,18 +1,29 @@
 import { defaultConfig } from "@lightninglabs/wavelength-web";
-import { RuntimeConfig } from "@lightninglabs/wavelength-react";
+import type { DebugLevel } from "@lightninglabs/wavelength-react";
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
 // excluded - this build targets test networks only.
 export const NETWORKS = ["signet", "testnet", "testnet4", "regtest"] as const;
 
-// RuntimeNetwork is the demo's selectable network union. RuntimeConfig.network is
-// a plain string, so RuntimeForm narrows it for controlled network pickers.
+// RuntimeNetwork is the demo's selectable network union. RuntimeConfig.network
+// is optional and includes 'mainnet', so RuntimeForm narrows it to this
+// required, test-only union for controlled pickers.
 export type RuntimeNetwork = (typeof NETWORKS)[number];
 
 // RuntimeForm is the fully-populated runtime config the connect/settings forms
 // edit (every field required so inputs are always controlled).
-export type RuntimeForm = Omit<Required<RuntimeConfig>, "network"> & {
+export type RuntimeForm = {
   network: RuntimeNetwork;
+  dataDir: string;
+  allowMainnet: boolean;
+  arkServerAddress: string;
+  walletEsploraUrl: string;
+  swapServerAddress: string;
+  swapDatabaseFileName: string;
+  arkServerInsecure: boolean;
+  swapServerInsecure: boolean;
+  disableSwaps: boolean;
+  debugLevel: DebugLevel;
 };
 
 // RuntimeFieldSetter updates a single field of the runtime form, preserving the
@@ -28,10 +39,10 @@ const demoFieldDefaults = {
   dataDir: "/wavelength-demo",
   allowMainnet: false,
   swapDatabaseFileName: "/wavelength-swaps.db",
-  serverInsecure: false,
+  arkServerInsecure: false,
   swapServerInsecure: false,
   disableSwaps: false,
-  debugLevel: "info",
+  debugLevel: "info" as DebugLevel,
 };
 
 // hostedDefaults builds the form for a hosted test network from the SDK's own
@@ -44,9 +55,9 @@ function hostedDefaults(
   return {
     ...demoFieldDefaults,
     network,
-    arkServerUrl: preset.arkServerUrl ?? "",
-    esploraUrl: preset.esploraUrl ?? "",
-    swapServerUrl: preset.swapServerUrl ?? "",
+    arkServerAddress: preset.arkServerAddress ?? "",
+    walletEsploraUrl: preset.walletEsploraUrl ?? "",
+    swapServerAddress: preset.swapServerAddress ?? "",
   };
 }
 
@@ -67,10 +78,10 @@ export const testnet4Defaults: RuntimeForm = hostedDefaults("testnet4");
 export const regtestDefaults: RuntimeForm = {
   ...demoFieldDefaults,
   network: "regtest",
-  arkServerUrl: "http://127.0.0.1:7071",
-  esploraUrl: "http://127.0.0.1:8501",
-  swapServerUrl: "http://127.0.0.1:10032",
-  serverInsecure: true,
+  arkServerAddress: "http://127.0.0.1:7071",
+  walletEsploraUrl: "http://127.0.0.1:8501",
+  swapServerAddress: "http://127.0.0.1:10032",
+  arkServerInsecure: true,
   swapServerInsecure: true,
   debugLevel: "debug",
 };

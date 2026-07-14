@@ -22,22 +22,22 @@ export function GatewayFields({
     <View style={{ gap: 16 }}>
       <Field
         label="Ark server address"
-        value={form.arkServerUrl}
-        onChange={(v) => onField('arkServerUrl', v)}
+        value={form.arkServerAddress}
+        onChange={(v) => onField('arkServerAddress', v)}
         mono
         disabled={disabled}
       />
       <Field
         label="Wallet Esplora URL"
-        value={form.esploraUrl}
-        onChange={(v) => onField('esploraUrl', v)}
+        value={form.walletEsploraUrl}
+        onChange={(v) => onField('walletEsploraUrl', v)}
         mono
         disabled={disabled}
       />
       <Field
         label="Swap server address"
-        value={form.swapServerUrl}
-        onChange={(v) => onField('swapServerUrl', v)}
+        value={form.swapServerAddress}
+        onChange={(v) => onField('swapServerAddress', v)}
         mono
         disabled={disabled}
       />
@@ -58,15 +58,15 @@ export function GatewayFields({
       <Select
         label="Debug level"
         value={form.debugLevel}
-        onChange={(v) => onField('debugLevel', v)}
+        onChange={(v) => onField('debugLevel', v as RuntimeForm['debugLevel'])}
         options={DEBUG_LEVELS}
         disabled={disabled}
       />
       <ToggleRow
         title="Allow insecure transport"
         subtitle="Permit non-TLS Ark server connections"
-        on={form.serverInsecure}
-        onChange={(v) => onField('serverInsecure', v)}
+        on={form.arkServerInsecure}
+        onChange={(v) => onField('arkServerInsecure', v)}
         disabled={disabled}
       />
       <ToggleRow
