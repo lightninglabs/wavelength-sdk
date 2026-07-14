@@ -17,6 +17,11 @@ import {
 } from '../runtime';
 import { ActivityHandle, debugTs, errorMessage } from '../util';
 
+type ActivityOpen = {
+  generation: number;
+  promise: Promise<void>;
+};
+
 /**
  * Runs the wasm runtime on the page's main thread. It is the escape hatch for
  * environments without Web Worker support (or where main-thread execution is
@@ -27,7 +32,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
-  private activityOpen: Promise<void> | null = null;
+  private activityOpen: ActivityOpen | null = null;
   private activityGeneration = 0;
   private readonly runtimeBaseUrl: string | undefined;
   private readonly debug: boolean;
@@ -99,6 +104,13 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     if (this.activityHandle) {
       return;
     }
+    const generation = this.activityGeneration;
+    const pending = this.activityOpen;
+    if (pending?.generation === generation) {
+      await pending.promise;
+
+      return;
+    }
 
     const call = wavewalletdkCall();
     if (typeof call !== 'function') {
@@ -108,30 +120,32 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       );
     }
 
-    if (!this.activityOpen) {
-      const generation = this.activityGeneration;
-      const request = {
-        includeExisting: opts.includeExisting ?? false,
-        kinds: opts.kinds ?? [],
-        cursor: opts.cursor ?? 0,
-      };
-      this.activityOpen = call('subscribe', request)
-        .then((handle) => {
-          const activityHandle = handle as ActivityHandle;
-          if (this.activityGeneration !== generation) {
-            activityHandle.close();
+    const request = {
+      includeExisting: opts.includeExisting ?? false,
+      kinds: opts.kinds ?? [],
+      cursor: opts.cursor ?? 0,
+    };
+    let open!: ActivityOpen;
+    const promise = call('subscribe', request)
+      .then((handle) => {
+        const activityHandle = handle as ActivityHandle;
+        if (this.activityGeneration !== generation) {
+          activityHandle.close();
 
-            return;
-          }
-          this.activityHandle = activityHandle;
-          void this.pumpActivity(activityHandle);
-        })
-        .finally(() => {
+          return;
+        }
+        this.activityHandle = activityHandle;
+        void this.pumpActivity(activityHandle);
+      })
+      .finally(() => {
+        if (this.activityOpen === open) {
           this.activityOpen = null;
-        });
-    }
+        }
+      });
+    open = { generation, promise };
+    this.activityOpen = open;
 
-    await this.activityOpen;
+    await promise;
   }
 
   stopActivity(): void {

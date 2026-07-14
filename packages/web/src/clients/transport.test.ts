@@ -474,4 +474,86 @@ describe('activity transport requests', () => {
       });
     }
   });
+
+  it('restarts after a pending main-thread activity open is stopped', async () => {
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const savedCall = (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall;
+    const savedAddEventListener = globalThis.addEventListener;
+    const savedRemoveEventListener = globalThis.removeEventListener;
+    const firstOpen = deferred<{ next: () => Promise<null>; close: () => void }>();
+    const secondOpen = deferred<{ next: () => Promise<null>; close: () => void }>();
+    let subscribeCalls = 0;
+    let firstCloses = 0;
+    let firstNextCalls = 0;
+    let secondNextCalls = 0;
+    Object.defineProperty(globalThis, 'wavewalletdkCall', {
+      configurable: true,
+      value: async () => {
+        subscribeCalls += 1;
+        return subscribeCalls === 1 ? firstOpen.promise : secondOpen.promise;
+      },
+    });
+    Object.defineProperty(globalThis, 'addEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+    Object.defineProperty(globalThis, 'removeEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+
+    try {
+      const client = new MainThreadWavelengthClient();
+      const firstStart = client.startActivity();
+      await Promise.resolve();
+      await Promise.resolve();
+      client.stopActivity();
+      const secondStart = client.startActivity();
+      await Promise.resolve();
+
+      assert.equal(subscribeCalls, 2);
+      secondOpen.resolve({
+        next: async () => {
+          secondNextCalls += 1;
+          return new Promise<null>(() => undefined);
+        },
+        close: () => undefined,
+      });
+      await secondStart;
+      await Promise.resolve();
+
+      assert.equal(secondNextCalls, 1);
+
+      firstOpen.resolve({
+        next: async () => {
+          firstNextCalls += 1;
+          return null;
+        },
+        close: () => {
+          firstCloses += 1;
+        },
+      });
+      await firstStart;
+      await Promise.resolve();
+      await Promise.resolve();
+
+      assert.equal(firstCloses, 1);
+      assert.equal(firstNextCalls, 0);
+      assert.equal(subscribeCalls, 2);
+      client.dispose();
+    } finally {
+      Object.defineProperty(globalThis, 'wavewalletdkCall', {
+        configurable: true,
+        value: savedCall,
+      });
+      Object.defineProperty(globalThis, 'addEventListener', {
+        configurable: true,
+        value: savedAddEventListener,
+      });
+      Object.defineProperty(globalThis, 'removeEventListener', {
+        configurable: true,
+        value: savedRemoveEventListener,
+      });
+    }
+  });
 });

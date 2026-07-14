@@ -152,4 +152,76 @@ describe('wavewalletdk worker activity lifecycle', () => {
     assert.equal(closes, 1);
     assert.equal(nextCalls, 0);
   });
+
+  it('restarts after a pending activity open is stopped', async () => {
+    const source = await readFile(
+      new URL('./wavewalletdk-worker.js', import.meta.url),
+      'utf8',
+    );
+    const listeners = new Map<string, Array<() => void>>();
+    const firstOpen = deferred<{ next: () => Promise<null>; close: () => void }>();
+    const secondOpen = deferred<{ next: () => Promise<null>; close: () => void }>();
+    let subscribeCalls = 0;
+    let firstCloses = 0;
+    let firstNextCalls = 0;
+    let secondNextCalls = 0;
+    const self: Record<string, unknown> = {
+      postMessage: () => undefined,
+      addEventListener: (name: string, listener: () => void) => {
+        const current = listeners.get(name) ?? [];
+        current.push(listener);
+        listeners.set(name, current);
+      },
+      wavewalletdkCall: async () => {
+        subscribeCalls += 1;
+        return subscribeCalls === 1 ? firstOpen.promise : secondOpen.promise;
+      },
+    };
+    vm.runInNewContext(source, {
+      self,
+      console,
+      URL,
+      Event: class Event {},
+      setTimeout,
+      clearTimeout,
+    });
+    for (const listener of listeners.get('wavewalletdk-ready') ?? []) listener();
+
+    const onmessage = self.onmessage as (event: unknown) => Promise<void>;
+    const firstStart = onmessage({ data: { id: 1, method: '$startActivity' } });
+    await flush();
+    await onmessage({ data: { id: 2, method: '$stopActivity' } });
+    const secondStart = onmessage({ data: { id: 3, method: '$startActivity' } });
+    await flush();
+
+    assert.equal(subscribeCalls, 2);
+    secondOpen.resolve({
+      next: async () => {
+        secondNextCalls += 1;
+        return new Promise<null>(() => undefined);
+      },
+      close: () => undefined,
+    });
+    await secondStart;
+    await flush();
+
+    assert.equal(secondNextCalls, 1);
+
+    firstOpen.resolve({
+      next: async () => {
+        firstNextCalls += 1;
+        return null;
+      },
+      close: () => {
+        firstCloses += 1;
+      },
+    });
+    await firstStart;
+    await flush();
+
+    assert.equal(firstCloses, 1);
+    assert.equal(firstNextCalls, 0);
+    assert.equal(subscribeCalls, 2);
+    await onmessage({ data: { id: 4, method: '$stopActivity' } });
+  });
 });

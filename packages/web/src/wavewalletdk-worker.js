@@ -77,9 +77,13 @@ self.onmessage = async (event) => {
     // cannot cross postMessage, so the worker owns the pull loop and forwards
     // each entry to the main thread as an 'activity' event.
     if (method === "$startActivity") {
-      if (!activityHandle && !activityOpen) {
-        const generation = activityGeneration;
-        activityOpen = self.wavewalletdkCall("subscribe", params || {})
+      const generation = activityGeneration;
+      const pending = activityOpen;
+      if (!activityHandle && pending?.generation === generation) {
+        await pending.promise;
+      } else if (!activityHandle) {
+        let open;
+        const promise = self.wavewalletdkCall("subscribe", params || {})
           .then((handle) => {
             if (activityGeneration !== generation) {
               handle.close();
@@ -90,11 +94,13 @@ self.onmessage = async (event) => {
             pumpActivity(handle);
           })
           .finally(() => {
-            activityOpen = null;
+            if (activityOpen === open) {
+              activityOpen = null;
+            }
           });
-      }
-      if (activityOpen) {
-        await activityOpen;
+        open = { generation, promise };
+        activityOpen = open;
+        await promise;
       }
       self.postMessage({ id, ok: true, result: { subscribed: true } });
 
