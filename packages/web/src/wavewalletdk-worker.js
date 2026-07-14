@@ -1,6 +1,7 @@
 let wasmReady = false;
 let loadPromise = null;
 let activityHandle = null;
+let activityOpen = null;
 
 // The client sends the runtime base URL as this worker's first message (see the
 // $init handler below). The bundler fingerprints the worker's own URL, so the
@@ -75,9 +76,18 @@ self.onmessage = async (event) => {
     // cannot cross postMessage, so the worker owns the pull loop and forwards
     // each entry to the main thread as an 'activity' event.
     if (method === "$startActivity") {
-      if (!activityHandle) {
-        activityHandle = await self.wavewalletdkCall("subscribe", params || {});
-        pumpActivity(activityHandle);
+      if (!activityHandle && !activityOpen) {
+        activityOpen = self.wavewalletdkCall("subscribe", params || {})
+          .then((handle) => {
+            activityHandle = handle;
+            pumpActivity(handle);
+          })
+          .finally(() => {
+            activityOpen = null;
+          });
+      }
+      if (activityOpen) {
+        await activityOpen;
       }
       self.postMessage({ id, ok: true, result: { subscribed: true } });
 

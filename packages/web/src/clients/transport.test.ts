@@ -44,6 +44,15 @@ register(
 
 type WorkerMessage = { id?: number; method?: string; params?: unknown; $init?: unknown };
 
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+
+  return { promise, resolve };
+}
+
 class FakeWorker {
   static latest: FakeWorker | undefined;
   readonly messages: WorkerMessage[] = [];
@@ -123,6 +132,60 @@ describe('activity transport requests', () => {
       Object.defineProperty(globalThis, 'Worker', {
         configurable: true,
         value: savedWorker,
+      });
+      Object.defineProperty(globalThis, 'addEventListener', {
+        configurable: true,
+        value: savedAddEventListener,
+      });
+      Object.defineProperty(globalThis, 'removeEventListener', {
+        configurable: true,
+        value: savedRemoveEventListener,
+      });
+    }
+  });
+
+  it('coalesces concurrent main-thread activity opens', async () => {
+    const { MainThreadWalletDKClient } = await import('./main.ts');
+    const savedCall = (globalThis as { walletdkCall?: unknown }).walletdkCall;
+    const savedAddEventListener = globalThis.addEventListener;
+    const savedRemoveEventListener = globalThis.removeEventListener;
+    const opened = deferred<{ next: () => Promise<null>; close: () => void }>();
+    let subscribeCalls = 0;
+    Object.defineProperty(globalThis, 'walletdkCall', {
+      configurable: true,
+      value: async (method: string) => {
+        assert.equal(method, 'subscribe');
+        subscribeCalls += 1;
+        return opened.promise;
+      },
+    });
+    Object.defineProperty(globalThis, 'addEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+    Object.defineProperty(globalThis, 'removeEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+
+    try {
+      const client = new MainThreadWalletDKClient();
+      const first = client.startActivity();
+      const second = client.startActivity();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      assert.equal(subscribeCalls, 1);
+      opened.resolve({
+        next: () => new Promise<null>(() => undefined),
+        close: () => undefined,
+      });
+      await Promise.all([first, second]);
+      client.dispose();
+    } finally {
+      Object.defineProperty(globalThis, 'walletdkCall', {
+        configurable: true,
+        value: savedCall,
       });
       Object.defineProperty(globalThis, 'addEventListener', {
         configurable: true,

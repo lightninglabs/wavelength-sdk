@@ -9,7 +9,59 @@ async function flush(): Promise<void> {
   await Promise.resolve();
 }
 
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+
+  return { promise, resolve };
+}
+
 describe('wavewalletdk worker activity lifecycle', () => {
+  it('coalesces concurrent activity opens into one subscription', async () => {
+    const source = await readFile(
+      new URL('./wavewalletdk-worker.js', import.meta.url),
+      'utf8',
+    );
+    const listeners = new Map<string, Array<() => void>>();
+    const opened = deferred<{ next: () => Promise<null>; close: () => void }>();
+    let subscribeCalls = 0;
+    const self: Record<string, unknown> = {
+      postMessage: () => undefined,
+      addEventListener: (name: string, listener: () => void) => {
+        const current = listeners.get(name) ?? [];
+        current.push(listener);
+        listeners.set(name, current);
+      },
+      wavewalletdkCall: async (method: string) => {
+        assert.equal(method, 'subscribe');
+        subscribeCalls += 1;
+        return opened.promise;
+      },
+    };
+    vm.runInNewContext(source, {
+      self,
+      console,
+      URL,
+      Event: class Event {},
+      setTimeout,
+      clearTimeout,
+    });
+    for (const listener of listeners.get('wavewalletdk-ready') ?? []) listener();
+
+    const onmessage = self.onmessage as (event: unknown) => Promise<void>;
+    const first = onmessage({ data: { id: 1, method: '$startActivity' } });
+    const second = onmessage({ data: { id: 2, method: '$startActivity' } });
+    await flush();
+
+    assert.equal(subscribeCalls, 1);
+    opened.resolve({
+      next: () => new Promise<null>(() => undefined),
+      close: () => undefined,
+    });
+    await Promise.all([first, second]);
+  });
   it('releases a terminal handle so a retry can subscribe again', async () => {
     const source = await readFile(
       new URL('./wavewalletdk-worker.js', import.meta.url),
