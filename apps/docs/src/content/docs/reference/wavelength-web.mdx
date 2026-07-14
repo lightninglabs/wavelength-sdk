@@ -143,7 +143,8 @@ Build their `RuntimeConfig` by hand, mainnet with your own gateway URLs and
 `allowMainnet`, regtest with local URLs and the insecure-transport flags.
 On web, `arkServerAddress` and `swapServerAddress` are REST URLs, and
 `walletEsploraUrl` is an HTTP Esplora endpoint. The web transport rejects
-filesystem TLS certificate paths.
+`arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
+`disableSwaps: true`, which suppresses every swap field.
 The per-network endpoint values are on the
 [wavelength-core reference](/reference/wavelength-core/#Network).
 

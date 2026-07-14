@@ -187,8 +187,9 @@ const config: RuntimeConfig = {
 
 The SDK validates `RuntimeConfig` before it starts the daemon. It rejects
 backend-only fields used with the wrong `walletType`, invalid numeric values,
-mainnet without `allowMainnet: true`, and filesystem TLS certificate paths on
-web. `lwwallet` fields are `walletEsploraUrl`, `walletPasswordFile`, and
+mainnet without `allowMainnet: true`, and `arkServerTlsCertPath` on web. Web
+accepts `swapServerTlsCertPath` only when `disableSwaps: true`, which
+suppresses every swap field. `lwwallet` fields are `walletEsploraUrl`, `walletPasswordFile`, and
 `walletPollIntervalSeconds`. `btcwallet` fields are `walletFeeUrl`,
 `walletBlockHeadersSource`, and `walletFilterHeadersSource`.
 

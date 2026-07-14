@@ -97,6 +97,6 @@ await client.start({
 ```
 
 On web, `arkServerAddress` and `swapServerAddress` must be REST URLs.
-`walletEsploraUrl` is an HTTP Esplora endpoint. Filesystem TLS certificate
-paths (`arkServerTlsCertPath` and `swapServerTlsCertPath`) are rejected by the
-web transport.
+`walletEsploraUrl` is an HTTP Esplora endpoint. The web transport always
+rejects `arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
+`disableSwaps: true`, which suppresses every swap field.

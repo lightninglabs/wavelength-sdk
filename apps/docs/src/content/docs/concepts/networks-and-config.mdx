@@ -109,11 +109,12 @@ const config: RuntimeConfig = {
   mainnet safety gate, storage root, and daemon log verbosity.
 - `arkServerAddress`, `arkServerTlsCertPath`, and `arkServerInsecure` configure
   the Ark endpoint. On web, `arkServerAddress` is a REST URL and filesystem
-  certificate paths are rejected. On React Native, it is a `host:port` gRPC
-  address.
+  certificate paths for `arkServerTlsCertPath` are rejected. On React Native,
+  it is a `host:port` gRPC address.
 - `swapServerAddress`, `swapServerTlsCertPath`, `swapServerInsecure`, and
   `swapDatabaseFileName` configure the swap service and its state. The web
-  transport also rejects filesystem TLS certificate paths.
+  transport accepts `swapServerTlsCertPath` only when `disableSwaps: true`,
+  which suppresses every swap field.
 - `disableSwaps: true` disables Lightning swaps and suppresses both preset and
   override swap fields.
 - `maxOperatorFeeSat`, `signingWorkers`, and `bufferSize` are numeric runtime
