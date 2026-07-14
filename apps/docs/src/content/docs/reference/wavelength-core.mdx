@@ -2487,8 +2487,8 @@ Maps a raw daemon `Info` payload (numeric `walletState`, no `walletReady`)
 onto the public `WalletInfo`: converts `walletState` to the string union via
 [`walletStateFromProto()`](#walletStateFromProto) and backfills `walletReady`
 (ready iff `walletState === 'ready'`), mirroring the daemon's
-`Info.WalletReady()` method. Transports apply this at the `getInfo()`
-boundary.
+`Info.WalletReady()` method. `BaseWavelengthClient` applies this through shared
+facade normalization after the transport returns the raw `getInfo()` result.
 
 <Signature title="wavelength-core.d.ts" code={normalizeInfoSig} />
 
