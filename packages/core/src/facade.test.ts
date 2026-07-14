@@ -6,6 +6,7 @@ import {
   toGoUnlockWalletReq,
   toMobileConfig,
 } from './facade.ts';
+import type { RuntimeConfig } from './config.ts';
 
 describe('base64FromUtf8', () => {
   it('matches node base64 output for ascii and multibyte input', () => {
@@ -20,78 +21,106 @@ describe('base64FromUtf8', () => {
 });
 
 describe('toMobileConfig', () => {
-  it('applies the server transport to both the ark and swap servers', () => {
-    const out = toMobileConfig(
-      {
-        network: 'regtest',
-        arkServerUrl: '10.0.2.2:7070',
-        esploraUrl: 'http://10.0.2.2:8501',
-        swapServerUrl: '10.0.2.2:10030',
-      },
-      'grpc',
-    );
-    assert.equal(out.server_transport, 'grpc');
-    assert.equal(out.swap_server_transport, 'grpc');
-    assert.equal(out.server_address, '10.0.2.2:7070');
-    assert.equal(out.wallet_type, 'lwwallet');
-  });
-
   it('maps every field of a fully populated config', () => {
     // An exhaustive shape pin: a snake_case typo in any mapping would show
     // up as a silently dropped daemon setting, so assert the whole object.
-    const out = toMobileConfig(
+    assert.deepEqual(
+      toMobileConfig(
+        {
+          network: 'regtest',
+          allowMainnet: false,
+          dataDir: '/data/wavelength',
+          debugLevel: 'debug',
+          arkServerAddress: '10.0.2.2:7070',
+          arkServerTlsCertPath: '/certs/ark.pem',
+          arkServerInsecure: true,
+          walletType: 'btcwallet',
+          walletPasswordFile: '/secrets/wallet.pass',
+          walletRecoveryWindow: 250,
+          walletFeeUrl: 'https://fees.example',
+          walletBlockHeadersSource: 'neutrino',
+          walletFilterHeadersSource: 'neutrino',
+          swapServerAddress: '10.0.2.2:10030',
+          swapServerTlsCertPath: '/certs/swap.pem',
+          swapServerInsecure: true,
+          swapDatabaseFileName: 'swaps.db',
+          maxOperatorFeeSat: 100,
+          signingWorkers: 4,
+          bufferSize: 64,
+        },
+        'grpc',
+      ),
       {
+        data_dir: '/data/wavelength',
         network: 'regtest',
-        allowMainnet: false,
-        dataDir: '/data/wavelength',
-        debugLevel: 'debug',
-        arkServerUrl: '10.0.2.2:7070',
-        esploraUrl: 'http://10.0.2.2:8501',
-        serverInsecure: true,
-        swapServerUrl: '10.0.2.2:10030',
-        swapServerInsecure: true,
-        swapDatabaseFileName: 'swaps.db',
+        debug_level: 'debug',
+        allow_mainnet: false,
+        server_address: '10.0.2.2:7070',
+        server_tls_cert_path: '/certs/ark.pem',
+        server_transport: 'grpc',
+        server_insecure: true,
+        wallet_type: 'btcwallet',
+        wallet_password_file: '/secrets/wallet.pass',
+        wallet_recovery_window: 250,
+        wallet_fee_url: 'https://fees.example',
+        wallet_block_headers_source: 'neutrino',
+        wallet_filter_headers_source: 'neutrino',
+        swap_server_address: '10.0.2.2:10030',
+        swap_server_tls_cert_path: '/certs/swap.pem',
+        swap_server_transport: 'grpc',
+        swap_server_insecure: true,
+        swap_database_file_name: 'swaps.db',
+        max_operator_fee_sat: 100,
+        signing_workers: 4,
+        buffer_size: 64,
       },
-      'grpc',
     );
-    assert.deepEqual(out, {
-      network: 'regtest',
-      allow_mainnet: false,
-      data_dir: '/data/wavelength',
-      debug_level: 'debug',
-      wallet_type: 'lwwallet',
-      wallet_esplora_url: 'http://10.0.2.2:8501',
-      server_address: '10.0.2.2:7070',
-      server_transport: 'grpc',
-      server_insecure: true,
-      swap_server_address: '10.0.2.2:10030',
-      swap_server_transport: 'grpc',
-      swap_server_insecure: true,
-      swap_database_file_name: 'swaps.db',
-    });
   });
 
-  it('carries the swap address under the rest transport too', () => {
+  it('maps lightweight-wallet fields', () => {
     const out = toMobileConfig(
       {
-        network: 'signet',
-        arkServerUrl: 'https://ark.example',
-        swapServerUrl: 'https://swap.example',
+        walletEsploraUrl: 'https://esplora.example/api',
+        walletPasswordFile: '/secrets/wallet.pass',
+        walletPollIntervalSeconds: 15,
       },
       'rest',
     );
-    assert.equal(out.server_transport, 'rest');
-    assert.equal(out.swap_server_address, 'https://swap.example');
-    assert.equal(out.swap_server_transport, 'rest');
+    assert.equal(out.wallet_type, 'lwwallet');
+    assert.equal(out.wallet_esplora_url, 'https://esplora.example/api');
+    assert.equal(out.wallet_password_file, '/secrets/wallet.pass');
+    assert.equal(out.wallet_poll_interval_seconds, 15);
   });
 
   it('omits every swap field when swaps are disabled', () => {
     const out = toMobileConfig(
-      { network: 'signet', disableSwaps: true, swapServerUrl: 'ignored:443' },
+      {
+        network: 'signet',
+        disableSwaps: true,
+        swapServerAddress: 'ignored:443',
+        swapServerTlsCertPath: '/ignored/swap.pem',
+        swapServerInsecure: true,
+        swapDatabaseFileName: 'ignored.db',
+      },
       'rest',
     );
-    assert.equal(out.swap_server_address, undefined);
-    assert.equal(out.swap_server_transport, undefined);
+    assert.deepEqual(
+      Object.keys(out).filter((key) => key.startsWith('swap_')),
+      [],
+    );
+  });
+
+  it('ignores caller-supplied transport-shaped extras', () => {
+    const out = toMobileConfig(
+      {
+        network: 'signet',
+        server_transport: 'grpc',
+        swap_server_transport: 'grpc',
+      } as RuntimeConfig,
+      'rest',
+    );
+    assert.equal(out.server_transport, 'rest');
+    assert.equal(out.swap_server_transport, 'rest');
   });
 });
 

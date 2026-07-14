@@ -13,6 +13,7 @@ export type WavelengthErrorCode =
   | 'worker_error'
   | 'unsupported_facade_method'
   | 'invalid_cursor'
+  | 'invalid_config'
   | (string & {});
 
 /**

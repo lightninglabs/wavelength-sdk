@@ -65,7 +65,7 @@ describe('BaseWavelengthClient', () => {
   it('start maps the config through the transport knob and fetches info', async () => {
     const client = new FakeClient();
     client.responses.set('getInfo', { walletState: 2 });
-    await client.start({ network: 'regtest', arkServerUrl: 'h:7070' });
+    await client.start({ network: 'regtest', arkServerAddress: 'h:7070' });
 
     const start = client.calls[0];
     assert.equal(start.method, 'start');
@@ -73,6 +73,15 @@ describe('BaseWavelengthClient', () => {
     assert.equal(cfg.server_transport, 'grpc');
     assert.equal(cfg.server_address, 'h:7070');
     assert.equal(client.calls[1].method, 'getInfo');
+  });
+
+  it('rejects invalid config before facade start dispatch', async () => {
+    const client = new FakeClient();
+    await assert.rejects(
+      () => client.start({ network: 'mainnet' }),
+      (err: WavelengthError) => err.code === 'invalid_config',
+    );
+    assert.equal(client.calls.some((call) => call.method === 'start'), false);
   });
 
   it('createWallet sends the Go-shaped request with a base64 password', async () => {

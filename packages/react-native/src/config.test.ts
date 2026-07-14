@@ -6,9 +6,9 @@ describe('defaultConfig (react-native)', () => {
   it('returns the gRPC host:port preset for a hosted network', () => {
     assert.deepEqual(defaultConfig('signet'), {
       network: 'signet',
-      arkServerUrl: 'arkd-signet.staging.lightningcluster.com:443',
-      esploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
-      swapServerUrl: 'swapd-signet.staging.lightningcluster.com:443',
+      arkServerAddress: 'arkd-signet.staging.lightningcluster.com:443',
+      walletEsploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
+      swapServerAddress: 'swapd-signet.staging.lightningcluster.com:443',
     });
   });
 
@@ -17,11 +17,11 @@ describe('defaultConfig (react-native)', () => {
     assert.equal(config.network, 'testnet4');
     assert.equal(config.dataDir, '/wallet');
     assert.equal(
-      config.arkServerUrl,
+      config.arkServerAddress,
       'arkd-testnet4.testnet.lightningcluster.com:443',
     );
     assert.equal(
-      config.swapServerUrl,
+      config.swapServerAddress,
       'swapd-testnet4.testnet.lightningcluster.com:443',
     );
   });

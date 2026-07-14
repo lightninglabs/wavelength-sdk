@@ -17,3 +17,13 @@ test('home surfaces band links every integration surface', async ({ page }) => {
   await expect(band.locator('a[href="/cli/"]')).toBeVisible();
   await expect(band.locator('a[href="/agents/"]')).toBeVisible();
 });
+
+test('home imports defaultConfig from the web transport', async ({ page }) => {
+  await page.goto('/');
+  const sample = page.locator('.wdk-hero__code-body');
+
+  await expect(sample).toContainText(
+    /import\s+\{\s*createWebWalletEngine,\s*defaultConfig\s*\}\s+from\s+'@lightninglabs\/wavelength-web'/,
+  );
+  await expect(sample).not.toContainText('@lightninglabs/wavelength-core');
+});

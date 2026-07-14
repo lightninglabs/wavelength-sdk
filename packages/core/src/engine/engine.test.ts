@@ -659,7 +659,7 @@ describe('engine ready-phase processes', () => {
 
   it('reconciles on stream loss and retries from the last cursor', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -685,7 +685,7 @@ describe('engine ready-phase processes', () => {
 
   it('treats replayed entries as idempotent refresh notifications', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     client.listValue = {
       activity: { entries: [{ id: 'canonical', cursor: 0 }] },

@@ -28,7 +28,7 @@ import type {
   SweepWalletResult,
   UnlockWalletResult,
 } from './results.ts';
-import type { RuntimeConfig } from './config.ts';
+import { validateRuntimeConfig, type RuntimeConfig } from './config.ts';
 import type { WavelengthClient } from './client.ts';
 import type { WavelengthEvent, WavelengthListener } from './events.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
@@ -96,6 +96,7 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
   // fetches getInfo afterwards; the React provider derives the runtime phase
   // from it.
   async start(config: RuntimeConfig): Promise<WalletInfo> {
+    validateRuntimeConfig(config, this.serverTransport);
     await this.callFacade('start', toMobileConfig(config, this.serverTransport));
 
     return this.getInfo();

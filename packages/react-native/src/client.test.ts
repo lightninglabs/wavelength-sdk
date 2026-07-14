@@ -93,11 +93,12 @@ describe('NativeWavelengthClient', () => {
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('getInfo', '{"WalletState":0}');
 
-    await client.start({ network: 'regtest', arkServerUrl: 'h:7070' });
+    await client.start({ network: 'regtest', arkServerAddress: 'h:7070' });
 
     const cfg = JSON.parse(fake.calls[0].paramsJson) as Record<string, unknown>;
     assert.equal(cfg.data_dir, '/data/wavelength');
     assert.equal(cfg.server_transport, 'grpc');
+    assert.equal(cfg.server_address, 'h:7070');
     assert.equal(fake.calls[1].method, 'getInfo');
   });
 

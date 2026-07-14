@@ -1,4 +1,5 @@
 import type { ServerTransport } from './facade.ts';
+import { WavelengthError } from './errors.ts';
 
 /**
  * Selects the Bitcoin network the embedded daemon runs against. Names match
@@ -46,29 +47,160 @@ export type DebugLevel = (typeof DEBUG_LEVELS)[number];
  * in that transport's flavor, and override only the fields you need.
  */
 export type RuntimeConfig = {
-  /** The Bitcoin network to run against. Required. Use 'mainnet' only together with allowMainnet. */
+  /** The Bitcoin network to run against. `mainnet` also requires {@link allowMainnet}. */
   network?: Network;
-  /** Must be true to run on mainnet; ignored on test networks. The daemon refuses to start on mainnet without it. */
+  /** Explicitly permits mainnet. The SDK rejects mainnet configs unless this is true. */
   allowMainnet?: boolean;
-  /** Storage root for daemon and wallet state (an OPFS path in the browser). A daemon default is used when unset. */
+  /**
+   * Storage root for daemon and wallet state. This is an OPFS path on web and
+   * a filesystem path on React Native. The daemon chooses a default when unset.
+   */
   dataDir?: string;
-  /** The Ark operator's mailbox edge server: its REST gateway URL in the browser, or a host:port gRPC address on the native transport. Required to reach the Ark network. */
-  arkServerUrl?: string;
-  /** The Esplora REST endpoint the lightweight wallet uses for chain data. Required. */
-  esploraUrl?: string;
-  /** The Lightning swap server: its REST gateway URL in the browser, or a host:port gRPC address on the native transport. Leave unset (or set disableSwaps) to run without Lightning swaps. */
-  swapServerUrl?: string;
-  /** Advanced. The daemon-owned SQLite file for swap state; a sensible default is used when unset. */
-  swapDatabaseFileName?: string;
-  /** Advanced. Disables TLS for the Ark server connection; for local development only. */
-  serverInsecure?: boolean;
-  /** Advanced. Disables TLS for the swap server connection; for local development only. */
-  swapServerInsecure?: boolean;
-  /** Turns off the Lightning swap subsystem entirely. */
-  disableSwaps?: boolean;
-  /** The daemon's log verbosity (e.g. 'info', 'debug'). Distinct from the client's RPC-payload debug option. See {@link DEBUG_LEVELS}. */
+  /**
+   * Daemon log verbosity. Accepts a standard {@link DebugLevel} or a
+   * per-subsystem expression such as `ROND=debug,info`.
+   */
   debugLevel?: string;
+  /**
+   * Ark operator and mailbox endpoint. Use a REST URL on web and a `host:port`
+   * gRPC address on React Native. The daemon network default is used when unset.
+   */
+  arkServerAddress?: string;
+  /** Filesystem path to an Ark TLS certificate. The web transport rejects it. */
+  arkServerTlsCertPath?: string;
+  /** Disables TLS for the Ark endpoint. Use only for local development. */
+  arkServerInsecure?: boolean;
+  /** Embedded wallet backend. Defaults to `lwwallet`. */
+  walletType?: 'lwwallet' | 'btcwallet';
+  /** HTTP Esplora endpoint used by the `lwwallet` backend on both platforms. */
+  walletEsploraUrl?: string;
+  /** Password file used by `lwwallet` to unlock automatically. */
+  walletPasswordFile?: string;
+  /**
+   * Chain polling interval in seconds for `lwwallet`. Must be a nonnegative
+   * safe integer.
+   */
+  walletPollIntervalSeconds?: number;
+  /**
+   * Wallet address look-ahead window for either backend. Must be a
+   * nonnegative safe integer that fits in a uint32.
+   */
+  walletRecoveryWindow?: number;
+  /** Fee estimator endpoint used by the `btcwallet` backend. */
+  walletFeeUrl?: string;
+  /**
+   * Local file path or HTTP(S) URL from which `btcwallet` imports block
+   * headers on startup.
+   */
+  walletBlockHeadersSource?: string;
+  /**
+   * Local file path or HTTP(S) URL from which `btcwallet` imports compact
+   * filter headers on startup.
+   */
+  walletFilterHeadersSource?: string;
+  /**
+   * Lightning swap endpoint. Use a REST URL on web and a `host:port` gRPC
+   * address on React Native. The daemon network default is used when unset.
+   */
+  swapServerAddress?: string;
+  /**
+   * Filesystem path to a swap-server TLS certificate. Web rejects it unless
+   * swaps are disabled, in which case every swap field is omitted.
+   */
+  swapServerTlsCertPath?: string;
+  /** Disables TLS for the swap endpoint. Use only for local development. */
+  swapServerInsecure?: boolean;
+  /** Path to the daemon-owned SQLite database that stores swap state. */
+  swapDatabaseFileName?: string;
+  /** Disables Lightning swaps and omits every swap configuration field. */
+  disableSwaps?: boolean;
+  /**
+   * Maximum per-round operator fee the daemon accepts, in satoshis. Must be a
+   * nonnegative safe integer.
+   */
+  maxOperatorFeeSat?: number;
+  /**
+   * Maximum concurrent VTXO signing sessions. Zero selects the wallet-backend
+   * default and one forces serial signing.
+   */
+  signingWorkers?: number;
+  /** Bufconn listener buffer size override. Must be a nonnegative safe integer. */
+  bufferSize?: number;
 };
+
+const lwwalletOnly = [
+  'walletEsploraUrl',
+  'walletPasswordFile',
+  'walletPollIntervalSeconds',
+] as const;
+const btcwalletOnly = [
+  'walletFeeUrl',
+  'walletBlockHeadersSource',
+  'walletFilterHeadersSource',
+] as const;
+const numericFields = [
+  'walletPollIntervalSeconds',
+  'walletRecoveryWindow',
+  'maxOperatorFeeSat',
+  'signingWorkers',
+  'bufferSize',
+] as const;
+
+function invalidConfig(message: string): never {
+  throw new WavelengthError(message, 'invalid_config');
+}
+
+/** Validates host-owned runtime settings before the typed start dispatches. */
+export function validateRuntimeConfig(
+  config: RuntimeConfig,
+  transport: ServerTransport,
+): void {
+  const walletType = config.walletType ?? 'lwwallet';
+  if (walletType !== 'lwwallet' && walletType !== 'btcwallet') {
+    invalidConfig(`unsupported walletType: ${String(walletType)}`);
+  }
+  if (config.network === 'mainnet' && config.allowMainnet !== true) {
+    invalidConfig('mainnet requires allowMainnet: true');
+  }
+  if (walletType === 'lwwallet') {
+    for (const field of btcwalletOnly) {
+      if (config[field] !== undefined) {
+        invalidConfig(`${field} applies only to walletType btcwallet`);
+      }
+    }
+  } else {
+    for (const field of lwwalletOnly) {
+      if (config[field] !== undefined) {
+        invalidConfig(`${field} applies only to walletType lwwallet`);
+      }
+    }
+  }
+  for (const field of numericFields) {
+    const value = config[field];
+    if (
+      value !== undefined &&
+      (!Number.isSafeInteger(value) || value < 0)
+    ) {
+      invalidConfig(`${field} must be a nonnegative safe integer`);
+    }
+  }
+  if (
+    config.walletRecoveryWindow !== undefined &&
+    config.walletRecoveryWindow > 0xffff_ffff
+  ) {
+    invalidConfig('walletRecoveryWindow must fit in uint32');
+  }
+  if (transport === 'rest' && config.arkServerTlsCertPath !== undefined) {
+    invalidConfig('arkServerTlsCertPath is unavailable on the web transport');
+  }
+  if (
+    transport === 'rest' &&
+    !config.disableSwaps &&
+    config.swapServerTlsCertPath !== undefined
+  ) {
+    invalidConfig('swapServerTlsCertPath is unavailable on the web transport');
+  }
+}
 
 /**
  * The endpoints of one hosted service in both transport flavors: a REST
@@ -148,8 +280,8 @@ export function networkDefaults(
   const endpoints = NETWORK_ENDPOINTS[network];
 
   return {
-    arkServerUrl: endpoints.ark[transport],
-    esploraUrl: endpoints.esplora,
-    swapServerUrl: endpoints.swap[transport],
+    arkServerAddress: endpoints.ark[transport],
+    walletEsploraUrl: endpoints.esplora,
+    swapServerAddress: endpoints.swap[transport],
   };
 }
