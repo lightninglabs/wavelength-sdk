@@ -189,8 +189,8 @@ export type { FacadeMethod } from './facade.ts';
 // runtime assets alike).
 export { RUNTIME_MANIFEST_VERSION } from './version.ts';
 
-// camelizeKeys maps a daemon PascalCase JSON response to the SDK's camelCase
-// shapes; every transport applies it at its response boundary.
+// BaseWavelengthClient applies camelizeKeys once to every facade response.
+// Transports should return daemon-shaped values instead of normalizing them.
 export { camelizeKeys } from './casing.ts';
 
 // classifyDestination decides which fields a send UI should render for a pasted
