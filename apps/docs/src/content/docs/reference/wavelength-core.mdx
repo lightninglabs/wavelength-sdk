@@ -2352,8 +2352,8 @@ facade contract.
 <ApiSymbol name="camelizeKeys" kind="function">
 
 Maps a daemon PascalCase JSON response onto the SDK's camelCase shapes.
-Transports apply this as part of the response boundary so typed methods and
-`callFacade()` return camelCase keys.
+The shared client applies this after transport invocation so typed methods and
+`callFacade()` return camelCase keys consistently across transports.
 
 <Signature title="wavelength-core.d.ts" code={camelizeKeysSig} />
 

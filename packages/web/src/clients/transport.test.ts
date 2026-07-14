@@ -256,6 +256,113 @@ describe('activity transport requests', () => {
     }
   });
 
+  for (const terminal of ['ended', 'failed'] as const) {
+    it(`surfaces a ${terminal} main-thread stream and permits reopening`, async () => {
+      const { MainThreadWavelengthClient } = await import('./main.ts');
+      const savedCall = (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall;
+      const savedAddEventListener = globalThis.addEventListener;
+      const savedRemoveEventListener = globalThis.removeEventListener;
+      let subscribeCalls = 0;
+      Object.defineProperty(globalThis, 'wavewalletdkCall', {
+        configurable: true,
+        value: async () => {
+          subscribeCalls += 1;
+          return subscribeCalls === 1
+            ? {
+                next: async () => {
+                  if (terminal === 'failed') {
+                    throw new Error('stream broke');
+                  }
+                  return null;
+                },
+                close: () => undefined,
+              }
+            : {
+                next: () => new Promise<null>(() => undefined),
+                close: () => undefined,
+              };
+        },
+      });
+      Object.defineProperty(globalThis, 'addEventListener', {
+        configurable: true,
+        value: () => undefined,
+      });
+      Object.defineProperty(globalThis, 'removeEventListener', {
+        configurable: true,
+        value: () => undefined,
+      });
+
+      try {
+        const events: unknown[] = [];
+        const client = new MainThreadWavelengthClient();
+        client.subscribe((event) => events.push(event));
+        await client.startActivity();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        assert.deepEqual(events.at(-1), terminal === 'failed'
+          ? {
+              type: 'activityStream',
+              payload: { state: 'failed', message: 'stream broke' },
+            }
+          : { type: 'activityStream', payload: { state: 'ended' } });
+
+        await client.startActivity();
+        assert.equal(subscribeCalls, 2);
+        client.dispose();
+      } finally {
+        Object.defineProperty(globalThis, 'wavewalletdkCall', {
+          configurable: true,
+          value: savedCall,
+        });
+        Object.defineProperty(globalThis, 'addEventListener', {
+          configurable: true,
+          value: savedAddEventListener,
+        });
+        Object.defineProperty(globalThis, 'removeEventListener', {
+          configurable: true,
+          value: savedRemoveEventListener,
+        });
+      }
+    });
+  }
+
+  it('surfaces a worker activity-stop failure', async () => {
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const savedWorker = (globalThis as { Worker?: unknown }).Worker;
+    Object.defineProperty(globalThis, 'Worker', { configurable: true, value: FakeWorker });
+
+    try {
+      const events: unknown[] = [];
+      const client = new WorkerWavelengthClient({ workerURL: 'fake-worker.js' });
+      client.subscribe((event) => events.push(event));
+      const fakeWorker = FakeWorker.latest!;
+
+      client.stopActivity();
+      const request = fakeWorker.messages.at(-1);
+      fakeWorker.onmessage?.({
+        data: { id: request?.id, ok: false, error: 'close failed' },
+      } as MessageEvent);
+      await Promise.resolve();
+
+      assert.deepEqual(events, [
+        {
+          type: 'log',
+          payload: {
+            level: 'warn',
+            message: 'failed to close the activity stream: close failed',
+          },
+        },
+      ]);
+      client.dispose();
+    } finally {
+      Object.defineProperty(globalThis, 'Worker', {
+        configurable: true,
+        value: savedWorker,
+      });
+    }
+  });
+
   it('coalesces concurrent main-thread activity opens', async () => {
     const { MainThreadWavelengthClient } = await import('./main.ts');
     const savedCall = (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall;
@@ -294,6 +401,64 @@ describe('activity transport requests', () => {
       });
       await Promise.all([first, second]);
       client.dispose();
+    } finally {
+      Object.defineProperty(globalThis, 'wavewalletdkCall', {
+        configurable: true,
+        value: savedCall,
+      });
+      Object.defineProperty(globalThis, 'addEventListener', {
+        configurable: true,
+        value: savedAddEventListener,
+      });
+      Object.defineProperty(globalThis, 'removeEventListener', {
+        configurable: true,
+        value: savedRemoveEventListener,
+      });
+    }
+  });
+
+  it('closes a pending main-thread activity open when disposed', async () => {
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const savedCall = (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall;
+    const savedAddEventListener = globalThis.addEventListener;
+    const savedRemoveEventListener = globalThis.removeEventListener;
+    const opened = deferred<{ next: () => Promise<null>; close: () => void }>();
+    let closes = 0;
+    let nextCalls = 0;
+    Object.defineProperty(globalThis, 'wavewalletdkCall', {
+      configurable: true,
+      value: async () => opened.promise,
+    });
+    Object.defineProperty(globalThis, 'addEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+    Object.defineProperty(globalThis, 'removeEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+
+    try {
+      const client = new MainThreadWavelengthClient();
+      const start = client.startActivity();
+      await Promise.resolve();
+      await Promise.resolve();
+      client.dispose();
+
+      opened.resolve({
+        next: async () => {
+          nextCalls += 1;
+          return null;
+        },
+        close: () => {
+          closes += 1;
+        },
+      });
+      await start;
+      await Promise.resolve();
+
+      assert.equal(closes, 1);
+      assert.equal(nextCalls, 0);
     } finally {
       Object.defineProperty(globalThis, 'wavewalletdkCall', {
         configurable: true,

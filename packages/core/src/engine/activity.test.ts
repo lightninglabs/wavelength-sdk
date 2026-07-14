@@ -1,6 +1,6 @@
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import type { ActivityStreamOptions } from '../client.ts';
+import type { ActivityStreamOptions } from '../activity-options.ts';
 import { ActivityStream } from './activity.ts';
 
 async function flush(times = 4): Promise<void> {

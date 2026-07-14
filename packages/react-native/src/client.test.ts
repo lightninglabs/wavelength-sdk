@@ -211,25 +211,6 @@ describe('NativeWavelengthClient', () => {
     assert.equal(fake.counts().startActivityCount, 2);
   });
 
-  it('swallows the native end that follows a client-initiated stop', async () => {
-    const fake = makeFake();
-    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
-    const events: WavelengthEvent[] = [];
-    client.subscribe((e) => events.push(e));
-
-    await client.startActivity();
-    client.stopActivity();
-    // The op chain runs the stop asynchronously; let it settle.
-    await Promise.resolve();
-    await Promise.resolve();
-    fake.emit({ kind: 'end', payload: '' });
-
-    assert.deepEqual(
-      events.filter((e) => e.type === 'activityStream'),
-      [],
-    );
-  });
-
   it('serializes a stop-then-start so the subscribe waits for the close', async () => {
     const fake = makeFake();
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);

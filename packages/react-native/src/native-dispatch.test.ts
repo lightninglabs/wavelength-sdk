@@ -73,6 +73,15 @@ function iosDispatch(source: string): Record<string, string> {
   );
 }
 
+function section(source: string, start: string, end: string): string {
+  const startIndex = source.indexOf(start);
+  const endIndex = source.indexOf(end, startIndex);
+  assert.notEqual(startIndex, -1, `missing section start: ${start}`);
+  assert.notEqual(endIndex, -1, `missing section end: ${end}`);
+
+  return source.slice(startIndex, endIndex);
+}
+
 describe('native facade dispatch', () => {
   it('maps every facade method to the matching Android and iOS entry point', async () => {
     const { kt, mm } = await readNativeSources();
@@ -120,4 +129,46 @@ describe('native facade dispatch', () => {
       );
     });
   }
+
+  it('detaches a stopped subscription before close and identifies its old pump by identity', async () => {
+    const { kt, mm } = await readNativeSources();
+    const androidStop = section(
+      kt,
+      'override fun stopActivity',
+      '// pump drains the facade',
+    );
+    const iosStop = section(
+      mm,
+      '- (void)stopActivity:',
+      '// pump drains the subscription',
+    );
+    const androidPump = section(kt, 'private fun pump', 'private fun sendEvent');
+    const iosPump = section(mm, '- (void)pump:', '- (std::shared_ptr');
+
+    assert.match(androidStop, /subscription\s*=\s*null/);
+    assert.ok(
+      androidStop.indexOf('subscription = null') < androidStop.indexOf('sub?.close()'),
+      'Android must detach the stopped subscription before close()',
+    );
+    assert.match(androidPump, /subscription\s*!==\s*sub/);
+    assert.match(androidPump, /if\s*\(stopped\)\s*\{\s*break\s*\}/);
+    assert.equal(
+      androidPump.match(/subscription\s*!==\s*sub/g)?.length,
+      2,
+      'Android must re-check ownership before emitting an entry',
+    );
+
+    assert.match(iosStop, /self->_subscription\s*=\s*nil/);
+    assert.ok(
+      iosStop.indexOf('self->_subscription = nil') < iosStop.indexOf('[sub close:&error]'),
+      'iOS must detach the stopped subscription before close',
+    );
+    assert.match(iosPump, /self->_subscription\s*!=\s*sub/);
+    assert.match(iosPump, /if\s*\(stopped\)\s*\{\s*break;\s*\}/);
+    assert.equal(
+      iosPump.match(/self->_subscription\s*!=\s*sub/g)?.length,
+      2,
+      'iOS must re-check ownership before emitting an entry',
+    );
+  });
 });

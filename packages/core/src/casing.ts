@@ -1,7 +1,7 @@
 // Shared PascalCase -> camelCase logic, used by BOTH the type generator
 // (scripts/gen-types.mts, at build time) and the runtime response mapping
-// (every transport, at its response boundary). One implementation guarantees
-// the generated types and the values the client returns always agree.
+// (the shared base client, after transport invocation). One implementation
+// guarantees the generated types and the values the client returns always agree.
 
 // ACRONYM_OVERRIDES holds field names where a plain lowercase-first-letter would
 // read wrong. Extend this when a new acronym-led field appears (a stale entry is

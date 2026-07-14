@@ -2,6 +2,7 @@ let wasmReady = false;
 let loadPromise = null;
 let activityHandle = null;
 let activityOpen = null;
+let activityGeneration = 0;
 
 // The client sends the runtime base URL as this worker's first message (see the
 // $init handler below). The bundler fingerprints the worker's own URL, so the
@@ -77,8 +78,14 @@ self.onmessage = async (event) => {
     // each entry to the main thread as an 'activity' event.
     if (method === "$startActivity") {
       if (!activityHandle && !activityOpen) {
+        const generation = activityGeneration;
         activityOpen = self.wavewalletdkCall("subscribe", params || {})
           .then((handle) => {
+            if (activityGeneration !== generation) {
+              handle.close();
+
+              return;
+            }
             activityHandle = handle;
             pumpActivity(handle);
           })
@@ -95,6 +102,7 @@ self.onmessage = async (event) => {
     }
 
     if (method === "$stopActivity") {
+      activityGeneration += 1;
       const handle = activityHandle;
       activityHandle = null;
       if (handle) {

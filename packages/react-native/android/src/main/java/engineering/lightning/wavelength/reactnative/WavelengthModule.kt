@@ -184,16 +184,11 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
 
   private var subscription: Subscription? = null
 
-  // closing marks an intentional close so the pump reports a clean end
-  // instead of an error when next() unblocks with a cancellation.
-  @Volatile private var closing = false
-
   override fun startActivity(reqJson: String, promise: Promise) {
     executor.execute {
       try {
         synchronized(this) {
           if (subscription == null) {
-            closing = false
             val sub = Mobile.subscribe(reqJson.toByteArray(Charsets.UTF_8))
             subscription = sub
             Thread({ pump(sub) }, "wavelength-activity").apply {
@@ -213,8 +208,11 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
     executor.execute {
       try {
         val sub = synchronized(this) {
-          closing = true
-          subscription
+          val active = subscription
+          // Detach before close returns so a queued start can't reuse a pump
+          // that's already stopping.
+          subscription = null
+          active
         }
         sub?.close()
         promise.resolve(null)
@@ -236,11 +234,20 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
           // Only the exact terminal "EOF" is a clean close; a substring match
           // would misclassify real failures like "unexpected EOF" as clean
           // ends and silently freeze the stream.
-          if (closing || e.message == "EOF") {
+          val stopped = synchronized(this) { subscription !== sub }
+          // An intentional stop has no terminal event. A replacement may
+          // already be open by the time this old pump unblocks.
+          if (stopped) {
+            break
+          }
+          if (e.message == "EOF") {
             sendEvent("end", "")
           } else {
             sendEvent("error", e.message ?: "wavelength activity stream failed")
           }
+          break
+        }
+        if (synchronized(this) { subscription !== sub }) {
           break
         }
         sendEvent("entry", entry.toString(Charsets.UTF_8))

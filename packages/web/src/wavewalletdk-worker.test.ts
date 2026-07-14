@@ -104,4 +104,52 @@ describe('wavewalletdk worker activity lifecycle', () => {
       (message as { event?: { type?: string } }).event?.type === 'activityStream'
     ).length, 2);
   });
+
+  it('closes a pending activity open when stopped', async () => {
+    const source = await readFile(
+      new URL('./wavewalletdk-worker.js', import.meta.url),
+      'utf8',
+    );
+    const listeners = new Map<string, Array<() => void>>();
+    const opened = deferred<{ next: () => Promise<null>; close: () => void }>();
+    let closes = 0;
+    let nextCalls = 0;
+    const self: Record<string, unknown> = {
+      postMessage: () => undefined,
+      addEventListener: (name: string, listener: () => void) => {
+        const current = listeners.get(name) ?? [];
+        current.push(listener);
+        listeners.set(name, current);
+      },
+      wavewalletdkCall: async () => opened.promise,
+    };
+    vm.runInNewContext(source, {
+      self,
+      console,
+      URL,
+      Event: class Event {},
+      setTimeout,
+      clearTimeout,
+    });
+    for (const listener of listeners.get('wavewalletdk-ready') ?? []) listener();
+
+    const onmessage = self.onmessage as (event: unknown) => Promise<void>;
+    const start = onmessage({ data: { id: 1, method: '$startActivity' } });
+    await flush();
+    await onmessage({ data: { id: 2, method: '$stopActivity' } });
+    opened.resolve({
+      next: async () => {
+        nextCalls += 1;
+        return null;
+      },
+      close: () => {
+        closes += 1;
+      },
+    });
+    await start;
+    await flush();
+
+    assert.equal(closes, 1);
+    assert.equal(nextCalls, 0);
+  });
 });

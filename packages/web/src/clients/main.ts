@@ -28,6 +28,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
   private activityOpen: Promise<void> | null = null;
+  private activityGeneration = 0;
   private readonly runtimeBaseUrl: string | undefined;
   private readonly debug: boolean;
   private readonly onRuntimeReady = () => this.emit({ type: 'runtimeReady' });
@@ -108,6 +109,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     }
 
     if (!this.activityOpen) {
+      const generation = this.activityGeneration;
       const request = {
         includeExisting: opts.includeExisting ?? false,
         kinds: opts.kinds ?? [],
@@ -115,8 +117,14 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       };
       this.activityOpen = call('subscribe', request)
         .then((handle) => {
-          this.activityHandle = handle as ActivityHandle;
-          void this.pumpActivity(this.activityHandle);
+          const activityHandle = handle as ActivityHandle;
+          if (this.activityGeneration !== generation) {
+            activityHandle.close();
+
+            return;
+          }
+          this.activityHandle = activityHandle;
+          void this.pumpActivity(activityHandle);
         })
         .finally(() => {
           this.activityOpen = null;
@@ -127,6 +135,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   }
 
   stopActivity(): void {
+    this.activityGeneration += 1;
     const handle = this.activityHandle;
     this.activityHandle = null;
     handle?.close();

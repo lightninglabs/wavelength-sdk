@@ -9,7 +9,7 @@ import type {
 } from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
-import { PendingCall, toWavelengthEvent } from '../util';
+import { PendingCall, errorMessage, toWavelengthEvent } from '../util';
 
 type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
 
@@ -100,7 +100,15 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   }
 
   stopActivity(): void {
-    void this.request('$stopActivity').catch(() => undefined);
+    void this.request('$stopActivity').catch((err) => {
+      this.emit({
+        type: 'log',
+        payload: {
+          level: 'warn',
+          message: `failed to close the activity stream: ${errorMessage(err)}`,
+        },
+      });
+    });
   }
 
   private handleMessage(message: unknown) {
