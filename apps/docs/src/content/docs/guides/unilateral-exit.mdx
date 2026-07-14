@@ -57,14 +57,21 @@ function ExitPlan({ outpoints }: { outpoints: string[] }) {
 
 ## Initiate the exit
 
-`client.exit({ outpoint, destination })` starts the exit for a single VTXO.
-It resolves with an [`ExitResult`](/reference/wavelength-core/#ExitResult) whose `path` discriminates cooperative,
-unilateral, and fallback outcomes.
+Unilateral exit is an explicit branch. Pass the exported acknowledgement
+constant as `forceUnrollAck` for a single VTXO:
 
-`exit` always tries a cooperative leave with the Ark server first. It only
-falls back to a unilateral, on-chain exit automatically when the server is
-unavailable or unresponsive, so the same call is safe to use as the single
-entry point for exiting a VTXO.
+```ts
+await client.exit({
+  outpoint,
+  forceUnrollAck: FORCE_UNROLL_ACK,
+});
+```
+
+`destination` and `forceUnrollAck` are mutually exclusive. Supplying a
+`destination` requests a cooperative leave instead. A cooperative error
+rejects the call and never starts unilateral unroll. The unilateral call
+resolves with an [`ExitResult`](/reference/wavelength-core/#ExitResult) whose
+`path` is `'unilateral'`.
 
 Which fields on [`ExitResult`](/reference/wavelength-core/#ExitResult) are populated depends on `path`:
 
@@ -75,23 +82,27 @@ Which fields on [`ExitResult`](/reference/wavelength-core/#ExitResult) are popul
 | `actorID` | `path` is `'unilateral'` or `'unilateral_fallback'` |
 | `cooperativeError` | retained for source compatibility; not populated by the current RPC |
 
+`unilateral_fallback` is also retained for source compatibility, but the
+current RPC never returns it. Cooperative failures reject instead of entering
+that legacy branch.
+
 Do not call `exit` twice for the same outpoint. Check `client.exitStatus()`
 first if the user may have already started an exit in a previous session.
 
 ```tsx title="exit.tsx"
-import { useWalletEngine } from '@lightninglabs/wavelength-react';
+import {
+  FORCE_UNROLL_ACK,
+  useWalletEngine,
+} from '@lightninglabs/wavelength-react';
 
-function StartExit({
-  outpoint,
-  destination,
-}: {
-  outpoint: string;
-  destination?: string;
-}) {
+function StartExit({ outpoint }: { outpoint: string }) {
   const { client } = useWalletEngine();
 
   const startExit = async () => {
-    await client.exit({ outpoint, destination });
+    await client.exit({
+      outpoint,
+      forceUnrollAck: FORCE_UNROLL_ACK,
+    });
   };
 
   return <button onClick={startExit}>Start exit</button>;

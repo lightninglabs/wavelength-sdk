@@ -13,22 +13,57 @@ Wallet history in Wavelength is an **activity stream**: a sequence of **Entry** 
 
 You can read history in two ways:
 
-- `list({ view: 'activity' })` for a paginated snapshot (optionally filtered with `pendingOnly` and paged with `limit` and `cursor`):
+- `list({ view: 'activity' })` for a paginated snapshot. Filter with
+  `pendingOnly` or `kinds`, and page with `limit` and the string list cursor:
 
   ```ts
-  const { activity } = await client.list({ view: 'activity' });
+  const result = await client.list({
+    view: 'activity',
+    kinds: ['receive', 'deposit'],
+  });
+  const { activity } = result;
   // activity.entries, activity.hasMore, activity.nextCursor
   ```
 
 - `startActivity()` for a live stream that pushes updates until you call `stopActivity()`.
 
-For UI work, prefer the live stream. Call `subscribe()` first to register a listener, then `startActivity({ includeExisting: true })` so the daemon replays current rows before forwarding new changes. Each update arrives as a **WavelengthEvent** with `type: 'activity'` and the changed entry as payload. Pending entries mutate (status, phase, txid, confirmation height) until they reach `complete` or `failed`; your UI can update rows by `id` without polling `list()` on a timer.
+For UI work, prefer the live stream. Call `subscribe()` first to register a
+listener, then open the stream with the entry kinds you need. Persist the last
+numeric `Entry.cursor` you processed and pass it back to resume after that
+position:
+
+```ts
+await client.startActivity({
+  includeExisting: true,
+  kinds: ['send', 'receive'],
+});
+
+await client.startActivity({
+  kinds: ['send', 'receive'],
+  cursor: lastCursor,
+});
+```
+
+Each update arrives as a **WavelengthEvent** with `type: 'activity'` and the
+changed entry as payload. Pending entries mutate (status, phase, txid,
+confirmation height) until they reach `complete` or `failed`.
 
 <Callout type="note">
 `stopActivity()` closes the stream but leaves your `subscribe()` listener registered. You can call `startActivity()` again later without re-subscribing.
 </Callout>
 
-The React **useWalletActivity** hook wraps this pattern: it keeps an in-memory list ordered newest-first and re-renders when activity events arrive.
+Direct clients also receive a terminal `activityStream` event when a stream
+ends or fails. The client does not retry automatically, so a direct consumer
+chooses its own retry policy. The current bridges do not provide structured gap
+cursor or reason details.
+
+`WalletEngine` manages recovery for UI consumers. It reconciles the snapshot
+with `list()`, retries from its last safe numeric stream cursor with bounded
+backoff, and resets that cursor with the runtime lifecycle. Replayed activity
+events trigger idempotent snapshot refreshes instead of direct row appends.
+This provides eventual snapshot consistency after reconnects without
+duplicating entries. The React `useWalletActivity` hook reads that engine
+snapshot, ordered newest-first, and re-renders as reconciliation completes.
 
 ## Event model
 
@@ -36,21 +71,23 @@ Beyond activity rows, the client emits runtime and log events on the same subscr
 
 **WavelengthEvent** is a discriminated union. Narrow on `type` before reading `payload`:
 
-All four event types arrive through the same `subscribe(listener)` callback registered once.
+All five event types arrive through the same `subscribe(listener)` callback registered once.
 
 | `type` | Payload | Meaning |
 |--------|---------|---------|
 | `'activity'` | `Entry` | A wallet operation was created or updated. |
+| `'activityStream'` | `{ state: 'ended' }` or `{ state: 'failed', message }` | The activity stream ended or failed without a consumer-initiated close. |
 | `'log'` | `{ level, message }` | Daemon log line forwarded for debugging (`debug`, `info`, `warn`, `error`). |
 | `'runtimeReady'` | none | The embedded runtime finished loading and can accept `start()`. |
-| `'runtimeStopped'` | none | The runtime shut down cleanly after `stop()`. |
+| `'runtimeStopped'` | none | The runtime stopped, including an unsolicited stop surfaced by the transport. |
 
 Activity events carry the full entry shape:
 
 - **kind**: high-level category (see below).
 - **status**: collapsed outcome: `pending`, `complete`, or `failed`.
 - **amountSat** / **feeSat**: principal and fees in satoshis (plain int64 magnitudes; use the entry's **kind** to determine direction).
-- **progress**: optional lifecycle metadata (phase, payment hash, txid, confirmation height, VTXO outpoint).
+- **cursor**: the monotonic stream position of this update. It is zero for entries returned outside the subscription path.
+- **progress**: optional lifecycle metadata (phase, payment hash, txid, confirmation height, VTXO outpoint, and Lightning preimage).
 - **request**: optional echo of what the user initiated (Lightning invoice, on-chain address, etc.).
 - **failureReason** / **failureCode**: populated when status is `failed`. **failureCode** is one of:
   - **`timed_out`**: the operation exceeded its deadline before completing.
@@ -58,6 +95,10 @@ Activity events carry the full entry shape:
   - **`refunded`**: a swap or payment failed and funds were returned to the wallet.
   - **`needs_intervention`**: the operation stalled in a state that requires manual follow-up.
   - **`failed`**: a generic failure not covered by the other codes.
+
+When known, `EntryProgress.preimage` is the hex-encoded Lightning payment
+preimage. For a completed Lightning-backed send, it is proof of payment for
+the invoice.
 
 **Entry kinds** group operations for filtering and display:
 

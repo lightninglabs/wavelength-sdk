@@ -28,8 +28,11 @@ Manager / iOS AuthenticationServices) passkey ceremony.
 This package re-exports the entire [`@lightninglabs/wavelength-core`](/reference/wavelength-core/)
 public surface (`export * from '@lightninglabs/wavelength-core'`). You only need
 to import from `@lightninglabs/wavelength-react-native` to get the client
-factory, every request/result type, every enum, and `defaultConfig()`. There is
-no need to also depend on `@lightninglabs/wavelength-core` directly.
+factory, every request/result and nested response type, every core-exported
+generated string-enum constant, and `defaultConfig()`. This includes `FacadeMethod`,
+`ActivityStreamOptions`, `EntryProgress`, `CreditPreview`, and the complete
+activity, list, send, and exit type families. There is no need to also depend
+on `@lightninglabs/wavelength-core` directly.
 </Callout>
 
 export const createNativeClientSig = `function createNativeClient(): WavelengthClient`;

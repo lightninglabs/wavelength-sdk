@@ -45,7 +45,19 @@ This is the grpc-gateway default error handler: the daemon does not install a cu
 
 ## Streaming
 
-`SubscribeWallet` is the one server-streaming method (`POST /v1/wallet/subscribe`). Unlike the other 14 routes, the response is not a single JSON object: the gateway keeps the HTTP connection open and writes one JSON-encoded `WalletEntry` per line as wallet activity happens, for as long as the client stays connected.
+`SubscribeWallet` is the one server-streaming method (`POST /v1/wallet/subscribe`).
+Unlike the other 14 routes, the response is not a
+single JSON object. The gateway keeps the HTTP connection open and emits one
+newline-delimited envelope per streamed message, with the entry under a
+`result` field:
+
+```json
+{"result":{"id":"activity-id","kind":"ENTRY_KIND_SEND"}}
+```
+
+This is the daemon's grpc-gateway REST envelope. It is separate from
+Wavelength's camelCase facade stream, which delivers an `Entry` as the payload
+of an `activity` event.
 
 <Callout type="note" title="No write timeout on this connection">
 The gateway's HTTP server disables its write timeout entirely so long-lived streaming responses are not cut off mid-stream. This applies to the gateway server as a whole, and matters most for `/v1/wallet/subscribe`: expect the connection to stay open until you close it client-side.

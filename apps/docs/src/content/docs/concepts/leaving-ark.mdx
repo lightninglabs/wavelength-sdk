@@ -31,7 +31,25 @@ It works even if the operator disappears, but it is **slow and expensive**:
 - Multiple on-chain transactions may be required (preview with `getExitPlan({ outpoints })`).
 - You may need to fund a backing wallet for fees before the exit can proceed unilaterally.
 
-The Wavelength SDK exposes this through `exit({ outpoint, forceUnrollAck: 'I_KNOW_WHAT_I_AM_DOING' })`, `exitStatus({ outpoint })`, and `sweepWallet({ destinationAddress, broadcast: false })` (call with `broadcast: false` first to preview). Unilateral unroll requires that exact acknowledgement string and cannot be combined with a cooperative `destination`. Cooperative leave failures surface as errors; they do not automatically fall back to unilateral unroll. Once a unilateral job exists, follow-up `exitStatus()` / `sweepWallet()` calls drive the unroll to completion. This path is not the same API as sending to an address cooperatively.
+Wavelength exposes this through the acknowledged `exit()` branch:
+
+```ts
+import { FORCE_UNROLL_ACK } from '@lightninglabs/wavelength-core';
+
+await client.exit({
+  outpoint,
+  forceUnrollAck: FORCE_UNROLL_ACK,
+});
+```
+
+Import `FORCE_UNROLL_ACK` from any Wavelength package. It carries the exact
+acknowledgement string the daemon requires and cannot be combined with a
+cooperative `destination`. Cooperative leave failures reject; they never
+start unilateral unroll. Once a unilateral job exists, follow-up
+`exitStatus({ outpoint })` and
+`sweepWallet({ destinationAddress, broadcast: false })` calls drive the
+unroll to completion. Call the sweep with `broadcast: false` first to preview.
+This path is not the same API as sending to an address cooperatively.
 
 Unilateral exit does not instantaneously credit a user-chosen address. It creates claimable on-chain outputs over time; `sweepWallet()` consolidates them once timelocks expire.
 
