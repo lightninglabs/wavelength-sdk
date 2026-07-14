@@ -67,8 +67,9 @@ on `7071`, Esplora on `8501`, swap on `10032`).
 
 Signet, testnet, and testnet4 presets from `defaultConfig()` should work without a local
 backend; if they fail, check corporate proxies or ad blockers first. On web,
-Ark and swap values must be REST URLs. Filesystem TLS certificate paths are
-not supported by this transport.
+Ark and swap values must be REST URLs. The transport always rejects
+`arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
+`disableSwaps: true`, which suppresses every swap field.
 
 ### 401 Unauthorized from a gateway
 
