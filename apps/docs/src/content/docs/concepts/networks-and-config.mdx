@@ -1,22 +1,27 @@
 ---
 title: Networks & config
-description: How to configure the Wavelength SDK for signet, testnet, testnet4, or mainnet using the three gateway URLs, defaultConfig presets, allowMainnet flag, and advanced options.
+description: How to configure the Wavelength SDK for signet, testnet, testnet4, or mainnet with flat RuntimeConfig fields, defaultConfig presets, and platform-specific endpoints.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
-## The three gateways
+## Backend endpoints
 
-Starting the embedded daemon requires three REST endpoints your app never calls directly, but they must all serve the same Bitcoin network. Misaligned URLs are a common cause of stuck deposits or swaps that never fund.
+Starting the embedded daemon requires backend endpoints that serve the same
+Bitcoin network. Your app never calls them directly. Misaligned endpoints are a
+common cause of stuck deposits or swaps that never fund.
 
-The embedded daemon never talks to Bitcoin or Ark nodes directly from your app code. `RuntimeConfig` is the shared `core` contract, so the same fields apply on either transport: after `start()`, the daemon reaches these **three REST gateways**. (The React Native transport reaches the daemon over its native gRPC; the web transport uses REST because browsers cannot dial native gRPC. Either way these three gateway URLs are what the daemon connects out to.)
+`RuntimeConfig` uses one flat, camelCase shape on both platforms. The endpoint
+values differ by transport:
 
-1. **`arkServerUrl`** (Ark operator + mailbox edge): rounds, boarding, VTXO relay, cooperative leave, and mailbox traffic share this gateway. There is no separate mailbox URL in the launch config.
-2. **`swapServerUrl`** (swap server): Lightning↔Ark atomic swaps (Lightning receive and send).
-3. **`esploraUrl`** (Esplora): chain queries and UTXO lookups for boarding detection. Must implement the Esplora `/address/:addr/utxo` API (electrs / mempool.space compatible).
+1. **`arkServerAddress`** is the Ark operator and mailbox edge. It handles rounds, boarding, VTXO relay, cooperative leave, and mailbox traffic. Use a REST URL on web and a `host:port` gRPC address on React Native. There is no separate mailbox field.
+2. **`swapServerAddress`** is the swap server for Lightning to Ark atomic swaps. Use a REST URL on web and a `host:port` gRPC address on React Native.
+3. **`walletEsploraUrl`** is an HTTP Esplora endpoint on both platforms for chain queries and UTXO lookups. It must implement the Esplora `/address/:addr/utxo` API (electrs or mempool.space compatible).
 
-All three must point at infrastructure that serves the same **`network`**. A mismatched Esplora endpoint or swap server is a common source of "stuck deposit" or "swap never funds" bugs.
+All configured services must point at the same **`network`**. A mismatched
+Esplora endpoint or swap server is a common source of "stuck deposit" or "swap
+never funds" bugs.
 
 ## defaultConfig presets
 
@@ -55,13 +60,22 @@ Presets ship for:
 | `'testnet'` | Bitcoin testnet3 with hosted Ark/swap gateways. |
 | `'testnet4'` | Bitcoin testnet4 with hosted Ark/swap gateways. |
 
-Hosted test-network gateways use TLS; on the web transport they follow a `*-rest` hostname pattern, while the React Native transport dials the matching host:port gRPC addresses. `defaultConfig` accepts only these preset networks. `'mainnet'` and `'regtest'` are excluded: mainnet has no public deployment yet, and regtest's local ports vary per development environment. Build a `RuntimeConfig` for either by hand: mainnet with your own gateway URLs and `allowMainnet` (see below), regtest with local URLs and the insecure-transport flags.
+Hosted test-network gateways use TLS. The web preset uses REST URLs, while the
+React Native preset uses matching `host:port` gRPC addresses. `defaultConfig`
+accepts only these preset networks. `'mainnet'` and `'regtest'` are excluded:
+mainnet has no public deployment yet, and regtest's local ports vary per
+development environment. Build a `RuntimeConfig` for either by hand: mainnet
+with your own endpoints and `allowMainnet` (see below), regtest with local
+endpoints and the insecure-transport flags.
 
 Pass overrides as the second argument to change data directory, point at your own operator, or toggle advanced flags without losing the rest of the preset.
 
 ## allowMainnet
 
-Mainnet is deliberately gated. Set **`allowMainnet: true`** together with **`network: 'mainnet'`** and your own **`arkServerUrl`**, **`swapServerUrl`**, and **`esploraUrl`**. Without **`allowMainnet`**, the daemon refuses to start on mainnet even if URLs are present.
+Mainnet is deliberately gated. Set **`allowMainnet: true`** together with
+**`network: 'mainnet'`** and your own **`arkServerAddress`**,
+**`swapServerAddress`**, and **`walletEsploraUrl`**. Without **`allowMainnet`**,
+the SDK rejects the configuration before startup.
 
 <Callout type="caution">
 `allowMainnet` is an explicit safety rail. Do not enable it in example code or demos that users might copy against production networks by accident.
@@ -69,22 +83,59 @@ Mainnet is deliberately gated. Set **`allowMainnet: true`** together with **`net
 
 Test networks ignore **`allowMainnet`**; it exists only for mainnet runs.
 
-## advanced options
+## Complete configuration
 
-Most apps only need `defaultConfig(network)` plus an optional data directory. The remaining **RuntimeConfig** fields are for self-hosting, local dev, or specialized deployments:
+Most apps only need `defaultConfig(network)` plus an optional data directory.
+Do not copy this advanced example into a quickstart. It shows the flat fields
+available for self-hosting and specialized deployments:
 
-| Field | Purpose |
-|-------|---------|
-| **`dataDir`** | Storage root for daemon and wallet state (an OPFS path in the browser; a filesystem path in the app data directory on React Native). |
-| **`disableSwaps`** | Turn off the Lightning swap subsystem entirely; Ark boarding and leaves still work. |
-| **`serverInsecure`** | Skip TLS verification for **`arkServerUrl`** (local dev only). |
-| **`swapServerInsecure`** | Skip TLS verification for **`swapServerUrl`** (local dev only). |
-| **`swapDatabaseFileName`** | Daemon-owned SQLite file for swap session state. |
-| **`debugLevel`** | Daemon log verbosity (distinct from the web client's RPC **`debug`** flag). |
+```ts
+const config: RuntimeConfig = {
+  network: 'signet',
+  walletType: 'btcwallet',
+  walletFeeUrl: 'https://fees.example.com',
+  walletBlockHeadersSource: 'neutrino',
+  walletFilterHeadersSource: 'neutrino',
+  walletRecoveryWindow: 250,
+  maxOperatorFeeSat: 100,
+  signingWorkers: 4,
+  bufferSize: 64,
+};
+```
 
-On regtest, set both insecure flags yourself because local gateways speak plain HTTP. On the hosted networks, leave them unset so connections stay TLS-verified.
+### Common fields
 
-If you self-host Ark or swap infrastructure, replace the preset URLs while keeping network aligned with your Esplora instance. Setting `disableSwaps: true` is appropriate for boarding-only experiments where Lightning is out of scope. Full field documentation is in the [wavelength-core reference](/reference/wavelength-core/).
+- `network`, `allowMainnet`, `dataDir`, and `debugLevel` select the network,
+  mainnet safety gate, storage root, and daemon log verbosity.
+- `arkServerAddress`, `arkServerTlsCertPath`, and `arkServerInsecure` configure
+  the Ark endpoint. On web, `arkServerAddress` is a REST URL and filesystem
+  certificate paths are rejected. On React Native, it is a `host:port` gRPC
+  address.
+- `swapServerAddress`, `swapServerTlsCertPath`, `swapServerInsecure`, and
+  `swapDatabaseFileName` configure the swap service and its state. The web
+  transport also rejects filesystem TLS certificate paths.
+- `disableSwaps: true` disables Lightning swaps and suppresses both preset and
+  override swap fields.
+- `maxOperatorFeeSat`, `signingWorkers`, and `bufferSize` are numeric runtime
+  limits. They must be nonnegative safe integers.
+
+### Embedded wallet backend fields
+
+- `walletEsploraUrl`, `walletPasswordFile`, and
+  `walletPollIntervalSeconds` apply only to `lwwallet`.
+- `walletFeeUrl`, `walletBlockHeadersSource`, and
+  `walletFilterHeadersSource` apply only to `btcwallet`.
+- `walletRecoveryWindow` applies to both supported embedded backends.
+
+`lwwallet` is the default backend. The SDK rejects incompatible backend fields
+and invalid numeric values before it starts the daemon. LND and eager-round-join
+disable are intentionally unavailable through this mobile start contract.
+
+On regtest, set both insecure flags yourself because local web gateways speak
+plain HTTP. On hosted networks, leave them unset so connections stay
+TLS-verified. If you self-host Ark or swap infrastructure, replace the preset
+endpoints while keeping the network aligned with your Esplora instance. Full
+field documentation is in the [wavelength-core reference](/reference/wavelength-core/).
 
 ## Next steps
 

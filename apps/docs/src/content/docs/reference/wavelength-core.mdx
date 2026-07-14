@@ -46,14 +46,26 @@ export const runtimeConfigSig = `type RuntimeConfig = {
   network?: Network;
   allowMainnet?: boolean;
   dataDir?: string;
-  arkServerUrl?: string;
-  esploraUrl?: string;
-  swapServerUrl?: string;
-  swapDatabaseFileName?: string;
-  serverInsecure?: boolean;
+  debugLevel?: DebugLevel;
+  arkServerAddress?: string;
+  arkServerTlsCertPath?: string;
+  arkServerInsecure?: boolean;
+  walletType?: 'lwwallet' | 'btcwallet';
+  walletEsploraUrl?: string;
+  walletPasswordFile?: string;
+  walletPollIntervalSeconds?: number;
+  walletRecoveryWindow?: number;
+  walletFeeUrl?: string;
+  walletBlockHeadersSource?: string;
+  walletFilterHeadersSource?: string;
+  swapServerAddress?: string;
+  swapServerTlsCertPath?: string;
   swapServerInsecure?: boolean;
+  swapDatabaseFileName?: string;
   disableSwaps?: boolean;
-  debugLevel?: string;
+  maxOperatorFeeSat?: number;
+  signingWorkers?: number;
+  bufferSize?: number;
 };`;
 
 export const networkSig = `type Network = 'mainnet' | 'testnet' | 'testnet4' | 'signet' | 'regtest';`;
@@ -63,15 +75,26 @@ export const mobileConfigSig = `type MobileConfig = {
   network?: string;
   allow_mainnet?: boolean;
   debug_level?: string;
-  wallet_type?: string;
+  wallet_type?: 'lwwallet' | 'btcwallet';
   wallet_esplora_url?: string;
+  wallet_password_file?: string;
+  wallet_poll_interval_seconds?: number;
+  wallet_recovery_window?: number;
+  wallet_fee_url?: string;
+  wallet_block_headers_source?: string;
+  wallet_filter_headers_source?: string;
   server_address?: string;
+  server_tls_cert_path?: string;
   server_transport?: ServerTransport;
   server_insecure?: boolean;
   swap_server_address?: string;
+  swap_server_tls_cert_path?: string;
   swap_server_transport?: ServerTransport;
   swap_server_insecure?: boolean;
   swap_database_file_name?: string;
+  max_operator_fee_sat?: number;
+  signing_workers?: number;
+  buffer_size?: number;
 };`;
 
 <ApiSymbol name="networkDefaults" kind="function">
@@ -119,19 +142,59 @@ fields you need.
 
 <Signature title="wavelength-core.d.ts" code={runtimeConfigSig} />
 
+The fields stay flat even when they apply to one embedded backend. For example,
+this `btcwallet` configuration uses only top-level `RuntimeConfig` fields:
+
+```ts
+const config: RuntimeConfig = {
+  network: 'signet',
+  walletType: 'btcwallet',
+  walletFeeUrl: 'https://fees.example.com',
+  walletBlockHeadersSource: 'neutrino',
+  walletFilterHeadersSource: 'neutrino',
+  walletRecoveryWindow: 250,
+  maxOperatorFeeSat: 100,
+  signingWorkers: 4,
+  bufferSize: 64,
+};
+```
+
 <ParamsTable rows={[
-  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Required. Use \'mainnet\' only together with allowMainnet.' },
-  { name: 'allowMainnet', type: 'boolean', desc: 'Must be true to run on mainnet; ignored on test networks. The daemon refuses to start on mainnet without it.' },
+  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Use mainnet only together with allowMainnet.' },
+  { name: 'allowMainnet', type: 'boolean', desc: 'Must be true to run on mainnet. The SDK rejects a mainnet config without it before startup.' },
   { name: 'dataDir', type: 'string', desc: 'Storage root for daemon and wallet state (an OPFS path in the browser). A daemon default is used when unset.' },
-  { name: 'arkServerUrl', type: 'string', desc: 'The Ark operator’s mailbox edge server (its REST gateway in the browser). Required to reach the Ark network.' },
-  { name: 'esploraUrl', type: 'string', desc: 'The Esplora REST endpoint the lightweight wallet uses for chain data. Required.' },
-  { name: 'swapServerUrl', type: 'string', desc: 'The Lightning swap server’s REST gateway. Leave unset (or set disableSwaps) to run without Lightning swaps.' },
-  { name: 'swapDatabaseFileName', type: 'string', desc: 'Advanced. The daemon-owned SQLite file for swap state; a sensible default is used when unset.' },
-  { name: 'serverInsecure', type: 'boolean', desc: 'Advanced. Disables TLS for the Ark server connection; for local development only.' },
-  { name: 'swapServerInsecure', type: 'boolean', desc: 'Advanced. Disables TLS for the swap server connection; for local development only.' },
-  { name: 'disableSwaps', type: 'boolean', desc: 'Turns off the Lightning swap subsystem entirely.' },
-  { name: 'debugLevel', type: 'string', desc: "The daemon's log verbosity (e.g. 'info', 'debug'). Distinct from the client's RPC-payload debug option." },
+  { name: 'debugLevel', type: 'DebugLevel', desc: "Daemon log verbosity. Distinct from the web client's RPC-payload debug option." },
+  { name: 'arkServerAddress', type: 'string', desc: 'Ark operator and mailbox endpoint. Use a REST URL on web and a host:port gRPC address on React Native.' },
+  { name: 'arkServerTlsCertPath', type: 'string', desc: 'Optional filesystem TLS certificate path for native transports. The web transport rejects it.' },
+  { name: 'arkServerInsecure', type: 'boolean', desc: 'Disables TLS for the Ark endpoint. Use only for local development.' },
+  { name: 'walletType', type: "'lwwallet' | 'btcwallet'", desc: 'Embedded wallet backend. Default: lwwallet.' },
+  { name: 'walletEsploraUrl', type: 'string', desc: 'HTTP Esplora endpoint for lwwallet only, on both platforms.' },
+  { name: 'walletPasswordFile', type: 'string', desc: 'Password file for lwwallet only.' },
+  { name: 'walletPollIntervalSeconds', type: 'number', desc: 'Chain polling interval for lwwallet only. Must be a nonnegative safe integer.' },
+  { name: 'walletRecoveryWindow', type: 'number', desc: 'Wallet address look-ahead window for either supported embedded backend. Must fit in uint32.' },
+  { name: 'walletFeeUrl', type: 'string', desc: 'Fee estimator endpoint for btcwallet only.' },
+  { name: 'walletBlockHeadersSource', type: 'string', desc: 'Block-header source for btcwallet only.' },
+  { name: 'walletFilterHeadersSource', type: 'string', desc: 'Compact-filter-header source for btcwallet only.' },
+  { name: 'swapServerAddress', type: 'string', desc: 'Swap endpoint. Use a REST URL on web and a host:port gRPC address on React Native.' },
+  { name: 'swapServerTlsCertPath', type: 'string', desc: 'Optional filesystem TLS certificate path for native transports. The web transport rejects it unless swaps are disabled.' },
+  { name: 'swapServerInsecure', type: 'boolean', desc: 'Disables TLS for the swap endpoint. Use only for local development.' },
+  { name: 'swapDatabaseFileName', type: 'string', desc: 'Daemon-owned SQLite file for swap state.' },
+  { name: 'disableSwaps', type: 'boolean', desc: 'Disables Lightning swaps and suppresses preset and override swap fields.' },
+  { name: 'maxOperatorFeeSat', type: 'number', desc: 'Maximum operator fee in satoshis. Must be a nonnegative safe integer.' },
+  { name: 'signingWorkers', type: 'number', desc: 'Signing worker count. Must be a nonnegative safe integer.' },
+  { name: 'bufferSize', type: 'number', desc: 'Runtime buffer size. Must be a nonnegative safe integer.' },
 ]} />
+
+The SDK validates `RuntimeConfig` before it starts the daemon. It rejects
+backend-only fields used with the wrong `walletType`, invalid numeric values,
+mainnet without `allowMainnet: true`, and filesystem TLS certificate paths on
+web. `lwwallet` fields are `walletEsploraUrl`, `walletPasswordFile`, and
+`walletPollIntervalSeconds`. `btcwallet` fields are `walletFeeUrl`,
+`walletBlockHeadersSource`, and `walletFilterHeadersSource`.
+
+LND and eager-round-join disable are intentionally unavailable through this
+mobile start contract. Most apps should use `defaultConfig()` from their
+transport package and override only the fields they need.
 
 </ApiSymbol>
 
@@ -155,39 +218,39 @@ addresses (React Native transport):
     title: 'signet',
     accent: 'teal',
     fields: [
-      { label: 'arkServerUrl', value: { rest: 'https://arkd-signet-rest.staging.lightningcluster.com', grpc: 'arkd-signet.staging.lightningcluster.com:443' } },
-      { label: 'esploraUrl', value: 'https://mempool-signet.testnet.lightningcluster.com/api' },
-      { label: 'swapServerUrl', value: { rest: 'https://swapd-signet-rest.staging.lightningcluster.com', grpc: 'swapd-signet.staging.lightningcluster.com:443' } },
+      { label: 'arkServerAddress', value: { rest: 'https://arkd-signet-rest.staging.lightningcluster.com', grpc: 'arkd-signet.staging.lightningcluster.com:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool-signet.testnet.lightningcluster.com/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-signet-rest.staging.lightningcluster.com', grpc: 'swapd-signet.staging.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'testnet',
     accent: 'sky',
     fields: [
-      { label: 'arkServerUrl', value: { rest: 'https://arkd-rest.testnet.lightningcluster.com', grpc: 'arkd.testnet.lightningcluster.com:443' } },
-      { label: 'esploraUrl', value: 'https://mempool.space/testnet/api' },
-      { label: 'swapServerUrl', value: { rest: 'https://swapd-rest.testnet.lightningcluster.com', grpc: 'swapd.testnet.lightningcluster.com:443' } },
+      { label: 'arkServerAddress', value: { rest: 'https://arkd-rest.testnet.lightningcluster.com', grpc: 'arkd.testnet.lightningcluster.com:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool.space/testnet/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-rest.testnet.lightningcluster.com', grpc: 'swapd.testnet.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'testnet4',
     accent: 'lime',
     fields: [
-      { label: 'arkServerUrl', value: { rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com', grpc: 'arkd-testnet4.testnet.lightningcluster.com:443' } },
-      { label: 'esploraUrl', value: 'https://mempool.space/testnet4/api' },
-      { label: 'swapServerUrl', value: { rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com', grpc: 'swapd-testnet4.testnet.lightningcluster.com:443' } },
+      { label: 'arkServerAddress', value: { rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com', grpc: 'arkd-testnet4.testnet.lightningcluster.com:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool.space/testnet4/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com', grpc: 'swapd-testnet4.testnet.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'mainnet',
-    empty: 'No public preset - build the RuntimeConfig by hand with your own arkServerUrl, esploraUrl, swapServerUrl, and allowMainnet.',
+    empty: 'No public preset - build the RuntimeConfig by hand with your own arkServerAddress, walletEsploraUrl, swapServerAddress, and allowMainnet.',
   },
 ]} />
 
 <Callout type="caution" title="mainnet has no public preset">
 mainnet is not a `PresetNetwork`, so there is no `defaultConfig` for it. There
 is no canonical public gateway for mainnet yet, so build the `RuntimeConfig` by
-hand: supply your own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or
+hand: supply your own `arkServerAddress`, `walletEsploraUrl`, and `swapServerAddress` (or
 `disableSwaps`) and pass `allowMainnet: true`, or `start()` will refuse to run.
 </Callout>
 
@@ -209,6 +272,10 @@ code normally supplies [`RuntimeConfig`](#RuntimeConfig) instead; this type is
 useful when implementing or debugging a transport.
 
 <Signature title="wavelength-core.d.ts" code={mobileConfigSig} />
+
+Calling `client.callFacade('start', mobileConfig)` sends this lower-level shape
+directly to the daemon and bypasses public `RuntimeConfig` validation. App code
+should call `client.start(config)` instead.
 
 </ApiSymbol>
 

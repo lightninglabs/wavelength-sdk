@@ -63,8 +63,8 @@ export const defaultConfigSig = `function defaultConfig(
 
 Returns a ready-to-use `RuntimeConfig` for a network, preloaded with the
 canonical public gRPC host:port addresses the native transport dials, merged
-with any overrides. Pass overrides to set `dataDir` or point at your own
-infrastructure.
+with any overrides. This is a shallow merge of top-level `RuntimeConfig`
+fields. Pass overrides to set `dataDir` or point at your own infrastructure.
 
 <Signature title="wavelength-react-native.d.ts" code={defaultConfigSig} />
 
@@ -87,6 +87,8 @@ const config = defaultConfig('signet', { dataDir: '/wallet' });
 deployment yet, and regtest's local ports vary per development environment.
 Build their `RuntimeConfig` by hand, mainnet with your own gRPC addresses and
 `allowMainnet`, regtest with local addresses and the insecure-transport flags.
+`arkServerAddress` and `swapServerAddress` are gRPC `host:port` values on
+native, while `walletEsploraUrl` remains an HTTP Esplora endpoint.
 The per-network endpoint values are on the
 [wavelength-core reference](/reference/wavelength-core/#Network).
 

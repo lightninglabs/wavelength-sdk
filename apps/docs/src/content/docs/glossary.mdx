@@ -29,7 +29,7 @@ Cooperative leave is the normal way to withdraw Ark funds to a standard on-chain
 
 ### Esplora
 
-Esplora is a REST API for querying Bitcoin chain data and UTXOs. Wavelength's lightweight wallet backend uses an Esplora-compatible endpoint (configured as `esploraUrl`) to watch boarding deposits, fee estimates, and on-chain activity. The endpoint must implement the Esplora `/address/:addr/utxo` API (electrs or Blockstream-compatible) and is set via the `esploraUrl` field on `RuntimeConfig`. See [Networks & config](/concepts/networks-and-config/) and [System architecture](/introduction/system-architecture/).
+Esplora is a REST API for querying Bitcoin chain data and UTXOs. Wavelength's `lwwallet` backend uses an Esplora-compatible HTTP endpoint (configured as `walletEsploraUrl`) to watch boarding deposits, fee estimates, and on-chain activity. The endpoint must implement the Esplora `/address/:addr/utxo` API (electrs or Blockstream-compatible) and is set via the `walletEsploraUrl` field on `RuntimeConfig`. See [Networks & config](/concepts/networks-and-config/) and [System architecture](/introduction/system-architecture/).
 
 ### Lightning receive
 
@@ -41,7 +41,7 @@ A Lightning send moves value out of your Ark wallet over Lightning through an at
 
 ### Mailbox
 
-The mailbox is the operator's asynchronous message channel for events that the wallet cannot pull synchronously over a simple RPC. Swap notifications, round updates, and similar push-style events arrive through the mailbox edge, which shares the same REST gateway as the Ark operator (`arkServerUrl`). Wavelength polls and acknowledges mailbox messages as part of its background sync. See [Activity & events](/concepts/activity-and-events/) and [System architecture](/introduction/system-architecture/).
+The mailbox is the operator's asynchronous message channel for events that the wallet cannot pull synchronously over a simple RPC. Swap notifications, round updates, and similar push-style events arrive through the mailbox edge, which shares the Ark operator address (`arkServerAddress`). Wavelength polls and acknowledges mailbox messages as part of its background sync. See [Activity & events](/concepts/activity-and-events/) and [System architecture](/introduction/system-architecture/).
 
 ### OOR (out-of-round)
 
@@ -49,7 +49,7 @@ OOR (out-of-round) transfers move VTXOs between owners without waiting for the n
 
 ### Operator (ASP)
 
-The operator, also called the Ark Service Provider (ASP), runs the Ark coordinator that constructs batch transactions, co-signs off-chain spends, and maintains the VTXO index. You trust the operator for availability and honest signing, but not for custody: you can always reclaim funds on-chain via unilateral exit if the operator stops cooperating. Configure the operator gateway as `arkServerUrl`. See [System architecture](/introduction/system-architecture/).
+The operator, also called the Ark Service Provider (ASP), runs the Ark coordinator that constructs batch transactions, co-signs off-chain spends, and maintains the VTXO index. You trust the operator for availability and honest signing, but not for custody: you can always reclaim funds on-chain via unilateral exit if the operator stops cooperating. Configure the operator endpoint as `arkServerAddress`. See [System architecture](/introduction/system-architecture/).
 
 ### Passkey
 
