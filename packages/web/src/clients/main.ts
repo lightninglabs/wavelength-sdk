@@ -1,9 +1,9 @@
 import {
   BaseWavelengthClient,
-  camelizeKeys,
   Entry,
   WavelengthError,
 } from '@lightninglabs/wavelength-core';
+import type { FacadeMethod } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
 import type { WebClientOptions } from '../index';
 import {
@@ -49,7 +49,10 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     return this.ensureLoaded();
   }
 
-  async callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+  protected async invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
     await this.ensureLoaded();
 
     const globalWallet = globalThis as typeof globalThis & {
@@ -72,7 +75,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
         console.log(`${debugTs()} Executed ${method} result:`, result);
       }
 
-      return camelizeKeys<T>(result);
+      return result;
     } catch (err) {
       throw new WavelengthError(errorMessage(err), 'wavelength_error', {
         cause: err,

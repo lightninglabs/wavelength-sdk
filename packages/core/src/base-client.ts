@@ -32,67 +32,91 @@ import type { RuntimeConfig } from './config.ts';
 import type { WavelengthClient } from './client.ts';
 import type { WavelengthEvent, WavelengthListener } from './events.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
-import type { ServerTransport } from './facade.ts';
-import { toGoCreateWalletReq, toGoUnlockWalletReq, toMobileConfig } from './facade.ts';
+import type { FacadeMethod, ServerTransport } from './facade.ts';
+import {
+  assertFacadeMethod,
+  toGoCreateWalletReq,
+  toGoUnlockWalletReq,
+  toMobileConfig,
+} from './facade.ts';
+import { camelizeKeys } from './casing.ts';
 import { errorMessage } from './errors.ts';
 import { normalizeInfo } from './state.ts';
 
 /**
  * Implements the transport-agnostic half of {@link WavelengthClient}: every RPC
- * verb is expressed in terms of the abstract callRaw, so a transport (web
+ * verb is expressed in terms of the abstract invokeFacade, so a transport (web
  * wasm, React Native gomobile, or a future one) supplies only the pipe:
- * callRaw, ready, the activity-stream plumbing, and its {@link ServerTransport}
- * flavor. The shared subscribe/emit listener machinery lives here too. Each
- * verb is defined once here, so a new RPC is added in exactly one place.
+ * invokeFacade, ready, the activity-stream plumbing, and its {@link ServerTransport}
+ * flavor. The shared subscribe/emit listener machinery and typed wrappers live
+ * here. The facade catalog, public contract, native dispatch, and response
+ * normalization remain separate synchronization points.
  */
 export abstract class BaseWavelengthClient implements WavelengthClient {
   protected readonly listeners = new Set<WavelengthListener>();
 
   // Transport hooks the concrete clients implement.
   abstract ready(): Promise<void>;
-  abstract callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
+  protected abstract invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params?: unknown,
+  ): Promise<T>;
   abstract startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
   abstract stopActivity(): void;
   /** How this transport's daemon dials the Ark and swap servers. */
   protected abstract readonly serverTransport: ServerTransport;
+
+  async callFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
+    assertFacadeMethod(method);
+    const raw = await this.invokeFacade(method, params);
+
+    return camelizeKeys<T>(raw);
+  }
+
+  isRunning(): Promise<boolean> {
+    return this.callFacade<boolean>('isRunning');
+  }
 
   // start boots the embedded daemon and returns the post-boot WalletInfo. The
   // facade's start verb resolves nothing useful on its own, so the client
   // fetches getInfo afterwards; the React provider derives the runtime phase
   // from it.
   async start(config: RuntimeConfig): Promise<WalletInfo> {
-    await this.callRaw('start', toMobileConfig(config, this.serverTransport));
+    await this.callFacade('start', toMobileConfig(config, this.serverTransport));
 
     return this.getInfo();
   }
 
   async stop(): Promise<void> {
-    await this.callRaw('stop');
+    await this.callFacade('stop');
     this.emit({ type: 'runtimeStopped' });
   }
 
   async getInfo(): Promise<WalletInfo> {
-    return normalizeInfo(await this.callRaw('getInfo'));
+    return normalizeInfo(await this.callFacade('getInfo'));
   }
 
   status(): Promise<WalletStatus> {
-    return this.callRaw<WalletStatus>('status');
+    return this.callFacade<WalletStatus>('status');
   }
 
   balance(): Promise<Balance> {
     // The daemon's Balance shape; generated.ts is the field source of truth.
-    return this.callRaw<Balance>('balance');
+    return this.callFacade<Balance>('balance');
   }
 
   createWallet(req: CreateWalletRequest): Promise<CreateWalletResult> {
-    return this.callRaw<CreateWalletResult>(
+    return this.callFacade<CreateWalletResult>(
       'createWallet',
       toGoCreateWalletReq(req),
     );
   }
 
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult> {
-    return this.callRaw<UnlockWalletResult>(
+    return this.callFacade<UnlockWalletResult>(
       'unlockWallet',
       toGoUnlockWalletReq(req),
     );
@@ -101,32 +125,32 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
   openWalletFromPasskey(
     req: OpenWalletFromPasskeyRequest,
   ): Promise<OpenWalletFromPasskeyResult> {
-    return this.callRaw<OpenWalletFromPasskeyResult>(
+    return this.callFacade<OpenWalletFromPasskeyResult>(
       'openWalletFromPasskey',
       req,
     );
   }
 
   deposit(req: DepositRequest = {}): Promise<DepositResult> {
-    return this.callRaw<DepositResult>('deposit', req);
+    return this.callFacade<DepositResult>('deposit', req);
   }
 
   receive(req: ReceiveRequest): Promise<ReceiveResult> {
-    return this.callRaw<ReceiveResult>('receive', req);
+    return this.callFacade<ReceiveResult>('receive', req);
   }
 
   // prepareSend quotes a payment without dispatching it, returning the fee and a
   // single-use sendIntentId. Pair it with sendPrepared for a quote -> confirm ->
   // pay flow; send() folds the two steps into one.
   prepareSend(req: SendRequest): Promise<PrepareSendResult> {
-    return this.callRaw<PrepareSendResult>('prepareSend', req);
+    return this.callFacade<PrepareSendResult>('prepareSend', req);
   }
 
   // sendPrepared dispatches a payment quoted by prepareSend. It folds the
   // prepare-time paymentHash into the result so a two-step caller sees the same
   // shape send() returns (the daemon omits PaymentHash from sendPrepared).
   async sendPrepared(prepared: PrepareSendResult): Promise<SendResult> {
-    const result = await this.callRaw<SendResult>('sendPrepared', {
+    const result = await this.callFacade<SendResult>('sendPrepared', {
       SendIntentID: prepared.sendIntentId,
     });
 
@@ -143,27 +167,27 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
   }
 
   list(req: ListRequest = {}): Promise<ListResult> {
-    return this.callRaw<ListResult>('list', req);
+    return this.callFacade<ListResult>('list', req);
   }
 
   exit(req: ExitRequest): Promise<ExitResult> {
-    return this.callRaw<ExitResult>('exit', req);
+    return this.callFacade<ExitResult>('exit', req);
   }
 
   exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult> {
-    return this.callRaw<ExitStatusResult>('exitStatus', req);
+    return this.callFacade<ExitStatusResult>('exitStatus', req);
   }
 
   exitSummary(req: ExitSummaryRequest = {}): Promise<ExitSummaryResult> {
-    return this.callRaw<ExitSummaryResult>('exitSummary', req);
+    return this.callFacade<ExitSummaryResult>('exitSummary', req);
   }
 
   getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult> {
-    return this.callRaw<GetExitPlanResult>('getExitPlan', req);
+    return this.callFacade<GetExitPlanResult>('getExitPlan', req);
   }
 
   sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult> {
-    return this.callRaw<SweepWalletResult>('sweepWallet', req);
+    return this.callFacade<SweepWalletResult>('sweepWallet', req);
   }
 
   subscribe(listener: WavelengthListener): () => void {

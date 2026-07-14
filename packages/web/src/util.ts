@@ -11,7 +11,7 @@ export { errorMessage } from '@lightninglabs/wavelength-core';
 /**
  * A single in-flight RPC awaiting its worker response, keyed by request id in
  * the worker client's pending map. resolve/reject settle the promise the caller
- * received from callRaw when the matching worker message arrives.
+ * received from callFacade when the matching worker message arrives.
  */
 export type PendingCall = {
   resolve: (value: unknown) => void;

@@ -102,6 +102,7 @@ RCT_EXPORT_MODULE(Wavelength)
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     NSError *error = nil;
     NSData *result = nil;
+    NSString *json = @"";
     NSData *params = [paramsJson dataUsingEncoding:NSUTF8StringEncoding];
 
     if ([method isEqualToString:@"start"]) {
@@ -134,10 +135,28 @@ RCT_EXPORT_MODULE(Wavelength)
       result = MobileExit(params, &error);
     } else if ([method isEqualToString:@"exitStatus"]) {
       result = MobileExitStatus(params, &error);
+    } else if ([method isEqualToString:@"exitSummary"]) {
+      result = MobileExitSummary(params, &error);
     } else if ([method isEqualToString:@"getExitPlan"]) {
       result = MobileGetExitPlan(params, &error);
     } else if ([method isEqualToString:@"sweepWallet"]) {
       result = MobileSweepWallet(params, &error);
+    } else if ([method isEqualToString:@"confirmedBalanceSat"]) {
+      int64_t value = 0;
+      MobileConfirmedBalanceSat(&value, &error);
+      json = [NSString stringWithFormat:@"%lld",
+          (long long)value];
+    } else if ([method isEqualToString:@"pendingInboundSat"]) {
+      int64_t value = 0;
+      MobilePendingInboundSat(&value, &error);
+      json = [NSString stringWithFormat:@"%lld",
+          (long long)value];
+    } else if ([method isEqualToString:@"walletReady"]) {
+      BOOL value = NO;
+      MobileWalletReady(&value, &error);
+      json = value ? @"true" : @"false";
+    } else if ([method isEqualToString:@"isRunning"]) {
+      json = MobileIsRunning() ? @"true" : @"false";
     } else {
       reject(kWavelengthErrorCode,
              [NSString stringWithFormat:@"unknown wavelength verb: %@", method],
@@ -149,10 +168,10 @@ RCT_EXPORT_MODULE(Wavelength)
       reject(kWavelengthErrorCode, error.localizedDescription, error);
       return;
     }
-    NSString *json = result
-        ? [[NSString alloc] initWithData:result encoding:NSUTF8StringEncoding]
-        : @"";
-    resolve(json);
+    if (result != nil) {
+      json = [[NSString alloc] initWithData:result encoding:NSUTF8StringEncoding];
+    }
+    resolve(json ?: @"");
   });
 }
 

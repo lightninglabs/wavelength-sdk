@@ -79,14 +79,13 @@ function makeFake() {
 }
 
 describe('NativeWavelengthClient', () => {
-  it('callRaw parses and camelizes the native JSON response', async () => {
+  it('callFacade parses a native scalar JSON response', async () => {
     const fake = makeFake();
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);
-    fake.responses.set('balance', '{"ConfirmedSat":21}');
+    fake.responses.set('isRunning', 'true');
 
-    const balance = await client.balance();
-    assert.equal(balance.confirmedSat, 21);
-    assert.equal(fake.calls[0].method, 'balance');
+    assert.equal(await client.callFacade('isRunning'), true);
+    assert.equal(fake.calls[0].method, 'isRunning');
   });
 
   it('start injects the platform data dir and dials grpc', async () => {

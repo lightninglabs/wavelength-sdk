@@ -11,6 +11,7 @@ export type WavelengthErrorCode =
   | 'runtime_not_ready'
   | 'asset_load_failed'
   | 'worker_error'
+  | 'unsupported_facade_method'
   | (string & {});
 
 /**

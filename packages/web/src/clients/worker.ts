@@ -1,12 +1,14 @@
 import {
   BaseWavelengthClient,
-  camelizeKeys,
   WavelengthError,
   WavelengthEventType,
 } from '@lightninglabs/wavelength-core';
+import type { FacadeMethod } from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
 import { PendingCall, toWavelengthEvent } from '../util';
+
+type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
 
 /**
  * Runs the wasm runtime in a dedicated Web Worker to keep the UI thread free. It
@@ -51,10 +53,20 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   }
 
   ready(): Promise<void> {
-    return this.callRaw('$ready').then(() => undefined);
+    return this.request('$ready').then(() => undefined);
   }
 
-  callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+  protected invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
+    return this.request<T>(method, params);
+  }
+
+  private request<T = unknown>(
+    method: FacadeMethod | WorkerControlMethod,
+    params: unknown = {},
+  ): Promise<T> {
     const id = this.nextRequestID++;
 
     const promise = new Promise<T>((resolve, reject) => {
@@ -74,13 +86,13 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   // worker drives the pull loop and forwards each entry as an 'activity' event
   // message instead of returning the handle.
   async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
-    await this.callRaw('$startActivity', {
+    await this.request('$startActivity', {
       includeExisting: opts.includeExisting ?? false,
     });
   }
 
   stopActivity(): void {
-    void this.callRaw('$stopActivity').catch(() => undefined);
+    void this.request('$stopActivity').catch(() => undefined);
   }
 
   private handleMessage(message: unknown) {
@@ -133,7 +145,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     this.pending.delete(data.id);
 
     if (data.ok) {
-      pending.resolve(camelizeKeys(data.result));
+      pending.resolve(data.result);
 
       return;
     }

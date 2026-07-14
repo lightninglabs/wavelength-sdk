@@ -6,6 +6,7 @@ import {
 } from '@lightninglabs/wavelength-core';
 import type {
   Entry,
+  FacadeMethod,
   RuntimeConfig,
   WalletInfo,
 } from '@lightninglabs/wavelength-core';
@@ -101,14 +102,17 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
     });
   }
 
-  async callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+  protected async invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
     try {
       const resultJson = await this.native.call(
         method,
         JSON.stringify(params ?? {}),
       );
 
-      return camelizeKeys<T>(resultJson ? JSON.parse(resultJson) : null);
+      return (resultJson ? JSON.parse(resultJson) : null) as T;
     } catch (err) {
       throw new WavelengthError(errorMessage(err), 'wavelength_error', {
         cause: err,

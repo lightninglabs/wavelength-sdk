@@ -1,6 +1,6 @@
 // A deterministic in-memory WavelengthClient for engine and hook tests, modeled
 // on core/base-client.test.ts's FakeClient but implementing the interface
-// directly: the engine needs subscribe/startActivity/ready, not just callRaw.
+// directly: the engine needs subscribe/startActivity/ready, not just callFacade.
 //
 // It records every call, replays canned per-method results (resolve or reject),
 // and exposes a real subscribe registry so a test can `emit` runtime events
@@ -19,6 +19,7 @@ import type {
   ExitStatusResult,
   ExitSummaryRequest,
   ExitSummaryResult,
+  FacadeMethod,
   GetExitPlanRequest,
   GetExitPlanResult,
   ListRequest,
@@ -245,8 +246,12 @@ export class FakeWavelengthClient implements WavelengthClient {
     return this.run('sweepWallet', [req], () => ({}) as SweepWalletResult);
   }
 
-  callRaw<T = unknown>(method: string, params?: unknown): Promise<T> {
-    return this.run('callRaw', [method, params], () => ({}) as T);
+  callFacade<T = unknown>(method: FacadeMethod, params?: unknown): Promise<T> {
+    return this.run('callFacade', [method, params], () => ({}) as T);
+  }
+
+  isRunning(): Promise<boolean> {
+    return this.run('isRunning', [], () => false);
   }
 
   subscribe(listener: WavelengthListener): () => void {

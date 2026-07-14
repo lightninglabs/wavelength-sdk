@@ -83,7 +83,7 @@ export type {
 export type { WavelengthClient } from './client.ts';
 
 // The transport-agnostic half of the client, for transport implementers:
-// extend it and supply callRaw, ready, the activity plumbing, and the
+// extend it and supply invokeFacade, ready, the activity plumbing, and the
 // transport flavor.
 export { BaseWavelengthClient } from './base-client.ts';
 
@@ -109,12 +109,13 @@ export type {
 // and the Go-shaped request mappers. Transport implementers use these; app
 // code normally does not.
 export {
+  FACADE_METHODS,
   base64FromUtf8,
   toGoCreateWalletReq,
   toGoUnlockWalletReq,
   toMobileConfig,
 } from './facade.ts';
-export type { MobileConfig, ServerTransport } from './facade.ts';
+export type { FacadeMethod, MobileConfig, ServerTransport } from './facade.ts';
 
 // The daemon build this SDK release is paired with (generated types and
 // runtime assets alike).

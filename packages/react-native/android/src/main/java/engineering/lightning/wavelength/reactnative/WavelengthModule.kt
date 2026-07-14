@@ -155,27 +155,31 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
   // switch stays dumb on purpose because all typing lives in TypeScript.
   private fun dispatch(method: String, paramsJson: String): String {
     val params = paramsJson.toByteArray(Charsets.UTF_8)
-    val result: ByteArray? = when (method) {
-      "start" -> { Mobile.start(paramsJson); null }
-      "stop" -> { Mobile.stop(); null }
-      "getInfo" -> Mobile.getInfo()
-      "status" -> Mobile.status()
-      "balance" -> Mobile.balance()
-      "createWallet" -> Mobile.createWallet(params)
-      "unlockWallet" -> Mobile.unlockWallet(params)
-      "openWalletFromPasskey" -> Mobile.openWalletFromPasskey(params)
-      "deposit" -> Mobile.deposit(params)
-      "receive" -> Mobile.receive(params)
-      "prepareSend" -> Mobile.prepareSend(params)
-      "sendPrepared" -> Mobile.sendPrepared(params)
-      "list" -> Mobile.list(params)
-      "exit" -> Mobile.exit(params)
-      "exitStatus" -> Mobile.exitStatus(params)
-      "getExitPlan" -> Mobile.getExitPlan(params)
-      "sweepWallet" -> Mobile.sweepWallet(params)
+    return when (method) {
+      "start" -> { Mobile.start(paramsJson); "" }
+      "stop" -> { Mobile.stop(); "" }
+      "getInfo" -> Mobile.getInfo().toString(Charsets.UTF_8)
+      "status" -> Mobile.status().toString(Charsets.UTF_8)
+      "balance" -> Mobile.balance().toString(Charsets.UTF_8)
+      "createWallet" -> Mobile.createWallet(params).toString(Charsets.UTF_8)
+      "unlockWallet" -> Mobile.unlockWallet(params).toString(Charsets.UTF_8)
+      "openWalletFromPasskey" -> Mobile.openWalletFromPasskey(params).toString(Charsets.UTF_8)
+      "deposit" -> Mobile.deposit(params).toString(Charsets.UTF_8)
+      "receive" -> Mobile.receive(params).toString(Charsets.UTF_8)
+      "prepareSend" -> Mobile.prepareSend(params).toString(Charsets.UTF_8)
+      "sendPrepared" -> Mobile.sendPrepared(params).toString(Charsets.UTF_8)
+      "list" -> Mobile.list(params).toString(Charsets.UTF_8)
+      "exit" -> Mobile.exit(params).toString(Charsets.UTF_8)
+      "exitStatus" -> Mobile.exitStatus(params).toString(Charsets.UTF_8)
+      "exitSummary" -> Mobile.exitSummary(params).toString(Charsets.UTF_8)
+      "getExitPlan" -> Mobile.getExitPlan(params).toString(Charsets.UTF_8)
+      "sweepWallet" -> Mobile.sweepWallet(params).toString(Charsets.UTF_8)
+      "confirmedBalanceSat" -> Mobile.confirmedBalanceSat().toString()
+      "pendingInboundSat" -> Mobile.pendingInboundSat().toString()
+      "walletReady" -> Mobile.walletReady().toString()
+      "isRunning" -> Mobile.isRunning().toString()
       else -> throw IllegalArgumentException("unknown wavelength verb: $method")
     }
-    return result?.toString(Charsets.UTF_8) ?: ""
   }
 
   private var subscription: Subscription? = null

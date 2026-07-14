@@ -1,5 +1,48 @@
 import type { RuntimeConfig } from './config.ts';
 import type { CreateWalletRequest, UnlockWalletRequest } from './requests.ts';
+import { WavelengthError } from './errors.ts';
+
+/** Portable mobile and WASM facade methods available through `callFacade()`. */
+export const FACADE_METHODS = [
+  'start',
+  'stop',
+  'getInfo',
+  'status',
+  'balance',
+  'createWallet',
+  'unlockWallet',
+  'openWalletFromPasskey',
+  'deposit',
+  'receive',
+  'prepareSend',
+  'sendPrepared',
+  'list',
+  'exit',
+  'exitStatus',
+  'exitSummary',
+  'getExitPlan',
+  'sweepWallet',
+  'confirmedBalanceSat',
+  'pendingInboundSat',
+  'walletReady',
+  'isRunning',
+] as const;
+
+/** One portable daemon facade method accepted by `callFacade()`. */
+export type FacadeMethod = (typeof FACADE_METHODS)[number];
+
+const FACADE_METHOD_SET: ReadonlySet<string> = new Set(FACADE_METHODS);
+
+export function assertFacadeMethod(
+  method: unknown,
+): asserts method is FacadeMethod {
+  if (typeof method !== 'string' || !FACADE_METHOD_SET.has(method)) {
+    throw new WavelengthError(
+      `unsupported facade method: ${String(method)}`,
+      'unsupported_facade_method',
+    );
+  }
+}
 
 /**
  * Selects how the embedded daemon dials the Ark operator and swap server. The
