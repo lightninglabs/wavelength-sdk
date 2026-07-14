@@ -5,6 +5,7 @@ import {
   errorMessage,
 } from '@lightninglabs/wavelength-core';
 import type {
+  ActivityStreamOptions,
   Entry,
   FacadeMethod,
   RuntimeConfig,
@@ -123,7 +124,9 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
   // startActivity opens the native pull subscription; the native side pumps
   // entries to 'wavelengthActivity' device events, which are re-emitted here
   // as typed 'activity' events. Idempotent while a stream is open.
-  async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
+  protected async openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void> {
     return this.enqueue(async () => {
       if (this.streamOpen) {
         return;
@@ -133,7 +136,11 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
         this.onNativeEvent(event),
       );
       await this.native.startActivity(
-        JSON.stringify({ includeExisting: opts.includeExisting ?? false }),
+        JSON.stringify({
+          includeExisting: opts.includeExisting ?? false,
+          kinds: opts.kinds ?? [],
+          cursor: opts.cursor ?? 0,
+        }),
       );
       this.streamOpen = true;
     });

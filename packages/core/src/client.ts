@@ -2,6 +2,7 @@ import type { WavelengthListener } from './events.ts';
 import type { RuntimeConfig } from './config.ts';
 import type { FacadeMethod } from './facade.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
+import type { ActivityStreamOptions } from './activity-options.ts';
 import type {
   CreateWalletRequest,
   DepositRequest,
@@ -105,7 +106,7 @@ export interface WavelengthClient {
    * Opens the wallet activity stream and forwards each entry to subscribers as an
    * `'activity'` event until {@link stopActivity} is called.
    */
-  startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
+  startActivity(opts?: ActivityStreamOptions): Promise<void>;
   /** Closes the activity stream opened by {@link startActivity}. */
   stopActivity(): void;
   /**

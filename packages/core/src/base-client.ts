@@ -42,6 +42,10 @@ import {
 import { camelizeKeys } from './casing.ts';
 import { errorMessage } from './errors.ts';
 import { normalizeInfo } from './state.ts';
+import {
+  validateActivityStreamOptions,
+  type ActivityStreamOptions,
+} from './activity-options.ts';
 
 /**
  * Implements the transport-agnostic half of {@link WavelengthClient}: every RPC
@@ -61,7 +65,9 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
     method: FacadeMethod,
     params?: unknown,
   ): Promise<T>;
-  abstract startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
+  protected abstract openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void>;
   abstract stopActivity(): void;
   /** How this transport's daemon dials the Ark and swap servers. */
   protected abstract readonly serverTransport: ServerTransport;
@@ -78,6 +84,11 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
 
   isRunning(): Promise<boolean> {
     return this.callFacade<boolean>('isRunning');
+  }
+
+  async startActivity(opts: ActivityStreamOptions = {}): Promise<void> {
+    validateActivityStreamOptions(opts);
+    await this.openActivityStream(opts);
   }
 
   // start boots the embedded daemon and returns the post-boot WalletInfo. The

@@ -12,6 +12,7 @@ export type WavelengthErrorCode =
   | 'asset_load_failed'
   | 'worker_error'
   | 'unsupported_facade_method'
+  | 'invalid_cursor'
   | (string & {});
 
 /**

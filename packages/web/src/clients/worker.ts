@@ -3,7 +3,10 @@ import {
   WavelengthError,
   WavelengthEventType,
 } from '@lightninglabs/wavelength-core';
-import type { FacadeMethod } from '@lightninglabs/wavelength-core';
+import type {
+  ActivityStreamOptions,
+  FacadeMethod,
+} from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
 import { PendingCall, toWavelengthEvent } from '../util';
@@ -85,10 +88,15 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   // subscription handle holds JS callbacks that cannot cross postMessage, so the
   // worker drives the pull loop and forwards each entry as an 'activity' event
   // message instead of returning the handle.
-  async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
-    await this.request('$startActivity', {
+  protected async openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void> {
+    const request = {
       includeExisting: opts.includeExisting ?? false,
-    });
+      kinds: opts.kinds ?? [],
+      cursor: opts.cursor ?? 0,
+    };
+    await this.request('$startActivity', request);
   }
 
   stopActivity(): void {

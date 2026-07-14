@@ -2,7 +2,7 @@
 // (e.g. a plain password the client base64-encodes into the Go []byte field), so
 // core's facade module keeps explicit request mappers for them.
 
-import type { ListView } from './generated.ts';
+import type { EntryKind, ListView } from './generated.ts';
 
 /**
  * Parameters for creating a new wallet.
@@ -102,6 +102,8 @@ export type ListRequest = {
   view?: ListView;
   /** When true, returns only pending items. */
   pendingOnly?: boolean;
+  /** Restricts results to the selected activity kinds. */
+  kinds?: EntryKind[];
   /** The maximum number of items to return. */
   limit?: number;
   /**
@@ -118,16 +120,33 @@ export type ListRequest = {
   cursor?: string;
 };
 
+/** Exact acknowledgement required to start a unilateral unroll. */
+export const FORCE_UNROLL_ACK = 'I_KNOW_WHAT_I_AM_DOING' as const;
+
 /**
- * Parameters for exiting a single outpoint, attempting a cooperative leave to
- * the optional destination.
+ * Parameters for exiting one VTXO through a cooperative leave or an explicitly
+ * acknowledged unilateral unroll.
  */
-export type ExitRequest = {
-  /** The VTXO outpoint to exit. */
-  outpoint: string;
-  /** An optional on-chain destination for the exited funds. */
-  destination?: string;
-};
+export type ExitRequest =
+  | {
+      /** The VTXO outpoint to exit. */
+      outpoint: string;
+      /**
+       * Cooperative on-chain destination. When omitted, the daemon generates
+       * a fresh backing-wallet address.
+       */
+      destination?: string;
+      /** Unavailable on the cooperative branch. */
+      forceUnrollAck?: never;
+    }
+  | {
+      /** The VTXO outpoint to exit. */
+      outpoint: string;
+      /** Unavailable on the unilateral branch. */
+      destination?: never;
+      /** The exact acknowledgement required to start unilateral unroll. */
+      forceUnrollAck: typeof FORCE_UNROLL_ACK;
+    };
 
 /**
  * Parameters for querying the status of an exit.

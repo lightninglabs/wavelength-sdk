@@ -3,7 +3,10 @@ import {
   Entry,
   WavelengthError,
 } from '@lightninglabs/wavelength-core';
-import type { FacadeMethod } from '@lightninglabs/wavelength-core';
+import type {
+  ActivityStreamOptions,
+  FacadeMethod,
+} from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
 import type { WebClientOptions } from '../index';
 import {
@@ -88,7 +91,9 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   // 'wavewalletdk-activity' DOM event; the wasm bridge hands back a
   // subscription handle instead, so the client drives the loop. Idempotent: a
   // second call while a stream is open is a no-op.
-  async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
+  protected async openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void> {
     await this.ensureLoaded();
     if (this.activityHandle) {
       return;
@@ -102,9 +107,12 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       );
     }
 
-    const handle = (await call('subscribe', {
+    const request = {
       includeExisting: opts.includeExisting ?? false,
-    })) as ActivityHandle;
+      kinds: opts.kinds ?? [],
+      cursor: opts.cursor ?? 0,
+    };
+    const handle = (await call('subscribe', request)) as ActivityHandle;
     this.activityHandle = handle;
     void this.pumpActivity(handle);
   }
@@ -130,12 +138,14 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       // closed by stopActivity; signal it so the host can resubscribe. A
       // handle swapped out by stopActivity is an expected close and is silent.
       if (this.activityHandle === handle) {
+        this.activityHandle = null;
         this.emit({ type: 'activityStream', payload: { state: 'ended' } });
       }
     } catch (err) {
       // An error after a client-initiated close is expected; only surface a
       // failure the consumer did not cause.
       if (this.activityHandle === handle) {
+        this.activityHandle = null;
         this.emit({
           type: 'activityStream',
           payload: { state: 'failed', message: errorMessage(err) },

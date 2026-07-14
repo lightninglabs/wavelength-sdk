@@ -4,6 +4,8 @@ import { BaseWavelengthClient } from './base-client.ts';
 import type { WavelengthEvent } from './events.ts';
 import { FACADE_METHODS, type FacadeMethod } from './facade.ts';
 import { WavelengthError } from './errors.ts';
+import { FORCE_UNROLL_ACK } from './requests.ts';
+import type { ActivityStreamOptions } from './activity-options.ts';
 
 // A fake transport that records every raw facade invocation and replays canned
 // responses, so the verb mapping is testable without any runtime.
@@ -11,6 +13,7 @@ class FakeClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'grpc' as const;
   calls: Array<{ method: string; params: unknown }> = [];
   responses = new Map<string, unknown>();
+  activityOpens: ActivityStreamOptions[] = [];
 
   ready(): Promise<void> {
     return Promise.resolve();
@@ -24,7 +27,8 @@ class FakeClient extends BaseWavelengthClient {
     return Promise.resolve((this.responses.get(method) ?? {}) as T);
   }
 
-  startActivity(): Promise<void> {
+  protected openActivityStream(opts: ActivityStreamOptions): Promise<void> {
+    this.activityOpens.push(opts);
     return Promise.resolve();
   }
 
@@ -86,6 +90,27 @@ describe('BaseWavelengthClient', () => {
       paymentHash: 'ph',
     } as never);
     assert.equal(result.paymentHash, 'ph');
+  });
+
+  it('forwards list kinds and both exit variants exactly', async () => {
+    const client = new FakeClient();
+    await client.list({ view: 'activity', kinds: ['send', 'exit'] });
+    await client.exit({ outpoint: 'tx:0', destination: 'bcrt1q...' });
+    await client.exit({ outpoint: 'tx:1', forceUnrollAck: FORCE_UNROLL_ACK });
+    assert.deepEqual(client.calls.map((call) => call.params), [
+      { view: 'activity', kinds: ['send', 'exit'] },
+      { outpoint: 'tx:0', destination: 'bcrt1q...' },
+      { outpoint: 'tx:1', forceUnrollAck: FORCE_UNROLL_ACK },
+    ]);
+  });
+
+  it('rejects an unsafe activity cursor before opening the transport', async () => {
+    const client = new FakeClient();
+    await assert.rejects(
+      () => client.startActivity({ cursor: -1 }),
+      (err: WavelengthError) => err.code === 'invalid_cursor',
+    );
+    assert.equal(client.activityOpens.length, 0);
   });
 
   it('stop emits runtimeStopped to subscribers', async () => {

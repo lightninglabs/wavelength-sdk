@@ -130,11 +130,17 @@ describe('NativeWavelengthClient', () => {
     const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
-    await client.startActivity({ includeExisting: true });
+    await client.startActivity({
+      includeExisting: true,
+      kinds: ['send', 'exit'],
+      cursor: 99,
+    });
     await client.startActivity();
     assert.equal(fake.counts().startActivityCount, 1);
     assert.deepEqual(JSON.parse(fake.startActivityRequests[0]), {
       includeExisting: true,
+      kinds: ['send', 'exit'],
+      cursor: 99,
     });
 
     fake.emit({ kind: 'entry', payload: '{"Kind":"send"}' });

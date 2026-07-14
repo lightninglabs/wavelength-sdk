@@ -4,10 +4,10 @@ import { describe, it } from 'node:test';
 import type { FacadeMethod } from '@lightninglabs/wavelength-core';
 
 const android = new URL(
-  '../android/src/main/java/engineering/lightning/walletdk/reactnative/WalletdkModule.kt',
+  '../android/src/main/java/engineering/lightning/wavelength/reactnative/WavelengthModule.kt',
   import.meta.url,
 );
-const ios = new URL('../ios/WalletdkModule.mm', import.meta.url);
+const ios = new URL('../ios/WavelengthModule.mm', import.meta.url);
 
 const nativeMethods = {
   start: ['Mobile.start', 'MobileStart'],

@@ -36,6 +36,7 @@ import type {
   SweepWalletResult,
   UnlockWalletRequest,
   UnlockWalletResult,
+  ActivityStreamOptions,
   WavelengthClient,
   WavelengthEvent,
   WavelengthListener,
@@ -262,7 +263,7 @@ export class FakeWavelengthClient implements WavelengthClient {
     };
   }
 
-  startActivity(opts?: { includeExisting?: boolean }): Promise<void> {
+  startActivity(opts?: ActivityStreamOptions): Promise<void> {
     const callIndex = this.startActivityCount++;
     this.calls.push({ method: 'startActivity', args: [opts] });
     if (this.startActivityImpl) {

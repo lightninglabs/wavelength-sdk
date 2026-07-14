@@ -44,6 +44,8 @@ export type {
   SweepWalletRequest,
   UnlockWalletRequest,
 } from './requests.ts';
+export { FORCE_UNROLL_ACK } from './requests.ts';
+export type { ActivityStreamOptions } from './activity-options.ts';
 
 // Result shapes (a couple SDK-augmented, the rest re-exported from generated).
 export type {
