@@ -1,7 +1,6 @@
 import {
   BaseWavelengthClient,
   WavelengthError,
-  camelizeKeys,
   errorMessage,
 } from '@lightninglabs/wavelength-core';
 import type {
@@ -48,12 +47,11 @@ export type SubscribeToNativeEvents = (
   listener: (event: NativeActivityEvent) => void,
 ) => () => void;
 
-/**
+  /**
  * The React Native transport: implements {@link BaseWavelengthClient}'s pipe
- * over the gomobile Turbo Module. JSON strings cross the RN bridge and all
- * typing and casing normalization happens here in TS, mirroring how the web
- * transport treats the worker boundary.
- */
+ * over the gomobile Turbo Module. JSON strings cross the RN bridge, then the
+ * shared base client normalizes responses and streamed entries in TS.
+  */
 export class NativeWavelengthClient extends BaseWavelengthClient {
   // The embedded daemon runs natively, so it dials the servers over gRPC.
   protected readonly serverTransport = 'grpc' as const;
@@ -177,7 +175,7 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
     case 'entry': {
       let entry: Entry;
       try {
-        entry = camelizeKeys<Entry>(JSON.parse(event.payload));
+        entry = this.normalizeActivityEntry(JSON.parse(event.payload));
       } catch (err) {
         this.emit({
           type: 'log',

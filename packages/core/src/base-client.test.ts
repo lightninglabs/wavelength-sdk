@@ -51,10 +51,20 @@ describe('BaseWavelengthClient', () => {
     );
   });
 
-  it('callFacade camel-cases raw facade values once in core', async () => {
+  it('callFacade normalizes raw facade values once in core', async () => {
     const client = new FakeClient();
-    client.responses.set('balance', { ConfirmedSat: 21 });
-    assert.deepEqual(await client.callFacade('balance'), { confirmedSat: 21 });
+    client.responses.set('list', {
+      View: 'activity',
+      Activity: { Entries: null },
+      VTXOs: null,
+      Onchain: null,
+    });
+    assert.deepEqual(await client.callFacade('list'), {
+      view: 'activity',
+      activity: { entries: [] },
+      vtxos: undefined,
+      onchain: undefined,
+    });
   });
 
   it('isRunning returns the facade boolean', async () => {

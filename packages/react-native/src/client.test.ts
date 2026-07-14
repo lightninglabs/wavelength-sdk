@@ -88,6 +88,24 @@ describe('NativeWavelengthClient', () => {
     assert.equal(fake.calls[0].method, 'isRunning');
   });
 
+  it('normalizes a native JSON facade response in core', async () => {
+    const fake = makeFake();
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    fake.responses.set('list', JSON.stringify({
+      View: 'activity',
+      Activity: { Entries: null },
+      VTXOs: null,
+      Onchain: null,
+    }));
+
+    assert.deepEqual(await client.callFacade('list'), {
+      view: 'activity',
+      activity: { entries: [] },
+      vtxos: undefined,
+      onchain: undefined,
+    });
+  });
+
   it('start injects the platform data dir and dials grpc', async () => {
     const fake = makeFake();
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);
@@ -144,9 +162,15 @@ describe('NativeWavelengthClient', () => {
       cursor: 99,
     });
 
-    fake.emit({ kind: 'entry', payload: '{"Kind":"send"}' });
+    fake.emit({
+      kind: 'entry',
+      payload: '{"Kind":"send","Progress":null,"Request":null}',
+    });
     assert.deepEqual(events, [
-      { type: 'activity', payload: { kind: 'send' } },
+      {
+        type: 'activity',
+        payload: { kind: 'send', progress: undefined, request: undefined },
+      },
     ]);
   });
 

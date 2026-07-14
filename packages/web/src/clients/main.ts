@@ -1,6 +1,5 @@
 import {
   BaseWavelengthClient,
-  Entry,
   WavelengthError,
 } from '@lightninglabs/wavelength-core';
 import type {
@@ -142,7 +141,10 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
         entry !== null && this.activityHandle === handle;
         entry = await handle.next()
       ) {
-        this.emit({ type: 'activity', payload: camelizeKeys<Entry>(entry) });
+        this.emit({
+          type: 'activity',
+          payload: this.normalizeActivityEntry(entry),
+        });
       }
       // A stream that ends while this is still the active handle was not
       // closed by stopActivity; signal it so the host can resubscribe. A

@@ -39,9 +39,12 @@ import {
   toGoUnlockWalletReq,
   toMobileConfig,
 } from './facade.ts';
-import { camelizeKeys } from './casing.ts';
 import { errorMessage } from './errors.ts';
-import { normalizeInfo } from './state.ts';
+import type { Entry } from './generated.ts';
+import {
+  normalizeEntry,
+  normalizeFacadeResult,
+} from './response-normalization.ts';
 import {
   validateActivityStreamOptions,
   type ActivityStreamOptions,
@@ -79,7 +82,7 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
     assertFacadeMethod(method);
     const raw = await this.invokeFacade(method, params);
 
-    return camelizeKeys<T>(raw);
+    return normalizeFacadeResult<T>(method, raw);
   }
 
   isRunning(): Promise<boolean> {
@@ -107,8 +110,8 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
     this.emit({ type: 'runtimeStopped' });
   }
 
-  async getInfo(): Promise<WalletInfo> {
-    return normalizeInfo(await this.callFacade('getInfo'));
+  getInfo(): Promise<WalletInfo> {
+    return this.callFacade<WalletInfo>('getInfo');
   }
 
   status(): Promise<WalletStatus> {
@@ -226,6 +229,10 @@ export abstract class BaseWavelengthClient implements WavelengthClient {
         }
       }
     }
+  }
+
+  protected normalizeActivityEntry(raw: unknown): Entry {
+    return normalizeEntry(raw);
   }
 
   /**

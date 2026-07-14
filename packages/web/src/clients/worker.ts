@@ -134,9 +134,16 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     }
 
     if (data.event) {
-      // Map the worker's raw event onto the typed union, camelizing payloads
-      // that carry daemon JSON (e.g. an 'activity' Entry) so stream consumers see
-      // the same camelCase shapes as the typed responses.
+      if (data.event.type === 'activity') {
+        this.emit({
+          type: 'activity',
+          payload: this.normalizeActivityEntry(data.event.payload),
+        });
+
+        return;
+      }
+
+      // Map lifecycle, log, and terminal events separately from daemon entries.
       this.emit(toWavelengthEvent(data.event));
 
       return;

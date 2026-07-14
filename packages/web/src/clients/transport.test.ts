@@ -144,14 +144,126 @@ describe('activity transport requests', () => {
     }
   });
 
+  it('normalizes a worker structured-clone facade response in core', async () => {
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const savedWorker = (globalThis as { Worker?: unknown }).Worker;
+    Object.defineProperty(globalThis, 'Worker', { configurable: true, value: FakeWorker });
+
+    try {
+      const client = new WorkerWavelengthClient({ workerURL: 'fake-worker.js' });
+      const fakeWorker = FakeWorker.latest!;
+      const response = client.callFacade('list');
+      const request = fakeWorker.messages.at(-1);
+      fakeWorker.onmessage?.({
+        data: {
+          id: request?.id,
+          ok: true,
+          result: {
+            View: 'activity',
+            Activity: { Entries: null },
+            VTXOs: null,
+            Onchain: null,
+          },
+        },
+      } as MessageEvent);
+
+      assert.deepEqual(await response, {
+        view: 'activity',
+        activity: { entries: [] },
+        vtxos: undefined,
+        onchain: undefined,
+      });
+      client.dispose();
+    } finally {
+      Object.defineProperty(globalThis, 'Worker', {
+        configurable: true,
+        value: savedWorker,
+      });
+    }
+  });
+
+  it('normalizes streamed entries in main and worker modes', async () => {
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const savedCall = (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall;
+    const savedWorker = (globalThis as { Worker?: unknown }).Worker;
+    const savedAddEventListener = globalThis.addEventListener;
+    const savedRemoveEventListener = globalThis.removeEventListener;
+    let next = 0;
+    Object.defineProperty(globalThis, 'wavewalletdkCall', {
+      configurable: true,
+      value: async () => ({
+        next: async () => next++ === 0
+          ? { Cursor: 3, Progress: null, Request: null }
+          : null,
+        close: () => undefined,
+      }),
+    });
+    Object.defineProperty(globalThis, 'Worker', { configurable: true, value: FakeWorker });
+    Object.defineProperty(globalThis, 'addEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+    Object.defineProperty(globalThis, 'removeEventListener', {
+      configurable: true,
+      value: () => undefined,
+    });
+
+    try {
+      const expected = {
+        type: 'activity',
+        payload: { cursor: 3, progress: undefined, request: undefined },
+      } as const;
+      const mainEvents: unknown[] = [];
+      const main = new MainThreadWavelengthClient();
+      main.subscribe((event) => mainEvents.push(event));
+      await main.startActivity();
+      await Promise.resolve();
+      assert.deepEqual(mainEvents[0], expected);
+
+      const workerEvents: unknown[] = [];
+      const worker = new WorkerWavelengthClient({ workerURL: 'fake-worker.js' });
+      worker.subscribe((event) => workerEvents.push(event));
+      FakeWorker.latest!.onmessage?.({
+        data: {
+          event: {
+            type: 'activity',
+            payload: { Cursor: 3, Progress: null, Request: null },
+          },
+        },
+      } as MessageEvent);
+      assert.deepEqual(workerEvents[0], expected);
+
+      main.dispose();
+      worker.dispose();
+    } finally {
+      Object.defineProperty(globalThis, 'wavewalletdkCall', {
+        configurable: true,
+        value: savedCall,
+      });
+      Object.defineProperty(globalThis, 'Worker', {
+        configurable: true,
+        value: savedWorker,
+      });
+      Object.defineProperty(globalThis, 'addEventListener', {
+        configurable: true,
+        value: savedAddEventListener,
+      });
+      Object.defineProperty(globalThis, 'removeEventListener', {
+        configurable: true,
+        value: savedRemoveEventListener,
+      });
+    }
+  });
+
   it('coalesces concurrent main-thread activity opens', async () => {
-    const { MainThreadWalletDKClient } = await import('./main.ts');
-    const savedCall = (globalThis as { walletdkCall?: unknown }).walletdkCall;
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const savedCall = (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall;
     const savedAddEventListener = globalThis.addEventListener;
     const savedRemoveEventListener = globalThis.removeEventListener;
     const opened = deferred<{ next: () => Promise<null>; close: () => void }>();
     let subscribeCalls = 0;
-    Object.defineProperty(globalThis, 'walletdkCall', {
+    Object.defineProperty(globalThis, 'wavewalletdkCall', {
       configurable: true,
       value: async (method: string) => {
         assert.equal(method, 'subscribe');
@@ -169,7 +281,7 @@ describe('activity transport requests', () => {
     });
 
     try {
-      const client = new MainThreadWalletDKClient();
+      const client = new MainThreadWavelengthClient();
       const first = client.startActivity();
       const second = client.startActivity();
       await Promise.resolve();
@@ -183,7 +295,7 @@ describe('activity transport requests', () => {
       await Promise.all([first, second]);
       client.dispose();
     } finally {
-      Object.defineProperty(globalThis, 'walletdkCall', {
+      Object.defineProperty(globalThis, 'wavewalletdkCall', {
         configurable: true,
         value: savedCall,
       });
