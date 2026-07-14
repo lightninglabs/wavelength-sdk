@@ -174,6 +174,7 @@ class WavelengthEngine implements WalletEngine {
     this.#stream = new ActivityStream({
       client: this.client,
       onActivity: () => this.#reconciler.trigger(),
+      onReconcile: () => this.#reconciler.trigger(),
       onDead: (error) => {
         // A stream death that lands after the phase has already left 'ready'
         // (for example while stopping) would otherwise stamp a fatal error
@@ -492,7 +493,7 @@ class WavelengthEngine implements WalletEngine {
       const logs = [...this.getSnapshot().logs, event.payload].slice(-MAX_LOGS);
       this.#store.update({ logs });
     } else if (event.type === 'activity') {
-      this.#stream.noteActivity();
+      this.#stream.noteActivity(event.payload);
     } else if (event.type === 'activityStream') {
       this.#stream.noteStreamLost();
     }
