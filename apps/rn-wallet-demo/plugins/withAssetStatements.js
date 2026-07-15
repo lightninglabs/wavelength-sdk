@@ -14,7 +14,7 @@ const {
 // server-side half is that assetlinks.json vouching for this app. See the
 // Credential Manager prerequisites documentation.
 const RP_ASSETLINKS_URL =
-  'https://dadocs.lightning.engineering/.well-known/assetlinks.json';
+  'https://wavelength.lightning.engineering/.well-known/assetlinks.json';
 
 // The double quotes are backslash-escaped because the Android resource
 // compiler treats bare quotes in a string resource as delimiters and strips

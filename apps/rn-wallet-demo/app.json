@@ -8,14 +8,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "engineering.lightning.walletdk.demo",
+      "bundleIdentifier": "engineering.lightning.wavelength.demo",
       "supportsTablet": false,
       "associatedDomains": [
-        "webcredentials:dadocs.lightning.engineering"
+        "webcredentials:wavelength.lightning.engineering"
       ]
     },
     "android": {
-      "package": "engineering.lightning.walletdk.demo",
+      "package": "engineering.lightning.wavelength.demo",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
