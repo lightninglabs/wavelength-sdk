@@ -2,6 +2,16 @@
   "name": "@lightninglabs/wavelength-core",
   "version": "0.0.0",
   "private": false,
+  "description": "Transport- and framework-agnostic contract for the Wavelength self-custodial Lightning wallet SDK.",
+  "license": "MIT",
+  "homepage": "https://wavelength.lightning.engineering",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lightninglabs/wavelength-sdk.git",
+    "directory": "packages/core"
+  },
+  "bugs": "https://github.com/lightninglabs/wavelength-sdk/issues",
+  "keywords": ["lightning", "bitcoin", "wallet", "self-custodial", "payments"],
   "publishConfig": { "access": "public" },
   "type": "module",
   "main": "dist/index.js",

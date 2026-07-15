@@ -7,9 +7,6 @@ stay on their own device. The wallet runs entirely in the browser as
 WebAssembly: there is no backend to operate and nothing listening on a socket.
 Your app drives it through a small, typed client.
 
-> **Status: pre-release.** APIs may still change before the first published
-> version.
-
 ## Packages
 
 | Package | What it is |
@@ -116,7 +113,7 @@ const { invoice } = await client.receive({ amountSat: 1000 });
 ## Configuration
 
 `defaultConfig(network)` returns a ready-to-use config preloaded with the
-canonical public endpoints for `signet`, `testnet`, and `testnet4`. Override only
+canonical public endpoints for `signet` and `testnet`. Override only
 what you need:
 
 ```ts
@@ -159,5 +156,8 @@ import { RUNTIME_ASSET_FILES } from "@lightninglabs/wavelength-web";
 // → wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js, …
 ```
 
-> A versioned public CDN that `runtimeBaseUrl` defaults to is on the way; until
-> then, self-host the asset set.
+You host the asset set yourself. Obtain it from the
+[wavelength release assets](https://github.com/lightninglabs/wavelength/releases),
+or build it from a `wavelength` checkout. See
+[Hosting runtime assets](https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets/)
+for the exact steps.

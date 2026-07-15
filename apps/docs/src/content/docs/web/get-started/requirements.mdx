@@ -57,7 +57,7 @@ const client = createWebClient();
 await client.start(defaultConfig('signet'));
 ```
 
-Presets also exist for `testnet` and `testnet4`. No local backend is required
+Presets also exist for `testnet`. No local backend is required
 for any hosted network.
 
 **Regtest (local development)** targets services you run yourself, so there
@@ -100,3 +100,7 @@ On web, `arkServerAddress` and `swapServerAddress` must be REST URLs.
 `walletEsploraUrl` is an HTTP Esplora endpoint. The web transport always
 rejects `arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
 `disableSwaps: true`, which suppresses every swap field.
+
+Mainnet access is gated to an approved allowlist. See
+[Mainnet access](/concepts/networks-and-config/#mainnet-access) for how to
+request it with your client's `identity_pubkey`.

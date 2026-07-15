@@ -8,11 +8,6 @@ import Callout from '~/components/mdx/Callout.astro';
 import Card from '~/components/mdx/Card.astro';
 import CardGrid from '~/components/mdx/CardGrid.astro';
 
-<Callout type="note" title="Pre-release">
-The React Native SDK is pre-release and not yet published to npm. The API
-surface is stable; iOS passkey support is still experimental.
-</Callout>
-
 ## The packages
 
 ```sh title="Terminal"
@@ -43,11 +38,12 @@ Expo apps need a **development build**, not Expo Go: the native wallet runtime i
 
 ## Native runtime binaries
 
-<Callout type="caution" title="Temporary: binaries ship out of band">
+<Callout type="note" title="Native binaries are not bundled">
 The native wallet runtime binaries (`Wavewalletdk.aar`, `Wavewalletdk.xcframework`)
-do not ship inside the npm package yet; hosted distribution is coming.
-Until then, build them from a source checkout with the package's
-`scripts/fetch-bindings.sh` and stage them into the package before running
+are not included in the npm package. Get them either from the paired
+[wavelength release](https://github.com/lightninglabs/wavelength/releases) or by
+building them from a `wavelength` checkout with the package's
+`scripts/fetch-bindings.sh`, then stage them into the package before running
 `pod install` or a Gradle build.
 </Callout>
 

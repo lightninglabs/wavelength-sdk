@@ -6,11 +6,6 @@ pageLayout: doc
 
 import Callout from '~/components/mdx/Callout.astro';
 
-<Callout type="note" title="Pre-release">
-The React Native SDK is pre-release and not yet published to npm. The API
-surface is stable; iOS passkey support is still experimental.
-</Callout>
-
 Passkeys bind to a relying-party domain (`rpId`) that must vouch for your
 app. Without the association in place, `createNativePasskeyCeremony({ rpId })`
 fails the ceremony with "RP ID cannot be validated".

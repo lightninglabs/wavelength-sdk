@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Wavelength is a TypeScript/React SDK for embedding a self-custodial Lightning wallet in a web app: send and receive Lightning payments with no node to run, no channels to open, and no inbound liquidity to manage. The full Go wallet daemon (sibling repo `../wavelength`) is compiled to WebAssembly and runs in the browser; the SDK is a small, typed client over it. pnpm-workspace monorepo, pre-release.
+Wavelength is a TypeScript/React SDK for embedding a self-custodial Lightning wallet in a web app: send and receive Lightning payments with no node to run, no channels to open, and no inbound liquidity to manage. The full Go wallet daemon (sibling repo `../wavelength`) is compiled to WebAssembly and runs in the browser; the SDK is a small, typed client over it. pnpm-workspace monorepo.
 
 ## Commands
 
@@ -66,15 +66,13 @@ The design has **two orthogonal axes**: *transport* (how you reach the wallet da
 Cross-cutting:
 - Daemon JSON is normalized at the transport boundary: PascalCase → camelCase (`camelizeKeys`), and the proto-numeric `WalletState` → a lowercase string union (`normalizeInfo` / `walletStateFromProto`).
 - Passkey ceremonies are injected (`PasskeyCeremony` contract in `core`, `webPasskeyCeremony` in `web`, `createNativePasskeyCeremony({ rpId })` in `react-native`); `useWalletPasskey(ceremony)` takes it as an argument so `react` stays transport-free. The PRF salt is a precomputed core constant (`PASSKEY_PRF_SALT_HEX`, pinned to its namespace by a core test) so every platform derives the same wallet from the same passkey. The demo's RP association files live in `apps/docs/public/.well-known/` (Android live; the AASA holds a placeholder Team ID until a paid Apple account exists, which is also why the iOS ceremony ships experimental).
-- The wasm runtime assets in `apps/web-wallet-demo/public/runtime/<version>/` are gitignored and rebuilt from `../wavelength`. The version segment is `RUNTIME_MANIFEST_VERSION` (`packages/core/src/version.ts`), the wavelength revision the SDK is paired with; bump it together with regenerating types and publishing new hosted assets, and the versioned URLs bust browser caches. A versioned CDN default for `runtimeBaseUrl` is planned but not yet wired, so self-host for now.
+- The wasm runtime assets in `apps/web-wallet-demo/public/runtime/<version>/` are gitignored and rebuilt from `../wavelength`. The version segment is `RUNTIME_MANIFEST_VERSION` (`packages/core/src/version.ts`), the wavelength revision the SDK is paired with; bump it together with regenerating types and publishing new hosted assets, and the versioned URLs bust browser caches. Consumers self-host the runtime asset set (from the wavelength release assets or a local build); there is no hosted default.
 
 ## Conventions and preferences
 
 **Git history.** Keep it a clean series of net-new logical commits, each building correctly on its own, not a "create then refactor" layer. When changing work that already exists on the branch, **fold the change into the commit that introduced it** (a `hunk rebase` fixup) rather than stacking a new commit; force-push is fine on the feature branch. Use `hunk` for non-interactive precision staging and fixup-rebases. Verify each commit builds.
 
 **Commit messages.** Bare area prefix, no conventional-commit type wrapper: `core:`, `web:`, `react:`, `demo:` (and `chore:` / `docs:` / `ci:` for non-package work; use `ci:` for CI/workflow-only changes). Descriptive, imperative subjects.
-
-**Public docs.** Consumer-facing docs (the README) pitch the product value: a self-custodial Lightning wallet with no node/channels/liquidity to manage. The underlying protocol (Ark) and the daemon repo are implementation details: keep them out of the README and other public copy. (Internal docs like this file may name them.)
 
 **No em-dashes.** Do not use the em-dash character (U+2014) anywhere in the repo: comments, TSDoc, markdown, UI copy, config, all of it. When the prose wants that pause, reach for a colon, semicolon, comma, parentheses, or two sentences, whichever reads naturally. Generated prose tends to emit em-dashes, so self-check before committing (`git grep` for the character).
 

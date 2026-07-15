@@ -1,6 +1,6 @@
 ---
 title: Networks & config
-description: How to configure the Wavelength SDK for signet, testnet, testnet4, or mainnet with flat RuntimeConfig fields, defaultConfig presets, and platform-specific endpoints.
+description: How to configure the Wavelength SDK for signet, testnet, or mainnet with flat RuntimeConfig fields, defaultConfig presets, and platform-specific endpoints.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
@@ -58,7 +58,6 @@ Presets ship for:
 |---------|-------------|
 | `'signet'` | Default for docs live embeds and the demo app; public Lightning Labs test infrastructure. |
 | `'testnet'` | Bitcoin testnet3 with hosted Ark/swap gateways. |
-| `'testnet4'` | Bitcoin testnet4 with hosted Ark/swap gateways. |
 
 Hosted test-network gateways use TLS. The web preset uses REST URLs, while the
 React Native preset uses matching `host:port` gRPC addresses. `defaultConfig`
@@ -82,6 +81,19 @@ the SDK rejects the configuration before startup.
 </Callout>
 
 Test networks ignore **`allowMainnet`**; it exists only for mainnet runs.
+
+## Mainnet access
+
+Signet and testnet are open to anyone. Mainnet is different: the mainnet server
+accepts only clients on an approved allowlist, so `allowMainnet` on its own is
+not enough to connect. Access is keyed to your client's identity, which is its
+mailbox ID.
+
+To request access, initialize and unlock your wallet, run `wavecli getinfo`, and
+copy the `identity_pubkey` value (a 66-character hex string). Submit that value
+through the [mainnet access request form](https://docs.google.com/forms/d/e/1FAIpQLScX-AwTYPCRqD9WI2LOtalgL25PSOJ__I6Gf4D8xW04WyWCpA/viewform). Once approved, your client can register and connect. If you
+re-initialize with a new seed, the identity changes and you have to request
+access again for the new `identity_pubkey`.
 
 ## Complete configuration
 

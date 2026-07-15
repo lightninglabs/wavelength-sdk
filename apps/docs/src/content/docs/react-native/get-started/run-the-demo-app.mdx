@@ -4,13 +4,6 @@ description: Build and run the React Native reference wallet on a device or simu
 pageLayout: doc
 ---
 
-import Callout from '~/components/mdx/Callout.astro';
-
-<Callout type="note" title="Pre-release">
-The React Native SDK is pre-release and not yet published to npm. The API
-surface is stable; iOS passkey support is still experimental.
-</Callout>
-
 ## Clone and install
 
 The reference integration lives in the Wavelength monorepo at
@@ -74,7 +67,7 @@ The start screen offers four presets:
 - **regtest** targets a local stack. Host addressing is automatic per
   platform: the Android emulator reaches your machine as `10.0.2.2`, the iOS
   simulator as `127.0.0.1`.
-- **testnet**, **testnet4**, and **signet** target the public test network
+- **testnet** and **signet** target the public test network
   deployments over TLS and also work on physical devices.
 
 Every endpoint is editable under "Advanced endpoints" before starting, so a
