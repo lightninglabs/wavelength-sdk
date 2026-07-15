@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { DEBUG_LEVELS } from '@lightninglabs/walletdk-react-native';
+import { DEBUG_LEVELS } from '@lightninglabs/wavelength-react-native';
 import { Field } from './ui/Field';
 import { Select } from './ui/Select';
 import { ToggleRow } from './ui/ToggleRow';

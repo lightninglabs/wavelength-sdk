@@ -1,4 +1,4 @@
-// The framework-agnostic contract for WalletDK. This file is a thin barrel that
+// The framework-agnostic contract for Wavelength. This file is a thin barrel that
 // re-exports the package's public API from the per-concern modules below; the
 // definitions live there. See each module for the documented symbols.
 
@@ -6,11 +6,11 @@
 export type {
   ActivityStreamPayload,
   ActivityStreamState,
-  WalletDKEvent,
-  WalletDKEventType,
-  WalletDKListener,
-  WalletDKLogLevel,
-  WalletDKLogPayload,
+  WavelengthEvent,
+  WavelengthEventType,
+  WavelengthListener,
+  WavelengthLogLevel,
+  WavelengthLogPayload,
 } from './events.ts';
 
 // Network selection and runtime configuration. App code normally builds a
@@ -80,22 +80,22 @@ export type {
 } from './results.ts';
 
 // The client contract every transport implements.
-export type { WalletDKClient } from './client.ts';
+export type { WavelengthClient } from './client.ts';
 
 // The transport-agnostic half of the client, for transport implementers:
 // extend it and supply callRaw, ready, the activity plumbing, and the
 // transport flavor.
-export { BaseWalletDKClient } from './base-client.ts';
+export { BaseWavelengthClient } from './base-client.ts';
 
 // The SDK error type and its machine-readable codes.
 export {
-  WalletDKError,
+  WavelengthError,
   errorMessage,
   isPasskeyCancelled,
   PasskeyCancelledError,
   toError,
 } from './errors.ts';
-export type { WalletDKErrorCode } from './errors.ts';
+export type { WavelengthErrorCode } from './errors.ts';
 
 // Passkey contract types, the wallet-kind label, and the shared PRF salt.
 export { PASSKEY_PRF_NAMESPACE, PASSKEY_PRF_SALT_HEX } from './passkey.ts';

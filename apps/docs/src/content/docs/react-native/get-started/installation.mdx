@@ -16,16 +16,16 @@ surface is stable; iOS passkey support is still experimental.
 ## The packages
 
 ```sh title="Terminal"
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 <CardGrid>
-  <Card title="@lightninglabs/walletdk-react-native">
+  <Card title="@lightninglabs/wavelength-react-native">
     The native transport: a Turbo Module wrapping the wallet runtime compiled
     into your app binary. Re-exports the entire `core` surface, so it is the
     only wallet import an app needs besides the hooks package.
   </Card>
-  <Card title="@lightninglabs/walletdk-react">
+  <Card title="@lightninglabs/wavelength-react">
     React provider and hooks. Transport-agnostic: it takes an injected client
     and depends only on `core`.
   </Card>
@@ -44,7 +44,7 @@ Expo apps need a **development build**, not Expo Go: the native wallet runtime i
 ## Native runtime binaries
 
 <Callout type="caution" title="Temporary: binaries ship out of band">
-The native wallet runtime binaries (`Walletdk.aar`, `Walletdk.xcframework`)
+The native wallet runtime binaries (`Wavewalletdk.aar`, `Wavewalletdk.xcframework`)
 do not ship inside the npm package yet; hosted distribution is coming.
 Until then, build them from a source checkout with the package's
 `scripts/fetch-bindings.sh` and stage them into the package before running

@@ -1,8 +1,8 @@
 import {
   PASSKEY_PRF_SALT_HEX,
   PasskeyCancelledError,
-} from "@lightninglabs/walletdk-core";
-import type { PasskeyAssertion } from "@lightninglabs/walletdk-core";
+} from "@lightninglabs/wavelength-core";
+import type { PasskeyAssertion } from "@lightninglabs/wavelength-core";
 
 // Whether a WebAuthn rejection means the user dismissed or timed out the OS
 // prompt, as opposed to a real failure. NotAllowedError is the spec-mandated

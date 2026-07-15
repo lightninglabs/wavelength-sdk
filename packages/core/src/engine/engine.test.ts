@@ -1,7 +1,7 @@
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import type { WalletInfo } from '../state.ts';
-import { FakeWalletDKClient } from '../testing/fake-client.ts';
+import { FakeWavelengthClient } from '../testing/fake-client.ts';
 import { createWalletEngine } from './engine.ts';
 
 async function flush(times = 8): Promise<void> {
@@ -15,7 +15,7 @@ const noneInfo = { walletState: 'none', walletReady: false } as WalletInfo;
 
 describe('engine lifecycle', () => {
   it('starts at loading and advances to runtimeReady when the client is ready', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     const engine = createWalletEngine({ client });
     assert.equal(engine.getSnapshot().phase, 'loading');
     client.resolveReady();
@@ -25,7 +25,7 @@ describe('engine lifecycle', () => {
   });
 
   it('surfaces a rejected ready() as the error phase with an Error', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     const engine = createWalletEngine({ client });
     client.rejectReady(new Error('wasm failed'));
     await flush();
@@ -36,7 +36,7 @@ describe('engine lifecycle', () => {
   });
 
   it('start() adopts info, derives the phase, and refreshes', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -51,7 +51,7 @@ describe('engine lifecycle', () => {
   });
 
   it('a failed start() reaches the error phase (no stranded starting)', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.fail('start', new Error('bad config'));
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -63,7 +63,7 @@ describe('engine lifecycle', () => {
   });
 
   it('autoStart starts once the runtime is ready', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = noneInfo;
     const engine = createWalletEngine({
       client,
@@ -78,7 +78,7 @@ describe('engine lifecycle', () => {
   });
 
   it('start() without any config throws a helpful error', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     const engine = createWalletEngine({ client });
     client.resolveReady();
     await flush();
@@ -87,7 +87,7 @@ describe('engine lifecycle', () => {
   });
 
   it('a failed stop() reaches the error phase (no stranded stopping)', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -100,7 +100,7 @@ describe('engine lifecycle', () => {
   });
 
   it('stop() clears wallet data and lands on stopped', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -116,7 +116,7 @@ describe('engine lifecycle', () => {
   });
 
   it('a refresh resolving after stop does not repopulate the snapshot', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -143,7 +143,7 @@ describe('engine lifecycle', () => {
   });
 
   it('a runtimeStopped event (worker crash) clears data from any phase', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -157,7 +157,7 @@ describe('engine lifecycle', () => {
   });
 
   it('buffers log events bounded to MAX_LOGS and clearLogs empties them', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     const engine = createWalletEngine({ client });
     for (let i = 0; i < 205; i++) {
       client.emit({ type: 'log', payload: { message: `m${i}` } } as never);
@@ -170,7 +170,7 @@ describe('engine lifecycle', () => {
   });
 
   it('refresh keeps unchanged slices referentially stable', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -186,7 +186,7 @@ describe('engine lifecycle', () => {
   });
 
   it('start() rejects while stopping, without calling client.start', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -203,7 +203,7 @@ describe('engine lifecycle', () => {
   });
 
   it('dispose unsubscribes from the client', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     const engine = createWalletEngine({ client });
     assert.equal(client.listenerCount(), 1);
     engine.dispose();
@@ -213,7 +213,7 @@ describe('engine lifecycle', () => {
 
 describe('engine wallet verbs', () => {
   async function readyEngine() {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -223,7 +223,7 @@ describe('engine wallet verbs', () => {
   }
 
   it('createWallet refetches real info instead of fabricating a partial', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = noneInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -240,7 +240,7 @@ describe('engine wallet verbs', () => {
   });
 
   it('a failed createWallet leaves the phase unchanged and rejects', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = noneInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -291,7 +291,7 @@ describe('engine wallet verbs', () => {
   });
 
   it('unlockWallet adopts refetched info and reaches ready', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = { walletState: 'locked', walletReady: false } as WalletInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -307,7 +307,7 @@ describe('engine wallet verbs', () => {
 
   it('#adoptInfo retries a transient getInfo failure and still reaches ready', async () => {
     mock.timers.enable({ apis: ['setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = noneInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -338,7 +338,7 @@ describe('engine wallet verbs', () => {
 
   it('#adoptInfo exhaustion escalates to error after createWallet itself succeeded', async () => {
     mock.timers.enable({ apis: ['setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = noneInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -360,7 +360,7 @@ describe('engine wallet verbs', () => {
   });
 
   it('openWalletFromPasskey adopts refetched info and reaches ready', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = { walletState: 'locked', walletReady: false } as WalletInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -377,7 +377,7 @@ describe('engine wallet verbs', () => {
 
 describe('engine restore', () => {
   async function needsWalletEngine() {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = noneInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -627,7 +627,7 @@ describe('engine restore', () => {
 
 describe('engine ready-phase processes', () => {
   it('opens the activity stream on ready and closes it on stop', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -641,7 +641,7 @@ describe('engine ready-phase processes', () => {
 
   it('an activity event debounces into a settle-reconcile refresh', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -658,7 +658,7 @@ describe('engine ready-phase processes', () => {
 
   it('five consecutive background refresh failures escalate to error', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -678,7 +678,7 @@ describe('engine ready-phase processes', () => {
   });
 
   it('background refresh exhaustion outside ready does not set the error', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -704,7 +704,7 @@ describe('engine ready-phase processes', () => {
 
   it('a dead activity stream escalates to error with the stream message', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     client.startActivityImpl = () => Promise.reject(new Error('no stream'));
     const engine = createWalletEngine({ client });
@@ -725,7 +725,7 @@ describe('engine ready-phase processes', () => {
 
   it('the sync poll refreshes while syncing and gives up after 5 failures', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = { walletState: 'syncing', walletReady: false } as WalletInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -746,7 +746,7 @@ describe('engine ready-phase processes', () => {
 
   it('a syncing -> ready handoff stops the sync poller and starts the activity stream', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = { walletState: 'syncing', walletReady: false } as WalletInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -776,7 +776,7 @@ describe('engine ready-phase processes', () => {
 
   it('a syncPollExhausted from an in-flight tick cannot mark a stopped engine', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = { walletState: 'syncing', walletReady: false } as WalletInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -823,7 +823,7 @@ describe('engine ready-phase processes', () => {
 
   it('stopCompleted clears a previously-set snapshot error', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -846,7 +846,7 @@ describe('engine ready-phase processes', () => {
   });
 
   it('serializes overlapping background refreshes: the second fetch cannot start before the first settles', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -886,7 +886,7 @@ describe('engine ready-phase processes', () => {
 
   it('the background refresh failure counter resets on success (consecutive, not cumulative)', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();
@@ -923,7 +923,7 @@ describe('engine ready-phase processes', () => {
 
 describe('engine dispose guards', () => {
   it('mutators reject with /disposed/ once the engine is disposed', async () => {
-    const client = new FakeWalletDKClient();
+    const client = new FakeWavelengthClient();
     client.info = readyInfo;
     const engine = createWalletEngine({ client });
     client.resolveReady();

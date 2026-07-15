@@ -37,7 +37,7 @@ export function BrandPanel({ network }: { network: string }) {
           <Bitcoin size={18} className="text-white" />
         </span>
         <div>
-          <div className="text-sm font-semibold text-fg">WalletDK</div>
+          <div className="text-sm font-semibold text-fg">Wavelength Demo</div>
           <div className="font-mono text-[11px] tabular-nums text-faint">
             {network} · self-custody
           </div>

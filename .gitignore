@@ -12,13 +12,16 @@ apps/*/public/
 # Superpowers SDD scratch (briefs, reports, ledger, review diffs).
 .superpowers/
 
+# Local plans and specs; kept out of the repo, discarded after implementation.
+docs/superpowers/
+
 # Per-checkout dev-server launch config: its port depends on what else is
 # already listening locally, so it never transfers between worktrees. Only this
 # one file is ignored; .claude/ is not ignored wholesale.
 .claude/launch.json
 
 # Staged gomobile bindings and native build output for the RN transport;
-# rebuilt from darepo-client by packages/react-native/scripts/fetch-bindings.sh.
+# rebuilt from wavelength by packages/react-native/scripts/fetch-bindings.sh.
 packages/react-native/android/libs/
-packages/react-native/ios/Walletdk.xcframework/
+packages/react-native/ios/Wavewalletdk.xcframework/
 packages/react-native/android/build/

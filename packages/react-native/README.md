@@ -1,6 +1,6 @@
-# @lightninglabs/walletdk-react-native
+# @lightninglabs/wavelength-react-native
 
-The React Native transport for [WalletDK](../../README.md): embed a
+The React Native transport for [Wavelength](../../README.md): embed a
 self-custodial Lightning wallet directly in your app. Your users send and
 receive Lightning payments with no node to run, no channels to open, and no
 inbound liquidity to manage, while the keys stay on their own device. The
@@ -24,38 +24,38 @@ same typed client contract as the web transport.
 ## Install
 
 ```sh
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 The native wallet runtime binaries currently ship out of band rather than
 inside the npm package; hosted distribution is coming. Until then, build
 them from a checkout of this repository with `scripts/fetch-bindings.sh`
-(which compiles them from a daemon source checkout named by `DAREPO_DIR`)
+(which compiles them from a daemon source checkout named by `WAVELENGTH_DIR`)
 and stage them into this package before running `pod install` / a Gradle
 build.
 
 ## Quick start
 
 ```tsx
-import { WalletDKProvider, useWallet } from '@lightninglabs/walletdk-react';
-import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
+import { WavelengthProvider, useWallet } from '@lightninglabs/wavelength-react';
+import { createNativeWalletEngine } from '@lightninglabs/wavelength-react-native';
 
 const engine = createNativeWalletEngine();
 
 export default function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       <Wallet />
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
 
 `createNativeWalletEngine()` builds a `WalletEngine` backed by the wallet
-runtime compiled into your app; pass it to `WalletDKProvider` and use the
+runtime compiled into your app; pass it to `WavelengthProvider` and use the
 same hooks (`useWallet`, `useWalletBalance`, `useWalletSend`,
 `useWalletReceive`, `useWalletDeposit`, `useWalletActivity`) documented in
-[`@lightninglabs/walletdk-react`](../react).
+[`@lightninglabs/wavelength-react`](../react).
 
 ## Passkey wallets
 
@@ -63,8 +63,8 @@ The transport ships a native passkey ceremony, so users can create and unlock
 a wallet with a platform passkey instead of a password:
 
 ```tsx
-import { useWalletPasskey } from '@lightninglabs/walletdk-react';
-import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
+import { useWalletPasskey } from '@lightninglabs/wavelength-react';
+import { createNativePasskeyCeremony } from '@lightninglabs/wavelength-react-native';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'wallet.example.com' });
 

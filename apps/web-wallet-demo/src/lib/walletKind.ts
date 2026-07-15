@@ -1,6 +1,6 @@
-import type { WalletKind } from "@lightninglabs/walletdk-react";
+import type { WalletKind } from "@lightninglabs/wavelength-react";
 
-const prefix = "walletdk:wallet-kind:";
+const prefix = "wavelength:wallet-kind:";
 
 // readWalletKind returns the stored wallet kind for a data dir, or null.
 export function readWalletKind(dataDir: string): WalletKind | null {
@@ -14,7 +14,7 @@ export function writeWalletKind(dataDir: string, kind: WalletKind): void {
   localStorage.setItem(prefix + dataDir, kind);
 }
 
-const credPrefix = "walletdk:passkey-cred:";
+const credPrefix = "wavelength:passkey-cred:";
 
 // readPasskeyCredentialId returns the stored passkey credential id for a data
 // dir, or null when none has been recorded yet (e.g. a fresh device).

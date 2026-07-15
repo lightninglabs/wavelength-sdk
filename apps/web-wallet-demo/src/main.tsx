@@ -1,11 +1,11 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { WalletDKProvider } from "@lightninglabs/walletdk-react";
+import { WavelengthProvider } from "@lightninglabs/wavelength-react";
 import {
   createWebWalletEngine,
   RUNTIME_MANIFEST_VERSION,
   webPasskeyCeremony,
-} from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-web";
 import { App } from "./App";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { consumePendingWipe } from "./lib/wipeLocalData";
@@ -58,9 +58,9 @@ async function boot() {
   createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <ThemeProvider>
-        <WalletDKProvider engine={engine}>
+        <WavelengthProvider engine={engine}>
           <App />
-        </WalletDKProvider>
+        </WavelengthProvider>
       </ThemeProvider>
     </React.StrictMode>,
   );

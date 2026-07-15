@@ -7,7 +7,7 @@ import {
   Timer,
   Zap,
 } from "lucide-react";
-import { PrepareSendResult, SendRail } from "@lightninglabs/walletdk-react";
+import { PrepareSendResult, SendRail } from "@lightninglabs/wavelength-react";
 import { Band } from "../../components/ui/Band";
 import { GhostButton } from "../../components/ui/Button";
 import { InlineError } from "../../components/ui/InlineError";

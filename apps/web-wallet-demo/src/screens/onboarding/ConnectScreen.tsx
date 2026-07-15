@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, Power } from "lucide-react";
-import { DEBUG_LEVELS } from "@lightninglabs/walletdk-web";
+import { DEBUG_LEVELS } from "@lightninglabs/wavelength-web";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { WipeDataButton } from "../../components/WipeDataButton";

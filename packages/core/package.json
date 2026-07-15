@@ -1,5 +1,5 @@
 {
-  "name": "@lightninglabs/walletdk-core",
+  "name": "@lightninglabs/wavelength-core",
   "version": "0.0.0",
   "private": false,
   "publishConfig": { "access": "public" },

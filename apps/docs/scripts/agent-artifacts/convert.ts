@@ -149,7 +149,7 @@ export function convertPageHtml(html: string): ConvertedPage | null {
   if (!body) return null;
 
   const rawTitle = text(select('head title', tree) ?? undefined);
-  const title = rawTitle.replace(/ \| WalletDK$/, '');
+  const title = rawTitle.replace(/ \| Wavelength$/, '');
   const descEl = select('head meta[name="description"]', tree);
   const description = descEl ? String(descEl.properties?.content ?? '') : null;
 

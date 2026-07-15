@@ -1,6 +1,6 @@
 ---
 title: Use a passkey
-description: How to create and unlock a WalletDK wallet using platform passkeys instead of a password.
+description: How to create and unlock a Wavelength wallet using platform passkeys instead of a password.
 pageLayout: guide
 related:
   - guides/create-a-wallet
@@ -12,7 +12,7 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Create a passkey-protected wallet
 
-[`useWalletPasskey(ceremony)`](/reference/walletdk-react/#useWalletPasskey) drives the passkey ceremony and opens the wallet
+[`useWalletPasskey(ceremony)`](/reference/wavelength-react/#useWalletPasskey) drives the passkey ceremony and opens the wallet
 through the engine, refreshing engine state on success so `phase` advances
 automatically. The `ceremony` argument is injected from your transport:
 
@@ -26,12 +26,12 @@ passkey option a moment later:
 <PlatformTabs>
 <div data-label="Web">
 
-Pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `@lightninglabs/walletdk-web` as the ceremony
+Pass [`webPasskeyCeremony`](/reference/wavelength-web/#webPasskeyCeremony) from `@lightninglabs/wavelength-web` as the ceremony
 implementation.
 
 ```tsx title="passkey.tsx"
-import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { useWalletPasskey } from '@lightninglabs/walletdk-react';
+import { webPasskeyCeremony } from '@lightninglabs/wavelength-web';
+import { useWalletPasskey } from '@lightninglabs/wavelength-react';
 
 function PasskeyOnboard() {
   const { create, supported, createPending } =
@@ -57,15 +57,15 @@ function PasskeyOnboard() {
 </div>
 <div data-label="React Native">
 
-Pass [`createNativePasskeyCeremony({ rpId })`](/reference/walletdk-react-native/#createNativePasskeyCeremony) from
-`@lightninglabs/walletdk-react-native` as the ceremony implementation. The
+Pass [`createNativePasskeyCeremony({ rpId })`](/reference/wavelength-react-native/#createNativePasskeyCeremony) from
+`@lightninglabs/wavelength-react-native` as the ceremony implementation. The
 `rpId` domain must be associated with your app first; see
 [Passkey setup](/react-native/get-started/passkey-setup/).
 
 ```tsx title="passkey.tsx"
 import { Button, Text } from 'react-native';
-import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
-import { useWalletPasskey } from '@lightninglabs/walletdk-react';
+import { createNativePasskeyCeremony } from '@lightninglabs/wavelength-react-native';
+import { useWalletPasskey } from '@lightninglabs/wavelength-react';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'wallet.example.com' });
 
@@ -101,9 +101,9 @@ track separately (`create`/`createPending`/`createError` versus
 `open`/`openPending`/`openError`) because apps typically render them on
 different screens.
 
-The underlying capability probe ([`ceremony.supportsPasskeyPrf()`](/reference/walletdk-web/#supportsPasskeyPrf)) is
+The underlying capability probe ([`ceremony.supportsPasskeyPrf()`](/reference/wavelength-web/#supportsPasskeyPrf)) is
 memoized: only the first call per ceremony instance actually runs it, and
-every [`useWalletPasskey`](/reference/walletdk-react/#useWalletPasskey) call sharing that instance resolves from the same
+every [`useWalletPasskey`](/reference/wavelength-react/#useWalletPasskey) call sharing that instance resolves from the same
 promise. Because of this, it is worth warming the probe once at app boot,
 before onboarding ever mounts (`void webPasskeyCeremony.supportsPasskeyPrf();`
 alongside your engine setup). By the time the first screen reads `supported`,
@@ -133,8 +133,8 @@ await open();
 ```
 
 ```tsx title="passkey.tsx"
-import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { useWallet, useWalletPasskey } from '@lightninglabs/walletdk-react';
+import { webPasskeyCeremony } from '@lightninglabs/wavelength-web';
+import { useWallet, useWalletPasskey } from '@lightninglabs/wavelength-react';
 
 function PasskeyUnlock({ credentialId }: { credentialId: string }) {
   const { phase } = useWallet();
@@ -160,14 +160,14 @@ function PasskeyUnlock({ credentialId }: { credentialId: string }) {
 ## Handle a cancelled ceremony
 
 If the user dismisses the OS passkey prompt, `create`/`open` reject with a
-[`PasskeyCancelledError`](/reference/walletdk-core/#PasskeyCancelledError) instead of a regular failure, and that rejection is
+[`PasskeyCancelledError`](/reference/wavelength-core/#PasskeyCancelledError) instead of a regular failure, and that rejection is
 never recorded into `createError`/`openError`: a dismissed prompt is not a
 failure to display. Check for it with `instanceof` and treat it as a no-op
 rather than showing an error:
 
 ```tsx title="passkey.tsx"
-import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { PasskeyCancelledError, useWalletPasskey } from '@lightninglabs/walletdk-react';
+import { webPasskeyCeremony } from '@lightninglabs/wavelength-web';
+import { PasskeyCancelledError, useWalletPasskey } from '@lightninglabs/wavelength-react';
 
 function PasskeyUnlock({ credentialId }: { credentialId: string }) {
   const { open } = useWalletPasskey(webPasskeyCeremony);
@@ -194,7 +194,7 @@ function PasskeyUnlock({ credentialId }: { credentialId: string }) {
 Browsers collapse most WebAuthn failures into the same `NotAllowedError`
 signal used for a genuine user dismissal: a permissions-policy block, an
 iframe restriction, or an `rpId` that does not match the page's association
-file all surface as [`PasskeyCancelledError`](/reference/walletdk-core/#PasskeyCancelledError) here, indistinguishable from the
+file all surface as [`PasskeyCancelledError`](/reference/wavelength-core/#PasskeyCancelledError) here, indistinguishable from the
 user tapping away. If a ceremony instantly "cancels" on every attempt, before
 assuming users are backing out, check the configuration angle first: confirm
 `rpId` matches the domain hosting the app, and that the
@@ -205,7 +205,7 @@ association file for that `rpId` is reachable and lists the app.
 
 If the passkey credential is unavailable (for example, the user is on a new
 device or has lost access to the registered authenticator), `open` rejects
-with a genuine error (not a [`PasskeyCancelledError`](/reference/walletdk-core/#PasskeyCancelledError)). Catch it and offer a
+with a genuine error (not a [`PasskeyCancelledError`](/reference/wavelength-core/#PasskeyCancelledError)). Catch it and offer a
 recovery-phrase fallback instead of leaving the user stuck.
 
 Every successful passkey outcome includes `outcome.result.imported`, a
@@ -214,19 +214,19 @@ derived seed (a fresh device) and `false` when it unlocked an existing local
 wallet. `outcome.result.mnemonic` is populated only when `imported` is
 `true`, so check `imported` before reading `mnemonic` for backup display. To
 restore on a new device without a passkey, call `create({ password,
-mnemonic })` from [`useWalletCreate()`](/reference/walletdk-react/#useWalletCreate) with a new wallet password and the
-saved recovery phrase; `password` is required by [`CreateWalletRequest`](/reference/walletdk-core/#createWallet). This
+mnemonic })` from [`useWalletCreate()`](/reference/wavelength-react/#useWalletCreate) with a new wallet password and the
+saved recovery phrase; `password` is required by [`CreateWalletRequest`](/reference/wavelength-core/#createWallet). This
 is why users should record their recovery phrase when they first create the
 wallet.
 
 ```tsx title="passkey.tsx"
 import { useState } from 'react';
-import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+import { webPasskeyCeremony } from '@lightninglabs/wavelength-web';
 import {
   PasskeyCancelledError,
   useWalletCreate,
   useWalletPasskey,
-} from '@lightninglabs/walletdk-react';
+} from '@lightninglabs/wavelength-react';
 
 function UnlockWithFallback({ credentialId }: { credentialId: string }) {
   const { open } = useWalletPasskey(webPasskeyCeremony);

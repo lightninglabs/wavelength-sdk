@@ -1,15 +1,15 @@
 ---
 title: Activity & events
-description: How WalletDK exposes wallet history and real-time state changes through its activity stream and event model.
+description: How the Wavelength SDK exposes wallet history and real-time state changes through its activity stream and event model.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
 ## The activity stream
 
-Every deposit, payment, and exit shows up in one ordered history. WalletDK keeps that history as a stream you can snapshot once or subscribe to for live updates as operations settle.
+Every deposit, payment, and exit shows up in one ordered history. Wavelength keeps that history as a stream you can snapshot once or subscribe to for live updates as operations settle.
 
-Wallet history in WalletDK is an **activity stream**: a sequence of **Entry** objects, one per user-visible wallet operation. Deposits, Lightning receives, sends, and cooperative exits each create an entry when they start and update in place as they settle.
+Wallet history in Wavelength is an **activity stream**: a sequence of **Entry** objects, one per user-visible wallet operation. Deposits, Lightning receives, sends, and cooperative exits each create an entry when they start and update in place as they settle.
 
 You can read history in two ways:
 
@@ -22,7 +22,7 @@ You can read history in two ways:
 
 - `startActivity()` for a live stream that pushes updates until you call `stopActivity()`.
 
-For UI work, prefer the live stream. Call `subscribe()` first to register a listener, then `startActivity({ includeExisting: true })` so the daemon replays current rows before forwarding new changes. Each update arrives as a **WalletDKEvent** with `type: 'activity'` and the changed entry as payload. Pending entries mutate (status, phase, txid, confirmation height) until they reach `complete` or `failed`; your UI can update rows by `id` without polling `list()` on a timer.
+For UI work, prefer the live stream. Call `subscribe()` first to register a listener, then `startActivity({ includeExisting: true })` so the daemon replays current rows before forwarding new changes. Each update arrives as a **WavelengthEvent** with `type: 'activity'` and the changed entry as payload. Pending entries mutate (status, phase, txid, confirmation height) until they reach `complete` or `failed`; your UI can update rows by `id` without polling `list()` on a timer.
 
 <Callout type="note">
 `stopActivity()` closes the stream but leaves your `subscribe()` listener registered. You can call `startActivity()` again later without re-subscribing.
@@ -34,7 +34,7 @@ The React **useWalletActivity** hook wraps this pattern: it keeps an in-memory l
 
 Beyond activity rows, the client emits runtime and log events on the same subscription. Narrow on the event type before reading its payload.
 
-**WalletDKEvent** is a discriminated union. Narrow on `type` before reading `payload`:
+**WavelengthEvent** is a discriminated union. Narrow on `type` before reading `payload`:
 
 All four event types arrive through the same `subscribe(listener)` callback registered once.
 
@@ -66,7 +66,7 @@ Activity events carry the full entry shape:
 - **`send`**: outbound payment (Lightning send swap, cooperative on-chain leave, or in-Ark send).
 - **`exit`**: cooperative leave of VTXOs to a plain on-chain address.
 
-For a `send` entry, `entry.request?.type` (`'lightning'`, `'onchain'`, or `'ark'`) tells you which rail the payment actually used; when preparing a send, `PrepareSendResult.rail` reports the same thing ahead of time. See the [walletdk-core reference](/reference/walletdk-core/) for the full field list.
+For a `send` entry, `entry.request?.type` (`'lightning'`, `'onchain'`, or `'ark'`) tells you which rail the payment actually used; when preparing a send, `PrepareSendResult.rail` reports the same thing ahead of time. See the [wavelength-core reference](/reference/wavelength-core/) for the full field list.
 
 **Entry phases** sit one level below status and describe *where* a pending operation is in its pipeline. They do not replace status; use both. Common phases include:
 
@@ -78,6 +78,6 @@ For a `send` entry, `entry.request?.type` (`'lightning'`, `'onchain'`, or `'ark'
 - **`refunding`** / **`refunded`**: swap timeout or cancellation path returning funds.
 - **`failed`**: terminal failure.
 
-You can switch on the progress phase for structured UI states, or render the phase label directly when you want the daemon's short label without maintaining a mapping table. Field definitions live in the [walletdk-core reference](/reference/walletdk-core/).
+You can switch on the progress phase for structured UI states, or render the phase label directly when you want the daemon's short label without maintaining a mapping table. Field definitions live in the [wavelength-core reference](/reference/wavelength-core/).
 
-For the React hook signatures built on this stream, see the [walletdk-react reference](/reference/walletdk-react/). For how activity and events relate to the client's broader startup and connection state, see [Wallet lifecycle & auth](/concepts/wallet-lifecycle-and-auth/).
+For the React hook signatures built on this stream, see the [wavelength-react reference](/reference/wavelength-react/). For how activity and events relate to the client's broader startup and connection state, see [Wallet lifecycle & auth](/concepts/wallet-lifecycle-and-auth/).

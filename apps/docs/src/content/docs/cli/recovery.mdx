@@ -28,7 +28,7 @@ flags (`--rpcserver`, `--tlscertpath`, `--no-tls`).
 `recovery` alone prints usage and exits; pick a subcommand, for example:
 
 ```bash title="Terminal"
-darepocli recovery list
+wavecli recovery list
 ```
 
 ## Subcommands
@@ -46,7 +46,7 @@ policy.
 Calls the daemon `ListVHTLCRecoveries` RPC.
 
 ```bash title="Terminal"
-darepocli recovery list
+wavecli recovery list
 ```
 
 ### `recovery status`
@@ -60,7 +60,7 @@ Shows one vHTLC recovery row and its current unroll status.
 Calls the daemon `GetVHTLCRecoveryStatus` RPC.
 
 ```bash title="Terminal"
-darepocli recovery status <recovery_id>
+wavecli recovery status <recovery_id>
 ```
 
 ### `recovery escalate`
@@ -79,7 +79,7 @@ exits `INVALID_ARGS`.
 Calls the daemon `EscalateVHTLCRecovery` RPC.
 
 ```bash title="Terminal"
-darepocli recovery escalate <recovery_id> --yes
+wavecli recovery escalate <recovery_id> --yes
 ```
 
 ### `recovery cancel`
@@ -96,5 +96,5 @@ needed.
 Calls the daemon `CancelVHTLCRecovery` RPC.
 
 ```bash title="Terminal"
-darepocli recovery cancel <recovery_id>
+wavecli recovery cancel <recovery_id>
 ```

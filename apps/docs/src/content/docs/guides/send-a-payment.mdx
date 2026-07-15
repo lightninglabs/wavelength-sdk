@@ -12,14 +12,14 @@ related:
 
 ## Send over Lightning
 
-WalletDK uses a send swap to route a Lightning payment from your Ark balance.
-Call `prepare({ invoice })` from [`useWalletPrepareSend()`](/reference/walletdk-react/#useWalletPrepareSend) to get a fee quote
+Wavelength uses a send swap to route a Lightning payment from your Ark balance.
+Call `prepare({ invoice })` from [`useWalletPrepareSend()`](/reference/wavelength-react/#useWalletPrepareSend) to get a fee quote
 and a single-use `sendIntentId`. Pass the result to `sendPrepared()` from
-[`useWalletSend()`](/reference/walletdk-react/#useWalletSend) to execute.
+[`useWalletSend()`](/reference/wavelength-react/#useWalletSend) to execute.
 
 The two-step flow lets you show the user the fee before committing. If the
 user cancels, discard the quote and call nothing. For a one-step path, call
-`send({ invoice })` from [`useWalletSend()`](/reference/walletdk-react/#useWalletSend) instead.
+`send({ invoice })` from [`useWalletSend()`](/reference/wavelength-react/#useWalletSend) instead.
 
 The quote returned by `prepare()` expires at `expiresAtUnix`. If the user
 waits too long before confirming, call `prepare()` again to get a fresh
@@ -28,7 +28,7 @@ quote before calling `sendPrepared()`. Check `feeKnown` before displaying
 `warning` may contain additional detail to show the user.
 
 ```tsx title="send.tsx"
-import { useWalletPrepareSend, useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletPrepareSend, useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendLightning() {
   const { prepare, prepareData: quote, resetPrepare } = useWalletPrepareSend();
@@ -71,11 +71,11 @@ transaction that moves your VTXO value to a plain Bitcoin address. This is
 faster and cheaper than a unilateral exit because the round happens in one
 confirmation.
 
-Pass `onchainAddress` and `amountSat` to `send()` from [`useWalletSend()`](/reference/walletdk-react/#useWalletSend). The
-returned [`SendResult`](/reference/walletdk-core/#SendResult) includes the activity entry and `actualAmountSat`.
+Pass `onchainAddress` and `amountSat` to `send()` from [`useWalletSend()`](/reference/wavelength-react/#useWalletSend). The
+returned [`SendResult`](/reference/wavelength-core/#SendResult) includes the activity entry and `actualAmountSat`.
 
 ```tsx title="send.tsx"
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendOnChain() {
   const { send, sendPending } = useWalletSend();
@@ -105,16 +105,16 @@ await send({ onchainAddress: address, sweepAll: true });
 
 ## Handle errors
 
-`send` and `sendPrepared` from [`useWalletSend()`](/reference/walletdk-react/#useWalletSend) throw a [`WalletDKError`](/reference/walletdk-core/#WalletDKError) on
+`send` and `sendPrepared` from [`useWalletSend()`](/reference/wavelength-react/#useWalletSend) throw a [`WavelengthError`](/reference/wavelength-core/#WavelengthError) on
 failure and set the hook's `sendError`, which is always `Error | null`. Check
 `err.code` for a machine-readable reason. Display `err.message` to the user.
 
-Errors thrown during `prepare` (from [`useWalletPrepareSend()`](/reference/walletdk-react/#useWalletPrepareSend)) are safe to
+Errors thrown during `prepare` (from [`useWalletPrepareSend()`](/reference/wavelength-react/#useWalletPrepareSend)) are safe to
 retry. Errors thrown during `sendPrepared` may indicate the payment was
 already sent; check the activity feed before retrying.
 
 ```tsx title="send.tsx"
-import { useWalletSend, WalletDKError } from '@lightninglabs/walletdk-react';
+import { useWalletSend, WavelengthError } from '@lightninglabs/wavelength-react';
 
 function SafeSend() {
   const { send, sendError, resetSend } = useWalletSend();
@@ -124,7 +124,7 @@ function SafeSend() {
     try {
       await send({ invoice: bolt11 });
     } catch (err) {
-      if (err instanceof WalletDKError) {
+      if (err instanceof WavelengthError) {
         console.error('Payment failed:', err.code, err.message);
       }
     }

@@ -1,12 +1,12 @@
 # rn-wallet-demo
 
-The reference React Native app for [WalletDK](../../README.md): a
+The reference React Native app for [Wavelength](../../README.md): a
 self-custodial Lightning wallet embedded in an Expo app. It exercises the full
 wallet flow: create, restore, or unlock (password or passkey), recovery-phrase
 backup, on-chain boarding and Lightning receive with scannable QRs, send, live
 activity, runtime controls, local-data wipe, and light/dark themes, all
-through [`@lightninglabs/walletdk-react-native`](../../packages/react-native)
-and the shared [`@lightninglabs/walletdk-react`](../../packages/react) hooks.
+through [`@lightninglabs/wavelength-react-native`](../../packages/react-native)
+and the shared [`@lightninglabs/wavelength-react`](../../packages/react) hooks.
 
 This app is a development harness, not a published product. It runs as an Expo
 **development build**; Expo Go cannot load the compiled wallet runtime.
@@ -30,11 +30,11 @@ From the repository root:
 
 ```sh
 # 1. Build and stage the native wallet runtime for both platforms. Point
-#    DAREPO_DIR at your daemon source checkout. The first build compiles the
+#    WAVELENGTH_DIR at your daemon source checkout. The first build compiles the
 #    daemon for every ABI and takes several minutes; rerun it whenever the
 #    paired daemon revision changes.
-DAREPO_DIR=/path/to/daemon-checkout \
-  pnpm --filter @lightninglabs/walletdk-react-native run fetch-bindings
+WAVELENGTH_DIR=/path/to/daemon-checkout \
+  pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
 
 # 2. Install and build the workspace.
 pnpm install && pnpm build
@@ -87,14 +87,14 @@ the two SDK surfaces can be compared directly:
 ## Passkeys
 
 The create/unlock screen offers passkey buttons when the platform supports
-them. The relying party is `dadocs.lightning.engineering`, whose
+them. The relying party is `wavelength.lightning.engineering`, whose
 `/.well-known/` association files vouch for this demo app; that association
 is demo-grade on purpose (it lists the shared debug signing certificate every
 local build uses), so treat wallets created with it as throwaways.
 
 - **Android:** works on a Play Store emulator image with a signed-in Google
   account and a device screen lock (PIN) set. The association file must be
-  live at `https://dadocs.lightning.engineering/.well-known/assetlinks.json`
+  live at `https://wavelength.lightning.engineering/.well-known/assetlinks.json`
   when the ceremony runs.
 - **iOS:** not yet functional end to end; the entitlement is configured, but
   the server-side association awaits an Apple Developer Program Team ID. The
@@ -105,7 +105,7 @@ local build uses), so treat wallets created with it as throwaways.
 - **The app shows UI that does not match the code.** Metro served a stale
   cached bundle; this is a recurring dev-server issue. Restart Metro with
   `npx expo start --dev-client --clear` and relaunch the app.
-- **`walletdk mobile already started` after editing code.** A JS reload
+- **`wavelength mobile already started` after editing code.** A JS reload
   outlived the native wallet runtime. Force-quit the app and relaunch it.
 - **Port 8081 is in use.** Another Metro instance is running; kill it
   (`pkill -f 'expo start'`) rather than accepting a different port, so
@@ -118,7 +118,7 @@ local build uses), so treat wallets created with it as throwaways.
 
   ```sh
   xcrun simctl launch --console-pty --terminate-running-process \
-    booted engineering.lightning.walletdk.demo
+    booted engineering.lightning.wavelength.demo
   ```
 
   The `--terminate-running-process` flag matters: without it, simctl only

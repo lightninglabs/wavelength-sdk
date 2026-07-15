@@ -11,7 +11,7 @@ test('all four skills parse with spec-conformant frontmatter', () => {
   const skills = readSkills(repoRoot);
   assert.deepEqual(
     skills.map((s) => s.name).sort(),
-    ['walletdk-api', 'walletdk-cli', 'walletdk-react-native', 'walletdk-web'],
+    ['wavelength-api', 'wavelength-cli', 'wavelength-react-native', 'wavelength-web'],
   );
   for (const s of skills) {
     assert.match(s.name, /^[a-z0-9-]{1,64}$/, `${s.name}: name charset and length`);
@@ -43,7 +43,7 @@ test('catalog JSON matches the well-known shape', () => {
 test('marketplace manifest parses and points at the plugin root', () => {
   const raw = readFileSync(join(repoRoot, '.claude-plugin', 'marketplace.json'), 'utf8');
   const manifest = JSON.parse(raw);
-  assert.equal(manifest.name, 'walletdk');
+  assert.equal(manifest.name, 'wavelength');
   assert.ok(Array.isArray(manifest.plugins) && manifest.plugins.length === 1);
   assert.equal(manifest.plugins[0].source, './');
 });

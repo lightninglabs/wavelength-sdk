@@ -1,4 +1,4 @@
-package engineering.lightning.walletdk.reactnative
+package engineering.lightning.wavelength.reactnative
 
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -24,8 +24,8 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import engineering.lightning.walletdk.mobile.Mobile
-import engineering.lightning.walletdk.mobile.Subscription
+import engineering.lightning.wavewalletdk.mobile.Mobile
+import engineering.lightning.wavewalletdk.mobile.Subscription
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -33,15 +33,15 @@ import java.util.concurrent.Executors
 // The thin JSON pipe between JS and the gomobile facade. Every facade verb runs on a
 // background executor because the facade's calls block (start until the
 // daemon serves, RPCs until they answer). All typing lives in TypeScript.
-class WalletdkModule(reactContext: ReactApplicationContext) :
-  NativeWalletdkSpec(reactContext) {
+class WavelengthModule(reactContext: ReactApplicationContext) :
+  NativeWavelengthSpec(reactContext) {
 
   private val executor: ExecutorService = Executors.newCachedThreadPool()
 
   override fun getName(): String = NAME
 
   override fun getDefaultDataDir(promise: Promise) {
-    promise.resolve(File(reactApplicationContext.filesDir, "walletdk").absolutePath)
+    promise.resolve(File(reactApplicationContext.filesDir, "wavelength").absolutePath)
   }
 
   // passkeySupported is a cheap prerequisite probe (platform passkeys need
@@ -146,7 +146,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
       try {
         promise.resolve(dispatch(method, paramsJson))
       } catch (e: Throwable) {
-        promise.reject(ERROR_CODE, e.message ?: "walletdk call failed", e)
+        promise.reject(ERROR_CODE, e.message ?: "wavelength call failed", e)
       }
     }
   }
@@ -173,7 +173,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
       "exitStatus" -> Mobile.exitStatus(params)
       "getExitPlan" -> Mobile.getExitPlan(params)
       "sweepWallet" -> Mobile.sweepWallet(params)
-      else -> throw IllegalArgumentException("unknown walletdk verb: $method")
+      else -> throw IllegalArgumentException("unknown wavelength verb: $method")
     }
     return result?.toString(Charsets.UTF_8) ?: ""
   }
@@ -192,7 +192,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
             closing = false
             val sub = Mobile.subscribe(reqJson.toByteArray(Charsets.UTF_8))
             subscription = sub
-            Thread({ pump(sub) }, "walletdk-activity").apply {
+            Thread({ pump(sub) }, "wavelength-activity").apply {
               isDaemon = true
               start()
             }
@@ -200,7 +200,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
         }
         promise.resolve(null)
       } catch (e: Throwable) {
-        promise.reject(ERROR_CODE, e.message ?: "walletdk subscribe failed", e)
+        promise.reject(ERROR_CODE, e.message ?: "wavelength subscribe failed", e)
       }
     }
   }
@@ -215,7 +215,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
         sub?.close()
         promise.resolve(null)
       } catch (e: Throwable) {
-        promise.reject(ERROR_CODE, e.message ?: "walletdk unsubscribe failed", e)
+        promise.reject(ERROR_CODE, e.message ?: "wavelength unsubscribe failed", e)
       }
     }
   }
@@ -235,7 +235,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
           if (closing || e.message == "EOF") {
             sendEvent("end", "")
           } else {
-            sendEvent("error", e.message ?: "walletdk activity stream failed")
+            sendEvent("error", e.message ?: "wavelength activity stream failed")
           }
           break
         }
@@ -266,7 +266,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
     }
     reactApplicationContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      .emit("walletdkActivity", body)
+      .emit("wavelengthActivity", body)
   }
 
   override fun addListener(eventName: String) = Unit
@@ -274,7 +274,7 @@ class WalletdkModule(reactContext: ReactApplicationContext) :
   override fun removeListeners(count: Double) = Unit
 
   companion object {
-    const val NAME = "Walletdk"
-    const val ERROR_CODE = "walletdk_error"
+    const val NAME = "Wavelength"
+    const val ERROR_CODE = "wavelength_error"
   }
 }

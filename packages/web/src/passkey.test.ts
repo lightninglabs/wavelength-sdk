@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import {
   PASSKEY_PRF_SALT_HEX,
   PasskeyCancelledError,
-} from "@lightninglabs/walletdk-core";
+} from "@lightninglabs/wavelength-core";
 import {
   assertPasskeyPrf,
   registerPasskeyWallet,

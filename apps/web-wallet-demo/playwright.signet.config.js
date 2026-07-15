@@ -1,12 +1,12 @@
 const { defineConfig, devices } = require("@playwright/test");
 
-const host = process.env.WALLETDK_SIGNET_SMOKE_HOST || "127.0.0.1";
-const port = Number(process.env.WALLETDK_SIGNET_SMOKE_PORT || 8092);
+const host = process.env.WAVELENGTH_SIGNET_SMOKE_HOST || "127.0.0.1";
+const port = Number(process.env.WAVELENGTH_SIGNET_SMOKE_PORT || 8092);
 const baseURL = `http://${host}:${port}`;
 
 module.exports = defineConfig({
   testDir: __dirname,
-  testMatch: "walletdk-signet-smoke.spec.js",
+  testMatch: "wavewalletdk-signet-smoke.spec.js",
   timeout: 180000,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "line",
   use: {

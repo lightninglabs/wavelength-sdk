@@ -1,6 +1,6 @@
 ---
 title: Create a wallet (password)
-description: Create a password-protected WalletDK wallet in a React app, with inline code at each step.
+description: Create a password-protected Wavelength wallet in a React app, with inline code at each step.
 pageLayout: guide
 related:
   - guides/restore-a-wallet
@@ -13,32 +13,32 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Install the packages
 
-WalletDK ships as a transport package, one per platform, plus
-`@lightninglabs/walletdk-react`, the React bindings. All are ES modules with
+The Wavelength SDK ships as a transport package, one per platform, plus
+`@lightninglabs/wavelength-react`, the React bindings. All are ES modules with
 full TypeScript declarations.
 
 <PlatformTabs>
 <div data-label="Web">
 
-The web transport, `@lightninglabs/walletdk-web`, bundles a WASM module for
+The web transport, `@lightninglabs/wavelength-web`, bundles a WASM module for
 cryptography and uses OPFS for storage. There are no native dependencies and
 no server-side component, so a modern browser is all you need at runtime.
 
 ```bash title="Terminal"
 # Install the browser runtime and the React bindings.
-npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-web @lightninglabs/wavelength-react
 ```
 
 </div>
 <div data-label="React Native">
 
-The React Native transport, `@lightninglabs/walletdk-react-native`, wraps a
+The React Native transport, `@lightninglabs/wavelength-react-native`, wraps a
 wallet runtime that is compiled into your app binary rather than fetched at
 runtime.
 
 ```bash title="Terminal"
 # Install the native transport and the React bindings.
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 See [Installation](/react-native/get-started/installation/) for staging the
@@ -49,36 +49,36 @@ native runtime binaries before your first build.
 
 ## Add the provider
 
-Build a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) outside your component tree and wrap your app in
-[`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider) so every component below it can reach the wallet through
+Build a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) outside your component tree and wrap your app in
+[`WavelengthProvider`](/reference/wavelength-react/#WavelengthProvider) so every component below it can reach the wallet through
 hooks. Pass `config` and `autoStart: true` so the engine boots the embedded
 daemon on its own as soon as the runtime is ready; no boot effect needed.
 
-Start with [`defaultConfig('signet')`](/reference/walletdk-web/#defaultConfig). Move to a hand-built mainnet config
+Start with [`defaultConfig('signet')`](/reference/wavelength-web/#defaultConfig). Move to a hand-built mainnet config
 (with `allowMainnet: true`) only once you have key backup and recovery in
 place.
 
 <PlatformTabs>
 <div data-label="Web">
 
-[`createWebWalletEngine()`](/reference/walletdk-web/#createWebWalletEngine) builds the engine for the browser transport:
+[`createWebWalletEngine()`](/reference/wavelength-web/#createWebWalletEngine) builds the engine for the browser transport:
 
 ```tsx title="App.tsx"
-import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebWalletEngine } from '@lightninglabs/wavelength-web';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
+import { defaultConfig } from '@lightninglabs/wavelength-web';
 
 const engine = createWebWalletEngine({
-  runtimeBaseUrl: '/walletdk/',
+  runtimeBaseUrl: '/wavewalletdk/',
   config: defaultConfig('signet'),
   autoStart: true,
 });
 
 export function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
@@ -86,12 +86,12 @@ export function App() {
 </div>
 <div data-label="React Native">
 
-[`createNativeWalletEngine()`](/reference/walletdk-react-native/#createNativeWalletEngine) builds the engine for the native transport:
+[`createNativeWalletEngine()`](/reference/wavelength-react-native/#createNativeWalletEngine) builds the engine for the native transport:
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine } from '@lightninglabs/wavelength-react-native';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
+import { defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -100,9 +100,9 @@ const engine = createNativeWalletEngine({
 
 export function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
@@ -112,13 +112,13 @@ export function App() {
 
 The engine itself owns starting the runtime, so `App` needs no start effect.
 If you would rather call `start()` yourself (for example to prompt the user
-first), omit `autoStart` and drive it from [`useWallet()`](/reference/walletdk-react/#useWallet); see
+first), omit `autoStart` and drive it from [`useWallet()`](/reference/wavelength-react/#useWallet); see
 [Handle phases & errors](/guides/handle-phases-and-errors/).
 
 ## Create the wallet
 
-Call [`useWalletCreate()`](/reference/walletdk-react/#useWalletCreate) inside the provider to create a wallet. When `phase`
-from [`useWallet()`](/reference/walletdk-react/#useWallet) is `'needsWallet'`, no wallet exists yet.
+Call [`useWalletCreate()`](/reference/wavelength-react/#useWalletCreate) inside the provider to create a wallet. When `phase`
+from [`useWallet()`](/reference/wavelength-react/#useWallet) is `'needsWallet'`, no wallet exists yet.
 
 `create({ password })` generates a fresh HD seed, encrypts it with the
 password, and stores it locally. The password is whatever you pass in; the
@@ -134,7 +134,7 @@ existing recovery phrase instead of generating a new one, see
 
 ```tsx title="Onboard.tsx"
 import { useState } from 'react';
-import { useWallet, useWalletCreate } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletCreate } from '@lightninglabs/wavelength-react';
 
 function Onboard() {
   const { phase } = useWallet();

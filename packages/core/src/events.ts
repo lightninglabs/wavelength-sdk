@@ -3,14 +3,14 @@ import type { Entry } from './generated.ts';
 /**
  * The severity of a `'log'` event emitted by the runtime.
  */
-export type WalletDKLogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type WavelengthLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 /**
  * The payload carried by a `'log'` event.
  */
-export type WalletDKLogPayload = {
+export type WavelengthLogPayload = {
   /** The severity of the log line. */
-  level: WalletDKLogLevel;
+  level: WavelengthLogLevel;
   /** The human-readable log message. */
   message: string;
 };
@@ -39,19 +39,19 @@ export type ActivityStreamPayload =
  * that the activity subscription ended or failed for a reason the consumer did
  * not initiate.
  */
-export type WalletDKEvent =
+export type WavelengthEvent =
   | { type: 'runtimeReady' }
   | { type: 'runtimeStopped' }
   | { type: 'activity'; payload: Entry }
   | { type: 'activityStream'; payload: ActivityStreamPayload }
-  | { type: 'log'; payload: WalletDKLogPayload };
+  | { type: 'log'; payload: WavelengthLogPayload };
 
 /**
- * The set of {@link WalletDKEvent} discriminants.
+ * The set of {@link WavelengthEvent} discriminants.
  */
-export type WalletDKEventType = WalletDKEvent['type'];
+export type WavelengthEventType = WavelengthEvent['type'];
 
 /**
- * A subscriber callback invoked with each {@link WalletDKEvent}.
+ * A subscriber callback invoked with each {@link WavelengthEvent}.
  */
-export type WalletDKListener = (event: WalletDKEvent) => void;
+export type WavelengthListener = (event: WavelengthEvent) => void;

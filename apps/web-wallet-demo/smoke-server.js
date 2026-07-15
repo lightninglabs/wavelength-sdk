@@ -125,7 +125,7 @@ function serveFile(res, filePath) {
 
 async function serveAPI(req, res, urlPath) {
   const apiPath = urlPath.startsWith("/api/") ? urlPath.slice(4) : urlPath;
-  if (process.env.WALLETDK_SMOKE_VERBOSE) {
+  if (process.env.WAVELENGTH_SMOKE_VERBOSE) {
     console.log(`${req.method} ${apiPath}`);
   }
 
@@ -320,5 +320,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`walletdk smoke server: http://${host}:${port}/`);
+  console.log(`wavelength smoke server: http://${host}:${port}/`);
 });

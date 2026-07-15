@@ -29,8 +29,8 @@ import type {
   UnlockWalletResult,
 } from './results.ts';
 import type { RuntimeConfig } from './config.ts';
-import type { WalletDKClient } from './client.ts';
-import type { WalletDKEvent, WalletDKListener } from './events.ts';
+import type { WavelengthClient } from './client.ts';
+import type { WavelengthEvent, WavelengthListener } from './events.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
 import type { ServerTransport } from './facade.ts';
 import { toGoCreateWalletReq, toGoUnlockWalletReq, toMobileConfig } from './facade.ts';
@@ -38,15 +38,15 @@ import { errorMessage } from './errors.ts';
 import { normalizeInfo } from './state.ts';
 
 /**
- * Implements the transport-agnostic half of {@link WalletDKClient}: every RPC
+ * Implements the transport-agnostic half of {@link WavelengthClient}: every RPC
  * verb is expressed in terms of the abstract callRaw, so a transport (web
  * wasm, React Native gomobile, or a future one) supplies only the pipe:
  * callRaw, ready, the activity-stream plumbing, and its {@link ServerTransport}
  * flavor. The shared subscribe/emit listener machinery lives here too. Each
  * verb is defined once here, so a new RPC is added in exactly one place.
  */
-export abstract class BaseWalletDKClient implements WalletDKClient {
-  protected readonly listeners = new Set<WalletDKListener>();
+export abstract class BaseWavelengthClient implements WavelengthClient {
+  protected readonly listeners = new Set<WavelengthListener>();
 
   // Transport hooks the concrete clients implement.
   abstract ready(): Promise<void>;
@@ -166,7 +166,7 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
     return this.callRaw<SweepWalletResult>('sweepWallet', req);
   }
 
-  subscribe(listener: WalletDKListener): () => void {
+  subscribe(listener: WavelengthListener): () => void {
     this.listeners.add(listener);
 
     return () => {
@@ -174,7 +174,7 @@ export abstract class BaseWalletDKClient implements WalletDKClient {
     };
   }
 
-  protected emit(event: WalletDKEvent) {
+  protected emit(event: WavelengthEvent) {
     for (const listener of this.listeners) {
       try {
         listener(event);

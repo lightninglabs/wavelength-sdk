@@ -1,4 +1,4 @@
-import { Balance } from "@lightninglabs/walletdk-react";
+import { Balance } from "@lightninglabs/wavelength-react";
 import {
   ALWAYS_SHOWN_BUCKETS,
   BUCKET_TONE,
@@ -7,7 +7,7 @@ import {
 import { formatSats, pct } from "../../lib/format";
 
 // Composition is the balance-composition graph: a hairline segmented meter over
-// a grid, sourced solely from the walletdkrpc Balance snapshot. It renders one
+// a grid, sourced solely from the wavewalletrpc Balance snapshot. It renders one
 // bucket per Balance field, hiding the credit buckets until the wallet holds
 // credit. The grid tracks the bucket count, so the usual view is three columns
 // and the credit rails widen it rather than wrapping under a fixed three.

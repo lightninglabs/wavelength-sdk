@@ -14,8 +14,8 @@
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.1.0",
     "@fontsource/ibm-plex-sans": "^5.1.0",
-    "@lightninglabs/walletdk-react": "workspace:*",
-    "@lightninglabs/walletdk-web": "workspace:*",
+    "@lightninglabs/wavelength-react": "workspace:*",
+    "@lightninglabs/wavelength-web": "workspace:*",
     "lucide-react": "^0.468.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

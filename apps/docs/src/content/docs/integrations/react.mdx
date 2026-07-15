@@ -1,23 +1,23 @@
 ---
 title: React
-description: How to integrate WalletDK into a React application using the provider-injected engine, the available hooks, and the passkey ceremony helpers.
+description: How to integrate the Wavelength SDK into a React application using the provider-injected engine, the available hooks, and the passkey ceremony helpers.
 ---
 
 import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Provider (injected engine)
 
-`@lightninglabs/walletdk-react` is **transport-agnostic**: it depends only on
-`@lightninglabs/walletdk-core` and never imports a specific transport. The
+`@lightninglabs/wavelength-react` is **transport-agnostic**: it depends only on
+`@lightninglabs/wavelength-core` and never imports a specific transport. The
 provider takes a prebuilt **`WalletEngine`**; each transport ships its own
 factory to build one (`createWebWalletEngine` from
-[`@lightninglabs/walletdk-web`](/reference/walletdk-web/) for the web
+[`@lightninglabs/wavelength-web`](/reference/wavelength-web/) for the web
 transport, `createNativeWalletEngine` from
-[`@lightninglabs/walletdk-react-native`](/reference/walletdk-react-native/)
+[`@lightninglabs/wavelength-react-native`](/reference/wavelength-react-native/)
 for React Native).
 
 Build the engine once, typically at module scope outside any component, and
-pass it to `WalletDKProvider`. Set `autoStart: true` (with `config`) to boot
+pass it to `WavelengthProvider`. Set `autoStart: true` (with `config`) to boot
 the runtime as soon as it is ready, instead of wiring a boot `useEffect`
 yourself:
 
@@ -25,17 +25,17 @@ yourself:
 <div data-label="Web">
 
 ```tsx title="main.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
-  runtimeBaseUrl: 'https://your-host/walletdk/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/',
   config: defaultConfig('signet'),
   autoStart: true,
 });
 
 export function App() {
-  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
+  return <WavelengthProvider engine={engine}>{/* your app */}</WavelengthProvider>;
 }
 ```
 
@@ -43,8 +43,8 @@ export function App() {
 <div data-label="React Native">
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -53,9 +53,9 @@ const engine = createNativeWalletEngine({
 
 export default function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
@@ -63,14 +63,14 @@ export default function App() {
 </div>
 </PlatformTabs>
 
-The engine is built once outside the component tree, so `WalletDKProvider`
+The engine is built once outside the component tree, so `WavelengthProvider`
 owns nothing beyond publishing it to `useSyncExternalStore` subscribers: it
 never disposes the engine on unmount. Every lifecycle behavior (the sync-poll
 while `phase === 'syncing'`, activity-driven balance refresh, the restore
 readiness poll, and an unsolicited `'stopped'` transition on a runtime crash)
 is owned by the `WalletEngine` itself and works the same whether or not React
 is in the picture. If you would rather not use `autoStart`, call `start()`
-from [`useWallet()`](/reference/walletdk-react/#useWallet) yourself once
+from [`useWallet()`](/reference/wavelength-react/#useWallet) yourself once
 `phase === 'runtimeReady'`.
 
 `phase` is a `RuntimePhase`, one of: `'loading'`, `'runtimeReady'`,
@@ -129,7 +129,7 @@ For example, `useWalletSend()` returns a `send(req)` action alongside its own
 `sendPending`/`sendError` state:
 
 ```tsx title="SendButton.tsx"
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendButton({ invoice }: { invoice: string }) {
   const { send, sendPending, sendError } = useWalletSend();
@@ -156,7 +156,7 @@ end-to-end usage of these hooks.
 combined bootstrap hook, so a component only subscribes to the flow it drives:
 
 ```tsx title="Onboard.tsx"
-import { useWalletCreate } from '@lightninglabs/walletdk-react';
+import { useWalletCreate } from '@lightninglabs/wavelength-react';
 
 function Onboard() {
   const { create, createPending, createError } = useWalletCreate();
@@ -186,9 +186,9 @@ component watching `phase` updates without extra wiring.
 
 Passkeys are driven by **`useWalletPasskey(ceremony)`**, where `ceremony` is a
 `PasskeyCeremony` implementation injected from your transport. On web, pass
-**`webPasskeyCeremony`** from `@lightninglabs/walletdk-web`; on React Native,
+**`webPasskeyCeremony`** from `@lightninglabs/wavelength-web`; on React Native,
 pass **`createNativePasskeyCeremony({ rpId })`** from
-`@lightninglabs/walletdk-react-native` (see
+`@lightninglabs/wavelength-react-native` (see
 [Passkey setup](/react-native/get-started/passkey-setup/) for the
 relying-party domain association it requires). `create` and `open` track
 separately, each with its own `pending`/`error`/`reset`:
@@ -197,8 +197,8 @@ separately, each with its own `pending`/`error`/`reset`:
 <div data-label="Web">
 
 ```tsx title="PasskeyUnlock.tsx"
-import { useWalletPasskey } from '@lightninglabs/walletdk-react';
-import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
+import { useWalletPasskey } from '@lightninglabs/wavelength-react';
+import { webPasskeyCeremony } from '@lightninglabs/wavelength-web';
 
 function PasskeyUnlock() {
   const {
@@ -235,8 +235,8 @@ function PasskeyUnlock() {
 
 ```tsx title="PasskeyUnlock.tsx"
 import { Button, Text } from 'react-native';
-import { useWalletPasskey } from '@lightninglabs/walletdk-react';
-import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
+import { useWalletPasskey } from '@lightninglabs/wavelength-react';
+import { createNativePasskeyCeremony } from '@lightninglabs/wavelength-react-native';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'your-app-domain.example' });
 

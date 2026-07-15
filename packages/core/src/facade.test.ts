@@ -43,7 +43,7 @@ describe('toMobileConfig', () => {
       {
         network: 'regtest',
         allowMainnet: false,
-        dataDir: '/data/walletdk',
+        dataDir: '/data/wavelength',
         debugLevel: 'debug',
         arkServerUrl: '10.0.2.2:7070',
         esploraUrl: 'http://10.0.2.2:8501',
@@ -57,7 +57,7 @@ describe('toMobileConfig', () => {
     assert.deepEqual(out, {
       network: 'regtest',
       allow_mainnet: false,
-      data_dir: '/data/walletdk',
+      data_dir: '/data/wavelength',
       debug_level: 'debug',
       wallet_type: 'lwwallet',
       wallet_esplora_url: 'http://10.0.2.2:8501',

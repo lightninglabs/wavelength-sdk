@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PasskeyCancelledError } from '@lightninglabs/walletdk-core';
+import { PasskeyCancelledError } from '@lightninglabs/wavelength-core';
 import {
   nativePasskeyCeremony,
-  type WalletdkPasskeyNativeModule,
+  type WavelengthPasskeyNativeModule,
 } from './passkey.ts';
 
 // The PRF salt (SHA-256 of the shared namespace) in the two encodings the
 // ceremony round-trips between; pinned in core's passkey test.
-const SALT_B64URL = '8xg7hrwDh8zwVU-yyi1dcEOg_sAslZb_w4UzwI1SBxU';
+const SALT_B64URL = 'mnouD_PF0fLxcs1e3WdSe_OSrjmQSOtuNrnLbDq4nQM';
 
 // A 32-byte PRF output fixture (0xabcd repeated), since the ceremony rejects
 // anything that is not exactly 32 bytes of key material.
@@ -41,7 +41,7 @@ function makeFake() {
           ? Promise.reject(new Error(fake.getResponse.slice(7)))
           : Promise.resolve(fake.getResponse);
       },
-    } satisfies WalletdkPasskeyNativeModule,
+    } satisfies WavelengthPasskeyNativeModule,
     calls,
   };
   return fake;
@@ -210,7 +210,7 @@ describe('nativePasskeyCeremony', () => {
   it('memoizes supportsPasskeyPrf per ceremony instance, and retries after a rejection', async () => {
     const calls: boolean[] = [];
     let behavior: 'reject' | 'resolve' = 'reject';
-    const native: WalletdkPasskeyNativeModule = {
+    const native: WavelengthPasskeyNativeModule = {
       passkeySupported: async () => {
         calls.push(true);
         if (behavior === 'reject') {
@@ -245,7 +245,7 @@ describe('nativePasskeyCeremony', () => {
 
     // A different ceremony instance gets its own memo, not the shared one.
     const otherCalls: boolean[] = [];
-    const otherNative: WalletdkPasskeyNativeModule = {
+    const otherNative: WavelengthPasskeyNativeModule = {
       passkeySupported: async () => {
         otherCalls.push(true);
 

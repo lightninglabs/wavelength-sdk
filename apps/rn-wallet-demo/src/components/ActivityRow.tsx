@@ -7,7 +7,7 @@ import {
   LogOut,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Entry } from '@lightninglabs/walletdk-react';
+import { Entry } from '@lightninglabs/wavelength-react';
 import { formatSats, formatTimestamp, shortKey } from '../lib/format';
 import { Palette, fonts } from '../theme/tokens';
 import { useTheme } from '../theme/ThemeProvider';

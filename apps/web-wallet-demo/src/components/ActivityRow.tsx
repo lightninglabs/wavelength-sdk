@@ -6,7 +6,7 @@ import {
   LogOut,
   type LucideIcon,
 } from "lucide-react";
-import { Entry } from "@lightninglabs/walletdk-react";
+import { Entry } from "@lightninglabs/wavelength-react";
 import { cn } from "../lib/cn";
 import { formatSats, formatTimestamp, shortKey } from "../lib/format";
 

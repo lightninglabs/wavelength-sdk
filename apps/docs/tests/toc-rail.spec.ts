@@ -154,7 +154,7 @@ test('scrolling to a later section moves the active TOC link forward', async ({ 
 // fixed-edge geometry (layout/padding only - its scroll-spy script is
 // untouched and already covered by reference-layout.spec.js).
 test('reference symbol rail is a fixed full-height column flush to the right screen edge', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   const rail = page.locator('.wdk-ref__rail');
   await expect(rail).toBeVisible();
 

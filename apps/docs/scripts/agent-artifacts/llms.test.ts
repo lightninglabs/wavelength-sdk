@@ -19,7 +19,7 @@ function fixturePages(): PageRecord[] {
 
 test('llms.txt is spec-shaped and nav-ordered', () => {
   const out = buildLlmsTxt(fixturePages());
-  assert.match(out, /^# WalletDK\n/);
+  assert.match(out, /^# Wavelength\n/);
   assert.match(out, /^> /m);
   for (const section of SECTIONS) {
     assert.match(out, new RegExp(`^## ${section.label}$`, 'm'));

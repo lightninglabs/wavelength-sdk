@@ -1,12 +1,12 @@
 // Re-export the core contract so a React host can import every type and enum
 // from this one package. Transports are NOT re-exported: create an engine
-// with createWebWalletEngine (walletdk-web) or createNativeWalletEngine
-// (walletdk-react-native) and pass it to WalletDKProvider. Keeping this
+// with createWebWalletEngine (wavelength-web) or createNativeWalletEngine
+// (wavelength-react-native) and pass it to WavelengthProvider. Keeping this
 // binding transport-agnostic is what lets it run over web or React Native.
-export * from "@lightninglabs/walletdk-core";
+export * from "@lightninglabs/wavelength-core";
 
 // The provider and the engine escape hatch.
-export { WalletDKProvider, useWalletEngine } from "./provider";
+export { WavelengthProvider, useWalletEngine } from "./provider";
 
 // The granular state and mutation hooks.
 export * from "./hooks";

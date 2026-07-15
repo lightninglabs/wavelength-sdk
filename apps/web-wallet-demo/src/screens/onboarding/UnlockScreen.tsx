@@ -3,9 +3,9 @@ import { Fingerprint, KeyRound, RotateCcw } from "lucide-react";
 import {
   useWalletPasskey,
   useWalletUnlock,
-} from "@lightninglabs/walletdk-react";
-import type { WalletKind } from "@lightninglabs/walletdk-react";
-import { webPasskeyCeremony } from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-react";
+import type { WalletKind } from "@lightninglabs/wavelength-react";
+import { webPasskeyCeremony } from "@lightninglabs/wavelength-web";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";

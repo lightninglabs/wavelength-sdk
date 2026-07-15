@@ -9,7 +9,7 @@ related:
 ---
 
 Exiting is a client-level operation: there is no dedicated mutation hook for
-it, so reach it through [`useWalletEngine()`](/reference/walletdk-react/#useWalletEngine).client, the escape hatch every
+it, so reach it through [`useWalletEngine()`](/reference/wavelength-react/#useWalletEngine).client, the escape hatch every
 granular hook is built on.
 
 ## Preview with getExitPlan
@@ -28,8 +28,8 @@ unresponsive.
 
 ```tsx title="exit.tsx"
 import { useState } from 'react';
-import { useWalletEngine } from '@lightninglabs/walletdk-react';
-import type { GetExitPlanResult } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/wavelength-react';
+import type { GetExitPlanResult } from '@lightninglabs/wavelength-react';
 
 function ExitPlan({ outpoints }: { outpoints: string[] }) {
   const { client } = useWalletEngine();
@@ -58,7 +58,7 @@ function ExitPlan({ outpoints }: { outpoints: string[] }) {
 ## Initiate the exit
 
 `client.exit({ outpoint, destination })` starts the exit for a single VTXO.
-It resolves with an [`ExitResult`](/reference/walletdk-core/#ExitResult) whose `path` discriminates cooperative,
+It resolves with an [`ExitResult`](/reference/wavelength-core/#ExitResult) whose `path` discriminates cooperative,
 unilateral, and fallback outcomes.
 
 `exit` always tries a cooperative leave with the Ark server first. It only
@@ -66,7 +66,7 @@ falls back to a unilateral, on-chain exit automatically when the server is
 unavailable or unresponsive, so the same call is safe to use as the single
 entry point for exiting a VTXO.
 
-Which fields on [`ExitResult`](/reference/walletdk-core/#ExitResult) are populated depends on `path`:
+Which fields on [`ExitResult`](/reference/wavelength-core/#ExitResult) are populated depends on `path`:
 
 | Field | Populated when |
 | --- | --- |
@@ -79,7 +79,7 @@ Do not call `exit` twice for the same outpoint. Check `client.exitStatus()`
 first if the user may have already started an exit in a previous session.
 
 ```tsx title="exit.tsx"
-import { useWalletEngine } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/wavelength-react';
 
 function StartExit({
   outpoint,
@@ -104,7 +104,7 @@ function StartExit({
 that VTXO, including `found`, `status`, and `sweepTxid` when available. Poll
 this periodically until the job completes.
 
-[`ExitStatusResult`](/reference/walletdk-core/#ExitStatusResult) also includes `lastError: string`. Surface it whenever
+[`ExitStatusResult`](/reference/wavelength-core/#ExitStatusResult) also includes `lastError: string`. Surface it whenever
 `status === 'failed'` so the user knows why the job stopped instead of
 leaving them with a bare status label.
 
@@ -122,8 +122,8 @@ broadcast would cost and net before they commit to it. If
 
 ```tsx title="exit.tsx"
 import { useState } from 'react';
-import { useWalletEngine } from '@lightninglabs/walletdk-react';
-import type { ExitStatusResult } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/wavelength-react';
+import type { ExitStatusResult } from '@lightninglabs/wavelength-react';
 
 function SweepStatus({ outpoint }: { outpoint: string }) {
   const { client } = useWalletEngine();

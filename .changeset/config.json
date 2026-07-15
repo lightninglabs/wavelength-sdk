@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["web-wallet-demo", "@lightninglabs/walletdk-docs"]
+  "ignore": ["web-wallet-demo", "@lightninglabs/wavelength-docs"]
 }

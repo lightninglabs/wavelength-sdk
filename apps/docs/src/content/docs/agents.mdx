@@ -1,6 +1,6 @@
 ---
 title: Build with agents
-description: Point your coding agent at the WalletDK docs and let it do the integration work, with installable skills, markdown mirrors, and ready-made prompts.
+description: Point your coding agent at the Wavelength docs and let it do the integration work, with installable skills, markdown mirrors, and ready-made prompts.
 sidebar:
   hidden: true
 ---
@@ -8,34 +8,34 @@ sidebar:
 import Callout from '~/components/mdx/Callout.astro';
 import PromptTabs from '~/components/mdx/PromptTabs.astro';
 
-Your coding agent can do most of a WalletDK integration for you. This page
+Your coding agent can do most of a Wavelength SDK integration for you. This page
 wires it up: installable skills that teach the agent our APIs and
 conventions, machine-readable docs it can fetch efficiently, and prompts
 that kick off the work.
 
 ## Install the skills
 
-The fastest setup. One command installs four WalletDK skills into every
+The fastest setup. One command installs four Wavelength skills into every
 agent the [skills CLI](https://skills.sh) supports (Claude Code, Cursor,
 Codex, Copilot, Gemini CLI, and more):
 
 ```sh
-npx skills add lightninglabs/dawallet
+npx skills add lightninglabs/wavelength-sdk
 ```
 
-- **walletdk-web**: embedding the wallet in a browser or React web app.
-- **walletdk-react-native**: embedding the wallet in a React Native or Expo app.
-- **walletdk-api**: integrating against the wallet daemon's gRPC or REST API.
-- **walletdk-cli**: automating wallet operations with the CLI.
+- **wavelength-web**: embedding the wallet in a browser or React web app.
+- **wavelength-react-native**: embedding the wallet in a React Native or Expo app.
+- **wavelength-api**: integrating against the wallet daemon's gRPC or REST API.
+- **wavelength-cli**: automating wallet operations with the CLI.
 
 Claude Code users can install through the plugin marketplace instead:
 
 ```sh
-/plugin marketplace add lightninglabs/dawallet
+/plugin marketplace add lightninglabs/wavelength-sdk
 ```
 
 The same catalog is served from this site, so
-`npx skills add dadocs.lightning.engineering` also works.
+`npx skills add wavelength.lightning.engineering` also works.
 
 ## Machine-readable docs
 
@@ -45,34 +45,34 @@ The same catalog is served from this site, so
 - Every page on this site has a markdown twin: append `.md` to any URL.
   Agents get the same content as the HTML at a fraction of the tokens.
 
-## Add WalletDK to your AGENTS.md
+## Add the Wavelength SDK to your AGENTS.md
 
 Paste this into your repo's `AGENTS.md` (or `CLAUDE.md`); your agent then
 carries the ground rules in every session:
 
 ```markdown
-<!-- BEGIN: walletdk-agent-rules -->
-## WalletDK
+<!-- BEGIN: wavelength-agent-rules -->
+## Wavelength SDK
 
-WalletDK embeds a self-custodial Lightning wallet in this app: Lightning
+The Wavelength SDK embeds a self-custodial Lightning wallet in this app: Lightning
 payments with no node, channels, or liquidity to manage.
 
-- Packages: @lightninglabs/walletdk-web (browser transport, has
-  createWebWalletEngine), @lightninglabs/walletdk-react-native (React Native
+- Packages: @lightninglabs/wavelength-web (browser transport, has
+  createWebWalletEngine), @lightninglabs/wavelength-react-native (React Native
   transport, has createNativeWalletEngine, daemon compiled into the app
-  binary), @lightninglabs/walletdk-react (provider and hooks, takes an
-  injected engine), @lightninglabs/walletdk-core (shared contract).
-- Docs: https://dadocs.lightning.engineering/llms.txt. Every docs page has
+  binary), @lightninglabs/wavelength-react (provider and hooks, takes an
+  injected engine), @lightninglabs/wavelength-core (shared contract).
+- Docs: https://wavelength.lightning.engineering/llms.txt. Every docs page has
   a markdown twin at the same URL with .md appended; fetch those.
 - Web: create the engine with createWebWalletEngine() and inject it via
-  <WalletDKProvider engine={...}>. Never import walletdk-web from
+  <WavelengthProvider engine={...}>. Never import wavelength-web from
   framework-agnostic code.
 - React Native: create the engine with createNativeWalletEngine() and
-  inject it via <WalletDKProvider engine={...}> the same way.
+  inject it via <WavelengthProvider engine={...}> the same way.
 - Self-host the wasm runtime assets and set runtimeBaseUrl; see
-  https://dadocs.lightning.engineering/web/get-started/hosting-runtime-assets.md
+  https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets.md
 - Check npm for current package versions instead of memorized ones.
-<!-- END: walletdk-agent-rules -->
+<!-- END: wavelength-agent-rules -->
 ```
 
 ## Kick-off prompts
@@ -81,18 +81,18 @@ payments with no node, channels, or liquidity to manage.
   <div data-label="Web SDK">
 
 ```text
-Integrate the WalletDK SDK into this app so users get an embedded
+Integrate the Wavelength SDK into this app so users get an embedded
 self-custodial Lightning wallet.
 
-1. Read https://dadocs.lightning.engineering/web/get-started/quickstart.md
-   and https://dadocs.lightning.engineering/integrations/react.md first.
-2. Install @lightninglabs/walletdk-web and @lightninglabs/walletdk-react at
+1. Read https://wavelength.lightning.engineering/web/get-started/quickstart.md
+   and https://wavelength.lightning.engineering/integrations/react.md first.
+2. Install @lightninglabs/wavelength-web and @lightninglabs/wavelength-react at
    their current npm versions.
 3. Copy the wasm runtime assets into our static assets and configure
    runtimeBaseUrl per
-   https://dadocs.lightning.engineering/web/get-started/hosting-runtime-assets.md
-4. Create the engine with createWebWalletEngine() and mount <WalletDKProvider
-   engine={...}> at the app root. Do not import walletdk-web anywhere
+   https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets.md
+4. Create the engine with createWebWalletEngine() and mount <WavelengthProvider
+   engine={...}> at the app root. Do not import wavelength-web anywhere
    except where the engine is created.
 5. Add a minimal wallet screen: create or unlock, balance, receive invoice,
    send payment.
@@ -104,17 +104,17 @@ self-custodial Lightning wallet.
   <div data-label="React Native SDK">
 
 ```text
-Integrate the WalletDK SDK into this React Native app so users get an
+Integrate the Wavelength SDK into this React Native app so users get an
 embedded self-custodial Lightning wallet.
 
-1. Read https://dadocs.lightning.engineering/react-native/get-started/quickstart.md
+1. Read https://wavelength.lightning.engineering/react-native/get-started/quickstart.md
    first.
-2. Install @lightninglabs/walletdk-react-native and
-   @lightninglabs/walletdk-react at their current npm versions.
+2. Install @lightninglabs/wavelength-react-native and
+   @lightninglabs/wavelength-react at their current npm versions.
 3. Stage the native wallet runtime binaries before the first build per
-   https://dadocs.lightning.engineering/react-native/get-started/installation.md
+   https://wavelength.lightning.engineering/react-native/get-started/installation.md
 4. Create the engine with createNativeWalletEngine() and mount
-   <WalletDKProvider engine={...}> at the app root. Do not construct the
+   <WavelengthProvider engine={...}> at the app root. Do not construct the
    engine outside the provider's module scope.
 5. Add a minimal wallet screen: create or unlock, balance, receive invoice,
    send payment.
@@ -127,13 +127,13 @@ embedded self-custodial Lightning wallet.
   <div data-label="Daemon API">
 
 ```text
-Integrate this backend with the WalletDK wallet daemon over its API.
+Integrate this backend with the Wavelength wallet daemon over its API.
 
-1. Read https://dadocs.lightning.engineering/api/get-started.md and
-   https://dadocs.lightning.engineering/api/rest.md first.
+1. Read https://wavelength.lightning.engineering/api/get-started.md and
+   https://wavelength.lightning.engineering/api/rest.md first.
 2. Decide gRPC or REST for our use case and say why.
 3. For each operation we need, fetch the RPC's page from the API section of
-   https://dadocs.lightning.engineering/llms.txt and use its exact request
+   https://wavelength.lightning.engineering/llms.txt and use its exact request
    and response fields; do not guess field names from other Lightning tools.
 4. Implement connection setup including TLS and auth exactly as the
    get-started page describes.
@@ -145,13 +145,13 @@ Integrate this backend with the WalletDK wallet daemon over its API.
   <div data-label="CLI automation">
 
 ```text
-Write automation for the WalletDK wallet using darepocli.
+Write automation for the Wavelength wallet using wavecli.
 
-1. Read https://dadocs.lightning.engineering/cli.md first: global flags,
+1. Read https://wavelength.lightning.engineering/cli.md first: global flags,
    JSON output mode, and exit codes.
 2. Use JSON output for all parsing; never scrape table output.
 3. For each command you use, read its page (for example
-   https://dadocs.lightning.engineering/cli/send.md) and handle the
+   https://wavelength.lightning.engineering/cli/send.md) and handle the
    documented exit codes.
 4. Verify: run the script against a dev daemon and show the output.
 ```
@@ -164,10 +164,10 @@ Write automation for the WalletDK wallet using darepocli.
 We do not run a hosted docs MCP server. If your workflow expects one, any
 llms.txt-compatible docs server works against this site, for example
 [mcpdoc](https://github.com/langchain-ai/mcpdoc) pointed at
-`https://dadocs.lightning.engineering/llms.txt`. Most agents get further
+`https://wavelength.lightning.engineering/llms.txt`. Most agents get further
 with the skills plus the markdown mirrors above. Integrators running the
 wallet daemon themselves can also run
-[`darepocli mcp serve`](https://dadocs.lightning.engineering/cli/mcp.md) to
+[`wavecli mcp serve`](https://wavelength.lightning.engineering/cli/mcp.md) to
 start a local MCP server exposing each daemon RPC as a typed tool call.
 
 <Callout type="note" title="Repository access">

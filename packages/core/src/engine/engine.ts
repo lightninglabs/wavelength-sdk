@@ -1,7 +1,7 @@
-import type { WalletDKClient } from '../client.ts';
+import type { WavelengthClient } from '../client.ts';
 import type { RuntimeConfig } from '../config.ts';
 import { toError } from '../errors.ts';
-import type { WalletDKEvent } from '../events.ts';
+import type { WavelengthEvent } from '../events.ts';
 import type {
   CreateWalletRequest,
   DepositRequest,
@@ -48,7 +48,7 @@ import { SnapshotStore } from './store.ts';
 export type WalletEngineOptions =
   | {
       /** The transport client the engine drives. */
-      client: WalletDKClient;
+      client: WavelengthClient;
       /** Default runtime config used by autoStart and by start() with no argument. */
       config: RuntimeConfig;
       /** Start the runtime automatically once it is ready. */
@@ -56,7 +56,7 @@ export type WalletEngineOptions =
     }
   | {
       /** The transport client the engine drives. */
-      client: WalletDKClient;
+      client: WavelengthClient;
       /** Default runtime config used by start() with no argument. */
       config?: RuntimeConfig;
       /** Start the runtime automatically once it is ready. Requires config; omit or set false when config is unset. */
@@ -84,7 +84,7 @@ export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
  */
 export interface WalletEngine {
   /** The underlying transport client, as an escape hatch. */
-  readonly client: WalletDKClient;
+  readonly client: WavelengthClient;
   /** The current immutable state snapshot. */
   getSnapshot(): WalletSnapshot;
   /** Subscribes to snapshot changes; returns the unsubscribe function. */
@@ -136,11 +136,11 @@ export interface WalletEngine {
 
 /** Creates a {@link WalletEngine} over any transport client. */
 export function createWalletEngine(options: WalletEngineOptions): WalletEngine {
-  return new WalletDKEngine(options);
+  return new WavelengthEngine(options);
 }
 
-class WalletDKEngine implements WalletEngine {
-  readonly client: WalletDKClient;
+class WavelengthEngine implements WalletEngine {
+  readonly client: WavelengthClient;
   readonly #store = new SnapshotStore();
   readonly #config: RuntimeConfig | undefined;
   #disposed = false;
@@ -477,7 +477,7 @@ class WalletDKEngine implements WalletEngine {
 
   // ----- internals -----
 
-  #onClientEvent(event: WalletDKEvent): void {
+  #onClientEvent(event: WavelengthEvent): void {
     if (event.type === 'runtimeReady') {
       this.#dispatch({ type: 'runtimeReady' });
     } else if (event.type === 'runtimeStopped') {

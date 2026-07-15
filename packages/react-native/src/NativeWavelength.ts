@@ -2,10 +2,10 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 /**
- * The Turbo Module contract for the walletdk native bridge. The surface is a
- * deliberately thin JSON pipe: `call` dispatches every facade verb by name
+ * The Turbo Module contract for the wavelength native bridge. The surface is
+ * a deliberately thin JSON pipe: `call` dispatches every facade verb by name
  * with a JSON string in and a JSON string out, and the activity stream
- * arrives as 'walletdkActivity' device events carrying
+ * arrives as 'wavelengthActivity' device events carrying
  * `{ kind: 'entry' | 'end' | 'error', payload: string }`.
  */
 export interface Spec extends TurboModule {
@@ -29,4 +29,4 @@ export interface Spec extends TurboModule {
   removeListeners(count: number): void;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('Walletdk');
+export default TurboModuleRegistry.getEnforcing<Spec>('Wavelength');

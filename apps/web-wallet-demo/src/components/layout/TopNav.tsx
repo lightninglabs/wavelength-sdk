@@ -1,5 +1,5 @@
 import { Bitcoin, Power, Settings } from "lucide-react";
-import { useWallet, useWalletInfo } from "@lightninglabs/walletdk-react";
+import { useWallet, useWalletInfo } from "@lightninglabs/wavelength-react";
 import { cn } from "../../lib/cn";
 import { shortKey } from "../../lib/format";
 import { phaseConnected, statusLabel } from "../../lib/phase";
@@ -47,7 +47,7 @@ export function TopNav({
           <span className="flex h-8 w-8 items-center justify-center bg-accent">
             <Bitcoin size={17} className="text-white" />
           </span>
-          <span className="text-sm font-semibold text-fg">WalletDK</span>
+          <span className="text-sm font-semibold text-fg">Wavelength Demo</span>
         </button>
 
         <nav className="ml-3 hidden items-center lg:flex">

@@ -79,7 +79,7 @@ test('generators produce plausible snippets for every method', () => {
     if (API_CLI[m.name] === null) {
       expect(cli).toBeNull();
     } else {
-      expect(cli).toContain('darepocli');
+      expect(cli).toContain('wavecli');
     }
   }
 });
@@ -92,7 +92,7 @@ test('every method has a curated CLI invocation, null exactly where API_CLI is n
       expect(invocation, m.name).toBeNull();
     } else {
       expect(invocation, m.name).not.toBeNull();
-      expect(invocation, m.name).toMatch(/^darepocli /);
+      expect(invocation, m.name).toMatch(/^wavecli /);
     }
   }
 });
@@ -128,7 +128,7 @@ test('goGrpcSample and pythonGrpcSample render enum sample values as identifiers
   const list = doc.methods.find((m) => m.name === 'List')!;
   const go = goGrpcSample(list);
   const python = pythonGrpcSample(list);
-  expect(go).toContain('walletdkrpc.ListView_LIST_VIEW_ACTIVITY');
+  expect(go).toContain('wavewalletrpc.ListView_LIST_VIEW_ACTIVITY');
   expect(go).not.toContain('"LIST_VIEW_ACTIVITY"');
   expect(python).toContain('wallet_pb2.LIST_VIEW_ACTIVITY');
   expect(python).not.toContain('"LIST_VIEW_ACTIVITY"');

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type { CreateWalletResult } from '@lightninglabs/walletdk-react';
-import { useWalletRecovery } from '@lightninglabs/walletdk-react';
+import type { CreateWalletResult } from '@lightninglabs/wavelength-react';
+import { useWalletRecovery } from '@lightninglabs/wavelength-react';
 import { CheckCircle2, TriangleAlert, X } from 'lucide-react-native';
 import { Palette, fonts } from '../theme/tokens';
 import { useTheme } from '../theme/ThemeProvider';

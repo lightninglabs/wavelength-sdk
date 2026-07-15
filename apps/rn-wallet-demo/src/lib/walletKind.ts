@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { WalletKind } from '@lightninglabs/walletdk-react';
+import type { WalletKind } from '@lightninglabs/wavelength-react';
 
 // The demo always uses the default data dir, so fixed keys are enough (the
 // web demo keys the same markers by data dir because its form lets the dir
 // vary). The credential key predates this file: it was introduced with the
 // passkey wiring and existing installs may already hold a value under it.
-const KIND_KEY = 'walletdk.walletKind';
-const CREDENTIAL_KEY = 'walletdk.passkeyCredentialId';
+const KIND_KEY = 'wavelength.walletKind';
+const CREDENTIAL_KEY = 'wavelength.passkeyCredentialId';
 
 // readWalletKind returns the recorded unlock mode, or null when unknown.
 async function readWalletKind(): Promise<WalletKind | null> {

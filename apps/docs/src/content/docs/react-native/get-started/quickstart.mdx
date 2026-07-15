@@ -1,6 +1,6 @@
 ---
 title: Quickstart (React Native)
-description: Get a WalletDK-powered React Native app running - install the packages, wire the provider, create a wallet, and send your first payment.
+description: Get a Wavelength-powered React Native app running - install the packages, wire the provider, create a wallet, and send your first payment.
 pageLayout: quickstart
 ---
 
@@ -14,10 +14,10 @@ surface is stable; iOS passkey support is still experimental.
 
 <Step title="Install">
 
-Install the two packages you need: `walletdk-react-native` for the native wallet runtime and `walletdk-react` for the React bindings.
+Install the two packages you need: `wavelength-react-native` for the native wallet runtime and `wavelength-react` for the React bindings.
 
 ```sh
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 Requires React Native 0.76+ with the New Architecture enabled, iOS 15.1+, and Android minSdk 24. Expo apps need a development build, not Expo Go: the native wallet runtime is a compiled module that Expo Go cannot load. See [Requirements](/react-native/get-started/requirements/) for the full platform matrix.
@@ -28,12 +28,12 @@ Until hosted binary distribution ships, the native wallet runtime must be staged
 
 <Step title="Wire the provider">
 
-Create a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) with [`createNativeWalletEngine()`](/reference/walletdk-react-native/#createNativeWalletEngine), and wrap your app with [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
+Create a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) with [`createNativeWalletEngine()`](/reference/wavelength-react-native/#createNativeWalletEngine), and wrap your app with [`WavelengthProvider`](/reference/wavelength-react/#WavelengthProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
 
 ```tsx title="App.tsx"
 import { Text } from 'react-native';
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider, useWallet } from '@lightninglabs/walletdk-react';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import { WavelengthProvider, useWallet } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -42,10 +42,10 @@ const engine = createNativeWalletEngine({
 
 export default function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       <Status />
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 
@@ -64,11 +64,11 @@ mainnet has no preset: build its `RuntimeConfig` by hand with `allowMainnet: tru
 
 <Step title="Create a wallet">
 
-Call `create` from [`useWalletCreate`](/reference/walletdk-react/#useWalletCreate) to generate a new HD seed on the device. The seed is encrypted locally and never transmitted.
+Call `create` from [`useWalletCreate`](/reference/wavelength-react/#useWalletCreate) to generate a new HD seed on the device. The seed is encrypted locally and never transmitted.
 
 ```tsx title="Onboard.tsx"
 import { Button } from 'react-native';
-import { useWalletCreate } from '@lightninglabs/walletdk-react';
+import { useWalletCreate } from '@lightninglabs/wavelength-react';
 
 function Onboard() {
   const { create, createPending } = useWalletCreate();
@@ -95,11 +95,11 @@ Once `create` resolves, `phase` from `useWallet` automatically advances (through
 
 <Step title="Try it">
 
-Call `send` from [`useWalletSend`](/reference/walletdk-react/#useWalletSend) with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
+Call `send` from [`useWalletSend`](/reference/wavelength-react/#useWalletSend) with a Lightning invoice or on-chain address. Wavelength routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
 
 ```tsx title="SendButton.tsx"
 import { Button } from 'react-native';
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendButton() {
   const { send, sendPending } = useWalletSend();

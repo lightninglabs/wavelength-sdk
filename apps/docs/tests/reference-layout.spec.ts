@@ -1,18 +1,18 @@
 import { test, expect } from '@playwright/test';
 
 // Tests for the ReferenceLayout.
-// Asserts that /reference/walletdk-core/ renders:
+// Asserts that /reference/wavelength-core/ renders:
 //   1. [data-symbol] sections - one per exported symbol.
 //   2. A sticky symbol-list rail with one link per symbol.
 //   3. data-accent="teal" on <html>.
 
 test('reference page has data-accent="teal"', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
 });
 
 test('reference page renders [data-symbol] sections', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   // Expect at least two symbol sections.
@@ -20,13 +20,13 @@ test('reference page renders [data-symbol] sections', async ({ page }) => {
 });
 
 test('sticky symbol-list rail is present', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   const rail = page.locator('[data-symbol-list]');
   await expect(rail).toBeVisible();
 });
 
 test('symbol-list rail has one link per [data-symbol] section', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   const symbolCount = await symbols.count();
@@ -38,7 +38,7 @@ test('symbol-list rail has one link per [data-symbol] section', async ({ page })
 });
 
 test('symbol-list links href targets match [data-symbol] section ids', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   // Collect all section ids.
@@ -52,22 +52,22 @@ test('symbol-list links href targets match [data-symbol] section ids', async ({ 
 });
 
 test('exactly one symbol link is .is-active on load', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   // Wait for client script initialisation (fires on astro:page-load).
   await expect(page.locator('[data-symbol-list] a.is-active')).toHaveCount(1);
 });
 
 test('reference type badges link to their documented API symbols', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
 
   const factory = page.locator('[data-symbol]#createWalletEngine');
   await expect(factory.locator('.param-type-link').first()).toHaveAttribute(
     'href',
-    '/reference/walletdk-core/#WalletEngineOptions',
+    '/reference/wavelength-core/#WalletEngineOptions',
   );
   await expect(factory.locator('.wdk-returns__type-link')).toHaveAttribute(
     'href',
-    '/reference/walletdk-core/#WalletEngine',
+    '/reference/wavelength-core/#WalletEngine',
   );
 
   // Literal and compound labels stay plain code rather than becoming noisy
@@ -79,16 +79,16 @@ test('reference type badges link to their documented API symbols', async ({ page
 });
 
 test('authored reference links use the same visible prose treatment', async ({ page }) => {
-  await page.goto('/reference/walletdk-react-native/');
+  await page.goto('/reference/wavelength-react-native/');
 
-  const link = page.locator('.wdk-ref__content a[href*="WalletDKClient"]').first();
+  const link = page.locator('.wdk-ref__content a[href*="WavelengthClient"]').first();
   await expect(link).toBeVisible();
   await expect(link).toHaveCSS('border-bottom-style', 'none');
   await expect(link).toHaveCSS('text-decoration-line', 'none');
 });
 
 test('inline result types have exact deep-link anchors', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
 
   for (const name of ['DepositResult', 'ExitResult', 'ExitStatusResult', 'WalletEngineOptions']) {
     await expect(page.locator(`#${name}`)).toBeVisible();
@@ -98,15 +98,15 @@ test('inline result types have exact deep-link anchors', async ({ page }) => {
 });
 
 test('inline type rail links navigate to the requested definition', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/#DepositResult');
-  await expect(page).toHaveURL(/\/reference\/walletdk-core\/#DepositResult$/);
+  await page.goto('/reference/wavelength-core/#DepositResult');
+  await expect(page).toHaveURL(/\/reference\/wavelength-core\/#DepositResult$/);
   await expect(page.locator('[data-symbol]#DepositResult')).toBeVisible();
   await expect(page.locator('[data-symbol-list] a[href="#DepositResult"]')).toHaveClass(/is-active/);
   await expect.poll(async () => page.locator('#DepositResult').evaluate((el) => el.getBoundingClientRect().top)).toBeLessThan(140);
 });
 
 test('in-page hash changes realign the requested inline type', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.evaluate(() => { window.location.hash = 'DepositResult'; });
   await expect.poll(async () => page.locator('#DepositResult').evaluate((el) => el.getBoundingClientRect().top)).toBeLessThan(140);
@@ -114,7 +114,7 @@ test('in-page hash changes realign the requested inline type', async ({ page }) 
 });
 
 test('public nested and lifecycle types have reference sections', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
 
   for (const name of [
     'ActivityStreamPayload',
@@ -131,8 +131,8 @@ test('public nested and lifecycle types have reference sections', async ({ page 
 
 // Smoke checks for the sibling reference pages.
 
-test('walletdk-web reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
-  await page.goto('/reference/walletdk-web/');
+test('wavelength-web reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
+  await page.goto('/reference/wavelength-web/');
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
@@ -140,8 +140,8 @@ test('walletdk-web reference page renders symbol sections, rail, and teal accent
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
-test('walletdk-react reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
-  await page.goto('/reference/walletdk-react/');
+test('wavelength-react reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
+  await page.goto('/reference/wavelength-react/');
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
@@ -149,8 +149,8 @@ test('walletdk-react reference page renders symbol sections, rail, and teal acce
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
-test('walletdk-react-native reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
-  await page.goto('/reference/walletdk-react-native/');
+test('wavelength-react-native reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
+  await page.goto('/reference/wavelength-react-native/');
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
@@ -164,17 +164,17 @@ test('walletdk-react-native reference page renders symbol sections, rail, and te
 // signature text is consistently 2-space indented.
 
 test('reference signature code block renders an Expressive Code frame with a visible filename header', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
 
   // The first reference symbol's Signature block is titled
-  // "walletdk-core.d.ts", so the frame's tab bar shows that filename.
+  // "wavelength-core.d.ts", so the frame's tab bar shows that filename.
   const tabBar = page.locator('.expressive-code .frame:not(.is-terminal) .title').first();
   await expect(tabBar).toBeVisible();
-  await expect(tabBar).toHaveText('walletdk-core.d.ts');
+  await expect(tabBar).toHaveText('wavelength-core.d.ts');
 });
 
 test('reference signature code block has consistent 2-space indentation', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
 
   // The RuntimeConfig signature is a multi-line type; every field line
   // should be indented exactly 2 spaces (no ragged/misaligned whitespace).
@@ -199,13 +199,13 @@ test('reference signature code block has consistent 2-space indentation', async 
 // stale links from the previous page.
 
 test('symbol rail rebuilds after client-side reference->reference navigation', async ({ page }) => {
-  // Start on walletdk-core and collect its symbol ids.
-  await page.goto('/reference/walletdk-core/');
+  // Start on wavelength-core and collect its symbol ids.
+  await page.goto('/reference/wavelength-core/');
   const coreSymbols = page.locator('[data-symbol]');
   await expect(coreSymbols.first()).toBeVisible();
   const coreIds = await coreSymbols.evaluateAll((els) => els.map((el) => el.id));
 
-  // Collect the rail hrefs for walletdk-core.
+  // Collect the rail hrefs for wavelength-core.
   const coreLinks = page.locator('[data-symbol-list] a');
   await expect(coreLinks.first()).toBeVisible();
   const coreHrefs = await coreLinks.evaluateAll((els) => els.map((el) => el.getAttribute('href')));
@@ -218,9 +218,9 @@ test('symbol rail rebuilds after client-side reference->reference navigation', a
   // Plant a window marker to confirm the navigation is client-side (no reload).
   await page.evaluate(() => { window.__wdkNoReload = true; });
 
-  // Navigate to walletdk-web via the sidebar link (client-side view transition).
-  await page.locator('.wdk-sidebar').getByRole('link', { name: 'walletdk-web' }).click();
-  await expect(page).toHaveURL(/\/reference\/walletdk-web\/$/);
+  // Navigate to wavelength-web via the sidebar link (client-side view transition).
+  await page.locator('.wdk-sidebar').getByRole('link', { name: 'wavelength-web' }).click();
+  await expect(page).toHaveURL(/\/reference\/wavelength-web\/$/);
 
   // Confirm it was a client-side swap, not a full reload.
   expect(await page.evaluate(() => window.__wdkNoReload === true)).toBe(true);
@@ -240,7 +240,7 @@ test('symbol rail rebuilds after client-side reference->reference navigation', a
     expect(webHrefs.some((h) => h === `#${id}`)).toBe(true);
   }
 
-  // No stale walletdk-core links should remain in the rail.
+  // No stale wavelength-core links should remain in the rail.
   // A stale link would be one that targets a core symbol id but is not also a
   // web symbol id (i.e. it belongs only to the previous page).
   const staleHrefs = webHrefs.filter(

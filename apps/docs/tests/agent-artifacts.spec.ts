@@ -6,7 +6,7 @@ test('llms.txt is served and spec-shaped', async ({ request }) => {
   const res = await request.get('/llms.txt');
   expect(res.status()).toBe(200);
   const body = await res.text();
-  expect(body).toMatch(/^# WalletDK/);
+  expect(body).toMatch(/^# Wavelength/);
   for (const section of SECTIONS) {
     expect(body).toContain(`## ${section.label}`);
   }
@@ -38,10 +38,10 @@ test('well-known skills catalog and files are served', async ({ request }) => {
   expect(res.status()).toBe(200);
   const catalog = await res.json();
   expect(catalog.skills.map((s: { name: string }) => s.name).sort()).toEqual([
-    'walletdk-api',
-    'walletdk-cli',
-    'walletdk-react-native',
-    'walletdk-web',
+    'wavelength-api',
+    'wavelength-cli',
+    'wavelength-react-native',
+    'wavelength-web',
   ]);
   for (const s of catalog.skills) {
     const file = await request.get(`/.well-known/skills/${s.name}/SKILL.md`);
@@ -62,7 +62,7 @@ test('mirrors contain converted content, not html', async ({ request }) => {
 test('agents page renders the hub content', async ({ page }) => {
   await page.goto('/agents/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Build with agents');
-  await expect(page.getByText('npx skills add lightninglabs/dawallet').first()).toBeVisible();
+  await expect(page.getByText('npx skills add lightninglabs/wavelength-sdk').first()).toBeVisible();
   await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(4);
   await page.locator('.wdk-tabs__strip button').nth(2).click();
   await expect(page.getByText('gRPC or REST').first()).toBeVisible();
@@ -114,9 +114,9 @@ test('agents page markdown mirror keeps all four prompts', async ({ request }) =
   // The tab labels live in data-label attributes stripped by the converter;
   // assert on content unique to each panel instead so we still confirm the
   // markdown mirror kept all four prompts as plain content.
-  expect(body).toContain('mount <WalletDKProvider');
+  expect(body).toContain('mount <WavelengthProvider');
   expect(body).toContain('createNativeWalletEngine()');
   expect(body).toContain('gRPC or REST');
-  expect(body).toContain('Write automation for the WalletDK wallet using darepocli.');
-  expect(body).toContain('darepocli mcp');
+  expect(body).toContain('Write automation for the Wavelength wallet using wavecli.');
+  expect(body).toContain('wavecli mcp');
 });

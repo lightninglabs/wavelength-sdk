@@ -1,24 +1,24 @@
 ---
-name: walletdk-api
-description: Integrate against the WalletDK wallet daemon (darepod) over its gRPC or REST API. Use when calling WalletService RPCs, building a backend or non-browser integration, connecting to darepod, or mapping REST routes under /v1/wallet/. Triggers include "darepod", "WalletService", "walletdk grpc", "walletdk rest api", and "wallet daemon api".
+name: wavelength-api
+description: Integrate against the Wavelength wallet daemon (waved) over its gRPC or REST API. Use when calling WalletService RPCs, building a backend or non-browser integration, connecting to waved, or mapping REST routes under /v1/wallet/. Triggers include "waved", "WalletService", "wavelength grpc", "wavelength rest api", and "wallet daemon api".
 ---
 
-# WalletDK daemon API integration
+# Wavelength daemon API integration
 
-The wallet daemon `darepod` exposes WalletService over gRPC with a matching
+The wallet daemon `waved` exposes WalletService over gRPC with a matching
 REST gateway. This is the remote integration surface for backends and
 non-browser clients; app developers embedding a wallet in a web page should
-use the SDK instead (see the walletdk-web skill).
+use the SDK instead (see the wavelength-web skill).
 
-Docs index: https://dadocs.lightning.engineering/llms.txt. The API slice
+Docs index: https://wavelength.lightning.engineering/llms.txt. The API slice
 lists one page per RPC; every page has a markdown twin at `.md`.
 
 ## Start here
 
-- Running darepod, connection, TLS, and auth:
-  https://dadocs.lightning.engineering/api/get-started.md
+- Running waved, connection, TLS, and auth:
+  https://wavelength.lightning.engineering/api/get-started.md
 - REST conventions (routes, verbs, error shape):
-  https://dadocs.lightning.engineering/api/rest.md
+  https://wavelength.lightning.engineering/api/rest.md
 - The full RPC list with request and response fields is in the API section
   of llms.txt; fetch the page for the RPC you are calling.
 

@@ -1,6 +1,6 @@
 ---
 title: Restore a wallet
-description: Rebuild a WalletDK wallet from a recovery phrase, and bring back balances and history with background server-assisted recovery.
+description: Rebuild a Wavelength wallet from a recovery phrase, and bring back balances and history with background server-assisted recovery.
 pageLayout: guide
 related:
   - guides/create-a-wallet
@@ -17,7 +17,7 @@ recovery run in the background so the user is not stuck on a loading screen.
 
 ## Restore from a recovery phrase
 
-Pass an existing `mnemonic` to [`useWalletRestore()`](/reference/walletdk-react/#useWalletRestore)'s `restore` (with
+Pass an existing `mnemonic` to [`useWalletRestore()`](/reference/wavelength-react/#useWalletRestore)'s `restore` (with
 `seedPassphrase` too, if the original wallet used a BIP-39 passphrase). This
 re-derives the same HD seed and encrypts it with the new `password`.
 
@@ -39,16 +39,16 @@ a large gap of addresses.
 ## Restore in the background
 
 The recovery scan can take minutes and reports no progress while it runs.
-Rather than blocking on the whole scan, `restore` from [`useWalletRestore()`](/reference/walletdk-react/#useWalletRestore)
+Rather than blocking on the whole scan, `restore` from [`useWalletRestore()`](/reference/wavelength-react/#useWalletRestore)
 resolves (and flips `restorePending` back to `false`) as soon as the restored
 wallet is usable, which happens well before the scan completes; `phase` from
-[`useWallet()`](/reference/walletdk-react/#useWallet) advances to `'restoring'` while the wallet comes up and then to
+[`useWallet()`](/reference/wavelength-react/#useWallet) advances to `'restoring'` while the wallet comes up and then to
 `'ready'` at that point. The scan itself keeps running in the background,
-tracked separately through [`useWalletRecovery()`](/reference/walletdk-react/#useWalletRecovery). The user lands in a working
+tracked separately through [`useWalletRecovery()`](/reference/wavelength-react/#useWalletRecovery). The user lands in a working
 wallet immediately while balances and history fill in behind them.
 
 ```tsx title="Restore.tsx"
-import { useWallet, useWalletRestore } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletRestore } from '@lightninglabs/wavelength-react';
 
 function Restore({ mnemonic }: { mnemonic: string[] }) {
   const { phase } = useWallet();
@@ -82,13 +82,13 @@ function Restore({ mnemonic }: { mnemonic: string[] }) {
 
 ## Show recovery progress
 
-[`useWalletRecovery()`](/reference/walletdk-react/#useWalletRecovery) returns `recovery`, a discriminated union on `status`,
+[`useWalletRecovery()`](/reference/wavelength-react/#useWalletRecovery) returns `recovery`, a discriminated union on `status`,
 and `acknowledge`, which resets it to `idle`. Drive a banner off `recovery` so
 the user knows the scan is still running, and report the outcome when it
 settles.
 
 ```tsx title="RecoveryBanner.tsx"
-import { useWalletRecovery } from '@lightninglabs/walletdk-react';
+import { useWalletRecovery } from '@lightninglabs/wavelength-react';
 
 function RecoveryBanner() {
   const { recovery, acknowledge } = useWalletRecovery();

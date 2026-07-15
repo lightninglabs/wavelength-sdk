@@ -1,4 +1,4 @@
-import { RuntimePhase } from "@lightninglabs/walletdk-react";
+import { RuntimePhase } from "@lightninglabs/wavelength-react";
 
 // statusLabel maps a runtime phase to a concise label for the status pill and
 // settings/home runtime cards.

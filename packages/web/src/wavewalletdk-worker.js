@@ -43,7 +43,7 @@ function rejectAllPending(error) {
   self.postMessage({ fatal: { message } });
 }
 
-self.addEventListener("walletdk-ready", () => {
+self.addEventListener("wavewalletdk-ready", () => {
   wasmReady = true;
   postEvent("runtimeReady");
 });
@@ -76,7 +76,7 @@ self.onmessage = async (event) => {
     // each entry to the main thread as an 'activity' event.
     if (method === "$startActivity") {
       if (!activityHandle) {
-        activityHandle = await self.walletdkCall("subscribe", params || {});
+        activityHandle = await self.wavewalletdkCall("subscribe", params || {});
         pumpActivity(activityHandle);
       }
       self.postMessage({ id, ok: true, result: { subscribed: true } });
@@ -98,7 +98,7 @@ self.onmessage = async (event) => {
     if (debug) {
       console.log(`${debugTs()} Executing ${method}:`, params);
     }
-    const result = await self.walletdkCall(method, params || {});
+    const result = await self.wavewalletdkCall(method, params || {});
     if (debug) {
       console.log(`${debugTs()} Executed ${method} result:`, result);
     }
@@ -158,7 +158,7 @@ function waitForWASMReady() {
   }
 
   return new Promise((resolve) => {
-    self.addEventListener("walletdk-ready", () => resolve(), { once: true });
+    self.addEventListener("wavewalletdk-ready", () => resolve(), { once: true });
   });
 }
 
@@ -178,17 +178,17 @@ async function instantiateWasm(importObject) {
 }
 
 async function instantiateCompressedWasm(importObject) {
-  const url = resolveRuntimeAsset("walletdk.wasm.gz");
+  const url = resolveRuntimeAsset("wavewalletdk.wasm.gz");
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
-      `walletdk runtime asset could not be loaded from ${url}. Host the ` +
+      `Wavelength runtime asset could not be loaded from ${url}. Host the ` +
         "daemon runtime assets and point runtimeBaseUrl at them.",
     );
   }
 
   if (!response.body) {
-    throw new Error(`walletdk compressed wasm response from ${url} is empty.`);
+    throw new Error(`Wavelength compressed wasm response from ${url} is empty.`);
   }
 
   const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
@@ -198,11 +198,11 @@ async function instantiateCompressedWasm(importObject) {
 }
 
 async function instantiateRawWasm(importObject) {
-  const url = resolveRuntimeAsset("walletdk.wasm");
+  const url = resolveRuntimeAsset("wavewalletdk.wasm");
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
-      `walletdk runtime asset could not be loaded from ${url}. Host the ` +
+      `Wavelength runtime asset could not be loaded from ${url}. Host the ` +
         "daemon runtime assets and point runtimeBaseUrl at them.",
     );
   }
@@ -216,7 +216,7 @@ async function instantiateRawWasm(importObject) {
     const retry = await fetch(url);
     if (!retry.ok) {
       throw new Error(
-        `walletdk runtime asset could not be loaded from ${url}. Host the ` +
+        `Wavelength runtime asset could not be loaded from ${url}. Host the ` +
           "daemon runtime assets and point runtimeBaseUrl at them.",
       );
     }

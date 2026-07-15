@@ -11,7 +11,7 @@ related:
 
 ## Create a Lightning invoice
 
-`receive()` from [`useWalletReceive()`](/reference/walletdk-react/#useWalletReceive) triggers a receive swap: the Ark server
+`receive()` from [`useWalletReceive()`](/reference/wavelength-react/#useWalletReceive) triggers a receive swap: the Ark server
 sets up a Lightning payment path that deposits into your VTXO once the payer
 settles. Pass `amountSat` and an optional `memo` for the invoice.
 
@@ -21,7 +21,7 @@ so the payer has both options.
 
 ```tsx title="receive.tsx"
 import { useState } from 'react';
-import { useWalletReceive } from '@lightninglabs/walletdk-react';
+import { useWalletReceive } from '@lightninglabs/wavelength-react';
 
 function CreateInvoice() {
   const { receive, receivePending } = useWalletReceive();
@@ -48,7 +48,7 @@ function CreateInvoice() {
 
 ## Wait for settlement
 
-[`useWalletActivity()`](/reference/walletdk-react/#useWalletActivity) returns the live activity array and streams updates in
+[`useWalletActivity()`](/reference/wavelength-react/#useWalletActivity) returns the live activity array and streams updates in
 place. Match the entry by invoice string in `entry.request?.lightningInvoice`
 and watch its `status` field: the entry appears as `'pending'` when the payer
 sends and switches to `'complete'` once the receive swap round completes.
@@ -60,7 +60,7 @@ while it settles, a failure message if it fails, and a success message once
 `status === 'complete'`.
 
 ```tsx title="receive.tsx"
-import { useWalletActivity } from '@lightninglabs/walletdk-react';
+import { useWalletActivity } from '@lightninglabs/wavelength-react';
 
 function InvoiceStatus({ bolt11 }: { bolt11: string }) {
   const activity = useWalletActivity();

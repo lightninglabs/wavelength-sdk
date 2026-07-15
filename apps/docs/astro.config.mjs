@@ -9,7 +9,7 @@ import sitemap from '@astrojs/sitemap';
 import { mermaidThemeVariables } from './src/config/mermaid.ts';
 
 export default defineConfig({
-  site: 'https://dadocs.lightning.engineering',
+  site: 'https://wavelength.lightning.engineering',
   markdown: {
     syntaxHighlight: {
       excludeLangs: ['mermaid', 'math'],

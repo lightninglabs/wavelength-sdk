@@ -1,9 +1,9 @@
 // PENDING_WIPE_KEY flags, across a reload, that the persisted wallet data should
 // be wiped before the app and its OPFS-backed runtime start again.
-const PENDING_WIPE_KEY = "walletdk:pending-wipe";
+const PENDING_WIPE_KEY = "wavelength:pending-wipe";
 
 // THEME_KEY is preserved across a wipe: it is a UI preference, not wallet data.
-const THEME_KEY = "walletdk-theme";
+const THEME_KEY = "wavelength-theme";
 
 // requestWipe records the intent to wipe and reloads. The actual wipe runs at
 // boot (consumePendingWipe), once the reload has torn down the SQLite worker so
@@ -28,14 +28,14 @@ export async function consumePendingWipe(): Promise<boolean> {
   return true;
 }
 
-// clearLocalStorage removes every wallet-owned key (the darepod: and walletdk
-// prefixes) while preserving the theme preference.
+// clearLocalStorage removes every wallet-owned key (the wavelength prefix)
+// while preserving the theme preference.
 function clearLocalStorage(): void {
   for (const key of Object.keys(localStorage)) {
     if (key === THEME_KEY) {
       continue;
     }
-    if (key.startsWith("darepod:") || key.startsWith("walletdk")) {
+    if (key.startsWith("wavelength")) {
       localStorage.removeItem(key);
     }
   }

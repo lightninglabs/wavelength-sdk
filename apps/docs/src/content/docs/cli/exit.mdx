@@ -11,8 +11,8 @@ destination. Unilateral unroll is only started when `--force-unroll-ack` is
 exactly `I_KNOW_WHAT_I_AM_DOING`.
 
 ```bash title="Terminal"
-darepocli exit --outpoint TXID:VOUT
-darepocli exit --outpoint TXID:VOUT --onchain-address bcrt1...
+wavecli exit --outpoint TXID:VOUT
+wavecli exit --outpoint TXID:VOUT --onchain-address bcrt1...
 ```
 
 ## Flags
@@ -27,7 +27,7 @@ darepocli exit --outpoint TXID:VOUT --onchain-address bcrt1...
 ## Example
 
 ```bash title="Terminal"
-darepocli --no-tls exit --outpoint 4b2e9f1a7c3d5e6f...:0
+wavecli --no-tls exit --outpoint 4b2e9f1a7c3d5e6f...:0
 ```
 
 ```json
@@ -60,8 +60,8 @@ The endpoint stays queryable after the exit completes.
 Calls [`WalletService.ExitStatus`](/api/wallet/exit-status/).
 
 ```bash title="Terminal"
-darepocli exit status --outpoint TXID:VOUT
-darepocli exit status --outpoint TXID:VOUT --detailed=false
+wavecli exit status --outpoint TXID:VOUT
+wavecli exit status --outpoint TXID:VOUT --detailed=false
 ```
 
 ### `exit summary`
@@ -74,7 +74,7 @@ amount left to recover. Takes no flags.
 Calls [`WalletService.ExitSummary`](/api/wallet/exit-summary/).
 
 ```bash title="Terminal"
-darepocli exit summary
+wavecli exit summary
 ```
 
 ### `exit plan`
@@ -89,7 +89,7 @@ without dispatching an exit.
 Calls [`WalletService.GetExitPlan`](/api/wallet/get-exit-plan/).
 
 ```bash title="Terminal"
-darepocli exit plan --outpoint TXID:VOUT
+wavecli exit plan --outpoint TXID:VOUT
 ```
 
 ## Exit codes

@@ -1,7 +1,7 @@
 ---
-'@lightninglabs/walletdk-core': minor
-'@lightninglabs/walletdk-web': minor
-'@lightninglabs/walletdk-react-native': minor
+'@lightninglabs/wavelength-core': minor
+'@lightninglabs/wavelength-web': minor
+'@lightninglabs/wavelength-react-native': minor
 ---
 
 Add `exitSummary()` to the client: it reports the wallet-wide portfolio of

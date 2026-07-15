@@ -1,9 +1,9 @@
 import {
-  BaseWalletDKClient,
+  BaseWavelengthClient,
   camelizeKeys,
   Entry,
-  WalletDKError,
-} from '@lightninglabs/walletdk-core';
+  WavelengthError,
+} from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
 import type { WebClientOptions } from '../index';
 import {
@@ -11,7 +11,7 @@ import {
   loadScript,
   resolveRuntimeAsset,
   waitForReadyEvent,
-  walletdkCall,
+  wavewalletdkCall,
 } from '../runtime';
 import { ActivityHandle, debugTs, errorMessage } from '../util';
 
@@ -21,7 +21,7 @@ import { ActivityHandle, debugTs, errorMessage } from '../util';
  * preferred); select it via createWebClient({ runtimeThread: 'main' }). Unlike
  * worker mode it blocks rendering while the runtime is busy.
  */
-export class MainThreadWalletDKClient extends BaseWalletDKClient {
+export class MainThreadWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
@@ -33,16 +33,16 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
     super();
     this.runtimeBaseUrl = options.runtimeBaseUrl;
     this.debug = options.debug ?? false;
-    // The runtime fires 'walletdk-ready' once; keep the handler reference so
-    // dispose() can detach it if the client is torn down before it fires.
-    globalThis.addEventListener('walletdk-ready', this.onRuntimeReady, {
+    // The runtime fires 'wavewalletdk-ready' once; keep the handler reference
+    // so dispose() can detach it if the client is torn down before it fires.
+    globalThis.addEventListener('wavewalletdk-ready', this.onRuntimeReady, {
       once: true,
     });
   }
 
   dispose(): void {
     super.dispose();
-    globalThis.removeEventListener('walletdk-ready', this.onRuntimeReady);
+    globalThis.removeEventListener('wavewalletdk-ready', this.onRuntimeReady);
   }
 
   ready(): Promise<void> {
@@ -53,12 +53,12 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
     await this.ensureLoaded();
 
     const globalWallet = globalThis as typeof globalThis & {
-      walletdkCall?: (method: string, params?: unknown) => Promise<T>;
+      wavewalletdkCall?: (method: string, params?: unknown) => Promise<T>;
     };
 
-    if (typeof globalWallet.walletdkCall !== 'function') {
-      throw new WalletDKError(
-        'walletdk wasm runtime is not ready',
+    if (typeof globalWallet.wavewalletdkCall !== 'function') {
+      throw new WavelengthError(
+        'Wavelength wasm runtime is not ready',
         'runtime_not_ready',
       );
     }
@@ -67,14 +67,14 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
       if (this.debug) {
         console.log(`${debugTs()} Executing ${method}:`, params);
       }
-      const result = await globalWallet.walletdkCall(method, params);
+      const result = await globalWallet.wavewalletdkCall(method, params);
       if (this.debug) {
         console.log(`${debugTs()} Executed ${method} result:`, result);
       }
 
       return camelizeKeys<T>(result);
     } catch (err) {
-      throw new WalletDKError(errorMessage(err), 'walletdk_error', {
+      throw new WavelengthError(errorMessage(err), 'wavelength_error', {
         cause: err,
       });
     }
@@ -82,19 +82,19 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
 
   // startActivity opens the facade's pull-based activity stream and pumps each
   // entry to subscribers as an 'activity' event. The old bridge pushed a
-  // 'walletdk-activity' DOM event; the wasm bridge hands back a subscription
-  // handle instead, so the client drives the loop. Idempotent: a second call
-  // while a stream is open is a no-op.
+  // 'wavewalletdk-activity' DOM event; the wasm bridge hands back a
+  // subscription handle instead, so the client drives the loop. Idempotent: a
+  // second call while a stream is open is a no-op.
   async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
     await this.ensureLoaded();
     if (this.activityHandle) {
       return;
     }
 
-    const call = walletdkCall();
+    const call = wavewalletdkCall();
     if (typeof call !== 'function') {
-      throw new WalletDKError(
-        'walletdk wasm runtime is not ready',
+      throw new WavelengthError(
+        'Wavelength wasm runtime is not ready',
         'runtime_not_ready',
       );
     }
@@ -150,7 +150,7 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
   }
 
   private async loadRuntime() {
-    if (typeof walletdkCall() === 'function') {
+    if (typeof wavewalletdkCall() === 'function') {
       return;
     }
 
@@ -167,7 +167,7 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
       }
     ).Go;
     if (!goCtor) {
-      throw new WalletDKError('Go WASM runtime did not load');
+      throw new WavelengthError('Go WASM runtime did not load');
     }
 
     const go = new goCtor();
@@ -176,17 +176,17 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
 
     // If the runtime exits (resolves or rejects) before signaling ready, boot
     // failed; turn that into a rejection so ready()/start() do not hang forever
-    // waiting for a 'walletdk-ready' event that will never fire.
+    // waiting for a 'wavewalletdk-ready' event that will never fire.
     let ready = false;
     const bootExit = runPromise.then(
       () => {
-        throw new WalletDKError(
-          'walletdk runtime exited before signaling ready',
+        throw new WavelengthError(
+          'Wavelength runtime exited before signaling ready',
           'runtime_not_ready',
         );
       },
       (err) => {
-        throw new WalletDKError(errorMessage(err), 'runtime_not_ready', {
+        throw new WavelengthError(errorMessage(err), 'runtime_not_ready', {
           cause: err,
         });
       },

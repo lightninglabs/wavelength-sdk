@@ -18,7 +18,7 @@ test('per-section accent updates across a client-side navigation', async ({ page
   await page.evaluate(() => { window.__wdkNoReload = true; });
 
   // Guides is a different section (and a different accent, violet) than
-  // Concepts (teal) - walletdk-core's Reference section also happens to be
+  // Concepts (teal) - wavelength-core's Reference section also happens to be
   // teal under the position-derived accent cycle (see SECTION_ACCENT in
   // config/nav.ts), which would make this assertion pass even if the accent
   // never actually updated.

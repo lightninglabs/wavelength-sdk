@@ -1,6 +1,6 @@
 ---
 title: Networks & config
-description: How to configure WalletDK for signet, testnet, testnet4, or mainnet using the three gateway URLs, defaultConfig presets, allowMainnet flag, and advanced options.
+description: How to configure the Wavelength SDK for signet, testnet, testnet4, or mainnet using the three gateway URLs, defaultConfig presets, allowMainnet flag, and advanced options.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
@@ -26,7 +26,7 @@ For public test networks, use your transport package's `defaultConfig(network)` 
 <div data-label="Web">
 
 ```ts
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient();
 const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
@@ -37,7 +37,7 @@ await client.start(config);
 <div data-label="React Native">
 
 ```ts
-import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const client = createNativeClient();
 const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
@@ -84,7 +84,7 @@ Most apps only need `defaultConfig(network)` plus an optional data directory. Th
 
 On regtest, set both insecure flags yourself because local gateways speak plain HTTP. On the hosted networks, leave them unset so connections stay TLS-verified.
 
-If you self-host Ark or swap infrastructure, replace the preset URLs while keeping network aligned with your Esplora instance. Setting `disableSwaps: true` is appropriate for boarding-only experiments where Lightning is out of scope. Full field documentation is in the [walletdk-core reference](/reference/walletdk-core/).
+If you self-host Ark or swap infrastructure, replace the preset URLs while keeping network aligned with your Esplora instance. Setting `disableSwaps: true` is appropriate for boarding-only experiments where Lightning is out of scope. Full field documentation is in the [wavelength-core reference](/reference/wavelength-core/).
 
 ## Next steps
 

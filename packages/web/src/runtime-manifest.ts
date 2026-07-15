@@ -1,20 +1,20 @@
 /**
  * RUNTIME_ASSETS is the canonical set of daemon runtime binaries the wasm client
  * loads at runtime, resolved against runtimeBaseUrl. They are built by
- * darepo-client (`make wasm-wallet`) and version-locked to the embedded walletdk
+ * wavelength (`make wasm-wallet`) and version-locked to the embedded wavewalletdk
  * daemon, so they ship together and must be hosted side by side at a single base
  * URL.
  *
  * This is the single source of truth for the (future) CDN publish step and the
- * self-host instructions. The standalone worker (walletdk-worker.js) cannot
+ * self-host instructions. The standalone worker (wavewalletdk-worker.js) cannot
  * import this module, so it mirrors these names literally; keep the two in sync.
  *
  * The version of the asset set (RUNTIME_MANIFEST_VERSION) lives in core, next
  * to the generated daemon types it is paired with.
  */
 export const RUNTIME_ASSETS = {
-  wasm: 'walletdk.wasm',
-  wasmGz: 'walletdk.wasm.gz',
+  wasm: 'wavewalletdk.wasm',
+  wasmGz: 'wavewalletdk.wasm.gz',
   wasmExec: 'wasm_exec.js',
   sqliteBridge: 'sqlite-bridge.js',
   sqliteWorker: 'sqlite-worker.js',

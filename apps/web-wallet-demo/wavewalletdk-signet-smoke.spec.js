@@ -4,21 +4,21 @@ const arkGatewayURL = "https://arkd-signet-rest.staging.lightningcluster.com";
 const swapGatewayURL = "https://swapd-signet-rest.staging.lightningcluster.com";
 const esploraURL = "https://mempool-signet.testnet.lightningcluster.com/api";
 
-test("walletdk demo starts with live signet defaults", async ({
+test("wavelength demo starts with live signet defaults", async ({
   page,
 }, testInfo) => {
   const consoleMessages = [];
   page.on("console", (message) => {
     const line = `[${message.type()}] ${message.text()}`;
     consoleMessages.push(line);
-    if (process.env.WALLETDK_SIGNET_SMOKE_VERBOSE) {
+    if (process.env.WAVELENGTH_SIGNET_SMOKE_VERBOSE) {
       console.log(line);
     }
   });
   page.on("pageerror", (error) => {
     const line = `[pageerror] ${error.message}`;
     consoleMessages.push(line);
-    if (process.env.WALLETDK_SIGNET_SMOKE_VERBOSE) {
+    if (process.env.WAVELENGTH_SIGNET_SMOKE_VERBOSE) {
       console.log(line);
     }
   });
@@ -41,10 +41,10 @@ test("walletdk demo starts with live signet defaults", async ({
   );
 
   await page.getByLabel("Data directory").fill(
-    `/walletdk-signet-smoke-${Date.now()}`,
+    `/wavewalletdk-signet-smoke-${Date.now()}`,
   );
   await page.getByLabel("Swap database file").fill(
-    `/walletdk-signet-swaps-${Date.now()}.db`,
+    `/wavewalletdk-signet-swaps-${Date.now()}.db`,
   );
   await startRuntime.click();
 

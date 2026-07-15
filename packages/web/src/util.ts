@@ -2,11 +2,11 @@ import {
   ActivityStreamPayload,
   camelizeKeys,
   Entry,
-  WalletDKEvent,
-  WalletDKEventType,
-  WalletDKLogPayload,
-} from '@lightninglabs/walletdk-core';
-export { errorMessage } from '@lightninglabs/walletdk-core';
+  WavelengthEvent,
+  WavelengthEventType,
+  WavelengthLogPayload,
+} from '@lightninglabs/wavelength-core';
+export { errorMessage } from '@lightninglabs/wavelength-core';
 
 /**
  * A single in-flight RPC awaiting its worker response, keyed by request id in
@@ -37,14 +37,14 @@ export function debugTs(): string {
 
 /**
  * Maps a raw event forwarded across the worker boundary onto the typed
- * {@link WalletDKEvent} union, camelizing the payloads that carry daemon JSON.
+ * {@link WavelengthEvent} union, camelizing the payloads that carry daemon JSON.
  * The postMessage boundary is untyped, so the mapping is explicit per
  * discriminant.
  */
-export function toWalletDKEvent(raw: {
-  type: WalletDKEventType;
+export function toWavelengthEvent(raw: {
+  type: WavelengthEventType;
   payload?: unknown;
-}): WalletDKEvent {
+}): WavelengthEvent {
   switch (raw.type) {
   case 'activity':
     return { type: 'activity', payload: camelizeKeys<Entry>(raw.payload) };
@@ -60,7 +60,7 @@ export function toWalletDKEvent(raw: {
   case 'log':
     return {
       type: 'log',
-      payload: camelizeKeys<WalletDKLogPayload>(raw.payload),
+      payload: camelizeKeys<WavelengthLogPayload>(raw.payload),
     };
 
   case 'runtimeStopped':
@@ -74,7 +74,7 @@ export function toWalletDKEvent(raw: {
     // warning instead of silently advancing lifecycle state to runtimeReady.
     return {
       type: 'log',
-      payload: { level: 'warn', message: `unknown walletdk event: ${raw.type}` },
+      payload: { level: 'warn', message: `unknown Wavelength event: ${raw.type}` },
     };
   }
 }

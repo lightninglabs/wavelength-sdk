@@ -5,11 +5,11 @@ description: Unlock an existing wallet by decrypting its on-disk seed and starti
 
 Decrypts the on-disk wallet seed and starts the wallet subsystem, making the
 wallet RPCs usable. Like `create`, the password is never accepted on the
-command line: it is read from stdin, the `DAREPOD_WALLET_PASSWORD` environment
+command line: it is read from stdin, the `WAVED_WALLET_PASSWORD` environment
 variable, or `--wallet_password_file`.
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | darepocli unlock
+echo -n 'hunter2hunter2' | wavecli unlock
 ```
 
 ## Flags
@@ -21,7 +21,7 @@ echo -n 'hunter2hunter2' | darepocli unlock
 ## Example
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | darepocli --no-tls unlock
+echo -n 'hunter2hunter2' | wavecli --no-tls unlock
 ```
 
 ```json

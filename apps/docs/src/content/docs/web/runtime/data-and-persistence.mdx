@@ -1,6 +1,6 @@
 ---
 title: Data & persistence
-description: How WalletDK stores wallet data using OPFS or localStorage and how storage responsibilities are split between the main thread and the worker.
+description: How Wavelength stores wallet data using OPFS or localStorage and how storage responsibilities are split between the main thread and the worker.
 ---
 
 import Card from '~/components/mdx/Card.astro';
@@ -69,23 +69,23 @@ signals). Do not rely on it being granted; treat it as best-effort.
   </Card>
 </CardGrid>
 
-Worker mode spawns the bundled `walletdk-worker.js` (override with
+Worker mode spawns the bundled `wavewalletdk-worker.js` (override with
 `workerURL`). The worker receives **`runtimeBaseUrl`** on init so it can fetch
-`walletdk.wasm.gz`, `wasm_exec.js`, and the SQLite bridge from your hosted asset
+`wavewalletdk.wasm.gz`, `wasm_exec.js`, and the SQLite bridge from your hosted asset
 folder. Main-thread mode loads those scripts on the page directly.
 
 ```ts title="client.ts"
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 // Default: worker + OPFS (requires cross-origin isolation).
 const workerClient = createWebClient({
-  runtimeBaseUrl: 'https://your-host/walletdk/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/',
 });
 
 // Escape hatch: main thread, no OPFS persistence.
 const mainClient = createWebClient({
   runtimeThread: 'main',
-  runtimeBaseUrl: 'https://your-host/walletdk/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/',
 });
 
 // Choose a dataDir subdirectory for the daemon's on-disk tree.
@@ -106,5 +106,5 @@ await workerClient.start(config);
 Wiping local wallet data means clearing both OPFS entries under your origin and
 any app-level localStorage keys you wrote. See the demo's wipe helper
 (`apps/web-wallet-demo/src/lib/wipeLocalData.ts`) for a reference pattern, and
-the [walletdk-web reference](/reference/walletdk-web/) for the client
+the [wavelength-web reference](/reference/wavelength-web/) for the client
 start/stop lifecycle.

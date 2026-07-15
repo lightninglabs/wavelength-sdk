@@ -129,10 +129,10 @@ importers:
       '@expo-google-fonts/ibm-plex-sans':
         specifier: ^0.4.1
         version: 0.4.1
-      '@lightninglabs/walletdk-react':
+      '@lightninglabs/wavelength-react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@lightninglabs/walletdk-react-native':
+      '@lightninglabs/wavelength-react-native':
         specifier: workspace:*
         version: link:../../packages/react-native
       '@react-native-async-storage/async-storage':
@@ -187,10 +187,10 @@ importers:
       '@fontsource/ibm-plex-sans':
         specifier: ^5.1.0
         version: 5.2.8
-      '@lightninglabs/walletdk-react':
+      '@lightninglabs/wavelength-react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@lightninglabs/walletdk-web':
+      '@lightninglabs/wavelength-web':
         specifier: workspace:*
         version: link:../../packages/web
       lucide-react:
@@ -232,7 +232,7 @@ importers:
 
   packages/react:
     dependencies:
-      '@lightninglabs/walletdk-core':
+      '@lightninglabs/wavelength-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -263,7 +263,7 @@ importers:
 
   packages/react-native:
     dependencies:
-      '@lightninglabs/walletdk-core':
+      '@lightninglabs/wavelength-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -279,7 +279,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@lightninglabs/walletdk-core':
+      '@lightninglabs/wavelength-core':
         specifier: workspace:*
         version: link:../core
 

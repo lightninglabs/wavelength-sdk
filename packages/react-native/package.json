@@ -1,5 +1,5 @@
 {
-  "name": "@lightninglabs/walletdk-react-native",
+  "name": "@lightninglabs/wavelength-react-native",
   "version": "0.0.0",
   "private": false,
   "publishConfig": { "access": "public" },
@@ -20,15 +20,15 @@
     "fetch-bindings": "bash scripts/fetch-bindings.sh"
   },
   "codegenConfig": {
-    "name": "WalletdkSpec",
+    "name": "WavelengthSpec",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "engineering.lightning.walletdk.reactnative"
+      "javaPackageName": "engineering.lightning.wavelength.reactnative"
     }
   },
   "dependencies": {
-    "@lightninglabs/walletdk-core": "workspace:*"
+    "@lightninglabs/wavelength-core": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
@@ -39,5 +39,5 @@
     "@types/react": "^19.2.17",
     "react": "19.2.3"
   },
-  "files": ["dist", "src", "android", "ios", "*.podspec", "!android/libs", "!ios/Walletdk.xcframework"]
+  "files": ["dist", "src", "android", "ios", "*.podspec", "!android/libs", "!ios/Wavewalletdk.xcframework"]
 }

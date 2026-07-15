@@ -1,5 +1,5 @@
-import { defaultConfig } from "@lightninglabs/walletdk-web";
-import { RuntimeConfig } from "@lightninglabs/walletdk-react";
+import { defaultConfig } from "@lightninglabs/wavelength-web";
+import { RuntimeConfig } from "@lightninglabs/wavelength-react";
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
 // excluded - this build targets test networks only.
@@ -25,9 +25,9 @@ export type RuntimeFieldSetter = <K extends keyof RuntimeForm>(
 // demoFieldDefaults are the demo-only fields layered under every network
 // preset so the connect/settings forms are always fully populated.
 const demoFieldDefaults = {
-  dataDir: "/walletdk-demo",
+  dataDir: "/wavelength-demo",
   allowMainnet: false,
-  swapDatabaseFileName: "/walletdk-swaps.db",
+  swapDatabaseFileName: "/wavelength-swaps.db",
   serverInsecure: false,
   swapServerInsecure: false,
   disableSwaps: false,
@@ -59,10 +59,10 @@ export const testnetDefaults: RuntimeForm = hostedDefaults("testnet");
 // testnet4Defaults are the default runtime gateways for Bitcoin testnet4.
 export const testnet4Defaults: RuntimeForm = hostedDefaults("testnet4");
 
-// regtestDefaults target the local frontend-regtest swapdk overlay
-// (regtest swapdk info). The SDK ships no regtest preset (local ports vary
+// regtestDefaults target the local frontend-regtest Wavelength Operator overlay
+// (regtest Wavelength Operator info). The SDK ships no regtest preset (local ports vary
 // per machine), so this form is fully demo-local; swap gateway uses host
-// port 10032 because darepod's default HTTP gateway also binds
+// port 10032 because waved's default HTTP gateway also binds
 // localhost:10031.
 export const regtestDefaults: RuntimeForm = {
   ...demoFieldDefaults,

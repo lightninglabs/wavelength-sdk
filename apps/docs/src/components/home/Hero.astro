@@ -59,7 +59,7 @@ import { DEMO_APP_URL } from '~/config/site';
             <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </a>
-        <a href="/introduction/what-is-walletdk/" class="wdk-btn wdk-btn--ghost">Read the docs</a>
+        <a href="/introduction/what-is-wavelength-sdk/" class="wdk-btn wdk-btn--ghost">Read the docs</a>
         <a href={DEMO_APP_URL} class="wdk-btn wdk-btn--ghost">
           <span aria-hidden="true">&#9654;</span> Try it live
         </a>
@@ -77,14 +77,14 @@ import { DEMO_APP_URL } from '~/config/site';
         </div>
         <div class="wdk-hero__install-line">
           <span class="wdk-hero__install-prompt">$</span>
-          <code>npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react</code>
+          <code>npm install @lightninglabs/wavelength-web @lightninglabs/wavelength-react</code>
         </div>
         <pre class="wdk-hero__code-body"><span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ createWebWalletEngine }'}</span>
-  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-web'</span><span class="wdk-tok-punct">;</span>
-<span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ WalletDKProvider }'}</span>
-  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-react'</span><span class="wdk-tok-punct">;</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/wavelength-web'</span><span class="wdk-tok-punct">;</span>
+<span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ WavelengthProvider }'}</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/wavelength-react'</span><span class="wdk-tok-punct">;</span>
 <span class="wdk-tok-kw">import</span> <span class="wdk-tok-id">{'{ defaultConfig }'}</span>
-  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/walletdk-core'</span><span class="wdk-tok-punct">;</span>
+  <span class="wdk-tok-kw">from</span> <span class="wdk-tok-str">'@lightninglabs/wavelength-core'</span><span class="wdk-tok-punct">;</span>
 
 <span class="wdk-tok-cm">// Self-custodial wallet. No node, no channels.</span>
 <span class="wdk-tok-kw">const</span> <span class="wdk-tok-id">engine</span> <span class="wdk-tok-punct">=</span> <span class="wdk-tok-fn">createWebWalletEngine</span><span class="wdk-tok-punct">({'{'}</span>
@@ -94,10 +94,10 @@ import { DEMO_APP_URL } from '~/config/site';
 
 <span class="wdk-tok-kw">export</span> <span class="wdk-tok-kw">function</span> <span class="wdk-tok-fn">App</span><span class="wdk-tok-punct">() {'{'}</span>
   <span class="wdk-tok-kw">return</span> <span class="wdk-tok-punct">(</span>
-    <span class="wdk-tok-jsx">&lt;WalletDKProvider</span> <span class="wdk-tok-id">engine</span><span class="wdk-tok-punct">={'{'}engine{'}'}</span><span class="wdk-tok-jsx">&gt;</span>
+    <span class="wdk-tok-jsx">&lt;WavelengthProvider</span> <span class="wdk-tok-id">engine</span><span class="wdk-tok-punct">={'{'}engine{'}'}</span><span class="wdk-tok-jsx">&gt;</span>
       <span class="wdk-tok-jsx">&lt;Balance /&gt;</span>
       <span class="wdk-tok-jsx">&lt;SendButton /&gt;</span>
-    <span class="wdk-tok-jsx">&lt;/WalletDKProvider&gt;</span>
+    <span class="wdk-tok-jsx">&lt;/WavelengthProvider&gt;</span>
   <span class="wdk-tok-punct">);</span>
 <span class="wdk-tok-punct">{'}'}</span></pre>
       </div>
@@ -258,6 +258,7 @@ import { DEMO_APP_URL } from '~/config/site';
     gap: 64px;
     max-width: 1200px;
     width: 100%;
+    margin: 0 auto;
     position: relative;
     z-index: 2;
   }

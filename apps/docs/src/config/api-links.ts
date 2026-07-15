@@ -6,14 +6,14 @@ export interface ApiLinkTarget {
 type ReferencePage = 'core' | 'react' | 'web' | 'react-native';
 
 const pagePaths: Record<ReferencePage, string> = {
-  core: '/reference/walletdk-core/',
-  react: '/reference/walletdk-react/',
-  web: '/reference/walletdk-web/',
-  'react-native': '/reference/walletdk-react-native/',
+  core: '/reference/wavelength-core/',
+  react: '/reference/wavelength-react/',
+  web: '/reference/wavelength-web/',
+  'react-native': '/reference/wavelength-react-native/',
 };
 
 const coreSymbols = [
-  'RuntimeConfig', 'Network', 'WalletDKClient', 'ready', 'start', 'stop',
+  'RuntimeConfig', 'Network', 'WavelengthClient', 'ready', 'start', 'stop',
   'dispose', 'createWalletEngine', 'WalletEngine', 'WalletSnapshot', 'RecoveryState',
   'RestoreWalletRequest', 'createWallet', 'unlockWallet', 'openWalletFromPasskey',
   'getInfo', 'status', 'balance', 'WalletInfo', 'WalletStatus', 'Balance', 'deposit',
@@ -23,8 +23,8 @@ const coreSymbols = [
   'EntryRequest', 'EntryKind', 'EntryStatus', 'EntryPhase', 'EntryFailureCode',
   'EntryRequestType', 'exit', 'exitStatus', 'exitSummary', 'getExitPlan', 'sweepWallet', 'callRaw',
   'camelizeKeys', 'WalletState', 'RuntimePhase', 'phaseFromInfo', 'normalizeInfo',
-  'walletStateFromProto', 'WalletDKEvent', 'WalletDKEventType', 'WalletDKListener',
-  'WalletDKLogPayload', 'WalletDKLogLevel', 'WalletDKError', 'WalletDKErrorCode',
+  'walletStateFromProto', 'WavelengthEvent', 'WavelengthEventType', 'WavelengthListener',
+  'WavelengthLogPayload', 'WavelengthLogLevel', 'WavelengthError', 'WavelengthErrorCode',
   'PasskeyCancelledError', 'toError', 'WalletKind', 'PasskeyAssertion', 'PasskeyCeremony',
   'WalletEngineOptions', 'CreateWalletRequest', 'CreateWalletResult', 'UnlockWalletRequest',
   'UnlockWalletResult', 'OpenWalletFromPasskeyRequest', 'OpenWalletFromPasskeyResult',
@@ -40,7 +40,7 @@ const coreSymbols = [
 ];
 
 const reactSymbols = [
-  'WalletDKProvider', 'WalletDKProviderProps', 'useWalletEngine', 'useWallet',
+  'WavelengthProvider', 'WavelengthProviderProps', 'useWalletEngine', 'useWallet',
   'useWalletInfo', 'useWalletBalance', 'useWalletActivity', 'useWalletRecovery',
   'useWalletLogs', 'useWalletCreate', 'useWalletRestore', 'useWalletUnlock',
   'useWalletDeposit', 'useWalletReceive', 'useWalletPrepareSend', 'useWalletSend',
@@ -49,7 +49,7 @@ const reactSymbols = [
 
 const webSymbols = [
   'createWebClient', 'WebClientOptions', 'RuntimeThread', 'createWebWalletEngine',
-  'MainThreadWalletDKClient', 'RUNTIME_ASSETS', 'RUNTIME_ASSET_FILES',
+  'MainThreadWavelengthClient', 'RUNTIME_ASSETS', 'RUNTIME_ASSET_FILES',
   'RUNTIME_MANIFEST_VERSION', 'webPasskeyCeremony', 'supportsPasskeyPrf',
   'registerPasskeyWallet', 'assertPasskeyPrf',
   'WebWalletEngineOptions',

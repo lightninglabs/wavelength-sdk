@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bitcoin } from 'lucide-react-native';
-import { useWallet, useWalletInfo } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletInfo } from '@lightninglabs/wavelength-react';
 import { phaseConnected, statusLabel } from '../../lib/phase';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -85,7 +85,7 @@ export function TopBar({ network }: { network: string }) {
           <View style={styles.brandTile}>
             <Bitcoin size={16} color="#ffffff" />
           </View>
-          <Text style={styles.brandName}>WalletDK</Text>
+          <Text style={styles.brandName}>Wavelength Demo</Text>
         </View>
         <View style={styles.status}>
           <View

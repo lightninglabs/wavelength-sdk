@@ -1,11 +1,11 @@
 ---
-title: darepocli
-description: The command-line client for the wallet daemon. It issues gRPC calls to a running darepod and prints structured JSON suitable for humans and agents.
+title: wavecli
+description: The command-line client for the wallet daemon. It issues gRPC calls to a running waved and prints structured JSON suitable for humans and agents.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
-`darepocli` is the command-line client for the wallet daemon (`darepod`). It
+`wavecli` is the command-line client for the wallet daemon (`waved`). It
 issues gRPC calls to a running daemon and prints structured JSON to stdout,
 suitable for both human and agent consumption. The everyday surface is a small
 set of wallet verbs (create, unlock, send, recv, activity, balance, exit); a
@@ -58,7 +58,7 @@ non-zero:
 {
   "error": {
     "code": "WALLET_LOCKED",
-    "message": "wallet is locked; run `darepocli unlock`",
+    "message": "wallet is locked; run `wavecli unlock`",
     "details": ""
   }
 }

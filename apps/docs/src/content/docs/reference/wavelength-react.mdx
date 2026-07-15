@@ -1,6 +1,6 @@
 ---
-title: walletdk-react
-description: React bindings for WalletDK - the WalletDKProvider component and hooks for balance, activity, and wallet operations.
+title: wavelength-react
+description: React bindings for the Wavelength SDK - the WavelengthProvider component and hooks for balance, activity, and wallet operations.
 pageLayout: reference
 ---
 
@@ -10,45 +10,45 @@ import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 
-`@lightninglabs/walletdk-react` is the React binding for WalletDK: a context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
+`@lightninglabs/wavelength-react` is the React binding for the Wavelength SDK: a context provider that hands a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
 
 <Callout type="note">
-This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/walletdk-react` instead of adding `@lightninglabs/walletdk-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [walletdk-web](/reference/walletdk-web/) or `createNativeWalletEngine` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
+This package re-exports the entire `wavelength-core` surface (`WavelengthClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/wavelength-react` instead of adding `@lightninglabs/wavelength-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [wavelength-web](/reference/wavelength-web/) or `createNativeWalletEngine` from [wavelength-react-native](/reference/wavelength-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WavelengthProvider` subtree; each throws if it is not.
 </Callout>
 
 ## Provider
 
-export const walletDKProviderSig = `function WalletDKProvider(props: WalletDKProviderProps): JSX.Element`;
+export const wavelengthProviderSig = `function WavelengthProvider(props: WavelengthProviderProps): JSX.Element`;
 
-export const walletDKProviderPropsSig = `type WalletDKProviderProps = {
+export const wavelengthProviderPropsSig = `type WavelengthProviderProps = {
   children: ReactNode;
   engine: WalletEngine;
 };`;
 
-<ApiSymbol name="WalletDKProvider" kind="class">
+<ApiSymbol name="WavelengthProvider" kind="class">
 
-Context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to descendants. Wrap your application root (or any subtree) with this component so child hooks can access wallet state and operations.
+Context provider that hands a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) down to descendants. Wrap your application root (or any subtree) with this component so child hooks can access wallet state and operations.
 
-<Signature title="walletdk-react.d.ts" code={walletDKProviderSig} />
+<Signature title="wavelength-react.d.ts" code={wavelengthProviderSig} />
 
 <ParamsTable rows={[
-  { name: 'engine', type: 'WalletEngine', desc: 'A WalletEngine from any transport, e.g. createWebWalletEngine() from walletdk-web or createNativeWalletEngine() from walletdk-react-native. Required; the provider throws synchronously if it is missing.' },
-  { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call WalletDK hooks.' },
+  { name: 'engine', type: 'WalletEngine', desc: 'A WalletEngine from any transport, e.g. createWebWalletEngine() from wavelength-web or createNativeWalletEngine() from wavelength-react-native. Required; the provider throws synchronously if it is missing.' },
+  { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call Wavelength SDK hooks.' },
 ]} />
 
 <Callout type="note">
-**The provider owns nothing.** `WalletDKProvider` does not build, start, poll, or dispose anything: it publishes the engine you hand it to `useSyncExternalStore` subscribers. Every lifecycle behavior described below (sync polling, activity-driven refresh, `autoStart`, the `stopped` transition on an unsolicited runtime stop) is owned by the `WalletEngine` itself, so it also applies to a vanilla (non-React) consumer that drives the same engine directly. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) on the walletdk-core reference for the full behavior list.
+**The provider owns nothing.** `WavelengthProvider` does not build, start, poll, or dispose anything: it publishes the engine you hand it to `useSyncExternalStore` subscribers. Every lifecycle behavior described below (sync polling, activity-driven refresh, `autoStart`, the `stopped` transition on an unsolicited runtime stop) is owned by the `WalletEngine` itself, so it also applies to a vanilla (non-React) consumer that drives the same engine directly. See [`WalletEngine`](/reference/wavelength-core/#WalletEngine) on the wavelength-core reference for the full behavior list.
 
 The provider never calls `engine.dispose()` on unmount. The code that constructed the engine (typically module scope, outside any component) owns its lifetime and is responsible for disposing it when the app is truly done with it.
 </Callout>
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKProviderProps" kind="type">
+<ApiSymbol name="WavelengthProviderProps" kind="type">
 
-Props for the `WalletDKProvider` component. `WalletDKProviderProps` is not itself an exported name; the props type is declared inline on the component's destructured parameter. It is named and documented separately here only for readability.
+Props for the `WavelengthProvider` component. `WavelengthProviderProps` is not itself an exported name; the props type is declared inline on the component's destructured parameter. It is named and documented separately here only for readability.
 
-<Signature title="walletdk-react.d.ts" code={walletDKProviderPropsSig} />
+<Signature title="wavelength-react.d.ts" code={wavelengthProviderPropsSig} />
 
 </ApiSymbol>
 
@@ -56,9 +56,9 @@ export const useWalletEngineSig = `function useWalletEngine(): WalletEngine`;
 
 <ApiSymbol name="useWalletEngine" kind="function">
 
-Returns the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) from the nearest `WalletDKProvider`: the escape hatch for anything the granular hooks below do not cover (for example calling `engine.client` directly, or a method with no dedicated hook). Throws outside a provider.
+Returns the [`WalletEngine`](/reference/wavelength-core/#WalletEngine) from the nearest `WavelengthProvider`: the escape hatch for anything the granular hooks below do not cover (for example calling `engine.client` directly, or a method with no dedicated hook). Throws outside a provider.
 
-<Signature title="walletdk-react.d.ts" code={useWalletEngineSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletEngineSig} />
 
 <Returns type="WalletEngine">
 The provider's engine instance.
@@ -79,10 +79,10 @@ export const useWalletSig = `function useWallet(): {
 
 The application-shell hook: the lifecycle phase to route your top-level UI on, the last fatal runtime error, and the start/stop actions. There are no `pending` flags here: `phase === 'starting'` / `'stopping'` already encode them.
 
-<Signature title="walletdk-react.d.ts" code={useWalletSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletSig} />
 
 <ParamsTable rows={[
-  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase. See RuntimePhase on the walletdk-core reference; note it now includes \'restoring\'.' },
+  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase. See RuntimePhase on the wavelength-core reference; note it now includes \'restoring\'.' },
   { name: 'error', type: 'Error | null', desc: 'The last fatal runtime-level error, or null. Set when the initial runtime load fails, when start()/stop() fails, or after the engine\'s background processes exhaust their failure budget (e.g. repeated sync-poll or background-refresh failures).' },
   { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: 'Starts the runtime. Falls back to the engine\'s configured config (the one passed to createWebWalletEngine/createNativeWalletEngine) when called with no argument; throws if neither exists. Resolves with the WalletInfo from startup.' },
   { name: 'stop()', type: '() => Promise<void>', desc: 'Stops the runtime and clears the in-memory snapshot (info/balance/activity reset to null/null/[]); persisted wallet data is untouched.' },
@@ -106,7 +106,7 @@ export const useWalletRecoverySig = `function useWalletRecovery(): {
   acknowledge(): void;
 };`;
 export const useWalletLogsSig = `function useWalletLogs(): {
-  logs: WalletDKLogPayload[];
+  logs: WavelengthLogPayload[];
   clear(): void;
 };`;
 
@@ -114,7 +114,7 @@ export const useWalletLogsSig = `function useWalletLogs(): {
 
 The most recent complete wallet info, or `null` before the runtime reports it.
 
-<Signature title="walletdk-react.d.ts" code={useWalletInfoSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletInfoSig} />
 
 <Returns type="WalletInfo | null">
 The current `WalletInfo`, or `null` before the runtime reports it. Always a complete object: the engine refetches full info whenever the wallet comes up (create, unlock, passkey open, restore).
@@ -126,7 +126,7 @@ The current `WalletInfo`, or `null` before the runtime reports it. Always a comp
 
 The most recent wallet balance, or `null` before it is known.
 
-<Signature title="walletdk-react.d.ts" code={useWalletBalanceSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletBalanceSig} />
 
 <Returns type="Balance | null">
 The current Balance, or null before known.
@@ -138,7 +138,7 @@ The current Balance, or null before known.
 
 The most recent activity entries, newest-first as returned by the daemon.
 
-<Signature title="walletdk-react.d.ts" code={useWalletActivitySig} />
+<Signature title="wavelength-react.d.ts" code={useWalletActivitySig} />
 
 <Returns type="Entry[]">
 Always the result of `list({ view: 'activity', pendingOnly: false })`; it does not reflect the vtxos or onchain views.
@@ -150,10 +150,10 @@ Always the result of `list({ view: 'activity', pendingOnly: false })`; it does n
 
 The background recovery status set by [`useWalletRestore`](#useWalletRestore) and its acknowledge action.
 
-<Signature title="walletdk-react.d.ts" code={useWalletRecoverySig} />
+<Signature title="wavelength-react.d.ts" code={useWalletRecoverySig} />
 
 <ParamsTable rows={[
-  { name: 'recovery', type: 'RecoveryState', desc: "The background recovery status, a discriminated union on status: { status: 'idle' } | { status: 'restoring' } | { status: 'done', result: CreateWalletResult } | { status: 'failed', error: Error }. failed covers both a background scan that errored on an already-usable wallet and a restore that failed before the wallet came up at all, including an untracked restore; read phase from useWallet() alongside it to tell the two apart (ready vs. needsWallet). See RecoveryState on the walletdk-core reference. Drive a \"restoring your balance and history\" banner off the ready case, or a restore-failed message on the onboarding screen off the needsWallet case." },
+  { name: 'recovery', type: 'RecoveryState', desc: "The background recovery status, a discriminated union on status: { status: 'idle' } | { status: 'restoring' } | { status: 'done', result: CreateWalletResult } | { status: 'failed', error: Error }. failed covers both a background scan that errored on an already-usable wallet and a restore that failed before the wallet came up at all, including an untracked restore; read phase from useWallet() alongside it to tell the two apart (ready vs. needsWallet). See RecoveryState on the wavelength-core reference. Drive a \"restoring your balance and history\" banner off the ready case, or a restore-failed message on the onboarding screen off the needsWallet case." },
   { name: 'acknowledge()', type: '() => void', desc: "Resets recovery to { status: 'idle' }, e.g. after the user dismisses the banner." },
 ]} />
 
@@ -163,10 +163,10 @@ The background recovery status set by [`useWalletRestore`](#useWalletRestore) an
 
 The buffered runtime log tail and a clear action.
 
-<Signature title="walletdk-react.d.ts" code={useWalletLogsSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletLogsSig} />
 
 <ParamsTable rows={[
-  { name: 'logs', type: 'WalletDKLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
+  { name: 'logs', type: 'WavelengthLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
   { name: 'clear()', type: '() => void', desc: 'Clears the buffered log tail.' },
 ]} />
 
@@ -196,10 +196,10 @@ export const useWalletCreateSig = `function useWalletCreate(): {
 
 Creates a new wallet, with hook-local createPending/createError/createData state.
 
-<Signature title="walletdk-react.d.ts" code={useWalletCreateSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletCreateSig} />
 
 <ParamsTable rows={[
-  { name: 'create(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet, refetches info, and kicks a background refresh. See createWallet on the walletdk-core reference.' },
+  { name: 'create(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet, refetches info, and kicks a background refresh. See createWallet on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ create, createPending, createError, createData, resetCreate }">
@@ -220,10 +220,10 @@ export const useWalletRestoreSig = `function useWalletRestore(): {
 
 Restores a wallet from a mnemonic, with hook-local restorePending/restoreError/restoreData state.
 
-<Signature title="walletdk-react.d.ts" code={useWalletRestoreSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletRestoreSig} />
 
 <ParamsTable rows={[
-  { name: 'restore(req)', type: '(req: RestoreWalletRequest) => Promise<WalletInfo>', desc: 'Restores a wallet from req.mnemonic. See restoreWallet on the walletdk-core reference.' },
+  { name: 'restore(req)', type: '(req: RestoreWalletRequest) => Promise<WalletInfo>', desc: 'Restores a wallet from req.mnemonic. See restoreWallet on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ restore, restorePending, restoreError, restoreData, resetRestore }">
@@ -244,10 +244,10 @@ export const useWalletUnlockSig = `function useWalletUnlock(): {
 
 Unlocks an existing wallet, with hook-local unlockPending/unlockError/unlockData state.
 
-<Signature title="walletdk-react.d.ts" code={useWalletUnlockSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletUnlockSig} />
 
 <ParamsTable rows={[
-  { name: 'unlock(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: 'Unlocks an existing wallet, refetches info, and kicks a background refresh. See unlockWallet on the walletdk-core reference.' },
+  { name: 'unlock(req)', type: '(req: UnlockWalletRequest) => Promise<UnlockWalletResult>', desc: 'Unlocks an existing wallet, refetches info, and kicks a background refresh. See unlockWallet on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ unlock, unlockPending, unlockError, unlockData, resetUnlock }">
@@ -268,10 +268,10 @@ export const useWalletDepositSig = `function useWalletDeposit(): {
 
 Requests an on-chain deposit address, with hook-local depositPending/depositError/depositData state.
 
-<Signature title="walletdk-react.d.ts" code={useWalletDepositSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletDepositSig} />
 
 <ParamsTable rows={[
-  { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address and kicks a background refresh. req is optional and defaults to {} when omitted. See deposit on the walletdk-core reference.' },
+  { name: 'deposit(req?)', type: '(req?: DepositRequest) => Promise<DepositResult>', desc: 'Requests an on-chain deposit address and kicks a background refresh. req is optional and defaults to {} when omitted. See deposit on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ deposit, depositPending, depositError, depositData, resetDeposit }">
@@ -292,10 +292,10 @@ export const useWalletReceiveSig = `function useWalletReceive(): {
 
 Requests a Lightning receive invoice, with hook-local receivePending/receiveError/receiveData state.
 
-<Signature title="walletdk-react.d.ts" code={useWalletReceiveSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletReceiveSig} />
 
 <ParamsTable rows={[
-  { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice and kicks a background refresh. See receive on the walletdk-core reference.' },
+  { name: 'receive(req)', type: '(req: ReceiveRequest) => Promise<ReceiveResult>', desc: 'Requests a Lightning receive invoice and kicks a background refresh. See receive on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ receive, receivePending, receiveError, receiveData, resetReceive }">
@@ -316,10 +316,10 @@ export const useWalletPrepareSendSig = `function useWalletPrepareSend(): {
 
 Quotes a payment without dispatching it, with hook-local preparePending/prepareError/prepareData state.
 
-<Signature title="walletdk-react.d.ts" code={useWalletPrepareSendSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletPrepareSendSig} />
 
 <ParamsTable rows={[
-  { name: 'prepare(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it; no refresh, since a quote moves no money. See prepareSend on the walletdk-core reference.' },
+  { name: 'prepare(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it; no refresh, since a quote moves no money. See prepareSend on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ prepare, preparePending, prepareError, prepareData, resetPrepare }">
@@ -341,11 +341,11 @@ export const useWalletSendSig = `function useWalletSend(): {
 
 Dispatches a payment: `send` is the one-shot path, `sendPrepared` confirms a quote from [`useWalletPrepareSend`](#useWalletPrepareSend). The two verbs are alternative dispatch paths for the same payment and share one sendPending/sendError/sendData slot.
 
-<Signature title="walletdk-react.d.ts" code={useWalletSendSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletSendSig} />
 
 <ParamsTable rows={[
-  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Quotes and dispatches a payment in one call, then kicks a background refresh. See send on the walletdk-core reference.' },
-  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a quote returned by useWalletPrepareSend, then kicks a background refresh. See sendPrepared on the walletdk-core reference.' },
+  { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Quotes and dispatches a payment in one call, then kicks a background refresh. See send on the wavelength-core reference.' },
+  { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a quote returned by useWalletPrepareSend, then kicks a background refresh. See sendPrepared on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ send, sendPrepared, sendPending, sendError, sendData, resetSend }">
@@ -365,10 +365,10 @@ export const useWalletRefreshSig = `function useWalletRefresh(): {
 
 Re-fetches info, balance, and activity.
 
-<Signature title="walletdk-react.d.ts" code={useWalletRefreshSig} />
+<Signature title="wavelength-react.d.ts" code={useWalletRefreshSig} />
 
 <ParamsTable rows={[
-  { name: 'refresh()', type: '() => Promise<void>', desc: 'Re-fetches info, balance, and activity concurrently. See refresh on the walletdk-core reference.' },
+  { name: 'refresh()', type: '() => Promise<void>', desc: 'Re-fetches info, balance, and activity concurrently. See refresh on the wavelength-core reference.' },
 ]} />
 
 <Returns type="{ refresh, refreshPending, refreshError, resetRefresh }">
@@ -411,12 +411,12 @@ type PasskeyCeremony = {
 
 <ApiSymbol name="useWalletPasskey" kind="function">
 
-Drives a passkey ceremony and opens the wallet through the engine, refreshing engine state on success so `phase` advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; the React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)). Creation and opening track separately (`create*`/`open*` fields below) because apps render them on different screens. Must be called within a `WalletDKProvider` subtree; throws otherwise.
+Drives a passkey ceremony and opens the wallet through the engine, refreshing engine state on success so `phase` advances automatically. The ceremony is injected, which keeps `wavelength-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/wavelength-web/#webPasskeyCeremony) from `wavelength-web`; the React Native transport supplies `createNativePasskeyCeremony` ([wavelength-react-native](/reference/wavelength-react-native/)). Creation and opening track separately (`create*`/`open*` fields below) because apps render them on different screens. Must be called within a `WavelengthProvider` subtree; throws otherwise.
 
-<Signature title="walletdk-react.d.ts" code={useWalletPasskeySig} />
+<Signature title="wavelength-react.d.ts" code={useWalletPasskeySig} />
 
 <ParamsTable rows={[
-  { name: 'ceremony', type: 'PasskeyCeremony', desc: 'Platform ceremony implementation. In the browser, pass webPasskeyCeremony from walletdk-web.' },
+  { name: 'ceremony', type: 'PasskeyCeremony', desc: 'Platform ceremony implementation. In the browser, pass webPasskeyCeremony from wavelength-web.' },
 ]} />
 
 <ParamsTable rows={[
@@ -441,10 +441,10 @@ Drives a passkey ceremony and opens the wallet through the engine, refreshing en
 
 Pairs the daemon-side open result with the credential id used in the ceremony, so the app can persist it and scope future unlocks to the same passkey. Returned by both `create` and `open`.
 
-<Signature title="walletdk-react.d.ts" code={passkeyWalletOutcomeSig} />
+<Signature title="wavelength-react.d.ts" code={passkeyWalletOutcomeSig} />
 
 <ParamsTable rows={[
-  { name: 'result', type: 'OpenWalletFromPasskeyResult', desc: 'The result returned by opening the wallet from the passkey. See OpenWalletFromPasskeyResult on the walletdk-core reference.' },
+  { name: 'result', type: 'OpenWalletFromPasskeyResult', desc: 'The result returned by opening the wallet from the passkey. See OpenWalletFromPasskeyResult on the wavelength-core reference.' },
   { name: 'credentialId', type: 'string', desc: 'The credential id that produced the PRF output, for persistence and scoping future assertions.' },
 ]} />
 
@@ -452,9 +452,9 @@ Pairs the daemon-side open result with the credential id used in the ceremony, s
 
 <ApiSymbol name="PasskeyCeremony" kind="type">
 
-The per-platform contract `useWalletPasskey` drives. It is defined in `walletdk-core` but documented here since this package is its primary consumer; the browser implementation, `webPasskeyCeremony`, lives in [`walletdk-web`](/reference/walletdk-web/#webPasskeyCeremony). The React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)) as its implementation of the same contract.
+The per-platform contract `useWalletPasskey` drives. It is defined in `wavelength-core` but documented here since this package is its primary consumer; the browser implementation, `webPasskeyCeremony`, lives in [`wavelength-web`](/reference/wavelength-web/#webPasskeyCeremony). The React Native transport supplies `createNativePasskeyCeremony` ([wavelength-react-native](/reference/wavelength-react-native/)) as its implementation of the same contract.
 
-<Signature title="walletdk-react.d.ts" code={passkeyCeremonySig} />
+<Signature title="wavelength-react.d.ts" code={passkeyCeremonySig} />
 
 <ParamsTable rows={[
   { name: 'WalletKind', type: "'passkey' | 'password'", desc: 'Labels how a local wallet is unlocked.' },
@@ -467,12 +467,12 @@ The per-platform contract `useWalletPasskey` drives. It is defined in `walletdk-
 
 </ApiSymbol>
 
-## Re-exported from walletdk-core
+## Re-exported from wavelength-core
 
-`@lightninglabs/walletdk-react` re-exports the full `@lightninglabs/walletdk-core` surface (`export * from '@lightninglabs/walletdk-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/walletdk-web`, `@lightninglabs/walletdk-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
+`@lightninglabs/wavelength-react` re-exports the full `@lightninglabs/wavelength-core` surface (`export * from '@lightninglabs/wavelength-core'`), so `WavelengthClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/wavelength-web`, `@lightninglabs/wavelength-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [wavelength-core reference](/reference/wavelength-core/) rather than repeated here.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletEngine`, `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
-- [walletdk-web reference](/reference/walletdk-web/) for `createWebWalletEngine()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
-- [walletdk-react-native reference](/reference/walletdk-react-native/) for `createNativeWalletEngine()` and `createNativePasskeyCeremony()`, the React Native transport and passkey ceremony used with this package.
+- [wavelength-core reference](/reference/wavelength-core/) for `WalletEngine`, `WavelengthClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
+- [wavelength-web reference](/reference/wavelength-web/) for `createWebWalletEngine()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
+- [wavelength-react-native reference](/reference/wavelength-react-native/) for `createNativeWalletEngine()` and `createNativePasskeyCeremony()`, the React Native transport and passkey ceremony used with this package.

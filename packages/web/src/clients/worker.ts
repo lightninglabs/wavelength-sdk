@@ -1,12 +1,12 @@
 import {
-  BaseWalletDKClient,
+  BaseWavelengthClient,
   camelizeKeys,
-  WalletDKError,
-  WalletDKEventType,
-} from '@lightninglabs/walletdk-core';
+  WavelengthError,
+  WavelengthEventType,
+} from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
-import { PendingCall, toWalletDKEvent } from '../util';
+import { PendingCall, toWavelengthEvent } from '../util';
 
 /**
  * Runs the wasm runtime in a dedicated Web Worker to keep the UI thread free. It
@@ -14,9 +14,9 @@ import { PendingCall, toWalletDKEvent } from '../util';
  * createWebClient() (or pass runtimeThread: 'main' for the main-thread escape
  * hatch). Worker mode needs a daemon that stores the encrypted seed in OPFS
  * rather than localStorage (which is window-only and absent in Workers); the
- * shipped daemon does, as of lightninglabs/darepo-client#811.
+ * shipped daemon does, as of lightninglabs/wavelength#811.
  */
-export class WorkerWalletDKClient extends BaseWalletDKClient {
+export class WorkerWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private readonly worker: Worker;
   private readonly pending = new Map<number, PendingCall>();
@@ -31,12 +31,12 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
     // A caller may still override with an explicitly hosted workerURL.
     this.worker = options.workerURL
       ? new Worker(options.workerURL)
-      : new Worker(new URL('../walletdk-worker.js', import.meta.url));
+      : new Worker(new URL('../wavewalletdk-worker.js', import.meta.url));
     this.worker.onmessage = (event) => this.handleMessage(event.data);
     this.worker.onerror = (event) => {
       this.rejectAll(
-        new WalletDKError(
-          event.message || 'walletdk worker error',
+        new WavelengthError(
+          event.message || 'Wavelength worker error',
           'worker_error',
         ),
       );
@@ -93,7 +93,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       ok?: boolean;
       result?: unknown;
       error?: string;
-      event?: { type: WalletDKEventType; payload?: unknown };
+      event?: { type: WavelengthEventType; payload?: unknown };
       fatal?: { message?: string };
     };
 
@@ -103,8 +103,8 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       // move the lifecycle off 'ready' instead of appearing alive after the
       // engine died.
       this.rejectAll(
-        new WalletDKError(
-          data.fatal.message || 'walletdk worker stopped',
+        new WavelengthError(
+          data.fatal.message || 'Wavelength worker stopped',
           'worker_error',
         ),
       );
@@ -117,7 +117,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       // Map the worker's raw event onto the typed union, camelizing payloads
       // that carry daemon JSON (e.g. an 'activity' Entry) so stream consumers see
       // the same camelCase shapes as the typed responses.
-      this.emit(toWalletDKEvent(data.event));
+      this.emit(toWavelengthEvent(data.event));
 
       return;
     }
@@ -138,7 +138,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       return;
     }
 
-    pending.reject(new WalletDKError(data.error || 'walletdk request failed'));
+    pending.reject(new WavelengthError(data.error || 'Wavelength request failed'));
   }
 
   private rejectAll(err: Error) {
@@ -153,7 +153,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
     // Terminating the worker fires neither onerror nor a fatal message, so
     // reject any in-flight calls here so they do not hang past disposal.
     this.rejectAll(
-      new WalletDKError('walletdk client disposed', 'worker_error'),
+      new WavelengthError('Wavelength client disposed', 'worker_error'),
     );
     this.worker.terminate();
   }

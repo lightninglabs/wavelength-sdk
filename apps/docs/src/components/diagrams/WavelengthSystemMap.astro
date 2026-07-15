@@ -1,9 +1,9 @@
 ---
 /**
- * SwapDkSystemMap.astro - the "what you run vs. what is managed" map on the
- * SwapDK system page. A bespoke vertical composition: your app feeds the
- * WalletDK hub (the client you run, with its integration surfaces), which
- * forks to Bitcoin on-chain via exit and to the managed SwapDK service via
+ * WavelengthSystemMap.astro - the "what you run vs. what is managed" map on the
+ * Wavelength system page. A bespoke vertical composition: your app feeds the
+ * Wavelength hub (the client you run, with its integration surfaces), which
+ * forks to Bitcoin on-chain via exit and to the managed Wavelength Operator service via
  * BOLT 11, which settles over the Lightning Network. Node/edge primitives
  * are the shared .wdk-dg* classes from theme.css; only the grid geometry
  * lives here.
@@ -12,7 +12,7 @@
 
 <figure
   class="wdk-dg wdk-sysmap"
-  aria-label="Diagram: your app calls WalletDK, the client you run. WalletDK can exit to Bitcoin on-chain at any time, and pays BOLT 11 invoices through SwapDK, the managed coordination and liquidity service, which settles over the Lightning Network."
+  aria-label="Diagram: your app calls Wavelength, the client you run. Wavelength can exit to Bitcoin on-chain at any time, and pays BOLT 11 invoices through the Wavelength Operator, the managed coordination and liquidity service, which settles over the Lightning Network."
 >
   <div class="wdk-sysmap__grid">
     <!-- Your app. -->
@@ -25,11 +25,11 @@
       <span class="wdk-dg-edge__tag">wallet API</span>
     </div>
 
-    <!-- The WalletDK hub: the client you run, with its integration surfaces. -->
+    <!-- The Wavelength hub: the client you run, with its integration surfaces. -->
     <div class:list={['wdk-dg-node', 'wdk-dg--teal', 'wdk-sysmap__hub']}>
       <span class="wdk-dg-node__sq" aria-hidden="true"></span>
       <span>
-        <span class="wdk-dg-node__label">WalletDK</span>
+        <span class="wdk-dg-node__label">Wavelength</span>
         <span class="wdk-dg-node__sub">the client you run &middot; holds keys, signs payments</span>
       </span>
       <span class="wdk-sysmap__chips" aria-label="Integration surfaces">
@@ -53,10 +53,10 @@
       </span>
     </div>
 
-    <div class:list={['wdk-dg-node', 'wdk-dg--violet', 'wdk-sysmap__swapdk']}>
+    <div class:list={['wdk-dg-node', 'wdk-dg--violet', 'wdk-sysmap__operator']}>
       <span class="wdk-dg-node__sq" aria-hidden="true"></span>
       <span>
-        <span class="wdk-dg-node__label">SwapDK</span>
+        <span class="wdk-dg-node__label">Wavelength Operator</span>
         <span class="wdk-dg-node__sub">managed for you &middot; coordination + settlement</span>
         <span class="wdk-dg-node__sub">deep liquidity via Loop</span>
       </span>
@@ -94,7 +94,7 @@
   .wdk-sysmap__drop-exit { grid-column: 1; }
   .wdk-sysmap__drop-bolt { grid-column: 2; }
   .wdk-sysmap__btc      { grid-column: 1; align-self: start; }
-  .wdk-sysmap__swapdk   { grid-column: 2; }
+  .wdk-sysmap__operator { grid-column: 2; }
   .wdk-sysmap__drop-ln  { grid-column: 2; }
   .wdk-sysmap__ln       { grid-column: 2; }
 

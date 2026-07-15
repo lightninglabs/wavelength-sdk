@@ -1,6 +1,6 @@
 ---
 title: Demo app
-description: An overview of the WalletDK reference integration app - what it demonstrates and how to run it locally.
+description: An overview of the Wavelength reference integration app - what it demonstrates and how to run it locally.
 ---
 
 import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
@@ -9,14 +9,14 @@ import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
 
 ## The reference integration
 
-The **`web-wallet-demo`** app in the WalletDK monorepo is a full React
+The **`web-wallet-demo`** app in the Wavelength monorepo is a full React
 integration you can read, run, and copy patterns from. It is not a separate
-product; it exercises the same `@lightninglabs/walletdk-web` and
-`@lightninglabs/walletdk-react` packages your app would use.
+product; it exercises the same `@lightninglabs/wavelength-web` and
+`@lightninglabs/wavelength-react` packages your app would use.
 
 What it demonstrates:
 
-- **`WalletDKProvider`** with an injected `createWebWalletEngine()` engine
+- **`WavelengthProvider`** with an injected `createWebWalletEngine()` engine
   (self-hosted runtime assets, worker mode, optional RPC debug logging).
 - **Phase-based routing** from `useWallet()`: connect, create/unlock, backup,
   syncing, ready, stopped, and error screens driven by `phase` and `useWalletInfo()`.
@@ -36,9 +36,9 @@ Treat the demo as the source of truth for wiring details that docs summarize.
 Key entry points: `src/main.tsx` (engine bootstrap), `src/App.tsx` (orchestration),
 and `src/lib/runtime-config.ts` (gateway defaults).
 
-See also: [`createWebWalletEngine`](/reference/walletdk-web/#createWebWalletEngine),
-[`useWallet`](/reference/walletdk-react/#useWallet), and
-[`useWalletPasskey`](/reference/walletdk-react/#useWalletPasskey) in the
+See also: [`createWebWalletEngine`](/reference/wavelength-web/#createWebWalletEngine),
+[`useWallet`](/reference/wavelength-react/#useWallet), and
+[`useWalletPasskey`](/reference/wavelength-react/#useWalletPasskey) in the
 API reference for details behind each of these bullets.
 
 ## How to run it
@@ -51,12 +51,12 @@ overrides) live on the dedicated run page:
 
 Out of the box the demo boots a **signet** wallet against Lightning Labs public
 gateways. No local backend is required for signet. For regtest, start
-[arktest](https://github.com/lightninglabs/darepo-client) locally and point the
+[arktest](https://github.com/lightninglabs/wavelength) locally and point the
 runtime form at the ports it prints.
 
 Runtime assets are staged (never committed) under
 `public/runtime/<RUNTIME_MANIFEST_VERSION>/`. Before the first `pnpm dev`, and
-after upgrading the SDK or rebuilding WASM from `darepo-client`, run
+after upgrading the SDK or rebuilding WASM from `wavelength`, run
 `pnpm --filter web-wallet-demo run wasm:local` to stage fresh binaries.
 
 React Native readers: see [Run the demo app](/react-native/get-started/run-the-demo-app/)

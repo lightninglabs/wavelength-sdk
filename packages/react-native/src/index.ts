@@ -1,32 +1,32 @@
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import {
   createWalletEngine,
-  type WalletDKClient,
+  type WavelengthClient,
   type PasskeyCeremony,
   type DistributiveOmit,
   type WalletEngine,
   type WalletEngineOptions,
-} from '@lightninglabs/walletdk-core';
-import NativeWalletdk from './NativeWalletdk';
-import { NativeWalletDKClient } from './client';
+} from '@lightninglabs/wavelength-core';
+import NativeWavelength from './NativeWavelength';
+import { NativeWavelengthClient } from './client';
 import {
   nativePasskeyCeremony,
   type NativePasskeyCeremonyOptions,
 } from './passkey';
 
 /**
- * Creates a {@link WalletDKClient} backed by the React Native transport: the
+ * Creates a {@link WavelengthClient} backed by the React Native transport: the
  * daemon compiled into the app via the gomobile bindings. Takes no options
  * today; an options parameter can be added later without a breaking change.
  */
-export function createNativeClient(): WalletDKClient {
-  // NativeModules.Walletdk is the interop view of the Turbo Module; the
+export function createNativeClient(): WavelengthClient {
+  // NativeModules.Wavelength is the interop view of the Turbo Module; the
   // emitter needs it (or any module carrying addListener/removeListeners) to
-  // route 'walletdkActivity' device events on both platforms.
-  const emitter = new NativeEventEmitter(NativeModules.Walletdk);
+  // route 'wavelengthActivity' device events on both platforms.
+  const emitter = new NativeEventEmitter(NativeModules.Wavelength);
 
-  return new NativeWalletDKClient(NativeWalletdk, (listener) => {
-    const subscription = emitter.addListener('walletdkActivity', listener);
+  return new NativeWavelengthClient(NativeWavelength, (listener) => {
+    const subscription = emitter.addListener('wavelengthActivity', listener);
 
     return () => subscription.remove();
   });
@@ -44,8 +44,8 @@ export type NativeWalletEngineOptions = DistributiveOmit<
 
 /**
  * Creates a {@link WalletEngine} over the React Native transport: the
- * one-call setup for an RN app. Pass the engine to WalletDKProvider from
- * \@lightninglabs/walletdk-react.
+ * one-call setup for an RN app. Pass the engine to WavelengthProvider from
+ * \@lightninglabs/wavelength-react.
  */
 export function createNativeWalletEngine(
   options: NativeWalletEngineOptions = {},
@@ -67,7 +67,7 @@ export function createNativeWalletEngine(
 export function createNativePasskeyCeremony(
   options: NativePasskeyCeremonyOptions,
 ): PasskeyCeremony {
-  return nativePasskeyCeremony(NativeWalletdk, options);
+  return nativePasskeyCeremony(NativeWavelength, options);
 }
 
 /**
@@ -81,22 +81,22 @@ export function createNativePasskeyCeremony(
  * directory is not guaranteed to exist until the runtime has started.
  */
 export function getDefaultDataDir(): Promise<string> {
-  return NativeWalletdk.getDefaultDataDir();
+  return NativeWavelength.getDefaultDataDir();
 }
 
 export type {
   NativePasskeyCeremonyOptions,
-  WalletdkPasskeyNativeModule,
+  WavelengthPasskeyNativeModule,
 } from './passkey';
 
 export { defaultConfig } from './config';
-export { NativeWalletDKClient } from './client';
+export { NativeWavelengthClient } from './client';
 export type {
   NativeActivityEvent,
   SubscribeToNativeEvents,
-  WalletdkNativeModule,
+  WavelengthNativeModule,
 } from './client';
 
 // Re-export the core contract so an RN consumer can import the client and
-// every type/enum from this one package, the way walletdk-web already does.
-export * from '@lightninglabs/walletdk-core';
+// every type/enum from this one package, the way wavelength-web already does.
+export * from '@lightninglabs/wavelength-core';

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
-import { defaultConfig } from '@lightninglabs/walletdk-react-native';
-import { RuntimeConfig } from '@lightninglabs/walletdk-react';
+import { defaultConfig } from '@lightninglabs/wavelength-react-native';
+import { RuntimeConfig } from '@lightninglabs/wavelength-react';
 
 // The Android emulator reaches the host machine as 10.0.2.2; the iOS
 // simulator shares the host loopback.

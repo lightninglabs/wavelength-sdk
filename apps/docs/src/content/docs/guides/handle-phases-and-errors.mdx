@@ -1,6 +1,6 @@
 ---
 title: Handle phases & errors
-description: How to respond to WalletDK wallet phase transitions and interpret structured error codes in your application.
+description: How to respond to Wavelength wallet phase transitions and interpret structured error codes in your application.
 pageLayout: guide
 related:
   - guides/create-a-wallet
@@ -11,7 +11,7 @@ related:
 
 ## React to wallet phases
 
-`phase` from [`useWallet()`](/reference/walletdk-react/#useWallet) describes where the wallet is in its lifecycle.
+`phase` from [`useWallet()`](/reference/wavelength-react/#useWallet) describes where the wallet is in its lifecycle.
 Use a switch or a series of conditionals at the root of your app to render
 the right screen for each phase. The value updates reactively, so the UI
 transitions automatically as the wallet moves through phases.
@@ -24,18 +24,18 @@ transitions automatically as the wallet moves through phases.
 | `needsWallet` | No wallet exists yet; create or restore one. |
 | `locked` | A wallet exists but is locked; unlock it. |
 | `syncing` | The wallet is unlocked and catching up with the chain. |
-| `restoring` | A background restore ([`useWalletRestore()`](/reference/walletdk-react/#useWalletRestore)) is bringing a freshly restored wallet up; setting `recoverState: true` on the request additionally tracks the recovery scan through the recovery state. |
+| `restoring` | A background restore ([`useWalletRestore()`](/reference/wavelength-react/#useWalletRestore)) is bringing a freshly restored wallet up; setting `recoverState: true` on the request additionally tracks the recovery scan through the recovery state. |
 | `ready` | The wallet is unlocked and ready to use. |
 | `stopping` | `stop()` has been called and has not yet resolved. |
 | `stopped` | The daemon has stopped. |
 | `error` | The runtime failed to start, `start()`/`stop()` failed, or a background process (sync poll, activity stream, refresh) exhausted its failure budget. |
 
-`info.walletState` (from [`useWalletInfo()`](/reference/walletdk-react/#useWalletInfo)) carries the underlying
-[`WalletState`](/reference/walletdk-core/#WalletState) string (`none`, `locked`, `ready`, or `syncing`) when you need
-the daemon-level detail instead of the broader [`RuntimePhase`](/reference/walletdk-core/#RuntimePhase).
+`info.walletState` (from [`useWalletInfo()`](/reference/wavelength-react/#useWalletInfo)) carries the underlying
+[`WalletState`](/reference/wavelength-core/#WalletState) string (`none`, `locked`, `ready`, or `syncing`) when you need
+the daemon-level detail instead of the broader [`RuntimePhase`](/reference/wavelength-core/#RuntimePhase).
 
 ```tsx title="phases.tsx"
-import { useWallet } from '@lightninglabs/walletdk-react';
+import { useWallet } from '@lightninglabs/wavelength-react';
 
 function WalletGate({ children }: { children: React.ReactNode }) {
   const { phase } = useWallet();
@@ -67,17 +67,17 @@ function WalletGate({ children }: { children: React.ReactNode }) {
 
 A failed `start()` or `stop()` moves `phase` straight to `'error'`; there is
 no separate `'startFailed'`/`'stopFailed'` phase to branch on. Read `error`
-from [`useWallet()`](/reference/walletdk-react/#useWallet) for the reason.
+from [`useWallet()`](/reference/wavelength-react/#useWallet) for the reason.
 
 ## The Error | null convention
 
-Every mutation hook ([`useWalletCreate`](/reference/walletdk-react/#useWalletCreate), [`useWalletRestore`](/reference/walletdk-react/#useWalletRestore), [`useWalletUnlock`](/reference/walletdk-react/#useWalletUnlock),
-[`useWalletDeposit`](/reference/walletdk-react/#useWalletDeposit), [`useWalletReceive`](/reference/walletdk-react/#useWalletReceive), [`useWalletPrepareSend`](/reference/walletdk-react/#useWalletPrepareSend),
-[`useWalletSend`](/reference/walletdk-react/#useWalletSend), [`useWalletRefresh`](/reference/walletdk-react/#useWalletRefresh), and the `create`/`open` pair on
-[`useWalletPasskey`](/reference/walletdk-react/#useWalletPasskey)) exposes the same throw-and-capture shape: an action
+Every mutation hook ([`useWalletCreate`](/reference/wavelength-react/#useWalletCreate), [`useWalletRestore`](/reference/wavelength-react/#useWalletRestore), [`useWalletUnlock`](/reference/wavelength-react/#useWalletUnlock),
+[`useWalletDeposit`](/reference/wavelength-react/#useWalletDeposit), [`useWalletReceive`](/reference/wavelength-react/#useWalletReceive), [`useWalletPrepareSend`](/reference/wavelength-react/#useWalletPrepareSend),
+[`useWalletSend`](/reference/wavelength-react/#useWalletSend), [`useWalletRefresh`](/reference/wavelength-react/#useWalletRefresh), and the `create`/`open` pair on
+[`useWalletPasskey`](/reference/wavelength-react/#useWalletPasskey)) exposes the same throw-and-capture shape: an action
 function, a verb-prefixed `<verb>Pending: boolean`, a verb-prefixed
-`<verb>Error: Error | null`, and (except [`useWalletRefresh`](/reference/walletdk-react/#useWalletRefresh) and
-[`useWalletPasskey`](/reference/walletdk-react/#useWalletPasskey), neither of which exposes a `<verb>Data` field) a
+`<verb>Error: Error | null`, and (except [`useWalletRefresh`](/reference/wavelength-react/#useWalletRefresh) and
+[`useWalletPasskey`](/reference/wavelength-react/#useWalletPasskey), neither of which exposes a `<verb>Data` field) a
 verb-prefixed `<verb>Data`, the last successful result. The error field is always
 `Error | null`, never a string, so `.message` is always safe to read.
 Calling the action clears the previous error/data, awaits the underlying
@@ -88,14 +88,14 @@ error field for a declarative render, or `await`/`try`/`catch` the action for
 imperative flow, whichever fits the call site. `reset<Verb>()` clears the
 pending/error/data trio back to idle without calling anything.
 
-`error` at the top level, from [`useWallet()`](/reference/walletdk-react/#useWallet), is the same `Error | null`
+`error` at the top level, from [`useWallet()`](/reference/wavelength-react/#useWallet), is the same `Error | null`
 shape but tracks fatal runtime-level failures instead of a single mutation:
 it is set when the initial runtime load fails, when `start()`/`stop()`
 fails, or after a background process exhausts its failure budget, and it
 clears on the next successful `start()`.
 
 ```tsx title="errors.tsx"
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function PayButton({ bolt11 }: { bolt11: string }) {
   const { send, sendError, sendPending, resetSend } = useWalletSend();
@@ -122,14 +122,14 @@ function PayButton({ bolt11 }: { bolt11: string }) {
 
 ## Interpret error codes
 
-Every WalletDK-originated error extends [`WalletDKError`](/reference/walletdk-core/#WalletDKError) and carries a `code`
+Every error the Wavelength SDK originates extends [`WavelengthError`](/reference/wavelength-core/#WavelengthError) and carries a `code`
 string that identifies the failure reason at the machine level. Match on
 `err.code` to show a specific message rather than a generic fallback. Named
 SDK codes include `runtime_not_ready`, `asset_load_failed`, and
-`worker_error`; daemon-originated errors currently use `walletdk_error`.
+`worker_error`; daemon-originated errors currently use `wavelength_error`.
 
 ```tsx title="errors.tsx"
-import { useWalletSend, WalletDKError } from '@lightninglabs/walletdk-react';
+import { useWalletSend, WavelengthError } from '@lightninglabs/wavelength-react';
 
 function PayButton({ bolt11 }: { bolt11: string }) {
   const { send, sendError, sendPending, resetSend } = useWalletSend();
@@ -139,7 +139,7 @@ function PayButton({ bolt11 }: { bolt11: string }) {
     try {
       await send({ invoice: bolt11 });
     } catch (err) {
-      if (err instanceof WalletDKError) {
+      if (err instanceof WavelengthError) {
         switch (err.code) {
           case 'runtime_not_ready':
             console.error('Runtime still loading.');

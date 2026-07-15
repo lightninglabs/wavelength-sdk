@@ -1,9 +1,9 @@
 ---
 name: syncing-daemon-release
-description: Use when darepo-client publishes a new release or revision and this repo must be updated to pair with it, when generated.ts / wallet.json / RUNTIME_MANIFEST_VERSION are stale, when gen:types or gen:api-docs fails or drifts, or when daemon-side RPC, facade type, CLI flag, or wasm asset changes need to land here.
+description: Use when wavelength publishes a new release or revision and this repo must be updated to pair with it, when generated.ts / wallet.json / RUNTIME_MANIFEST_VERSION are stale, when gen:types or gen:api-docs fails or drifts, or when daemon-side RPC, facade type, CLI flag, or wasm asset changes need to land here.
 ---
 
-# Syncing to a New darepo-client Release
+# Syncing to a New wavelength Release
 
 ## Overview
 
@@ -14,29 +14,29 @@ asset set, and the pin itself (`RUNTIME_MANIFEST_VERSION` in
 `packages/core/src/version.ts`). A sync is complete only when all four match
 the same daemon commit and the verification ladder passes.
 
-All generators read the darepo-client checkout at `../darepo-client` or
-`$DAREPO_DIR`. Do not move the shared `../darepo-client` checkout to the target
+All generators read the wavelength checkout at `../wavelength` or
+`$WAVELENGTH_DIR`. Do not move the shared `../wavelength` checkout to the target
 commit: it is often behind `origin` and may have local edits, so a
 fast-forward or stash disturbs someone else's working tree. Instead pin the
-daemon revision in an isolated, throwaway worktree and point `DAREPO_DIR` at
+daemon revision in an isolated, throwaway worktree and point `WAVELENGTH_DIR` at
 it:
 
 ```sh
-cd ../darepo-client && git fetch origin
-git worktree add --detach /tmp/darepo-<shorthash> <target-commit>
-export DAREPO_DIR=/tmp/darepo-<shorthash>          # absolute path
+cd ../wavelength && git fetch origin
+git worktree add --detach /tmp/wavelength-<shorthash> <target-commit>
+export WAVELENGTH_DIR=/tmp/wavelength-<shorthash>          # absolute path
 # ... run the whole sync ...
-cd ../darepo-client && git worktree remove --force /tmp/darepo-<shorthash>
+cd ../wavelength && git worktree remove --force /tmp/wavelength-<shorthash>
 ```
 
 ## Quick reference: what changed upstream -> what to touch here
 
 | Upstream change | Regenerate | Hand-update |
 |---|---|---|
-| Facade type fields (`sdk/walletdk`) | `pnpm gen:types` | Consumers of renamed fields: `git grep <old_field>` across `packages/`, `apps/`. Every RPC verb is mapped once in `packages/core/src/base-client.ts` (the transports in `packages/web/src/clients/` and `packages/react-native/` only supply `callRaw`, no per-verb mappers). `requests.ts`/`results.ts` stay hand-authored (see `docs/codegen.md`) |
-| WalletService RPC added/removed | `pnpm gen:api-docs` | `API_NAV` (it IS in `apps/docs/src/config/nav.ts`, below the SDK `NAV` array); `API_CLI`, `API_CLI_INVOCATION`, `API_SAMPLES` in `apps/docs/src/config/api.ts`; the whole client surface, all in `packages/core`: interface in `client.ts`, request/result types in `requests.ts`/`results.ts`, impl in `base-client.ts` (one place; the transports pipe `callRaw` and need no edit), the public barrel `index.ts`, and `testing/fake-client.ts` (it `implements WalletDKClient`, so a new method fails typecheck until added); the client is documented only on `apps/docs/src/content/docs/reference/walletdk-core.mdx` (the web/RN reference pages re-export core and carry no method list), and any new inline reference type must be registered in `apps/docs/src/config/api-links.ts` (`coreSymbols` + `inlineTypeOwners`) for its deep link to resolve; docs Playwright tests that hardcode the method count must move (see the CLI/docs test note below) |
+| Facade type fields (`sdk/wavewalletdk`) | `pnpm gen:types` | Consumers of renamed fields: `git grep <old_field>` across `packages/`, `apps/`. Every RPC verb is mapped once in `packages/core/src/base-client.ts` (the transports in `packages/web/src/clients/` and `packages/react-native/` only supply `callRaw`, no per-verb mappers). `requests.ts`/`results.ts` stay hand-authored (see `docs/codegen.md`) |
+| WalletService RPC added/removed | `pnpm gen:api-docs` | `API_NAV` (it IS in `apps/docs/src/config/nav.ts`, below the SDK `NAV` array); `API_CLI`, `API_CLI_INVOCATION`, `API_SAMPLES` in `apps/docs/src/config/api.ts`; the whole client surface, all in `packages/core`: interface in `client.ts`, request/result types in `requests.ts`/`results.ts`, impl in `base-client.ts` (one place; the transports pipe `callRaw` and need no edit), the public barrel `index.ts`, and `testing/fake-client.ts` (it `implements WavelengthClient`, so a new method fails typecheck until added); the client is documented only on `apps/docs/src/content/docs/reference/wavelength-core.mdx` (the web/RN reference pages re-export core and carry no method list), and any new inline reference type must be registered in `apps/docs/src/config/api-links.ts` (`coreSymbols` + `inlineTypeOwners`) for its deep link to resolve; docs Playwright tests that hardcode the method count must move (see the CLI/docs test note below) |
 | RPC/field doc comments only | `pnpm gen:api-docs` | Nothing (pages render from wallet.json) |
-| darepocli flags/commands | Nothing | The command's page in `apps/docs/src/content/docs/cli/` (see CLI docs rules below); a new top-level command also needs `CLI_NAV` + a new page. A REMOVED top-level command must be deleted in lockstep: its `cli/<cmd>.mdx` page, its `CLI_NAV` entry, its row in the `cli.mdx` command table, and its slug in `apps/docs/tests/cli.spec.ts`'s hardcoded advanced-command list (`git grep -n <cmd> apps/docs` to find stragglers) |
+| wavecli flags/commands | Nothing | The command's page in `apps/docs/src/content/docs/cli/` (see CLI docs rules below); a new top-level command also needs `CLI_NAV` + a new page. A REMOVED top-level command must be deleted in lockstep: its `cli/<cmd>.mdx` page, its `CLI_NAV` entry, its row in the `cli.mdx` command table, and its slug in `apps/docs/tests/cli.spec.ts`'s hardcoded advanced-command list (`git grep -n <cmd> apps/docs` to find stragglers) |
 | Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes |
 | Wasm runtime build | `wasm:local` (below) | Bump `RUNTIME_MANIFEST_VERSION` first |
 | Runtime asset FILE LIST | Nothing | Four places in lockstep: `packages/web/src/runtime-manifest.ts` (`RUNTIME_ASSET_FILES`), `apps/web-wallet-demo/scripts/wasm-local.sh`, `apps/web-wallet-demo/scripts/fetch-runtime-assets.sh`, `apps/docs/scripts/copy-runtime-assets.mjs` |
@@ -44,7 +44,7 @@ cd ../darepo-client && git worktree remove --force /tmp/darepo-<shorthash>
 ## Ordered procedure
 
 ```sh
-export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
+export WAVELENGTH_DIR=/absolute/path/to/wavelength   # an isolated worktree at
                                                      # the release (see Overview)
 ```
 
@@ -57,7 +57,7 @@ export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
    `scripts/gen-types.mts`, never by hand-editing generated.ts:
    - A build failure `'any' only refers to a type` means the facade added an
      exported scalar const assigned from another package (e.g.
-     `MaxSigningWorkers = darepod.MaxSigningWorkers`); tygo cannot inline the
+     `MaxSigningWorkers = waved.MaxSigningWorkers`); tygo cannot inline the
      value and emits `export const X = any /* ... */;`. gen-types strips such
      unresolved consts; extend that strip if a new shape slips through.
    - Em-dashes in upstream Go doc comments reach generated.ts verbatim; gen-types
@@ -71,16 +71,16 @@ export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
    - Run it twice; the second run must produce a byte-identical wallet.json.
    - Sample keys in `API_SAMPLES` must be real request field names (a spec
      enforces this); em-dashes are sanitized at extraction automatically.
-4. **CLI/prose docs**: author from darepo-client source
-   (`cmd/darepocli/darepoclicommands/cmd_*.go`: `Flags()` registrations with
+4. **CLI/prose docs**: author from wavelength source
+   (`cmd/wavecli/waveclicommands/cmd_*.go`: `Flags()` registrations with
    defaults, which RPC the `RunE` calls), NEVER from `--help` output (build
    tags hide commands and help text omits exit codes/JSON shapes). Every
    subcommand gets its own section with its own flags table (`ApiSymbol` +
    `ParamsTable` on reference-layout pages like ark/recovery; `###`
    headings on doc-layout pages like exit). Verify operational claims in the
-   API prose pages against `darepod/config.go` and `gateway_server.go`.
+   API prose pages against `waved/config.go` and `gateway_server.go`.
 5. **Runtime assets**: `pnpm --filter web-wallet-demo run wasm:local`
-   (builds from `$DAREPO_DIR`, stages into `public/runtime/<version>/`).
+   (builds from `$WAVELENGTH_DIR`, stages into `public/runtime/<version>/`).
    Hosted asset sets live under `<assets root>/<RUNTIME_MANIFEST_VERSION>/`;
    the deploy workflow fetches by that path.
 6. **Changeset + commits**: `pnpm changeset` for changed packages. Commits
@@ -92,13 +92,13 @@ export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
 ```sh
 pnpm build && pnpm typecheck        # build FIRST; typecheck resolves dist/*.d.ts
 pnpm test:api-docs                  # extractor unit tests (7+)
-pnpm --filter @lightninglabs/walletdk-web test
+pnpm --filter @lightninglabs/wavelength-web test
 # Docs Playwright: its webServer has reuseExistingServer:true on port 4321, so
 # it will silently attach to a stale preview from another worktree/session and
 # serve an OLD build (a 404 for a brand-new page is almost always this, not a
 # code bug). Pass a free PORT so it builds and serves THIS worktree fresh:
-PORT=4399 DAREPO_DIR=... pnpm --filter @lightninglabs/walletdk-docs test
-DAREPO_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
+PORT=4399 WAVELENGTH_DIR=... pnpm --filter @lightninglabs/wavelength-docs test
+WAVELENGTH_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
   pnpm --filter web-wallet-demo run build && \
   pnpm --filter web-wallet-demo run test   # Playwright smoke test: the gold standard
 
@@ -122,13 +122,13 @@ the test.
 - Editing `apps/docs/src/data/api/wallet.json` or `packages/core/src/generated.ts` by hand; both are generated and committed. A `tsc` failure on generated.ts usually means tygo emitted a new cross-package const as `= any` (fix in `gen-types.mts`, item in step 2).
 - Documenting CLI flags from `--help` or memory instead of `cmd_*.go`.
 - Adding/removing an RPC without bumping the docs tests that hardcode the method count: `apps/docs/tests/nav.spec.ts` and `api-data.spec.ts` assert a literal count ("fifteen"/`15`), and `api-method.spec.ts` + `agent-artifacts.spec.ts` iterate every method (so the new page must actually build and be reachable).
-- Forgetting that a new interface method breaks `packages/core/src/testing/fake-client.ts` (it `implements WalletDKClient`) and must be added to `packages/core/src/index.ts`.
+- Forgetting that a new interface method breaks `packages/core/src/testing/fake-client.ts` (it `implements WavelengthClient`) and must be added to `packages/core/src/index.ts`.
 - Changing the runtime asset file list in fewer than all four places.
-- Guessed package filters: the docs app is `@lightninglabs/walletdk-docs`, the web package is `@lightninglabs/walletdk-web`, the demo is `web-wallet-demo`.
+- Guessed package filters: the docs app is `@lightninglabs/wavelength-docs`, the web package is `@lightninglabs/wavelength-web`, the demo is `web-wallet-demo`.
 
 ## After the sync: improve this skill
 
-Every darepo-client release differs, so each run teaches something. Before you
+Every wavelength release differs, so each run teaches something. Before you
 finish, reflect on the run and propose concrete edits to THIS file, then apply
 them on approval. Look specifically for:
 

@@ -17,7 +17,7 @@ an agent cannot accidentally dispatch an on-chain send by passing what it thinks
 is an invoice; the daemon performs the authoritative parse.
 
 ```bash title="Terminal"
-darepocli send <invoice-or-onchain-address>
+wavecli send <invoice-or-onchain-address>
 ```
 
 By default `send` prepares, dispatches, and then waits until the payment
@@ -49,7 +49,7 @@ confirmation. Pass `--force` or `--yes`, or the command exits with `INVALID_ARGS
 ## Example
 
 ```bash title="Terminal"
-darepocli --no-tls send lnbcrt250u1p3xyz... --offchain --force
+wavecli --no-tls send lnbcrt250u1p3xyz... --offchain --force
 ```
 
 Phase transitions stream to stderr; stdout receives the compact settled

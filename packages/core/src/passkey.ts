@@ -17,8 +17,8 @@ export type PasskeyAssertion = {
 
 /**
  * The per-platform passkey ceremony the passkey hook drives. The browser
- * (WebAuthn/PRF) implementation is walletdk-web's `webPasskeyCeremony`; a native
- * transport supplies its own. Injecting it keeps walletdk-react free of any
+ * (WebAuthn/PRF) implementation is wavelength-web's `webPasskeyCeremony`; a native
+ * transport supplies its own. Injecting it keeps wavelength-react free of any
  * transport dependency.
  */
 export type PasskeyCeremony = {
@@ -31,11 +31,13 @@ export type PasskeyCeremony = {
 };
 
 /**
- * The PRF namespace every WalletDK passkey ceremony evaluates. Shared with the
- * Go SDK (PasskeyPRFNamespace); changing it would orphan every existing
- * passkey wallet.
+ * The PRF namespace every Wavelength passkey ceremony evaluates. Chosen
+ * client-side: its SHA-256 (PASSKEY_PRF_SALT_HEX) is the fixed WebAuthn
+ * prf.eval.first salt every ceremony evaluates, and the resulting raw PRF
+ * output is what the daemon's HKDF derivation consumes. Changing it re-derives
+ * (orphans) every existing passkey wallet.
  */
-export const PASSKEY_PRF_NAMESPACE = 'walletdk-passkey:v1';
+export const PASSKEY_PRF_NAMESPACE = 'wavewalletdk-passkey:v1';
 
 /**
  * SHA-256(PASSKEY_PRF_NAMESPACE) as lower-case hex: the fixed PRF evaluation
@@ -45,4 +47,4 @@ export const PASSKEY_PRF_NAMESPACE = 'walletdk-passkey:v1';
  * runtime digest; a core unit test pins it to the namespace.
  */
 export const PASSKEY_PRF_SALT_HEX =
-  'f3183b86bc0387ccf0554fb2ca2d5d7043a0fec02c9596ffc38533c08d520715';
+  '9a7a2e0ff3c5d1f2f172cd5edd67527bf392ae399048eb6e36b9cb6c3ab89d03';

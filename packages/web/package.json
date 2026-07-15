@@ -1,5 +1,5 @@
 {
-  "name": "@lightninglabs/walletdk-web",
+  "name": "@lightninglabs/wavelength-web",
   "version": "0.0.0",
   "private": false,
   "publishConfig": { "access": "public" },
@@ -11,16 +11,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./walletdk-worker.js": "./dist/walletdk-worker.js"
+    "./wavewalletdk-worker.js": "./dist/wavewalletdk-worker.js"
   },
   "sideEffects": false,
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp src/walletdk-worker.js dist/walletdk-worker.js",
+    "build": "tsc -p tsconfig.json && cp src/wavewalletdk-worker.js dist/wavewalletdk-worker.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test"
   },
   "dependencies": {
-    "@lightninglabs/walletdk-core": "workspace:*"
+    "@lightninglabs/wavelength-core": "workspace:*"
   },
   "files": ["dist"]
 }

@@ -11,8 +11,8 @@ import type { CreateWalletRequest, UnlockWalletRequest } from './requests.ts';
 export type ServerTransport = 'rest' | 'grpc';
 
 /**
- * The flat, snake_case config the walletdk mobile facade's `start` verb
- * decodes (sdk/walletdk/mobile.mobileConfig). Every transport forwards it
+ * The flat, snake_case config the wavewalletdk mobile facade's `start` verb
+ * decodes (sdk/wavewalletdk/mobile.mobileConfig). Every transport forwards it
  * verbatim to the facade's Start.
  */
 export type MobileConfig = {

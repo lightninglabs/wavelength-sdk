@@ -9,7 +9,7 @@ export function AuthHeader({ title, sub }: { title: string; sub: string }) {
         <span className="flex h-8 w-8 items-center justify-center bg-accent">
           <Bitcoin size={16} className="text-white" />
         </span>
-        <span className="text-sm font-semibold text-fg">WalletDK</span>
+        <span className="text-sm font-semibold text-fg">Wavelength Demo</span>
       </div>
       <h1 className="text-xl font-semibold text-fg">{title}</h1>
       <p className="mt-1 text-sm text-muted">{sub}</p>

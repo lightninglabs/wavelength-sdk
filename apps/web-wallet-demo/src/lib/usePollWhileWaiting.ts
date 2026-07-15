@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Balance, Entry, useWalletEngine } from "@lightninglabs/walletdk-react";
+import { Balance, Entry, useWalletEngine } from "@lightninglabs/wavelength-react";
 
 // Whether there is pending on-chain work the activity stream will not push to
 // completion. Two signals: a pending deposit/exit entry, or a balance reporting
@@ -47,11 +47,11 @@ const POLL_FAILURE_LIMIT = 5;
 // update the UI on its own. The SDK provider stays push-driven on purpose, so the
 // demo polls refresh() while such work is outstanding.
 //
-// darepo-client#875 tracks emitting the boarding/deposit lifecycle. That alone
+// wavelength#875 tracks emitting the boarding/deposit lifecycle. That alone
 // retires the deposit half; the exit half needs the same treatment before this
 // hook and its call sites can be deleted outright.
 //
-// Tracking: https://github.com/lightninglabs/darepo-client/issues/875
+// Tracking: https://github.com/lightninglabs/wavelength/issues/875
 export function usePollWhileWaiting(active: boolean, intervalMs = 3000): void {
   const engine = useWalletEngine();
   const refreshRef = useRef(() => engine.refresh());

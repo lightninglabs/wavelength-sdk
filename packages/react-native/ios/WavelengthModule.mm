@@ -1,26 +1,26 @@
-#import "WalletdkModule.h"
+#import "WavelengthModule.h"
 
-#import <Walletdk/Walletdk.h>
-#import <WalletdkSpec/WalletdkSpec.h>
-#import "WalletdkReactNative-Swift.h"
+#import <Wavewalletdk/Wavewalletdk.h>
+#import <WavelengthSpec/WavelengthSpec.h>
+#import "WavelengthReactNative-Swift.h"
 
 // The single device event name; the body is { kind, payload }.
-static NSString *const kWalletdkEvent = @"walletdkActivity";
-static NSString *const kWalletdkErrorCode = @"walletdk_error";
+static NSString *const kWavelengthEvent = @"wavelengthActivity";
+static NSString *const kWavelengthErrorCode = @"wavelength_error";
 
 // The codegen spec conformance lives here (see the note in the header): the
 // generated protocol drags in C++ headers that must stay out of the public
 // Objective-C surface.
-@interface WalletdkModule () <NativeWalletdkSpec>
+@interface WavelengthModule () <NativeWavelengthSpec>
 @end
 
-@implementation WalletdkModule {
+@implementation WavelengthModule {
   MobileSubscription *_subscription;
   BOOL _closing;
-  WalletdkPasskey *_passkey;
+  WavelengthPasskey *_passkey;
 }
 
-RCT_EXPORT_MODULE(Walletdk)
+RCT_EXPORT_MODULE(Wavelength)
 
 + (BOOL)requiresMainQueueSetup
 {
@@ -29,7 +29,7 @@ RCT_EXPORT_MODULE(Walletdk)
 
 - (NSArray<NSString *> *)supportedEvents
 {
-  return @[ kWalletdkEvent ];
+  return @[ kWavelengthEvent ];
 }
 
 - (void)getDefaultDataDir:(RCTPromiseResolveBlock)resolve
@@ -38,13 +38,13 @@ RCT_EXPORT_MODULE(Walletdk)
   NSURL *appSupport = [[NSFileManager.defaultManager
       URLsForDirectory:NSApplicationSupportDirectory
              inDomains:NSUserDomainMask] firstObject];
-  resolve([appSupport URLByAppendingPathComponent:@"walletdk"].path);
+  resolve([appSupport URLByAppendingPathComponent:@"wavelength"].path);
 }
 
 - (void)passkeySupported:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject
 {
-  resolve(@([WalletdkPasskey prfSupported]));
+  resolve(@([WavelengthPasskey prfSupported]));
 }
 
 - (void)passkeyCreate:(NSString *)requestJson
@@ -54,7 +54,7 @@ RCT_EXPORT_MODULE(Walletdk)
   dispatch_async(dispatch_get_main_queue(), ^{
     @synchronized (self) {
       if (self->_passkey == nil) {
-        self->_passkey = [WalletdkPasskey new];
+        self->_passkey = [WavelengthPasskey new];
       }
     }
     [self->_passkey create:requestJson
@@ -62,7 +62,7 @@ RCT_EXPORT_MODULE(Walletdk)
       if (json != nil) {
         resolve(json);
       } else {
-        reject(kWalletdkErrorCode,
+        reject(kWavelengthErrorCode,
                errorMessage ?: @"passkey ceremony failed", nil);
       }
     }];
@@ -76,7 +76,7 @@ RCT_EXPORT_MODULE(Walletdk)
   dispatch_async(dispatch_get_main_queue(), ^{
     @synchronized (self) {
       if (self->_passkey == nil) {
-        self->_passkey = [WalletdkPasskey new];
+        self->_passkey = [WavelengthPasskey new];
       }
     }
     [self->_passkey get:requestJson
@@ -84,7 +84,7 @@ RCT_EXPORT_MODULE(Walletdk)
       if (json != nil) {
         resolve(json);
       } else {
-        reject(kWalletdkErrorCode,
+        reject(kWavelengthErrorCode,
                errorMessage ?: @"passkey ceremony failed", nil);
       }
     }];
@@ -139,14 +139,14 @@ RCT_EXPORT_MODULE(Walletdk)
     } else if ([method isEqualToString:@"sweepWallet"]) {
       result = MobileSweepWallet(params, &error);
     } else {
-      reject(kWalletdkErrorCode,
-             [NSString stringWithFormat:@"unknown walletdk verb: %@", method],
+      reject(kWavelengthErrorCode,
+             [NSString stringWithFormat:@"unknown wavelength verb: %@", method],
              nil);
       return;
     }
 
     if (error != nil) {
-      reject(kWalletdkErrorCode, error.localizedDescription, error);
+      reject(kWavelengthErrorCode, error.localizedDescription, error);
       return;
     }
     NSString *json = result
@@ -182,8 +182,8 @@ RCT_EXPORT_MODULE(Walletdk)
       }
     }
     if (error != nil || sub == nil) {
-      reject(kWalletdkErrorCode,
-             error.localizedDescription ?: @"walletdk subscribe failed",
+      reject(kWavelengthErrorCode,
+             error.localizedDescription ?: @"wavelength subscribe failed",
              error);
       return;
     }
@@ -207,7 +207,7 @@ RCT_EXPORT_MODULE(Walletdk)
       [sub close:&error];
     }
     if (error != nil) {
-      reject(kWalletdkErrorCode, error.localizedDescription, error);
+      reject(kWavelengthErrorCode, error.localizedDescription, error);
       return;
     }
     resolve(nil);
@@ -233,21 +233,21 @@ RCT_EXPORT_MODULE(Walletdk)
           closing = self->_closing;
         }
         if (closing || eof) {
-          [self sendEventWithName:kWalletdkEvent
+          [self sendEventWithName:kWavelengthEvent
                              body:@{ @"kind" : @"end", @"payload" : @"" }];
         } else {
-          [self sendEventWithName:kWalletdkEvent
+          [self sendEventWithName:kWavelengthEvent
                              body:@{
                                @"kind" : @"error",
                                @"payload" : error.localizedDescription
-                                   ?: @"walletdk activity stream failed"
+                                   ?: @"wavelength activity stream failed"
                              }];
         }
         break;
       }
       NSString *json =
           [[NSString alloc] initWithData:entry encoding:NSUTF8StringEncoding];
-      [self sendEventWithName:kWalletdkEvent
+      [self sendEventWithName:kWavelengthEvent
                          body:@{ @"kind" : @"entry", @"payload" : json ?: @"" }];
     }
     @synchronized (self) {
@@ -261,7 +261,7 @@ RCT_EXPORT_MODULE(Walletdk)
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {
-  return std::make_shared<facebook::react::NativeWalletdkSpecJSI>(params);
+  return std::make_shared<facebook::react::NativeWavelengthSpecJSI>(params);
 }
 
 @end

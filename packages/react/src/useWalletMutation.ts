@@ -1,4 +1,4 @@
-import { isPasskeyCancelled, toError } from "@lightninglabs/walletdk-core";
+import { isPasskeyCancelled, toError } from "@lightninglabs/wavelength-core";
 import { useCallback, useRef, useState } from "react";
 
 type MutationState<R> = {

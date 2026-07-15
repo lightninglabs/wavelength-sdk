@@ -46,5 +46,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`walletdk demo: http://${host}:${port}/`);
+  console.log(`wavelength demo: http://${host}:${port}/`);
 });

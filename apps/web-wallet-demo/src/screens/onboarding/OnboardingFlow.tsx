@@ -4,9 +4,9 @@ import {
   useWalletPasskey,
   useWalletRecovery,
   useWalletRestore,
-} from "@lightninglabs/walletdk-react";
-import type { WalletKind } from "@lightninglabs/walletdk-react";
-import { webPasskeyCeremony } from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-react";
+import type { WalletKind } from "@lightninglabs/wavelength-react";
+import { webPasskeyCeremony } from "@lightninglabs/wavelength-web";
 import { CreateWalletScreen } from "./CreateWalletScreen";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreWalletScreen } from "./RestoreWalletScreen";
@@ -17,7 +17,7 @@ import {
 
 type Step = "create" | "restore";
 
-const APP_NAME = "WalletDK Demo";
+const APP_NAME = "Wavelength Demo";
 
 // passkeyName labels a freshly created passkey with the app name plus a
 // timestamp, so multiple test passkeys stay distinguishable in the OS prompt.

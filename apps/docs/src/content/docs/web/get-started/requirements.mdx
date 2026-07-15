@@ -1,11 +1,11 @@
 ---
 title: Requirements
-description: The browser support matrix, cross-origin isolation prerequisites, and backend services needed to integrate WalletDK Web.
+description: The browser support matrix, cross-origin isolation prerequisites, and backend services needed to integrate the Wavelength SDK.
 ---
 
 ## Browser support
 
-WalletDK runs the full wallet daemon in the browser as WebAssembly. Target
+Wavelength runs the full wallet daemon in the browser as WebAssembly. Target
 browsers with mature WASM, Web Worker, and storage APIs:
 
 | Browser | Minimum version |
@@ -42,7 +42,7 @@ behavior differs between main-thread and worker mode.
 
 ## Backends
 
-WalletDK is self-custodial: the seed never leaves the browser. The embedded
+Wavelength is self-custodial: the seed never leaves the browser. The embedded
 daemon still needs reachable **Ark**, **Esplora**, and (for Lightning swaps)
 **swap server** endpoints at runtime.
 
@@ -51,7 +51,7 @@ preset. Pass `defaultConfig('signet')` to `start()` and the client connects to
 Lightning Labs hosted gateways:
 
 ```ts title="config.ts"
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient();
 await client.start(defaultConfig('signet'));
@@ -63,7 +63,7 @@ for any hosted network.
 **Regtest (local development)** targets services you run yourself, so there
 is no `defaultConfig` preset for it; local ports vary per machine, and the
 URLs are the whole point of a preset. Start
-[arktest](https://github.com/lightninglabs/darepo-client), note the ports it
+[arktest](https://github.com/lightninglabs/wavelength), note the ports it
 prints, and build the config by hand, including the insecure-transport flags
 for plain-HTTP local gateways:
 
