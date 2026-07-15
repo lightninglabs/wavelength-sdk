@@ -181,17 +181,9 @@ export type {
   WalletKind,
 } from './passkey.ts';
 
-// The daemon facade protocol shared by every transport: the flat Start config
-// and the Go-shaped request mappers. Transport implementers use these; app
-// code normally does not.
-export {
-  FACADE_METHODS,
-  base64FromUtf8,
-  toGoCreateWalletReq,
-  toGoUnlockWalletReq,
-  toMobileConfig,
-} from './facade.ts';
-export type { FacadeMethod, MobileConfig, ServerTransport } from './facade.ts';
+// The daemon facade method catalog shared by every transport.
+export { FACADE_METHODS, base64FromUtf8 } from './facade.ts';
+export type { FacadeMethod } from './facade.ts';
 
 // The daemon build this SDK release is paired with (generated types and
 // runtime assets alike).

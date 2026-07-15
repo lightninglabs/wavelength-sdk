@@ -29,6 +29,19 @@ import type {
   VTXOInventory,
   WalletVTXO,
 } from './index.ts';
+import type * as Core from './index.ts';
+
+type AssertNotExported<Name extends string> = Extract<Name, keyof typeof Core> extends never
+  ? true
+  : never;
+
+const noProhibitedFacadeExports: AssertNotExported<
+  | 'MobileConfig'
+  | 'ServerTransport'
+  | 'toGoCreateWalletReq'
+  | 'toGoUnlockWalletReq'
+  | 'toMobileConfig'
+> = true;
 
 const method: FacadeMethod = FACADE_METHODS[0];
 const activityOptions: ActivityStreamOptions = { kinds: [EntryKindSend], cursor: 0 };
@@ -44,6 +57,7 @@ void acknowledgement;
 void subsystemDebugConfig;
 void pickerDebugLevel;
 void subsystemPickerLevel;
+void noProhibitedFacadeExports;
 void [
   EntryFailureCodeFailed,
   EntryPhaseSettling,
