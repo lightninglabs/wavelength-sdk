@@ -17,12 +17,12 @@ WalletDK ships as these packages:
 
 | Package | Role |
 |---|---|
-| `@lightninglabs/walletdk-core` | Shared types, the `WalletDKClient` interface, errors, and enums. No DOM, no transport. |
-| `@lightninglabs/walletdk-web` | The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports `core`. |
-| `@lightninglabs/walletdk-react-native` | The React Native transport. The daemon is compiled into the app binary. Re-exports `core`. |
-| `@lightninglabs/walletdk-react` | React provider and hooks. Depends on `core` only and takes an injected client, so the same binding can run over the web or React Native transport. |
+| `@lightninglabs/wavelength-core` | Shared types, the `WalletDKClient` interface, errors, and enums. No DOM, no transport. |
+| `@lightninglabs/wavelength-web` | The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports `core`. |
+| `@lightninglabs/wavelength-react-native` | The React Native transport. The daemon is compiled into the app binary. Re-exports `core`. |
+| `@lightninglabs/wavelength-react` | React provider and hooks. Depends on `core` only and takes an injected client, so the same binding can run over the web or React Native transport. |
 
-**React is the primary developer experience**, but React is not required. On web, if you are not using React, install `@lightninglabs/walletdk-web`, call `createWebClient()`, and use the `WalletDKClient` methods directly. The React package is a thin binding over the same interface.
+**React is the primary developer experience**, but React is not required. On web, if you are not using React, install `@lightninglabs/wavelength-web`, call `createWebClient()`, and use the `WalletDKClient` methods directly. The React package is a thin binding over the same interface.
 
 ## Mental model
 
@@ -57,7 +57,7 @@ A minimal boot sequence looks like this:
 <div data-label="Web">
 
 ```ts
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient({ runtimeBaseUrl: '/walletdk/' });
 
@@ -70,7 +70,7 @@ const { mnemonic } = await client.createWallet({ password: '…' }); // show mne
 <div data-label="React Native">
 
 ```ts
-import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const client = createNativeClient();
 

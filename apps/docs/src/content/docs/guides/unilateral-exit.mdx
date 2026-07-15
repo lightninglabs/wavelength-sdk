@@ -28,8 +28,8 @@ unresponsive.
 
 ```tsx title="exit.tsx"
 import { useState } from 'react';
-import { useWalletEngine } from '@lightninglabs/walletdk-react';
-import type { GetExitPlanResult } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/wavelength-react';
+import type { GetExitPlanResult } from '@lightninglabs/wavelength-react';
 
 function ExitPlan({ outpoints }: { outpoints: string[] }) {
   const { client } = useWalletEngine();
@@ -79,7 +79,7 @@ Do not call `exit` twice for the same outpoint. Check `client.exitStatus()`
 first if the user may have already started an exit in a previous session.
 
 ```tsx title="exit.tsx"
-import { useWalletEngine } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/wavelength-react';
 
 function StartExit({
   outpoint,
@@ -122,8 +122,8 @@ broadcast would cost and net before they commit to it. If
 
 ```tsx title="exit.tsx"
 import { useState } from 'react';
-import { useWalletEngine } from '@lightninglabs/walletdk-react';
-import type { ExitStatusResult } from '@lightninglabs/walletdk-react';
+import { useWalletEngine } from '@lightninglabs/wavelength-react';
+import type { ExitStatusResult } from '@lightninglabs/wavelength-react';
 
 function SweepStatus({ outpoint }: { outpoint: string }) {
   const { client } = useWalletEngine();

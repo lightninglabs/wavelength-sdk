@@ -18,7 +18,7 @@ import {
   WalletKind,
   useWallet,
   useWalletInfo,
-} from '@lightninglabs/walletdk-react';
+} from '@lightninglabs/wavelength-react';
 import { GatewayFields } from '../../components/GatewayFields';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';

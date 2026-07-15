@@ -4,8 +4,8 @@ import { Fingerprint, KeyRound, RotateCcw } from 'lucide-react-native';
 import {
   useWalletPasskey,
   useWalletUnlock,
-} from '@lightninglabs/walletdk-react';
-import type { WalletKind } from '@lightninglabs/walletdk-react';
+} from '@lightninglabs/wavelength-react';
+import type { WalletKind } from '@lightninglabs/wavelength-react';
 import { passkeyCeremony } from '../../lib/passkeyCeremony';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';

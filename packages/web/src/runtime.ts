@@ -1,4 +1,4 @@
-import { WalletDKError } from '@lightninglabs/walletdk-core';
+import { WalletDKError } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from './runtime-manifest';
 import { errorMessage } from './util';
 

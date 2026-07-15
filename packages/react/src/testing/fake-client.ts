@@ -38,7 +38,7 @@ import type {
   WalletDKListener,
   WalletInfo,
   WalletStatus,
-} from "@lightninglabs/walletdk-core";
+} from "@lightninglabs/wavelength-core";
 
 // A promise with its resolve/reject pulled out, for controlling ready() and
 // per-call timing from a test.

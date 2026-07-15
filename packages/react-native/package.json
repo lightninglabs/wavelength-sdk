@@ -1,5 +1,5 @@
 {
-  "name": "@lightninglabs/walletdk-react-native",
+  "name": "@lightninglabs/wavelength-react-native",
   "version": "0.0.0",
   "private": false,
   "publishConfig": { "access": "public" },
@@ -28,7 +28,7 @@
     }
   },
   "dependencies": {
-    "@lightninglabs/walletdk-core": "workspace:*"
+    "@lightninglabs/wavelength-core": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

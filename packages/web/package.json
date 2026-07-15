@@ -1,5 +1,5 @@
 {
-  "name": "@lightninglabs/walletdk-web",
+  "name": "@lightninglabs/wavelength-web",
   "version": "0.0.0",
   "private": false,
   "publishConfig": { "access": "public" },
@@ -20,7 +20,7 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@lightninglabs/walletdk-core": "workspace:*"
+    "@lightninglabs/wavelength-core": "workspace:*"
   },
   "files": ["dist"]
 }

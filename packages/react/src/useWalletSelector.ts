@@ -1,4 +1,4 @@
-import type { WalletSnapshot } from "@lightninglabs/walletdk-core";
+import type { WalletSnapshot } from "@lightninglabs/wavelength-core";
 import { useSyncExternalStore } from "react";
 import { useWalletEngine } from "./provider";
 

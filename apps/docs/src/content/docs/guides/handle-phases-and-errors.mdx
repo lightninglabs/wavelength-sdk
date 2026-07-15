@@ -35,7 +35,7 @@ transitions automatically as the wallet moves through phases.
 the daemon-level detail instead of the broader [`RuntimePhase`](/reference/walletdk-core/#RuntimePhase).
 
 ```tsx title="phases.tsx"
-import { useWallet } from '@lightninglabs/walletdk-react';
+import { useWallet } from '@lightninglabs/wavelength-react';
 
 function WalletGate({ children }: { children: React.ReactNode }) {
   const { phase } = useWallet();
@@ -95,7 +95,7 @@ fails, or after a background process exhausts its failure budget, and it
 clears on the next successful `start()`.
 
 ```tsx title="errors.tsx"
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function PayButton({ bolt11 }: { bolt11: string }) {
   const { send, sendError, sendPending, resetSend } = useWalletSend();
@@ -129,7 +129,7 @@ SDK codes include `runtime_not_ready`, `asset_load_failed`, and
 `worker_error`; daemon-originated errors currently use `walletdk_error`.
 
 ```tsx title="errors.tsx"
-import { useWalletSend, WalletDKError } from '@lightninglabs/walletdk-react';
+import { useWalletSend, WalletDKError } from '@lightninglabs/wavelength-react';
 
 function PayButton({ bolt11 }: { bolt11: string }) {
   const { send, sendError, sendPending, resetSend } = useWalletSend();

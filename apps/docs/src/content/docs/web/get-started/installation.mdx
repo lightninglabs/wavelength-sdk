@@ -10,21 +10,21 @@ your stack:
 
 | Package | What it is |
 |---|---|
-| `@lightninglabs/walletdk-core` | Types, the `WalletDKClient` interface, errors, and enums. Pulled in transitively; you rarely install it directly. |
-| `@lightninglabs/walletdk-web` | The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports everything from `core`. |
-| `@lightninglabs/walletdk-react` | React provider and hooks. Transport-agnostic: it takes an injected engine and depends only on `core`. |
+| `@lightninglabs/wavelength-core` | Types, the `WalletDKClient` interface, errors, and enums. Pulled in transitively; you rarely install it directly. |
+| `@lightninglabs/wavelength-web` | The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports everything from `core`. |
+| `@lightninglabs/wavelength-react` | React provider and hooks. Transport-agnostic: it takes an injected engine and depends only on `core`. |
 
 **React apps** need the web transport and the React bindings:
 
 ```bash title="Terminal"
-npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-web @lightninglabs/wavelength-react
 ```
 
 **Vanilla JS, Vue, Svelte, or other non-React frameworks** need only the web
 transport:
 
 ```bash title="Terminal"
-npm install @lightninglabs/walletdk-web
+npm install @lightninglabs/wavelength-web
 ```
 
 Before wiring up the code samples below, make sure the browser environment you're
@@ -35,7 +35,7 @@ WebAssembly runtime will not start without them.
 
 ## Peer deps
 
-`@lightninglabs/walletdk-react` declares `react` as a peer dependency, with an
+`@lightninglabs/wavelength-react` declares `react` as a peer dependency, with an
 accepted range of `^18.0.0 || ^19.0.0`. Your app must also provide `react-dom`
 (or the equivalent for your React renderer). Either major version, 18 or 19,
 works:
@@ -51,8 +51,8 @@ plus `config` and `autoStart` to boot the embedded daemon as soon as the
 runtime is ready, no boot effect needed.
 
 ```tsx title="App.tsx"
-import { WalletDKProvider, useWallet, useWalletBalance } from '@lightninglabs/walletdk-react';
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
+import { WalletDKProvider, useWallet, useWalletBalance } from '@lightninglabs/wavelength-react';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
 
 // Configure transport options once. runtimeBaseUrl points at the hosted WASM
 // asset folder.
@@ -90,7 +90,7 @@ For a non-React app, skip the provider and call `start` on the client directly
 after `ready()` resolves:
 
 ```ts title="main.ts"
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient({
   runtimeBaseUrl: 'https://your-host/walletdk/',

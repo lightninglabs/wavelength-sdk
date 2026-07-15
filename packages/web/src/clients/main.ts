@@ -3,7 +3,7 @@ import {
   camelizeKeys,
   Entry,
   WalletDKError,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
 import type { WebClientOptions } from '../index';
 import {

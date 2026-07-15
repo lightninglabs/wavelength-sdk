@@ -23,7 +23,7 @@ Display `confirmedSat` as spendable balance. Add `pendingInSat` and
 `pendingOutSat` when you want to show in-flight funds.
 
 ```tsx title="balance.tsx"
-import { useWalletBalance } from '@lightninglabs/walletdk-react';
+import { useWalletBalance } from '@lightninglabs/wavelength-react';
 
 function Balance() {
   const balance = useWalletBalance();
@@ -54,7 +54,7 @@ comes from the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) your [`W
 polling or manual refresh is needed.
 
 ```tsx title="balance.tsx"
-import { useWalletActivity } from '@lightninglabs/walletdk-react';
+import { useWalletActivity } from '@lightninglabs/wavelength-react';
 
 function ActivityFeed() {
   const activity = useWalletActivity();
@@ -96,7 +96,7 @@ background refreshes never flip it, so it only lights up when the user
 actually asked for a refresh.
 
 ```tsx title="balance.tsx"
-import { useWalletRefresh } from '@lightninglabs/walletdk-react';
+import { useWalletRefresh } from '@lightninglabs/wavelength-react';
 
 function RefreshButton() {
   const { refresh, refreshPending } = useWalletRefresh();
@@ -121,7 +121,7 @@ All filtering happens in memory, so you can derive multiple views from the
 same hook call without additional network requests.
 
 ```tsx title="balance.tsx"
-import { useWalletActivity } from '@lightninglabs/walletdk-react';
+import { useWalletActivity } from '@lightninglabs/wavelength-react';
 
 function FilteredFeed() {
   const activity = useWalletActivity();

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Balance, Entry, useWalletEngine } from "@lightninglabs/walletdk-react";
+import { Balance, Entry, useWalletEngine } from "@lightninglabs/wavelength-react";
 
 // Whether there is pending on-chain work the activity stream will not push to
 // completion. Two signals: a pending deposit/exit entry, or a balance reporting

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PasskeyCancelledError } from '@lightninglabs/walletdk-core';
+import { PasskeyCancelledError } from '@lightninglabs/wavelength-core';
 import {
   nativePasskeyCeremony,
   type WalletdkPasskeyNativeModule,

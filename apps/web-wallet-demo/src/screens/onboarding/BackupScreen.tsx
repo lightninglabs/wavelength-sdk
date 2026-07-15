@@ -1,5 +1,5 @@
 import { Check, TriangleAlert } from "lucide-react";
-import { useWalletRefresh } from "@lightninglabs/walletdk-react";
+import { useWalletRefresh } from "@lightninglabs/wavelength-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { CopyButton } from "../../components/ui/CopyButton";

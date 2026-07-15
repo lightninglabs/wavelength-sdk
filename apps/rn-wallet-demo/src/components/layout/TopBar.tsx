@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bitcoin } from 'lucide-react-native';
-import { useWallet, useWalletInfo } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletInfo } from '@lightninglabs/wavelength-react';
 import { phaseConnected, statusLabel } from '../../lib/phase';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';

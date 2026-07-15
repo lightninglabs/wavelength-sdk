@@ -57,11 +57,11 @@ carries the ground rules in every session:
 WalletDK embeds a self-custodial Lightning wallet in this app: Lightning
 payments with no node, channels, or liquidity to manage.
 
-- Packages: @lightninglabs/walletdk-web (browser transport, has
-  createWebWalletEngine), @lightninglabs/walletdk-react-native (React Native
+- Packages: @lightninglabs/wavelength-web (browser transport, has
+  createWebWalletEngine), @lightninglabs/wavelength-react-native (React Native
   transport, has createNativeWalletEngine, daemon compiled into the app
-  binary), @lightninglabs/walletdk-react (provider and hooks, takes an
-  injected engine), @lightninglabs/walletdk-core (shared contract).
+  binary), @lightninglabs/wavelength-react (provider and hooks, takes an
+  injected engine), @lightninglabs/wavelength-core (shared contract).
 - Docs: https://dadocs.lightning.engineering/llms.txt. Every docs page has
   a markdown twin at the same URL with .md appended; fetch those.
 - Web: create the engine with createWebWalletEngine() and inject it via
@@ -86,7 +86,7 @@ self-custodial Lightning wallet.
 
 1. Read https://dadocs.lightning.engineering/web/get-started/quickstart.md
    and https://dadocs.lightning.engineering/integrations/react.md first.
-2. Install @lightninglabs/walletdk-web and @lightninglabs/walletdk-react at
+2. Install @lightninglabs/wavelength-web and @lightninglabs/wavelength-react at
    their current npm versions.
 3. Copy the wasm runtime assets into our static assets and configure
    runtimeBaseUrl per
@@ -109,8 +109,8 @@ embedded self-custodial Lightning wallet.
 
 1. Read https://dadocs.lightning.engineering/react-native/get-started/quickstart.md
    first.
-2. Install @lightninglabs/walletdk-react-native and
-   @lightninglabs/walletdk-react at their current npm versions.
+2. Install @lightninglabs/wavelength-react-native and
+   @lightninglabs/wavelength-react at their current npm versions.
 3. Stage the native wallet runtime binaries before the first build per
    https://dadocs.lightning.engineering/react-native/get-started/installation.md
 4. Create the engine with createNativeWalletEngine() and mount

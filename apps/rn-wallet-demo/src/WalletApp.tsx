@@ -4,9 +4,9 @@ import {
   useWallet,
   useWalletActivity,
   useWalletBalance,
-} from '@lightninglabs/walletdk-react';
-import type { WalletKind } from '@lightninglabs/walletdk-react';
-import { getDefaultDataDir } from '@lightninglabs/walletdk-react-native';
+} from '@lightninglabs/wavelength-react';
+import type { WalletKind } from '@lightninglabs/wavelength-react';
+import { getDefaultDataDir } from '@lightninglabs/wavelength-react-native';
 import { AppShell } from './components/layout/AppShell';
 import { RecoveryBanner } from './components/RecoveryBanner';
 import { AppTab } from './components/layout/nav';

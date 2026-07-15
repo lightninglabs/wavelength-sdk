@@ -5,8 +5,8 @@ import {
   WalletDKEvent,
   WalletDKEventType,
   WalletDKLogPayload,
-} from '@lightninglabs/walletdk-core';
-export { errorMessage } from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
+export { errorMessage } from '@lightninglabs/wavelength-core';
 
 /**
  * A single in-flight RPC awaiting its worker response, keyed by request id in

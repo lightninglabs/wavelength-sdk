@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { act } from "@testing-library/react";
-import type { WalletInfo } from "@lightninglabs/walletdk-core";
+import type { WalletInfo } from "@lightninglabs/wavelength-core";
 import { createTestEngine } from "./testing/engine";
 import { flushMicrotasks, renderWithEngine } from "./testing/render";
 import {

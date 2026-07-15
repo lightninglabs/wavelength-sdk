@@ -2,7 +2,7 @@ import {
   networkDefaults,
   type PresetNetwork,
   type RuntimeConfig,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 
 /**
  * Returns a ready-to-use {@link RuntimeConfig} for a network on the web

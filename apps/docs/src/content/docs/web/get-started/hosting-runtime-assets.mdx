@@ -15,7 +15,7 @@ relative to the page URL in both worker and main-thread mode, so you can also
 just serve the runtime files alongside your app:
 
 ```ts title="client.ts"
-import { createWebClient } from '@lightninglabs/walletdk-web';
+import { createWebClient } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient({
   runtimeBaseUrl: 'https://cdn.example.com/walletdk/v0.1.0/',
@@ -23,19 +23,19 @@ const client = createWebClient({
 ```
 
 The worker entry (`walletdk-worker.js`) ships inside
-`@lightninglabs/walletdk-web` and is emitted by your bundler. Only the daemon
+`@lightninglabs/wavelength-web` and is emitted by your bundler. Only the daemon
 binaries listed below need to be hosted at `runtimeBaseUrl`.
 
 ## Self-hosting (override)
 
 The WASM runtime is a fixed set of files built from
 [darepo-client](https://github.com/lightninglabs/darepo-client). Import
-`RUNTIME_ASSET_FILES` from `@lightninglabs/walletdk-web` to see every filename
+`RUNTIME_ASSET_FILES` from `@lightninglabs/wavelength-web` to see every filename
 that must be served together at one base URL. `RUNTIME_MANIFEST_VERSION`
 identifies the daemon build the SDK is paired with:
 
 ```ts title="assets.ts"
-import { RUNTIME_ASSET_FILES } from '@lightninglabs/walletdk-web';
+import { RUNTIME_ASSET_FILES } from '@lightninglabs/wavelength-web';
 
 console.log(RUNTIME_ASSET_FILES);
 // walletdk.wasm, walletdk.wasm.gz, wasm_exec.js, sqlite-bridge.js,
@@ -74,7 +74,7 @@ path the demo's `runtimeBaseUrl` points at. After `vite build`, those files
 land in `dist/` and are served from the app origin.
 
 **Version lock.** Runtime assets are version-locked to the embedded daemon inside
-`@lightninglabs/walletdk-web`. When you upgrade the SDK, rebuild and redeploy the
+`@lightninglabs/wavelength-web`. When you upgrade the SDK, rebuild and redeploy the
 matching WASM bundle. Mismatched versions can fail at load time or produce subtle
 runtime errors.
 

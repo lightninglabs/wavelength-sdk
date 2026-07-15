@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { Power } from 'lucide-react-native';
-import { useWalletInfo } from '@lightninglabs/walletdk-react';
+import { useWalletInfo } from '@lightninglabs/wavelength-react';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { PrimaryButton } from '../../components/ui/Button';

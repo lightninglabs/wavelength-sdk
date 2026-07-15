@@ -16,16 +16,16 @@ surface is stable; iOS passkey support is still experimental.
 ## The packages
 
 ```sh title="Terminal"
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 <CardGrid>
-  <Card title="@lightninglabs/walletdk-react-native">
+  <Card title="@lightninglabs/wavelength-react-native">
     The native transport: a Turbo Module wrapping the wallet runtime compiled
     into your app binary. Re-exports the entire `core` surface, so it is the
     only wallet import an app needs besides the hooks package.
   </Card>
-  <Card title="@lightninglabs/walletdk-react">
+  <Card title="@lightninglabs/wavelength-react">
     React provider and hooks. Transport-agnostic: it takes an injected client
     and depends only on `core`.
   </Card>

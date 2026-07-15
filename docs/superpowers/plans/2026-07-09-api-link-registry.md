@@ -67,7 +67,7 @@
 
 ### Task 5: Verify the docs app
 
-- [ ] **Step 1:** Run `pnpm --filter @lightninglabs/walletdk-docs typecheck`.
-- [ ] **Step 2:** Run `pnpm --filter @lightninglabs/walletdk-docs build`.
+- [ ] **Step 1:** Run `pnpm --filter @lightninglabs/wavelength-docs typecheck`.
+- [ ] **Step 2:** Run `pnpm --filter @lightninglabs/wavelength-docs build`.
 - [ ] **Step 3:** Run relevant Playwright tests for reference layout and MDX components.
 - [ ] **Step 4:** Review the final diff for accidental links, em dashes, and unrelated changes.

@@ -28,7 +28,7 @@ quote before calling `sendPrepared()`. Check `feeKnown` before displaying
 `warning` may contain additional detail to show the user.
 
 ```tsx title="send.tsx"
-import { useWalletPrepareSend, useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletPrepareSend, useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendLightning() {
   const { prepare, prepareData: quote, resetPrepare } = useWalletPrepareSend();
@@ -75,7 +75,7 @@ Pass `onchainAddress` and `amountSat` to `send()` from [`useWalletSend()`](/refe
 returned [`SendResult`](/reference/walletdk-core/#SendResult) includes the activity entry and `actualAmountSat`.
 
 ```tsx title="send.tsx"
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendOnChain() {
   const { send, sendPending } = useWalletSend();
@@ -114,7 +114,7 @@ retry. Errors thrown during `sendPrepared` may indicate the payment was
 already sent; check the activity feed before retrying.
 
 ```tsx title="send.tsx"
-import { useWalletSend, WalletDKError } from '@lightninglabs/walletdk-react';
+import { useWalletSend, WalletDKError } from '@lightninglabs/wavelength-react';
 
 function SafeSend() {
   const { send, sendError, resetSend } = useWalletSend();

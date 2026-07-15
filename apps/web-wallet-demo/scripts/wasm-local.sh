@@ -36,7 +36,7 @@ for f in walletdk.wasm walletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
   cp "$DAREPO/bin/wasm/$f" "$PUB/"
 done
 
-# The SDK worker glue (walletdk-worker.js) now ships inside @lightninglabs/walletdk-web
+# The SDK worker glue (walletdk-worker.js) now ships inside @lightninglabs/wavelength-web
 # and is emitted by the consumer's bundler, so it is no longer staged here.
 
 echo "Staged runtime assets into $PUB"

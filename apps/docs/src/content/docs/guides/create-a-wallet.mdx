@@ -14,31 +14,31 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 ## Install the packages
 
 WalletDK ships as a transport package, one per platform, plus
-`@lightninglabs/walletdk-react`, the React bindings. All are ES modules with
+`@lightninglabs/wavelength-react`, the React bindings. All are ES modules with
 full TypeScript declarations.
 
 <PlatformTabs>
 <div data-label="Web">
 
-The web transport, `@lightninglabs/walletdk-web`, bundles a WASM module for
+The web transport, `@lightninglabs/wavelength-web`, bundles a WASM module for
 cryptography and uses OPFS for storage. There are no native dependencies and
 no server-side component, so a modern browser is all you need at runtime.
 
 ```bash title="Terminal"
 # Install the browser runtime and the React bindings.
-npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-web @lightninglabs/wavelength-react
 ```
 
 </div>
 <div data-label="React Native">
 
-The React Native transport, `@lightninglabs/walletdk-react-native`, wraps a
+The React Native transport, `@lightninglabs/wavelength-react-native`, wraps a
 wallet runtime that is compiled into your app binary rather than fetched at
 runtime.
 
 ```bash title="Terminal"
 # Install the native transport and the React bindings.
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 See [Installation](/react-native/get-started/installation/) for staging the
@@ -64,9 +64,9 @@ place.
 [`createWebWalletEngine()`](/reference/walletdk-web/#createWebWalletEngine) builds the engine for the browser transport:
 
 ```tsx title="App.tsx"
-import { createWebWalletEngine } from '@lightninglabs/walletdk-web';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebWalletEngine } from '@lightninglabs/wavelength-web';
+import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { defaultConfig } from '@lightninglabs/wavelength-web';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: '/walletdk/',
@@ -89,9 +89,9 @@ export function App() {
 [`createNativeWalletEngine()`](/reference/walletdk-react-native/#createNativeWalletEngine) builds the engine for the native transport:
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
-import { defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { createNativeWalletEngine } from '@lightninglabs/wavelength-react-native';
+import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -134,7 +134,7 @@ existing recovery phrase instead of generating a new one, see
 
 ```tsx title="Onboard.tsx"
 import { useState } from 'react';
-import { useWallet, useWalletCreate } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletCreate } from '@lightninglabs/wavelength-react';
 
 function Onboard() {
   const { phase } = useWallet();

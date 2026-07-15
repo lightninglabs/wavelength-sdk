@@ -26,7 +26,7 @@ For public test networks, use your transport package's `defaultConfig(network)` 
 <div data-label="Web">
 
 ```ts
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient();
 const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
@@ -37,7 +37,7 @@ await client.start(config);
 <div data-label="React Native">
 
 ```ts
-import { createNativeClient, defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const client = createNativeClient();
 const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });

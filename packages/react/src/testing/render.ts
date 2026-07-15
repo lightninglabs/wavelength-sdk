@@ -3,7 +3,7 @@
 // rather than JSX so the test files stay plain .ts.
 import { createElement, type ReactNode } from "react";
 import { renderHook, type RenderHookResult } from "@testing-library/react";
-import type { WalletEngine } from "@lightninglabs/walletdk-core";
+import type { WalletEngine } from "@lightninglabs/wavelength-core";
 import { WalletDKProvider } from "../provider.tsx";
 
 /**

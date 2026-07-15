@@ -1,5 +1,5 @@
 import { Bitcoin, Power, Settings } from "lucide-react";
-import { useWallet, useWalletInfo } from "@lightninglabs/walletdk-react";
+import { useWallet, useWalletInfo } from "@lightninglabs/wavelength-react";
 import { cn } from "../../lib/cn";
 import { shortKey } from "../../lib/format";
 import { phaseConnected, statusLabel } from "../../lib/phase";

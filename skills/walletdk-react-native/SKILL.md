@@ -1,6 +1,6 @@
 ---
 name: walletdk-react-native
-description: Embed a self-custodial Lightning wallet in a React Native or Expo app with the WalletDK SDK (@lightninglabs/walletdk-react-native, @lightninglabs/walletdk-react). Use when integrating WalletDK into a React Native or Expo app, creating a native wallet engine, sending or receiving Lightning payments on device, wiring WalletDKProvider with a native engine, or adding native passkey protection. Triggers include "walletdk react native", "createNativeWalletEngine", "embed a Lightning wallet in React Native", "createNativePasskeyCeremony", and "Expo wallet".
+description: Embed a self-custodial Lightning wallet in a React Native or Expo app with the WalletDK SDK (@lightninglabs/wavelength-react-native, @lightninglabs/wavelength-react). Use when integrating WalletDK into a React Native or Expo app, creating a native wallet engine, sending or receiving Lightning payments on device, wiring WalletDKProvider with a native engine, or adding native passkey protection. Triggers include "walletdk react native", "createNativeWalletEngine", "embed a Lightning wallet in React Native", "createNativePasskeyCeremony", and "Expo wallet".
 ---
 
 # WalletDK React Native integration
@@ -16,12 +16,12 @@ has a markdown twin at the same URL with `.md` appended; fetch those.
 
 Check the npm registry for current versions; do not rely on memorized ones.
 
-- `@lightninglabs/walletdk-react-native`: the native transport. A Turbo
+- `@lightninglabs/wavelength-react-native`: the native transport. A Turbo
   Module wrapping the wallet runtime compiled into the app binary.
   `createNativeClient()` builds a raw client; `createNativeWalletEngine()`
   wraps it in a `WalletEngine` and is the factory to use with the React
   provider. Re-exports everything from core.
-- `@lightninglabs/walletdk-react`: `<WalletDKProvider>` plus hooks. Takes an
+- `@lightninglabs/wavelength-react`: `<WalletDKProvider>` plus hooks. Takes an
   injected engine; it does not depend on the react-native package.
 
 ## Task routing

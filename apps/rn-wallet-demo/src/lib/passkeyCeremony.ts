@@ -1,4 +1,4 @@
-import { createNativePasskeyCeremony } from '@lightninglabs/walletdk-react-native';
+import { createNativePasskeyCeremony } from '@lightninglabs/wavelength-react-native';
 
 // The demo's relying party: the docs site serves the association files that
 // vouch for this app. Demo-grade trust; see the README. A single module-level

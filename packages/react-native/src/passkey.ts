@@ -1,11 +1,11 @@
 import {
   PASSKEY_PRF_SALT_HEX,
   PasskeyCancelledError,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 import type {
   PasskeyAssertion,
   PasskeyCeremony,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 
 // Whether a native ceremony rejection means the user dismissed the OS prompt.
 // iOS surfaces ASAuthorizationError code 1001 ("canceled"); Android surfaces

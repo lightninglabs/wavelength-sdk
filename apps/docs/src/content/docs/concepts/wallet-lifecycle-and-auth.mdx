@@ -22,7 +22,7 @@ The SDK maps the daemon's numeric proto enum to these strings at the boundary (`
 
 **RuntimePhase** is the broader lifecycle a host UI renders. It merges runtime boot/shutdown with wallet state, plus one phase the engine owns on its own:
 
-- **Runtime-owned phases**: `loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, `error`. The `WalletEngine` (from `@lightninglabs/walletdk-web`'s `createWebWalletEngine`, or the equivalent React Native factory) sets these while the runtime loads, `start()` runs, or `stop()` tears down. A failed `start()` or `stop()` lands directly on `'error'`; there is no separate failed sub-phase to branch on. `WalletDKProvider` (from `@lightninglabs/walletdk-react`) owns nothing here: it just publishes whichever engine you hand it. If you are calling `walletdk-core`/`walletdk-web` directly without an engine, you own deriving this state machine yourself.
+- **Runtime-owned phases**: `loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, `error`. The `WalletEngine` (from `@lightninglabs/wavelength-web`'s `createWebWalletEngine`, or the equivalent React Native factory) sets these while the runtime loads, `start()` runs, or `stop()` tears down. A failed `start()` or `stop()` lands directly on `'error'`; there is no separate failed sub-phase to branch on. `WalletDKProvider` (from `@lightninglabs/wavelength-react`) owns nothing here: it just publishes whichever engine you hand it. If you are calling `walletdk-core`/`walletdk-web` directly without an engine, you own deriving this state machine yourself.
 - **Wallet-owned phases** (derived by `phaseFromInfo()` in core): `needsWallet`, `locked`, `syncing`, `ready`.
 - **Engine-owned phase**: `restoring`. Unlike the wallet-owned phases, this one is never derived from `WalletInfo`; the engine enters it itself whenever `restoreWallet()` (`useWalletRestore()`'s `restore` in React) is called, and leaves it once the restored wallet reports ready. When the call sets `recoverState: true`, the server-assisted recovery scan is additionally tracked through `snapshot.recovery` for the lifetime of the scan. See [Restore a wallet](/guides/restore-a-wallet/) for the full flow.
 
@@ -66,8 +66,8 @@ In React, the same flow runs through `useWalletCreate()` and `useWalletUnlock()`
 2. `openWalletFromPasskey({ prfOutput })` unlocks (or creates) the wallet using that secret instead of a typed password.
 
 ```tsx title="passkey-flow.tsx"
-import { webPasskeyCeremony } from '@lightninglabs/walletdk-web';
-import { useWalletPasskey } from '@lightninglabs/walletdk-react';
+import { webPasskeyCeremony } from '@lightninglabs/wavelength-web';
+import { useWalletPasskey } from '@lightninglabs/wavelength-react';
 
 function PasskeyOnboard() {
   const { create, createPending } = useWalletPasskey(webPasskeyCeremony);

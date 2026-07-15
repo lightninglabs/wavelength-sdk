@@ -16,7 +16,7 @@ The React Native SDK is pre-release and not yet published to npm. The API
 surface is stable; iOS passkey support is still experimental.
 </Callout>
 
-`@lightninglabs/walletdk-react-native` is the React Native transport for
+`@lightninglabs/wavelength-react-native` is the React Native transport for
 WalletDK: the daemon compiled into the app binary via gomobile bindings,
 exposed as a standard [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient).
 [`createNativeWalletEngine()`](#createNativeWalletEngine) wraps that client in a
@@ -25,11 +25,11 @@ the entry point most apps want. It also ships the native (Android Credential
 Manager / iOS AuthenticationServices) passkey ceremony.
 
 <Callout type="tip" title="One import for the client and every type">
-This package re-exports the entire [`@lightninglabs/walletdk-core`](/reference/walletdk-core/)
-public surface (`export * from '@lightninglabs/walletdk-core'`). You only need
-to import from `@lightninglabs/walletdk-react-native` to get the client
+This package re-exports the entire [`@lightninglabs/wavelength-core`](/reference/walletdk-core/)
+public surface (`export * from '@lightninglabs/wavelength-core'`). You only need
+to import from `@lightninglabs/wavelength-react-native` to get the client
 factory, every request/result type, every enum, and `defaultConfig()`. There is
-no need to also depend on `@lightninglabs/walletdk-core` directly.
+no need to also depend on `@lightninglabs/wavelength-core` directly.
 </Callout>
 
 export const createNativeClientSig = `function createNativeClient(): WalletDKClient`;
@@ -78,7 +78,7 @@ A complete configuration object for `client.start()` or the engine factory's `co
 </Returns>
 
 ```ts
-import { defaultConfig } from '@lightninglabs/walletdk-react-native';
+import { defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const config = defaultConfig('signet', { dataDir: '/wallet' });
 ```
@@ -137,8 +137,8 @@ A live engine driving a freshly built native client. See [`WalletEngine`](/refer
 ]} />
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import { WalletDKProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),

@@ -1,4 +1,4 @@
-import type { WalletKind } from "@lightninglabs/walletdk-react";
+import type { WalletKind } from "@lightninglabs/wavelength-react";
 
 const prefix = "walletdk:wallet-kind:";
 

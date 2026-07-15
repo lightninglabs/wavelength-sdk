@@ -75,7 +75,7 @@ Worker mode spawns the bundled `walletdk-worker.js` (override with
 folder. Main-thread mode loads those scripts on the page directly.
 
 ```ts title="client.ts"
-import { createWebClient, defaultConfig } from '@lightninglabs/walletdk-web';
+import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 // Default: worker + OPFS (requires cross-origin isolation).
 const workerClient = createWebClient({

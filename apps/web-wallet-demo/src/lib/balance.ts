@@ -1,4 +1,4 @@
-import { Balance } from "@lightninglabs/walletdk-react";
+import { Balance } from "@lightninglabs/wavelength-react";
 
 // Money is read only from the Balance snapshot, never summed out of activity
 // entries. The daemon reports Balance atomically (confirmed_sat rises and

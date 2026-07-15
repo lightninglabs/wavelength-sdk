@@ -1,4 +1,4 @@
-import { createWalletEngine, type WalletEngine } from "@lightninglabs/walletdk-core";
+import { createWalletEngine, type WalletEngine } from "@lightninglabs/wavelength-core";
 import { FakeWalletDKClient } from "./fake-client";
 
 /**

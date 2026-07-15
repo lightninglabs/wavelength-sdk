@@ -1,5 +1,5 @@
-import { defaultConfig } from "@lightninglabs/walletdk-web";
-import { RuntimeConfig } from "@lightninglabs/walletdk-react";
+import { defaultConfig } from "@lightninglabs/wavelength-web";
+import { RuntimeConfig } from "@lightninglabs/wavelength-react";
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
 // excluded - this build targets test networks only.

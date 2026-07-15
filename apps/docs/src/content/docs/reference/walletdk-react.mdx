@@ -10,10 +10,10 @@ import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 
-`@lightninglabs/walletdk-react` is the React binding for WalletDK: a context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
+`@lightninglabs/wavelength-react` is the React binding for WalletDK: a context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
 
 <Callout type="note">
-This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/walletdk-react` instead of adding `@lightninglabs/walletdk-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [walletdk-web](/reference/walletdk-web/) or `createNativeWalletEngine` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
+This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/wavelength-react` instead of adding `@lightninglabs/wavelength-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [walletdk-web](/reference/walletdk-web/) or `createNativeWalletEngine` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
 </Callout>
 
 ## Provider
@@ -469,7 +469,7 @@ The per-platform contract `useWalletPasskey` drives. It is defined in `walletdk-
 
 ## Re-exported from walletdk-core
 
-`@lightninglabs/walletdk-react` re-exports the full `@lightninglabs/walletdk-core` surface (`export * from '@lightninglabs/walletdk-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/walletdk-web`, `@lightninglabs/walletdk-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
+`@lightninglabs/wavelength-react` re-exports the full `@lightninglabs/wavelength-core` surface (`export * from '@lightninglabs/wavelength-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/wavelength-web`, `@lightninglabs/wavelength-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
 
 ## See also
 

@@ -5,7 +5,7 @@ import {
   type NativeActivityEvent,
   type WalletdkNativeModule,
 } from './client.ts';
-import type { WalletDKEvent } from '@lightninglabs/walletdk-core';
+import type { WalletDKEvent } from '@lightninglabs/wavelength-core';
 
 // A scriptable fake of the native module: records calls, replays canned JSON,
 // and hands the test the event listener so it can inject activity events.

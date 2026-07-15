@@ -5,8 +5,8 @@ self-custodial Lightning wallet embedded in an Expo app. It exercises the full
 wallet flow: create, restore, or unlock (password or passkey), recovery-phrase
 backup, on-chain boarding and Lightning receive with scannable QRs, send, live
 activity, runtime controls, local-data wipe, and light/dark themes, all
-through [`@lightninglabs/walletdk-react-native`](../../packages/react-native)
-and the shared [`@lightninglabs/walletdk-react`](../../packages/react) hooks.
+through [`@lightninglabs/wavelength-react-native`](../../packages/react-native)
+and the shared [`@lightninglabs/wavelength-react`](../../packages/react) hooks.
 
 This app is a development harness, not a published product. It runs as an Expo
 **development build**; Expo Go cannot load the compiled wallet runtime.
@@ -34,7 +34,7 @@ From the repository root:
 #    daemon for every ABI and takes several minutes; rerun it whenever the
 #    paired daemon revision changes.
 DAREPO_DIR=/path/to/daemon-checkout \
-  pnpm --filter @lightninglabs/walletdk-react-native run fetch-bindings
+  pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
 
 # 2. Install and build the workspace.
 pnpm install && pnpm build

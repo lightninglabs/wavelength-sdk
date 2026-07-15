@@ -1,6 +1,6 @@
 ---
 name: walletdk-web
-description: Embed a self-custodial Lightning wallet in a web app with the WalletDK SDK (@lightninglabs/walletdk-web, @lightninglabs/walletdk-react, @lightninglabs/walletdk-core). Use when integrating WalletDK into a browser or React app, creating a wallet client, sending or receiving Lightning payments in the browser, wiring WalletDKProvider, hosting wasm runtime assets, or adding passkey protection. Triggers include "walletdk", "embed a Lightning wallet", "createWebWalletEngine", "WalletDKProvider", "useWalletPasskey", and "walletdk runtime assets".
+description: Embed a self-custodial Lightning wallet in a web app with the WalletDK SDK (@lightninglabs/wavelength-web, @lightninglabs/wavelength-react, @lightninglabs/wavelength-core). Use when integrating WalletDK into a browser or React app, creating a wallet client, sending or receiving Lightning payments in the browser, wiring WalletDKProvider, hosting wasm runtime assets, or adding passkey protection. Triggers include "walletdk", "embed a Lightning wallet", "createWebWalletEngine", "WalletDKProvider", "useWalletPasskey", and "walletdk runtime assets".
 ---
 
 # WalletDK web integration
@@ -16,13 +16,13 @@ has a markdown twin at the same URL with `.md` appended; fetch those.
 
 Check the npm registry for current versions; do not rely on memorized ones.
 
-- `@lightninglabs/walletdk-web`: the browser transport. `createWebClient()`
+- `@lightninglabs/wavelength-web`: the browser transport. `createWebClient()`
   builds a raw client; `createWebWalletEngine()` wraps it in a `WalletEngine`
   and is the factory to use with the React provider. Re-exports everything
   from core.
-- `@lightninglabs/walletdk-react`: `<WalletDKProvider>` plus hooks. Takes an
+- `@lightninglabs/wavelength-react`: `<WalletDKProvider>` plus hooks. Takes an
   injected engine; it does not depend on the web package.
-- `@lightninglabs/walletdk-core`: the transport-agnostic contract and types.
+- `@lightninglabs/wavelength-core`: the transport-agnostic contract and types.
   Install it directly only when building a custom binding.
 
 ## Task routing

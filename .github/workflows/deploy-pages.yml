@@ -45,7 +45,7 @@ jobs:
             exit 1
           fi
           pnpm --filter web-wallet-demo run wasm:fetch
-      - run: pnpm --filter @lightninglabs/walletdk-docs run build
+      - run: pnpm --filter @lightninglabs/wavelength-docs run build
       - run: pnpm --filter web-wallet-demo run build
 
       # The app requests runtime/<version>/ and the fetch script stages it;

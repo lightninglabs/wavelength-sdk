@@ -1,4 +1,4 @@
-import { DEBUG_LEVELS } from "@lightninglabs/walletdk-web";
+import { DEBUG_LEVELS } from "@lightninglabs/wavelength-web";
 import { Field } from "./ui/Field";
 import { Select } from "./ui/Select";
 import { ToggleRow } from "./ui/ToggleRow";

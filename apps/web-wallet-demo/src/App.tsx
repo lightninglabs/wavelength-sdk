@@ -3,8 +3,8 @@ import {
   useWallet,
   useWalletActivity,
   useWalletBalance,
-} from "@lightninglabs/walletdk-react";
-import type { WalletKind } from "@lightninglabs/walletdk-react";
+} from "@lightninglabs/wavelength-react";
+import type { WalletKind } from "@lightninglabs/wavelength-react";
 import { AppShell } from "./components/layout/AppShell";
 import { RecoveryBanner } from "./components/RecoveryBanner";
 import { AppTab } from "./components/layout/nav";

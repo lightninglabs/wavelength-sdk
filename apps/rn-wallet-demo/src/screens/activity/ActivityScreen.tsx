@@ -3,7 +3,7 @@ import {
   Entry,
   useWalletActivity,
   useWalletRefresh,
-} from '@lightninglabs/walletdk-react';
+} from '@lightninglabs/wavelength-react';
 import { ActivityRow } from '../../components/ActivityRow';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';

@@ -24,7 +24,7 @@ Notes for agents:
 
 - Every docs page has a markdown twin at the same URL with .md appended.
   Fetch the .md URLs below instead of the HTML.
-- Check the npm registry for current @lightninglabs/walletdk-* versions
+- Check the npm registry for current @lightninglabs/wavelength-* versions
   instead of relying on memorized ones.
 - For integration work, install the WalletDK skills:
   npx skills add lightninglabs/dawallet (goes live at launch)

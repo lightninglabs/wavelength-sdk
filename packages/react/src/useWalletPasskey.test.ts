@@ -4,7 +4,7 @@ import { act } from "@testing-library/react";
 import {
   PasskeyCancelledError,
   type PasskeyCeremony,
-} from "@lightninglabs/walletdk-core";
+} from "@lightninglabs/wavelength-core";
 import { createTestEngine } from "./testing/engine";
 import { flushMicrotasks, renderWithEngine } from "./testing/render";
 import { useWalletPasskey } from "./useWalletPasskey";

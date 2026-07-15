@@ -1,5 +1,5 @@
 {
-  "name": "@lightninglabs/walletdk-react",
+  "name": "@lightninglabs/wavelength-react",
   "version": "0.0.0",
   "private": false,
   "publishConfig": { "access": "public" },
@@ -19,7 +19,7 @@
     "test": "node --import tsx --import ./src/testing/setup.ts --test"
   },
   "dependencies": {
-    "@lightninglabs/walletdk-core": "workspace:*"
+    "@lightninglabs/wavelength-core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

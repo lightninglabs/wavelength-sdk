@@ -1,11 +1,11 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { WalletDKProvider } from "@lightninglabs/walletdk-react";
+import { WalletDKProvider } from "@lightninglabs/wavelength-react";
 import {
   createWebWalletEngine,
   RUNTIME_MANIFEST_VERSION,
   webPasskeyCeremony,
-} from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-web";
 import { App } from "./App";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { consumePendingWipe } from "./lib/wipeLocalData";

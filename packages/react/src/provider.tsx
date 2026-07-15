@@ -1,4 +1,4 @@
-import type { WalletEngine } from "@lightninglabs/walletdk-core";
+import type { WalletEngine } from "@lightninglabs/wavelength-core";
 import { ReactNode, createContext, useContext } from "react";
 
 const WalletEngineContext = createContext<WalletEngine | null>(null);
@@ -16,15 +16,15 @@ export function WalletDKProvider({
   children: ReactNode;
   /**
    * A WalletEngine from any transport, e.g. createWebWalletEngine() from
-   * \@lightninglabs/walletdk-web.
+   * \@lightninglabs/wavelength-web.
    */
   engine: WalletEngine;
 }) {
   if (!engine) {
     throw new Error(
       "WalletDKProvider requires an `engine` prop. Create one with " +
-        "createWebWalletEngine() from @lightninglabs/walletdk-web (or " +
-        "createNativeWalletEngine() from @lightninglabs/walletdk-react-native).",
+        "createWebWalletEngine() from @lightninglabs/wavelength-web (or " +
+        "createNativeWalletEngine() from @lightninglabs/wavelength-react-native).",
     );
   }
 

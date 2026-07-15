@@ -3,7 +3,7 @@
 // with createWebWalletEngine (walletdk-web) or createNativeWalletEngine
 // (walletdk-react-native) and pass it to WalletDKProvider. Keeping this
 // binding transport-agnostic is what lets it run over web or React Native.
-export * from "@lightninglabs/walletdk-core";
+export * from "@lightninglabs/wavelength-core";
 
 // The provider and the engine escape hatch.
 export { WalletDKProvider, useWalletEngine } from "./provider";

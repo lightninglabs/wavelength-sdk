@@ -6,7 +6,7 @@ import {
   useWalletBalance,
   useWalletDeposit,
   useWalletReceive,
-} from '@lightninglabs/walletdk-react';
+} from '@lightninglabs/wavelength-react';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
 import { Band } from '../../components/ui/Band';

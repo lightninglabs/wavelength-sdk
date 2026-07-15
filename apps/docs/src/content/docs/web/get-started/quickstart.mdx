@@ -12,7 +12,7 @@ import { DEMO_APP_URL } from '~/config/site';
 Install the two packages you need: `walletdk-web` for the browser wallet runtime and `walletdk-react` for the React bindings.
 
 ```sh
-npm install @lightninglabs/walletdk-web @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-web @lightninglabs/wavelength-react
 ```
 
 Requires Node 20 or later to run locally. The runtime itself runs in Chrome 100+, Firefox 110+, and Safari 16+. No special build config is needed for Vite or Next.js.
@@ -24,8 +24,8 @@ Requires Node 20 or later to run locally. The runtime itself runs in Chrome 100+
 Create a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) with [`createWebWalletEngine()`](/reference/walletdk-web/#createWebWalletEngine), and wrap your app with [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
 
 ```tsx title="App.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
-import { WalletDKProvider, useWallet } from '@lightninglabs/walletdk-react';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import { WalletDKProvider, useWallet } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: '/walletdk/',
@@ -60,7 +60,7 @@ mainnet has no preset: build its `RuntimeConfig` by hand with `allowMainnet: tru
 Call `create` from [`useWalletCreate`](/reference/walletdk-react/#useWalletCreate) to generate a new HD seed in the browser. The seed is encrypted locally and never transmitted.
 
 ```tsx title="Onboard.tsx"
-import { useWalletCreate } from '@lightninglabs/walletdk-react';
+import { useWalletCreate } from '@lightninglabs/wavelength-react';
 
 function Onboard() {
   const { create, createPending } = useWalletCreate();
@@ -88,7 +88,7 @@ Once `create` resolves, `phase` from `useWallet` automatically advances (through
 Call `send` from [`useWalletSend`](/reference/walletdk-react/#useWalletSend) with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
 
 ```tsx title="SendButton.tsx"
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendButton() {
   const { send, sendPending } = useWalletSend();

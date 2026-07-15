@@ -48,7 +48,7 @@ tracked separately through [`useWalletRecovery()`](/reference/walletdk-react/#us
 wallet immediately while balances and history fill in behind them.
 
 ```tsx title="Restore.tsx"
-import { useWallet, useWalletRestore } from '@lightninglabs/walletdk-react';
+import { useWallet, useWalletRestore } from '@lightninglabs/wavelength-react';
 
 function Restore({ mnemonic }: { mnemonic: string[] }) {
   const { phase } = useWallet();
@@ -88,7 +88,7 @@ the user knows the scan is still running, and report the outcome when it
 settles.
 
 ```tsx title="RecoveryBanner.tsx"
-import { useWalletRecovery } from '@lightninglabs/walletdk-react';
+import { useWalletRecovery } from '@lightninglabs/wavelength-react';
 
 function RecoveryBanner() {
   const { recovery, acknowledge } = useWalletRecovery();

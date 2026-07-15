@@ -4,9 +4,9 @@ import {
   useWalletPasskey,
   useWalletRecovery,
   useWalletRestore,
-} from "@lightninglabs/walletdk-react";
-import type { WalletKind } from "@lightninglabs/walletdk-react";
-import { webPasskeyCeremony } from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-react";
+import type { WalletKind } from "@lightninglabs/wavelength-react";
+import { webPasskeyCeremony } from "@lightninglabs/wavelength-web";
 import { CreateWalletScreen } from "./CreateWalletScreen";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreWalletScreen } from "./RestoreWalletScreen";

@@ -14,10 +14,10 @@ Your app drives it through a small, typed client.
 
 | Package | What it is |
 |---|---|
-| [`@lightninglabs/walletdk-core`](packages/core) | The contract: types, the `WalletDKClient` interface, errors, and enums. No DOM, no transport. |
-| [`@lightninglabs/walletdk-web`](packages/web) | The browser (wasm) transport. Framework-agnostic: use it directly from vanilla JS, Vue, Svelte, or React. Re-exports `core`. |
-| [`@lightninglabs/walletdk-react-native`](packages/react-native) | The React Native transport. Re-exports `core`. |
-| [`@lightninglabs/walletdk-react`](packages/react) | React provider + hooks. |
+| [`@lightninglabs/wavelength-core`](packages/core) | The contract: types, the `WalletDKClient` interface, errors, and enums. No DOM, no transport. |
+| [`@lightninglabs/wavelength-web`](packages/web) | The browser (wasm) transport. Framework-agnostic: use it directly from vanilla JS, Vue, Svelte, or React. Re-exports `core`. |
+| [`@lightninglabs/wavelength-react-native`](packages/react-native) | The React Native transport. Re-exports `core`. |
+| [`@lightninglabs/wavelength-react`](packages/react) | React provider + hooks. |
 
 `walletdk-react` is transport-agnostic: it depends only on `core` and takes an
 injected engine, so the same binding runs over both the web and React Native
@@ -28,10 +28,10 @@ type from `core`, so an app imports the client and its types from one place.
 
 ```sh
 # React (the binding + the web transport)
-npm install @lightninglabs/walletdk-react @lightninglabs/walletdk-web
+npm install @lightninglabs/wavelength-react @lightninglabs/wavelength-web
 
 # Vanilla / Vue / Svelte (transport only)
-npm install @lightninglabs/walletdk-web
+npm install @lightninglabs/wavelength-web
 ```
 
 You build the engine with `createWebWalletEngine()` from `walletdk-web` (or
@@ -47,8 +47,8 @@ import {
   useWallet,
   useWalletBalance,
   useWalletSend,
-} from "@lightninglabs/walletdk-react";
-import { createWebWalletEngine, defaultConfig } from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-react";
+import { createWebWalletEngine, defaultConfig } from "@lightninglabs/wavelength-web";
 
 // Build the engine once. runtimeBaseUrl points at the hosted wasm runtime
 // assets (see below). config + autoStart boot the embedded wallet as soon as
@@ -96,7 +96,7 @@ import {
   createWebClient,
   defaultConfig,
   WalletState,
-} from "@lightninglabs/walletdk-web";
+} from "@lightninglabs/wavelength-web";
 
 const client = createWebClient({ runtimeBaseUrl: "https://your-host/walletdk/" });
 
@@ -120,7 +120,7 @@ canonical public endpoints for `signet`, `testnet`, and `testnet4`. Override onl
 what you need:
 
 ```ts
-import { defaultConfig } from "@lightninglabs/walletdk-web";
+import { defaultConfig } from "@lightninglabs/wavelength-web";
 
 defaultConfig("signet");
 defaultConfig("signet", { dataDir: "my-wallet" });
@@ -151,7 +151,7 @@ in-browser wallet. Host them together at one base URL and point `runtimeBaseUrl`
 at it:
 
 ```ts
-import { RUNTIME_ASSET_FILES } from "@lightninglabs/walletdk-web";
+import { RUNTIME_ASSET_FILES } from "@lightninglabs/wavelength-web";
 // → walletdk.wasm.gz, wasm_exec.js, sqlite-*.js, …
 ```
 

@@ -18,7 +18,7 @@ import type {
   UnlockWalletResult,
   WalletDKLogPayload,
   WalletInfo,
-} from "@lightninglabs/walletdk-core";
+} from "@lightninglabs/wavelength-core";
 import { useCallback } from "react";
 import { useWalletEngine } from "./provider";
 import { useWalletMutationState } from "./useWalletMutation";

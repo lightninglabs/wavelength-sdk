@@ -11,7 +11,7 @@ import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
-`@lightninglabs/walletdk-web` is the browser/wasm transport for WalletDK: it
+`@lightninglabs/wavelength-web` is the browser/wasm transport for WalletDK: it
 runs the embedded daemon as WebAssembly, either in a dedicated Web Worker (the
 default) or on the page's main thread, and exposes it as a standard
 [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient). `createWebWalletEngine()`
@@ -20,11 +20,11 @@ in one call, which is the entry point most apps want. It also ships the
 browser (WebAuthn/PRF) passkey ceremony.
 
 <Callout type="tip" title="One import for the client and every type">
-This package re-exports the entire [`@lightninglabs/walletdk-core`](/reference/walletdk-core/)
-public surface (`export * from '@lightninglabs/walletdk-core'`). You only need
-to import from `@lightninglabs/walletdk-web` to get the client factory, every
+This package re-exports the entire [`@lightninglabs/wavelength-core`](/reference/walletdk-core/)
+public surface (`export * from '@lightninglabs/wavelength-core'`). You only need
+to import from `@lightninglabs/wavelength-web` to get the client factory, every
 request/result type, every enum, and `defaultConfig()`. There is no need to
-also depend on `@lightninglabs/walletdk-core` directly.
+also depend on `@lightninglabs/wavelength-core` directly.
 </Callout>
 
 export const createWebClientSig = `function createWebClient(
@@ -132,7 +132,7 @@ A complete configuration object for `client.start()` or the engine factory's `co
 </Returns>
 
 ```ts
-import { defaultConfig } from '@lightninglabs/walletdk-web';
+import { defaultConfig } from '@lightninglabs/wavelength-web';
 
 const config = defaultConfig('signet', { dataDir: 'my-wallet' });
 ```
@@ -152,7 +152,7 @@ The per-network endpoint values are on the
 
 Creates and returns a `WalletDKClient` that runs the embedded daemon in the
 browser. Call once at application startup, then wrap it with
-[`createWalletEngine`](/reference/walletdk-core/#createWalletEngine) from `@lightninglabs/walletdk-core` (or use
+[`createWalletEngine`](/reference/walletdk-core/#createWalletEngine) from `@lightninglabs/wavelength-core` (or use
 [`createWebWalletEngine`](#creating-an-engine) below to do both in one call)
 or call `start(defaultConfig(network))` directly. Defaults to the Web Worker
 transport ([`WorkerWalletDKClient`](#transports)); pass `runtimeThread:
@@ -174,7 +174,7 @@ A live client instance. Call `ready()` to wait for the WASM runtime to load, the
 
 Browser-specific options for `createWebClient`. The config passed to
 `client.start()` is separate: use `defaultConfig(network)` from
-`@lightninglabs/walletdk-web`.
+`@lightninglabs/wavelength-web`.
 
 <Signature title="walletdk-web.d.ts" code={webClientOptionsSig} />
 
@@ -230,8 +230,8 @@ The browser-specific settings from `WebClientOptions` combined with [`WalletEngi
 ]} />
 
 ```tsx title="main.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/walletdk-web';
-import { WalletDKProvider } from '@lightninglabs/walletdk-react';
+import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import { WalletDKProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: 'https://your-host/walletdk/',
@@ -324,7 +324,7 @@ client methods, and the runtime asset set all come from this one daemon
 revision. Hosted asset sets live in a directory named after this value, so a
 version bump changes every asset URL and browsers can never serve a stale
 cached runtime. Defined in (and re-exported from)
-`@lightninglabs/walletdk-core`.
+`@lightninglabs/wavelength-core`.
 
 <Signature title="walletdk-web.d.ts" code={runtimeManifestVersionSig} />
 
@@ -358,7 +358,7 @@ from:
   and calling `WebAssembly.instantiate` on the bytes directly, so a
   misconfigured MIME type does not break self-hosted runtimes.
 - **Worker entry resolution:** the worker script itself (unlike the daemon
-  binaries above) ships inside `@lightninglabs/walletdk-web` and is emitted
+  binaries above) ships inside `@lightninglabs/wavelength-web` and is emitted
   by your bundler via `new URL('../walletdk-worker.js', import.meta.url)`, so
   it versions with the SDK and needs no separate hosting. `runtimeBaseUrl` is
   still forwarded to the worker (via its `$init` message) even when you
@@ -450,7 +450,7 @@ The asserted credential's PRF output and credential id. Rejects if authenticatio
 <ApiSymbol name="PasskeyAssertion" kind="type">
 
 Result of a passkey registration or assertion ceremony. Defined in
-[`@lightninglabs/walletdk-core`](/reference/walletdk-core/#PasskeyAssertion)
+[`@lightninglabs/wavelength-core`](/reference/walletdk-core/#PasskeyAssertion)
 and surfaced here through the re-export (see the callout at the top of this
 page); shown in full because it is the return type of the two functions
 above.
@@ -483,7 +483,7 @@ credential, which lets the OS unlock it directly without showing a chooser.
 Types like `SendRequest` and `ReceiveRequest` referenced by
 [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient) methods
 (`send`, `prepareSend`, `receive`, and so on) originate in
-[`@lightninglabs/walletdk-core`](/reference/walletdk-core/) and are available
+[`@lightninglabs/wavelength-core`](/reference/walletdk-core/) and are available
 here only because `walletdk-web` re-exports the entire core package (see the
 callout at the top of this page). The `.d.ts` filename shown in each
 signature below is illustrative of the shape, not of which package physically

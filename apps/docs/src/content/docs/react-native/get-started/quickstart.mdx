@@ -17,7 +17,7 @@ surface is stable; iOS passkey support is still experimental.
 Install the two packages you need: `walletdk-react-native` for the native wallet runtime and `walletdk-react` for the React bindings.
 
 ```sh
-npm install @lightninglabs/walletdk-react-native @lightninglabs/walletdk-react
+npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
 Requires React Native 0.76+ with the New Architecture enabled, iOS 15.1+, and Android minSdk 24. Expo apps need a development build, not Expo Go: the native wallet runtime is a compiled module that Expo Go cannot load. See [Requirements](/react-native/get-started/requirements/) for the full platform matrix.
@@ -32,8 +32,8 @@ Create a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) with [`createN
 
 ```tsx title="App.tsx"
 import { Text } from 'react-native';
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/walletdk-react-native';
-import { WalletDKProvider, useWallet } from '@lightninglabs/walletdk-react';
+import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import { WalletDKProvider, useWallet } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -68,7 +68,7 @@ Call `create` from [`useWalletCreate`](/reference/walletdk-react/#useWalletCreat
 
 ```tsx title="Onboard.tsx"
 import { Button } from 'react-native';
-import { useWalletCreate } from '@lightninglabs/walletdk-react';
+import { useWalletCreate } from '@lightninglabs/wavelength-react';
 
 function Onboard() {
   const { create, createPending } = useWalletCreate();
@@ -99,7 +99,7 @@ Call `send` from [`useWalletSend`](/reference/walletdk-react/#useWalletSend) wit
 
 ```tsx title="SendButton.tsx"
 import { Button } from 'react-native';
-import { useWalletSend } from '@lightninglabs/walletdk-react';
+import { useWalletSend } from '@lightninglabs/wavelength-react';
 
 function SendButton() {
   const { send, sendPending } = useWalletSend();

@@ -23,7 +23,7 @@ library of your choice for easy scanning.
 
 ```tsx title="deposit.tsx"
 import { useState } from 'react';
-import { useWalletDeposit } from '@lightninglabs/walletdk-react';
+import { useWalletDeposit } from '@lightninglabs/wavelength-react';
 
 function DepositAddress() {
   const { deposit, depositPending, depositError, resetDeposit } = useWalletDeposit();
@@ -69,7 +69,7 @@ Filter on `entry.kind === 'deposit'` to surface only deposit events, or display
 the full feed with status badges so the user can see the progress.
 
 ```tsx title="deposit.tsx"
-import { useWalletActivity } from '@lightninglabs/walletdk-react';
+import { useWalletActivity } from '@lightninglabs/wavelength-react';
 
 function WatchDeposit() {
   const activity = useWalletActivity();

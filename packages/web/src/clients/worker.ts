@@ -3,7 +3,7 @@ import {
   camelizeKeys,
   WalletDKError,
   WalletDKEventType,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
 import { PendingCall, toWalletDKEvent } from '../util';

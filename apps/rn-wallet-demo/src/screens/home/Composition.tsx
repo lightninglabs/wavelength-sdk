@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { Balance } from '@lightninglabs/walletdk-react';
+import { Balance } from '@lightninglabs/wavelength-react';
 import {
   ALWAYS_SHOWN_BUCKETS,
   BucketKey,

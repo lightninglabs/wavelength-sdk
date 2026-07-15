@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { WalletKind } from '@lightninglabs/walletdk-react';
+import type { WalletKind } from '@lightninglabs/wavelength-react';
 
 // The demo always uses the default data dir, so fixed keys are enough (the
 // web demo keys the same markers by data dir because its form lets the dir

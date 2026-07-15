@@ -1,7 +1,7 @@
 import type {
   OpenWalletFromPasskeyResult,
   PasskeyCeremony,
-} from "@lightninglabs/walletdk-core";
+} from "@lightninglabs/wavelength-core";
 import { useCallback, useEffect, useState } from "react";
 import { useWalletEngine } from "./provider";
 import { useWalletMutationState } from "./useWalletMutation";

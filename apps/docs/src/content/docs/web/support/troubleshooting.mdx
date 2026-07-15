@@ -49,7 +49,7 @@ unavailable.
 
 On the web, `useWalletPasskey` (from `walletdk-react`) takes a `PasskeyCeremony`
 implementation as its argument; pass `webPasskeyCeremony` from
-`@lightninglabs/walletdk-web`. See the [passkey guide](/guides/use-a-passkey/)
+`@lightninglabs/wavelength-web`. See the [passkey guide](/guides/use-a-passkey/)
 for a full wiring example.
 
 ### Connection refused (wrong URLs or ports)
@@ -96,7 +96,7 @@ profile.
 
 ### Metro or bundler cache serving stale SDK code
 
-After upgrading `@lightninglabs/walletdk-web` or rebuilding WASM, the browser
+After upgrading `@lightninglabs/wavelength-web` or rebuilding WASM, the browser
 still loads an old worker or runtime manifest.
 
 **Fix:** For Expo/Metro workflows, run `npx expo start --clear` or delete

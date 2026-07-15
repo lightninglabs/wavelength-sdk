@@ -92,12 +92,12 @@ export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
 ```sh
 pnpm build && pnpm typecheck        # build FIRST; typecheck resolves dist/*.d.ts
 pnpm test:api-docs                  # extractor unit tests (7+)
-pnpm --filter @lightninglabs/walletdk-web test
+pnpm --filter @lightninglabs/wavelength-web test
 # Docs Playwright: its webServer has reuseExistingServer:true on port 4321, so
 # it will silently attach to a stale preview from another worktree/session and
 # serve an OLD build (a 404 for a brand-new page is almost always this, not a
 # code bug). Pass a free PORT so it builds and serves THIS worktree fresh:
-PORT=4399 DAREPO_DIR=... pnpm --filter @lightninglabs/walletdk-docs test
+PORT=4399 DAREPO_DIR=... pnpm --filter @lightninglabs/wavelength-docs test
 DAREPO_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
   pnpm --filter web-wallet-demo run build && \
   pnpm --filter web-wallet-demo run test   # Playwright smoke test: the gold standard
@@ -124,7 +124,7 @@ the test.
 - Adding/removing an RPC without bumping the docs tests that hardcode the method count: `apps/docs/tests/nav.spec.ts` and `api-data.spec.ts` assert a literal count ("fifteen"/`15`), and `api-method.spec.ts` + `agent-artifacts.spec.ts` iterate every method (so the new page must actually build and be reachable).
 - Forgetting that a new interface method breaks `packages/core/src/testing/fake-client.ts` (it `implements WalletDKClient`) and must be added to `packages/core/src/index.ts`.
 - Changing the runtime asset file list in fewer than all four places.
-- Guessed package filters: the docs app is `@lightninglabs/walletdk-docs`, the web package is `@lightninglabs/walletdk-web`, the demo is `web-wallet-demo`.
+- Guessed package filters: the docs app is `@lightninglabs/wavelength-docs`, the web package is `@lightninglabs/wavelength-web`, the demo is `web-wallet-demo`.
 
 ## After the sync: improve this skill
 

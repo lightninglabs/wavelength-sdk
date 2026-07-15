@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { useWalletInfo, useWalletLogs } from '@lightninglabs/walletdk-react';
+import { useWalletInfo, useWalletLogs } from '@lightninglabs/wavelength-react';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Card } from '../../components/ui/Card';

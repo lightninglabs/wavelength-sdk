@@ -6,7 +6,7 @@ import {
   type DistributiveOmit,
   type WalletEngine,
   type WalletEngineOptions,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 import NativeWalletdk from './NativeWalletdk';
 import { NativeWalletDKClient } from './client';
 import {
@@ -45,7 +45,7 @@ export type NativeWalletEngineOptions = DistributiveOmit<
 /**
  * Creates a {@link WalletEngine} over the React Native transport: the
  * one-call setup for an RN app. Pass the engine to WalletDKProvider from
- * \@lightninglabs/walletdk-react.
+ * \@lightninglabs/wavelength-react.
  */
 export function createNativeWalletEngine(
   options: NativeWalletEngineOptions = {},
@@ -99,4 +99,4 @@ export type {
 
 // Re-export the core contract so an RN consumer can import the client and
 // every type/enum from this one package, the way walletdk-web already does.
-export * from '@lightninglabs/walletdk-core';
+export * from '@lightninglabs/wavelength-core';

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import type { CreateWalletResult } from "@lightninglabs/walletdk-react";
-import { useWalletRecovery } from "@lightninglabs/walletdk-react";
+import type { CreateWalletResult } from "@lightninglabs/wavelength-react";
+import { useWalletRecovery } from "@lightninglabs/wavelength-react";
 import { CheckCircle2, TriangleAlert, X } from "lucide-react";
 import { Spinner } from "./ui/Spinner";
 

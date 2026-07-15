@@ -3,12 +3,12 @@ import {
   WalletDKError,
   camelizeKeys,
   errorMessage,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 import type {
   Entry,
   RuntimeConfig,
   WalletInfo,
-} from '@lightninglabs/walletdk-core';
+} from '@lightninglabs/wavelength-core';
 
 /**
  * The subset of the native Turbo Module the client depends on. Narrowed to an
