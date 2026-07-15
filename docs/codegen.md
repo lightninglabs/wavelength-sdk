@@ -1,7 +1,7 @@
 # Type generation (`pnpm gen:types`)
 
 `packages/core/src/generated.ts` is **generated** from the daemon's Go facade
-types (`sdk/walletdk` in [darepo-client](https://github.com/lightninglabs/darepo-client)),
+types (`sdk/wavewalletdk` in [wavelength](https://github.com/lightninglabs/wavelength)),
 which are the source of truth for the JSON the wasm runtime returns. Generating
 them keeps the TypeScript types in lock-step with the daemon instead of being
 hand-maintained (and drifting).
@@ -38,7 +38,7 @@ has (it builds the wasm runtime from the same checkout).
 
 ## What it does NOT do
 
-- It does **not** touch `darepo-client`; it only reads it (no wire-format change).
+- It does **not** touch `wavelength`; it only reads it (no wire-format change).
 - Request types and the `WavelengthClient` interface stay hand-authored
   (`packages/core/src/requests.ts` and `packages/core/src/client.ts`): requests
   carry real semantics (base64-encoding `[]byte` password fields, config folding)

@@ -19,9 +19,9 @@ Your app drives it through a small, typed client.
 | [`@lightninglabs/wavelength-react-native`](packages/react-native) | The React Native transport. Re-exports `core`. |
 | [`@lightninglabs/wavelength-react`](packages/react) | React provider + hooks. |
 
-`walletdk-react` is transport-agnostic: it depends only on `core` and takes an
+`wavelength-react` is transport-agnostic: it depends only on `core` and takes an
 injected engine, so the same binding runs over both the web and React Native
-transports. `walletdk-web` and `walletdk-react-native` each re-export every
+transports. `wavelength-web` and `wavelength-react-native` each re-export every
 type from `core`, so an app imports the client and its types from one place.
 
 ## Install
@@ -34,8 +34,8 @@ npm install @lightninglabs/wavelength-react @lightninglabs/wavelength-web
 npm install @lightninglabs/wavelength-web
 ```
 
-You build the engine with `createWebWalletEngine()` from `walletdk-web` (or
-`createNativeWalletEngine()` from `walletdk-react-native` on mobile). In React
+You build the engine with `createWebWalletEngine()` from `wavelength-web` (or
+`createNativeWalletEngine()` from `wavelength-react-native` on mobile). In React
 you pass that engine to `WavelengthProvider`; the provider itself is
 transport-agnostic and works the same way with either.
 
@@ -54,7 +54,7 @@ import { createWebWalletEngine, defaultConfig } from "@lightninglabs/wavelength-
 // assets (see below). config + autoStart boot the embedded wallet as soon as
 // the wasm runtime is ready.
 const engine = createWebWalletEngine({
-  runtimeBaseUrl: "https://your-host/walletdk/",
+  runtimeBaseUrl: "https://your-host/wavelength/",
   config: defaultConfig("signet"),
   autoStart: true,
 });
@@ -98,7 +98,7 @@ import {
   WalletState,
 } from "@lightninglabs/wavelength-web";
 
-const client = createWebClient({ runtimeBaseUrl: "https://your-host/walletdk/" });
+const client = createWebClient({ runtimeBaseUrl: "https://your-host/wavelength/" });
 
 await client.ready();                       // wasm runtime loaded
 await client.start(defaultConfig("signet")); // boot the embedded wallet

@@ -62,7 +62,7 @@ test('mirrors contain converted content, not html', async ({ request }) => {
 test('agents page renders the hub content', async ({ page }) => {
   await page.goto('/agents/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Build with agents');
-  await expect(page.getByText('npx skills add lightninglabs/dawallet').first()).toBeVisible();
+  await expect(page.getByText('npx skills add lightninglabs/wavelength-sdk').first()).toBeVisible();
   await expect(page.locator('.wdk-tabs__strip button')).toHaveCount(4);
   await page.locator('.wdk-tabs__strip button').nth(2).click();
   await expect(page.getByText('gRPC or REST').first()).toBeVisible();

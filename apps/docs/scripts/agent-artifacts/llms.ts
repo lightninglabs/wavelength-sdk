@@ -27,7 +27,7 @@ Notes for agents:
 - Check the npm registry for current @lightninglabs/wavelength-* versions
   instead of relying on memorized ones.
 - For integration work, install the Wavelength skills:
-  npx skills add lightninglabs/dawallet (goes live at launch)
+  npx skills add lightninglabs/wavelength-sdk (goes live at launch)
   npx skills add ${new URL(SITE_URL).host}
 - The full corpus in one file: ${SITE_URL}/llms-full.txt
 `;

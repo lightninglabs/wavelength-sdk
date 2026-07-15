@@ -87,14 +87,14 @@ the two SDK surfaces can be compared directly:
 ## Passkeys
 
 The create/unlock screen offers passkey buttons when the platform supports
-them. The relying party is `dadocs.lightning.engineering`, whose
+them. The relying party is `wavelength.lightning.engineering`, whose
 `/.well-known/` association files vouch for this demo app; that association
 is demo-grade on purpose (it lists the shared debug signing certificate every
 local build uses), so treat wallets created with it as throwaways.
 
 - **Android:** works on a Play Store emulator image with a signed-in Google
   account and a device screen lock (PIN) set. The association file must be
-  live at `https://dadocs.lightning.engineering/.well-known/assetlinks.json`
+  live at `https://wavelength.lightning.engineering/.well-known/assetlinks.json`
   when the ceremony runs.
 - **iOS:** not yet functional end to end; the entitlement is configured, but
   the server-side association awaits an Apple Developer Program Team ID. The
