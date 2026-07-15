@@ -9,7 +9,7 @@ import {
 
 export type Theme = "light" | "dark";
 
-const STORAGE_KEY = "walletdk-theme";
+const STORAGE_KEY = "wavelength-theme";
 
 type ThemeContextValue = {
   theme: Theme;

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download the walletdk runtime asset set from a public base URL (e.g. GCS) into
+# Download the wavelength runtime asset set from a public base URL (e.g. GCS) into
 # public/runtime/<version>/ for CI deploys. vite build copies public/ into
 # dist/. The version segment is RUNTIME_MANIFEST_VERSION from packages/core, so
 # the deployed asset URLs change whenever the pinned daemon version is bumped

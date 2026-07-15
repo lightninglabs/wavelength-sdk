@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the walletdk wasm runtime from the sibling darepo-client checkout and
+# Build the wavelength wasm runtime from the sibling wavelength checkout and
 # stage the full runtime asset set into public/runtime/<version>/ for local dev
 # + smoke tests. vite build then copies public/ into dist/, which
 # smoke-server.js serves. The version segment is RUNTIME_MANIFEST_VERSION from

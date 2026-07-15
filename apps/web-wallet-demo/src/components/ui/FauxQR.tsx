@@ -21,7 +21,7 @@ function cells(seed: string, size: number): boolean[] {
 }
 
 export function FauxQR({
-  seed = "walletdk",
+  seed = "wavelength",
   size = 21,
   className = "",
   color = "currentColor",

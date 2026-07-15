@@ -105,7 +105,7 @@ local build uses), so treat wallets created with it as throwaways.
 - **The app shows UI that does not match the code.** Metro served a stale
   cached bundle; this is a recurring dev-server issue. Restart Metro with
   `npx expo start --dev-client --clear` and relaunch the app.
-- **`walletdk mobile already started` after editing code.** A JS reload
+- **`wavelength mobile already started` after editing code.** A JS reload
   outlived the native wallet runtime. Force-quit the app and relaunch it.
 - **Port 8081 is in use.** Another Metro instance is running; kill it
   (`pkill -f 'expo start'`) rather than accepting a different port, so
@@ -118,7 +118,7 @@ local build uses), so treat wallets created with it as throwaways.
 
   ```sh
   xcrun simctl launch --console-pty --terminate-running-process \
-    booted engineering.lightning.walletdk.demo
+    booted engineering.lightning.wavelength.demo
   ```
 
   The `--terminate-running-process` flag matters: without it, simctl only

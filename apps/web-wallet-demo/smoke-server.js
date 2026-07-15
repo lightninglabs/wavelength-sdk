@@ -320,5 +320,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`walletdk smoke server: http://${host}:${port}/`);
+  console.log(`wavelength smoke server: http://${host}:${port}/`);
 });
