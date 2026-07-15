@@ -29,4 +29,4 @@ until a verified release notes otherwise.
 
 ## Networks
 
-Signet, testnet, and testnet4 work out of the box over TLS: pass `defaultConfig('signet')` (imported from `@lightninglabs/wavelength-react-native`, which presets gRPC `host:port` addresses) to `start()` and the client connects to Lightning Labs hosted infrastructure. `walletEsploraUrl` remains an HTTP Esplora endpoint. Regtest needs a local stack running on your development machine, reachable from the device or simulator; see [Run the demo app](/react-native/get-started/run-the-demo-app/) for how host addressing works on the emulator and simulator.
+Signet and testnet work out of the box over TLS: pass `defaultConfig('signet')` (imported from `@lightninglabs/wavelength-react-native`, which presets gRPC `host:port` addresses) to `start()` and the client connects to Lightning Labs hosted infrastructure. `walletEsploraUrl` remains an HTTP Esplora endpoint. Regtest needs a local stack running on your development machine, reachable from the device or simulator; see [Run the demo app](/react-native/get-started/run-the-demo-app/) for how host addressing works on the emulator and simulator.

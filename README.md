@@ -113,7 +113,7 @@ const { invoice } = await client.receive({ amountSat: 1000 });
 ## Configuration
 
 `defaultConfig(network)` returns a ready-to-use config preloaded with the
-canonical public endpoints for `signet`, `testnet`, and `testnet4`. Override only
+canonical public endpoints for `signet` and `testnet`. Override only
 what you need:
 
 ```ts
