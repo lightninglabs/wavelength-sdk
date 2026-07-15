@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import {
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Layers,
+  LogOut,
   type LucideIcon,
   Monitor,
   Power,
@@ -125,6 +127,31 @@ const makeStyles = (p: Palette) => ({
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 16,
+  },
+  entry: {
+    alignItems: 'center' as const,
+    backgroundColor: p.surfaceAlt,
+    borderColor: p.border,
+    borderWidth: 1,
+    flexDirection: 'row' as const,
+    gap: 12,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  entryBody: {
+    flex: 1,
+  },
+  entryTitle: {
+    color: p.text,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 14,
+  },
+  entrySubtitle: {
+    color: p.muted,
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    marginTop: 2,
   },
   danger: {
     gap: 12,
@@ -297,6 +324,19 @@ export function SettingsScreen({
 
       <Band>
         <Label>Danger zone</Label>
+        <Pressable
+          accessibilityLabel="Emergency exit"
+          accessibilityRole="button"
+          onPress={() => onNavigate('exit')}
+          style={styles.entry}
+        >
+          <LogOut size={16} color={palette.muted} />
+          <View style={styles.entryBody}>
+            <Text style={styles.entryTitle}>Emergency exit</Text>
+            <Text style={styles.entrySubtitle}>Recover your funds on-chain</Text>
+          </View>
+          <ChevronRight size={16} color={palette.muted} />
+        </Pressable>
         <View style={styles.danger}>
           <Pressable onPress={onStop} style={styles.dangerButton}>
             <Power size={16} color={palette.bad} />

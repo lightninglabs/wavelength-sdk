@@ -48,6 +48,7 @@ import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Composition } from './Composition';
+import { OnChainBalance } from './OnChainBalance';
 
 const makeStyles = (p: Palette) => ({
   heroHead: {
@@ -312,6 +313,7 @@ export function HomeScreen({
             <Label>Balance composition</Label>
             <View style={{ marginTop: 16 }}>
               <Composition balance={balance} />
+              <OnChainBalance balance={balance} />
             </View>
           </Band>
           <RecentActivityBand activity={activity} onNavigate={onNavigate} />

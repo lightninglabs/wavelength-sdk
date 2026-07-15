@@ -9,6 +9,7 @@ import type { WalletKind } from '@lightninglabs/wavelength-react';
 import { getDefaultDataDir } from '@lightninglabs/wavelength-react-native';
 import { AppShell } from './components/layout/AppShell';
 import { RecoveryBanner } from './components/RecoveryBanner';
+import { ExitBanner } from './components/ExitBanner';
 import { AppTab } from './components/layout/nav';
 import { balanceSat } from './lib/balance';
 import { errorMessage } from './lib/errors';
@@ -36,6 +37,7 @@ import { UnlockScreen } from './screens/onboarding/UnlockScreen';
 import { ReceiveScreen } from './screens/receive/ReceiveScreen';
 import { SendScreen } from './screens/send/SendScreen';
 import { SettingsScreen } from './screens/settings/SettingsScreen';
+import { ExitScreen } from './screens/exit/ExitScreen';
 
 // WalletApp is the wallet orchestrator: it owns cross-screen session state
 // (the connect form, recovery-phrase backup gating, wallet-kind persistence,
@@ -336,6 +338,7 @@ export function WalletApp() {
   return (
     <AppShell tab={tab} onTab={setTab} network={network}>
       <RecoveryBanner />
+      <ExitBanner onNavigate={setTab} />
       {tab === 'home' ? (
         <HomeScreen onNavigate={setTab} />
       ) : null}
@@ -356,6 +359,7 @@ export function WalletApp() {
           onNavigate={setTab}
         />
       ) : null}
+      {tab === 'exit' ? <ExitScreen onNavigate={setTab} /> : null}
     </AppShell>
   );
 }
