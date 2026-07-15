@@ -59,8 +59,8 @@ export const testnetDefaults: RuntimeForm = hostedDefaults("testnet");
 // testnet4Defaults are the default runtime gateways for Bitcoin testnet4.
 export const testnet4Defaults: RuntimeForm = hostedDefaults("testnet4");
 
-// regtestDefaults target the local frontend-regtest swapdk overlay
-// (regtest swapdk info). The SDK ships no regtest preset (local ports vary
+// regtestDefaults target the local frontend-regtest Wavelength Operator overlay
+// (regtest Wavelength Operator info). The SDK ships no regtest preset (local ports vary
 // per machine), so this form is fully demo-local; swap gateway uses host
 // port 10032 because waved's default HTTP gateway also binds
 // localhost:10031.

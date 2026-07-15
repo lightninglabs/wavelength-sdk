@@ -1,32 +1,32 @@
 ---
-title: The SwapDK system
-description: How SwapDK turns self-custodial Bitcoin and Lightning payments into a few API calls, and where Wavelength, the client you run, fits into the larger system.
+title: The Wavelength system
+description: How Wavelength turns self-custodial Bitcoin and Lightning payments into a few API calls, and where Wavelength, the client you run, fits into the larger system.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
-import SwapDkSystemMap from '~/components/diagrams/SwapDkSystemMap.astro';
+import WavelengthSystemMap from '~/components/diagrams/WavelengthSystemMap.astro';
 
-## What SwapDK is
+## What Wavelength is
 
-SwapDK adds self-custodial Bitcoin and Lightning payments to any app with a handful of API calls. Your users get a real wallet that can send and receive over the Lightning Network, and you never run a Lightning node, open channels, or source liquidity to make it work. If you can call an API, you can accept Bitcoin. (Stablecoin support is on the way through Taproot Assets, over the same wallet surface.)
+Wavelength adds self-custodial Bitcoin and Lightning payments to any app with a handful of API calls. Your users get a real wallet that can send and receive over the Lightning Network, and you never run a Lightning node, open channels, or source liquidity to make it work. If you can call an API, you can accept Bitcoin. (Stablecoin support is on the way through Taproot Assets, over the same wallet surface.)
 
-The value is in what you do **not** have to run. Accepting Lightning payments has traditionally meant operating a node, balancing channels, sourcing liquidity, and keeping all of that healthy around the clock. SwapDK runs that machinery and gives you a small, friendly wallet surface in its place, so the capability (instant, global, low-fee payments) is available without the operational burden.
+The value is in what you do **not** have to run. Accepting Lightning payments has traditionally meant operating a node, balancing channels, sourcing liquidity, and keeping all of that healthy around the clock. Wavelength runs that machinery and gives you a small, friendly wallet surface in its place, so the capability (instant, global, low-fee payments) is available without the operational burden.
 
 <Callout type="note" title="This does not replace running your own node">
-Lightning has always offered a fully self-sovereign path where you run your own node and channels, and that path is not going anywhere. SwapDK is for everyone who would rather not run infrastructure at all, without giving up control of their funds.
+Lightning has always offered a fully self-sovereign path where you run your own node and channels, and that path is not going anywhere. Wavelength is for everyone who would rather not run infrastructure at all, without giving up control of their funds.
 </Callout>
 
 ## What you run vs. what is managed
 
 You run **Wavelength**, the self-custodial client (compiled from [wavelength](https://github.com/lightninglabs/wavelength)). It holds the user's keys, tracks their balance, and builds and signs their payments. Everything the wallet talks to is managed for you.
 
-<SwapDkSystemMap />
+<WavelengthSystemMap />
 
 | Piece | Who runs it | What it does |
 |---|---|---|
 | **Wavelength** (the client) | You | Holds keys, tracks balances, builds and signs payments. Runs as an embedded SDK in a web or mobile app, as a standalone server, or as an MCP server for agents. |
-| **Coordination + settlement** | SwapDK | An Ark-like layer that batches off-chain transfers instantly and cheaply. It settles between users but never takes unilateral control of anyone's funds. |
-| **Liquidity via Loop** | SwapDK | Deep Lightning liquidity through Loop, so payments route reliably without you sourcing, funding, or managing channels. |
+| **Coordination + settlement** | Wavelength Operator | An Ark-like layer that batches off-chain transfers instantly and cheaply. It settles between users but never takes unilateral control of anyone's funds. |
+| **Liquidity via Loop** | Wavelength Operator | Deep Lightning liquidity through Loop, so payments route reliably without you sourcing, funding, or managing channels. |
 | **The Lightning Network** | Open network | Everything speaks BOLT 11, so you can pay and be paid by any wallet, exchange, or app already on Lightning. |
 
 ## Self-custodial, exit anytime
@@ -39,7 +39,7 @@ Every payment you send and receive is a BOLT 11 invoice, the standard Lightning 
 
 ## Ways to integrate
 
-SwapDK meets you where you build:
+Wavelength meets you where you build:
 
 - **Embedded SDK** - pull the SDK into your app to put a wallet directly inside it. It runs on web (compiled to WebAssembly, in a browser tab) and on React Native (compiled into the app binary). Start with the [Web quickstart](/web/get-started/quickstart/) or the [React Native quickstart](/react-native/get-started/quickstart/).
 - **As a standalone client** - a single self-contained process driven over a gRPC and REST API.
@@ -49,7 +49,7 @@ These docs focus on the SDK (web and React Native). The other surfaces share the
 
 ## Networks
 
-SwapDK runs on signet, testnet, and testnet4 by default, and all are open to everyone. These test networks let you build and exercise the full payment flow with coins that have no real value. Mainnet access is available by application and is gated behind an explicit opt-in, with amount caps during alpha. See [Networks and config](/concepts/networks-and-config/) for the details.
+Wavelength runs on signet, testnet, and testnet4 by default, and all are open to everyone. These test networks let you build and exercise the full payment flow with coins that have no real value. Mainnet access is available by application and is gated behind an explicit opt-in, with amount caps during alpha. See [Networks and config](/concepts/networks-and-config/) for the details.
 
 ## Where to go next
 

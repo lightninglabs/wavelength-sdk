@@ -30,7 +30,7 @@ export const NAV: NavGroup[] = [
     section: 'introduction',
     items: [
       { slug: 'introduction/what-is-wavelength', label: 'What is Wavelength', section: 'introduction' },
-      { slug: 'introduction/the-swapdk-system', label: 'The SwapDK system', section: 'introduction' },
+      { slug: 'introduction/the-wavelength-system', label: 'The Wavelength system', section: 'introduction' },
       { slug: 'introduction/system-architecture', label: 'System architecture', section: 'introduction' },
     ],
   },
