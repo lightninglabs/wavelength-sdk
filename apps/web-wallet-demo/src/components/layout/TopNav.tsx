@@ -47,7 +47,7 @@ export function TopNav({
           <span className="flex h-8 w-8 items-center justify-center bg-accent">
             <Bitcoin size={17} className="text-white" />
           </span>
-          <span className="text-sm font-semibold text-fg">Wavelength</span>
+          <span className="text-sm font-semibold text-fg">Wavelength Demo</span>
         </button>
 
         <nav className="ml-3 hidden items-center lg:flex">
