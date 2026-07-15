@@ -5,7 +5,7 @@
 # smoke-server.js serves. The version segment is RUNTIME_MANIFEST_VERSION from
 # packages/core, matching where the demo's runtimeBaseUrl points.
 set -euo pipefail
-DAREPO="${WAVELENGTH_DIR:-../../../wavelength}"
+WAVELENGTH="${WAVELENGTH_DIR:-../../../wavelength}"
 APP="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="$(cd "$APP/../.." && pwd)"
 
@@ -15,7 +15,7 @@ VERSION="$(node "$ROOT/scripts/runtime-version.mjs")"
 # Build the wasm blob + go-wasmsqlite assets into the sibling repo's bin/wasm.
 # Build before touching public/ so a failed build leaves the previously staged
 # runtime intact.
-make -C "$DAREPO" wasm-wallet
+make -C "$WAVELENGTH" wasm-wallet
 
 # Drop previously staged asset sets (any version), plus any assets from the
 # legacy unversioned layout at the public/ root, so stale copies do not ride
@@ -33,7 +33,7 @@ mkdir -p "$PUB"
 # apps/docs/scripts/copy-runtime-assets.mjs.
 for f in wavewalletdk.wasm wavewalletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
          sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
-  cp "$DAREPO/bin/wasm/$f" "$PUB/"
+  cp "$WAVELENGTH/bin/wasm/$f" "$PUB/"
 done
 
 # The SDK worker glue (wavewalletdk-worker.js) now ships inside @lightninglabs/wavelength-web

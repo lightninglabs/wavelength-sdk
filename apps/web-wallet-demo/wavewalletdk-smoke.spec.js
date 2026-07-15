@@ -48,14 +48,14 @@ test("wallet create and address state persist with OPFS SQLite", async ({
   page.on("console", (message) => {
     const line = `[${message.type()}] ${message.text()}`;
     consoleMessages.push(line);
-    if (process.env.WALLETDK_SMOKE_VERBOSE) {
+    if (process.env.WAVELENGTH_SMOKE_VERBOSE) {
       console.log(line);
     }
   });
   page.on("pageerror", (error) => {
     const line = `[pageerror] ${error.message}`;
     consoleMessages.push(line);
-    if (process.env.WALLETDK_SMOKE_VERBOSE) {
+    if (process.env.WAVELENGTH_SMOKE_VERBOSE) {
       console.log(line);
     }
   });
