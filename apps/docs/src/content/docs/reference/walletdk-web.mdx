@@ -179,8 +179,8 @@ Browser-specific options for `createWebClient`. The config passed to
 <Signature title="walletdk-web.d.ts" code={webClientOptionsSig} />
 
 <ParamsTable rows={[
-  { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("./walletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
-  { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (walletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
+  { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("./wavewalletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
+  { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWavelengthClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
   { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs callRaw calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
 ]} />
@@ -293,8 +293,8 @@ The values are fixed filenames, not just string-typed placeholders:
 
 | Key | Filename |
 |---|---|
-| `wasm` | `walletdk.wasm` |
-| `wasmGz` | `walletdk.wasm.gz` |
+| `wasm` | `wavewalletdk.wasm` |
+| `wasmGz` | `wavewalletdk.wasm.gz` |
 | `wasmExec` | `wasm_exec.js` |
 | `sqliteBridge` | `sqlite-bridge.js` |
 | `sqliteWorker` | `sqlite-worker.js` |
@@ -307,7 +307,7 @@ The values are fixed filenames, not just string-typed placeholders:
 <ApiSymbol name="RUNTIME_ASSET_FILES" kind="const">
 
 Flat list of every runtime binary that must be hosted together at
-`runtimeBaseUrl`: `walletdk.wasm`, `walletdk.wasm.gz`, `wasm_exec.js`,
+`runtimeBaseUrl`: `wavewalletdk.wasm`, `wavewalletdk.wasm.gz`, `wasm_exec.js`,
 `sqlite-bridge.js`, `sqlite-worker.js`, `sqlite3.js`, `sqlite3.wasm`,
 `sqlite3-opfs-async-proxy.js` (that is, `Object.values(RUNTIME_ASSETS)`). Host
 these files and point `runtimeBaseUrl` at them before calling
@@ -346,10 +346,10 @@ from:
   part of its `$init` message, keeping worker mode and main-thread mode
   page-relative in the same way.
 - **Compressed-first wasm loading:** the client prefers the gzip-compressed
-  `walletdk.wasm.gz` binary, inflating it through a `DecompressionStream` and
+  `wavewalletdk.wasm.gz` binary, inflating it through a `DecompressionStream` and
   instantiating the resulting bytes, when the browser supports
   `DecompressionStream`. If that path fails (or the API is unavailable), it
-  falls back to fetching the uncompressed `walletdk.wasm` and instantiating
+  falls back to fetching the uncompressed `wavewalletdk.wasm` and instantiating
   it via `WebAssembly.instantiateStreaming`.
 - **Streaming-to-ArrayBuffer fallback:** `instantiateStreaming` requires the
   server to serve the wasm response with an `application/wasm` content type.
@@ -359,7 +359,7 @@ from:
   misconfigured MIME type does not break self-hosted runtimes.
 - **Worker entry resolution:** the worker script itself (unlike the daemon
   binaries above) ships inside `@lightninglabs/wavelength-web` and is emitted
-  by your bundler via `new URL('../walletdk-worker.js', import.meta.url)`, so
+  by your bundler via `new URL('../wavewalletdk-worker.js', import.meta.url)`, so
   it versions with the SDK and needs no separate hosting. `runtimeBaseUrl` is
   still forwarded to the worker (via its `$init` message) even when you
   override the worker entry point with `workerURL`, since the two settings

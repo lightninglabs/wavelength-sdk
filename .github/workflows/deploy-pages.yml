@@ -22,7 +22,7 @@ jobs:
     env:
       VITE_BASE_PATH: /demo/
       # Public GCS (or CDN) root hosting one RUNTIME_ASSET_FILES directory per
-      # version, e.g. <root>/<RUNTIME_MANIFEST_VERSION>/walletdk.wasm. Set the
+      # version, e.g. <root>/<RUNTIME_MANIFEST_VERSION>/wavewalletdk.wasm. Set the
       # unversioned root here; the fetch script appends the version pinned in
       # packages/core/src/version.ts.
       # Set in repo Settings → Secrets and variables → Actions → Variables.
@@ -54,8 +54,8 @@ jobs:
       - name: Verify versioned runtime assets in demo dist
         run: |
           VERSION="$(node scripts/runtime-version.mjs)"
-          if [ ! -f "apps/web-wallet-demo/dist/runtime/$VERSION/walletdk.wasm" ]; then
-            echo "::error::demo dist is missing runtime/$VERSION/walletdk.wasm; the staged asset path and the app's runtimeBaseUrl have drifted."
+          if [ ! -f "apps/web-wallet-demo/dist/runtime/$VERSION/wavewalletdk.wasm" ]; then
+            echo "::error::demo dist is missing runtime/$VERSION/wavewalletdk.wasm; the staged asset path and the app's runtimeBaseUrl have drifted."
             exit 1
           fi
 

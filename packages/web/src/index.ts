@@ -28,13 +28,13 @@ export type RuntimeThread = 'main' | 'worker';
 export type WebClientOptions = {
   /**
    * Overrides the worker entry point. By default the worker client spawns the
-   * worker its bundler emits from new URL('../walletdk-worker.js',
+   * worker its bundler emits from new URL('../wavewalletdk-worker.js',
    * import.meta.url); supply this to point at a custom-hosted copy.
    * runtimeBaseUrl is still sent to the worker regardless of this override.
    */
   workerURL?: string;
   /**
-   * Base URL the daemon runtime binaries (walletdk.wasm.gz, wasm_exec.js,
+   * Base URL the daemon runtime binaries (wavewalletdk.wasm.gz, wasm_exec.js,
    * sqlite-*.js) are resolved against. Unset means relative to the page (the
    * demo self-hosts them from public/); SDK consumers point this at the hosted,
    * versioned runtime location. In worker mode an unset value defaults to the

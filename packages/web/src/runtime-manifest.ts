@@ -6,15 +6,15 @@
  * URL.
  *
  * This is the single source of truth for the (future) CDN publish step and the
- * self-host instructions. The standalone worker (walletdk-worker.js) cannot
+ * self-host instructions. The standalone worker (wavewalletdk-worker.js) cannot
  * import this module, so it mirrors these names literally; keep the two in sync.
  *
  * The version of the asset set (RUNTIME_MANIFEST_VERSION) lives in core, next
  * to the generated daemon types it is paired with.
  */
 export const RUNTIME_ASSETS = {
-  wasm: 'walletdk.wasm',
-  wasmGz: 'walletdk.wasm.gz',
+  wasm: 'wavewalletdk.wasm',
+  wasmGz: 'wavewalletdk.wasm.gz',
   wasmExec: 'wasm_exec.js',
   sqliteBridge: 'sqlite-bridge.js',
   sqliteWorker: 'sqlite-worker.js',

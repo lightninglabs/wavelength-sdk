@@ -152,7 +152,7 @@ at it:
 
 ```ts
 import { RUNTIME_ASSET_FILES } from "@lightninglabs/wavelength-web";
-// → walletdk.wasm.gz, wasm_exec.js, sqlite-*.js, …
+// → wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js, …
 ```
 
 > A versioned public CDN that `runtimeBaseUrl` defaults to is on the way; until

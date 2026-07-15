@@ -8,7 +8,7 @@ description: Solutions to common Wavelength integration errors and guidance for 
 ### Runtime asset could not be loaded (`asset_load_failed`)
 
 The client throws `WavelengthError` with code **`asset_load_failed`** when
-`walletdk.wasm.gz`, `wasm_exec.js`, or the SQLite bridge cannot be fetched.
+`wavewalletdk.wasm.gz`, `wasm_exec.js`, or the SQLite bridge cannot be fetched.
 
 **Fix:** Host every file listed in **`RUNTIME_ASSET_FILES`** together at one
 base URL and set **`runtimeBaseUrl`** on `createWebClient()`. Open the failing

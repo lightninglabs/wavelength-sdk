@@ -41,10 +41,10 @@ test("walletdk demo starts with live signet defaults", async ({
   );
 
   await page.getByLabel("Data directory").fill(
-    `/walletdk-signet-smoke-${Date.now()}`,
+    `/wavewalletdk-signet-smoke-${Date.now()}`,
   );
   await page.getByLabel("Swap database file").fill(
-    `/walletdk-signet-swaps-${Date.now()}.db`,
+    `/wavewalletdk-signet-swaps-${Date.now()}.db`,
   );
   await startRuntime.click();
 

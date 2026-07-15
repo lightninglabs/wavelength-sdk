@@ -21,7 +21,7 @@ make -C "$DAREPO" wasm-wallet
 # legacy unversioned layout at the public/ root, so stale copies do not ride
 # into dist/ (public/ is an ephemeral, gitignored staging area).
 rm -rf "$APP/public/runtime"
-rm -f "$APP"/public/{walletdk.wasm,walletdk.wasm.gz,wasm_exec.js,sqlite-bridge.js,sqlite-worker.js,sqlite3.js,sqlite3.wasm,sqlite3-opfs-async-proxy.js}
+rm -f "$APP"/public/{wavewalletdk.wasm,wavewalletdk.wasm.gz,wasm_exec.js,sqlite-bridge.js,sqlite-worker.js,sqlite3.js,sqlite3.wasm,sqlite3-opfs-async-proxy.js}
 PUB="$APP/public/runtime/$VERSION"
 mkdir -p "$PUB"
 
@@ -31,12 +31,12 @@ mkdir -p "$PUB"
 # Keep the file list in sync with packages/web/src/runtime-manifest.ts
 # (RUNTIME_ASSET_FILES), fetch-runtime-assets.sh, and
 # apps/docs/scripts/copy-runtime-assets.mjs.
-for f in walletdk.wasm walletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
+for f in wavewalletdk.wasm wavewalletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
          sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
   cp "$DAREPO/bin/wasm/$f" "$PUB/"
 done
 
-# The SDK worker glue (walletdk-worker.js) now ships inside @lightninglabs/wavelength-web
+# The SDK worker glue (wavewalletdk-worker.js) now ships inside @lightninglabs/wavelength-web
 # and is emitted by the consumer's bundler, so it is no longer staged here.
 
 echo "Staged runtime assets into $PUB"

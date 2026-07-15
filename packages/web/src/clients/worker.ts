@@ -31,7 +31,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     // A caller may still override with an explicitly hosted workerURL.
     this.worker = options.workerURL
       ? new Worker(options.workerURL)
-      : new Worker(new URL('../walletdk-worker.js', import.meta.url));
+      : new Worker(new URL('../wavewalletdk-worker.js', import.meta.url));
     this.worker.onmessage = (event) => this.handleMessage(event.data);
     this.worker.onerror = (event) => {
       this.rejectAll(

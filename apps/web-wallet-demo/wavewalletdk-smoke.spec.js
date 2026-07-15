@@ -41,8 +41,8 @@ test("wallet create and address state persist with OPFS SQLite", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/walletdk-smoke-${Date.now()}`;
-  const swapDatabaseFileName = `/walletdk-swaps-${Date.now()}.db`;
+  const dataDir = `/wavewalletdk-smoke-${Date.now()}`;
+  const swapDatabaseFileName = `/wavewalletdk-swaps-${Date.now()}.db`;
 
   const consoleMessages = [];
   page.on("console", (message) => {
@@ -149,8 +149,8 @@ test("send screen shows only the fields the destination needs", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/walletdk-smoke-send-${Date.now()}`;
-  const swapDatabaseFileName = `/walletdk-swaps-send-${Date.now()}.db`;
+  const dataDir = `/wavewalletdk-smoke-send-${Date.now()}`;
+  const swapDatabaseFileName = `/wavewalletdk-swaps-send-${Date.now()}.db`;
 
   await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
 

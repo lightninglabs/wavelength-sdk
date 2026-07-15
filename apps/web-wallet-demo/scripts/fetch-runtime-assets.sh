@@ -33,8 +33,8 @@ PUB="$APP/public/runtime/$VERSION"
 # (RUNTIME_ASSET_FILES), wasm-local.sh, and
 # apps/docs/scripts/copy-runtime-assets.mjs.
 FILES=(
-  walletdk.wasm
-  walletdk.wasm.gz
+  wavewalletdk.wasm
+  wavewalletdk.wasm.gz
   wasm_exec.js
   sqlite-bridge.js
   sqlite-worker.js

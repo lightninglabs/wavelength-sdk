@@ -69,9 +69,9 @@ signals). Do not rely on it being granted; treat it as best-effort.
   </Card>
 </CardGrid>
 
-Worker mode spawns the bundled `walletdk-worker.js` (override with
+Worker mode spawns the bundled `wavewalletdk-worker.js` (override with
 `workerURL`). The worker receives **`runtimeBaseUrl`** on init so it can fetch
-`walletdk.wasm.gz`, `wasm_exec.js`, and the SQLite bridge from your hosted asset
+`wavewalletdk.wasm.gz`, `wasm_exec.js`, and the SQLite bridge from your hosted asset
 folder. Main-thread mode loads those scripts on the page directly.
 
 ```ts title="client.ts"

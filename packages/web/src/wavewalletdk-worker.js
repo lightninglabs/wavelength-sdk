@@ -178,7 +178,7 @@ async function instantiateWasm(importObject) {
 }
 
 async function instantiateCompressedWasm(importObject) {
-  const url = resolveRuntimeAsset("walletdk.wasm.gz");
+  const url = resolveRuntimeAsset("wavewalletdk.wasm.gz");
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
@@ -198,7 +198,7 @@ async function instantiateCompressedWasm(importObject) {
 }
 
 async function instantiateRawWasm(importObject) {
-  const url = resolveRuntimeAsset("walletdk.wasm");
+  const url = resolveRuntimeAsset("wavewalletdk.wasm");
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(

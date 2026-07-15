@@ -6,7 +6,7 @@ const baseURL = `http://${host}:${port}`;
 
 module.exports = defineConfig({
   testDir: __dirname,
-  testMatch: "walletdk-signet-smoke.spec.js",
+  testMatch: "wavewalletdk-signet-smoke.spec.js",
   timeout: 180000,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "line",
   use: {

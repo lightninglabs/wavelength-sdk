@@ -22,7 +22,7 @@ const client = createWebClient({
 });
 ```
 
-The worker entry (`walletdk-worker.js`) ships inside
+The worker entry (`wavewalletdk-worker.js`) ships inside
 `@lightninglabs/wavelength-web` and is emitted by your bundler. Only the daemon
 binaries listed below need to be hosted at `runtimeBaseUrl`.
 
@@ -38,7 +38,7 @@ identifies the daemon build the SDK is paired with:
 import { RUNTIME_ASSET_FILES } from '@lightninglabs/wavelength-web';
 
 console.log(RUNTIME_ASSET_FILES);
-// walletdk.wasm, walletdk.wasm.gz, wasm_exec.js, sqlite-bridge.js,
+// wavewalletdk.wasm, wavewalletdk.wasm.gz, wasm_exec.js, sqlite-bridge.js,
 // sqlite-worker.js, sqlite3.js, sqlite3.wasm, sqlite3-opfs-async-proxy.js
 ```
 
@@ -61,7 +61,7 @@ make -C /path/to/darepo-client wasm-wallet
 # Copy every runtime binary into a directory named after
 # RUNTIME_MANIFEST_VERSION (example: Vite public/)
 mkdir -p "./public/walletdk/<version>"
-for f in walletdk.wasm walletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
+for f in wavewalletdk.wasm wavewalletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
          sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
   cp "/path/to/darepo-client/bin/wasm/$f" "./public/walletdk/<version>/"
 done
@@ -78,6 +78,6 @@ land in `dist/` and are served from the app origin.
 matching WASM bundle. Mismatched versions can fail at load time or produce subtle
 runtime errors.
 
-**Compression.** The client prefers `walletdk.wasm.gz` when the browser supports
-`DecompressionStream` and falls back to the uncompressed `walletdk.wasm`. Host
+**Compression.** The client prefers `wavewalletdk.wasm.gz` when the browser supports
+`DecompressionStream` and falls back to the uncompressed `wavewalletdk.wasm`. Host
 both files so every supported browser can load the runtime.
