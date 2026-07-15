@@ -1,7 +1,7 @@
 /**
  * RUNTIME_ASSETS is the canonical set of daemon runtime binaries the wasm client
  * loads at runtime, resolved against runtimeBaseUrl. They are built by
- * darepo-client (`make wasm-wallet`) and version-locked to the embedded walletdk
+ * wavelength (`make wasm-wallet`) and version-locked to the embedded wavewalletdk
  * daemon, so they ship together and must be hosted side by side at a single base
  * URL.
  *

@@ -41,8 +41,8 @@ export type DebugLevel = (typeof DEBUG_LEVELS)[number];
 
 /**
  * The configuration passed to `client.start()`. For the common case prefer
- * the defaultConfig helper exported by your transport package (walletdk-web
- * or walletdk-react-native), which preloads the canonical public endpoints
+ * the defaultConfig helper exported by your transport package (wavelength-web
+ * or wavelength-react-native), which preloads the canonical public endpoints
  * in that transport's flavor, and override only the fields you need.
  */
 export type RuntimeConfig = {

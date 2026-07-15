@@ -21,8 +21,8 @@ export type PasskeyWalletOutcome = {
  * Drives a passkey ceremony and opens the wallet through the engine, which
  * refetches info and refreshes in the background so the phase advances
  * automatically. The ceremony is injected (browser: webPasskeyCeremony from
- * walletdk-web; native transports supply their own), which keeps
- * walletdk-react transport-free.
+ * wavelength-web; native transports supply their own), which keeps
+ * wavelength-react transport-free.
  * Creation and opening track separately because apps render them on different
  * screens. A cancelled ceremony (PasskeyCancelledError) rejects but is never
  * recorded into createError/openError. Must be used inside WavelengthProvider.

@@ -36,7 +36,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     this.worker.onerror = (event) => {
       this.rejectAll(
         new WavelengthError(
-          event.message || 'walletdk worker error',
+          event.message || 'Wavelength worker error',
           'worker_error',
         ),
       );
@@ -104,7 +104,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
       // engine died.
       this.rejectAll(
         new WavelengthError(
-          data.fatal.message || 'walletdk worker stopped',
+          data.fatal.message || 'Wavelength worker stopped',
           'worker_error',
         ),
       );
@@ -138,7 +138,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
       return;
     }
 
-    pending.reject(new WavelengthError(data.error || 'walletdk request failed'));
+    pending.reject(new WavelengthError(data.error || 'Wavelength request failed'));
   }
 
   private rejectAll(err: Error) {
@@ -153,7 +153,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     // Terminating the worker fires neither onerror nor a fatal message, so
     // reject any in-flight calls here so they do not hang past disposal.
     this.rejectAll(
-      new WavelengthError('walletdk client disposed', 'worker_error'),
+      new WavelengthError('Wavelength client disposed', 'worker_error'),
     );
     this.worker.terminate();
   }

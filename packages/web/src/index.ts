@@ -114,6 +114,6 @@ export { MainThreadWavelengthClient } from './clients/main';
 export { RUNTIME_ASSETS, RUNTIME_ASSET_FILES } from './runtime-manifest';
 
 // Re-export the core contract so a non-React consumer can import the client and
-// every type/enum from this one package, the way walletdk-react already does.
+// every type/enum from this one package, the way wavelength-react already does.
 // RUNTIME_MANIFEST_VERSION (the paired daemon version) rides along from core.
 export * from '@lightninglabs/wavelength-core';

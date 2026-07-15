@@ -59,7 +59,7 @@ function tygoBin(): string {
 // 1. Run tygo against the facade package into a temp file. tygo resolves the Go
 //    import path via the module, so it must run with cwd inside the wavelength
 //    checkout.
-const work = mkdtempSync(join(tmpdir(), 'walletdk-tygo-'));
+const work = mkdtempSync(join(tmpdir(), 'wavewalletdk-tygo-'));
 // Best-effort cleanup of the temp dir on any exit (success or failure) so
 // repeated or failed runs do not leak directories under the OS temp dir.
 process.on('exit', () => rmSync(work, { recursive: true, force: true }));

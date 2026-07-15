@@ -26,7 +26,7 @@ export function resolveRuntimeAsset(
  */
 export function runtimeAssetError(url: string): WavelengthError {
   return new WavelengthError(
-    `walletdk runtime asset could not be loaded from ${url}. Host the daemon ` +
+    `Wavelength runtime asset could not be loaded from ${url}. Host the daemon ` +
       'runtime assets (RUNTIME_ASSET_FILES) and point runtimeBaseUrl at them.',
     'asset_load_failed',
   );
@@ -55,30 +55,31 @@ export function loadScript(src: string): Promise<void> {
 
 /**
  * Resolves once the wasm runtime is ready, either immediately when the global
- * walletdkCall hook is already installed or on the next 'walletdk-ready' event.
+ * wavewalletdkCall hook is already installed or on the next 'wavewalletdk-ready'
+ * event.
  */
 export function waitForReadyEvent(): Promise<void> {
-  if (typeof walletdkCall() === 'function') {
+  if (typeof wavewalletdkCall() === 'function') {
     return Promise.resolve();
   }
 
   return new Promise((resolve) => {
-    globalThis.addEventListener('walletdk-ready', () => resolve(), {
+    globalThis.addEventListener('wavewalletdk-ready', () => resolve(), {
       once: true,
     });
   });
 }
 
 /**
- * Returns the global walletdkCall hook the wasm runtime installs, or undefined
- * before the runtime has booted.
+ * Returns the global wavewalletdkCall hook the wasm runtime installs, or
+ * undefined before the runtime has booted.
  */
-export function walletdkCall() {
+export function wavewalletdkCall() {
   return (
     globalThis as typeof globalThis & {
-      walletdkCall?: (method: string, params?: unknown) => Promise<unknown>;
+      wavewalletdkCall?: (method: string, params?: unknown) => Promise<unknown>;
     }
-  ).walletdkCall;
+  ).wavewalletdkCall;
 }
 
 /**
@@ -117,7 +118,7 @@ export async function instantiateCompressedWasm(
 
   const body = response.body;
   if (!body) {
-    throw new WavelengthError('walletdk compressed wasm response is empty');
+    throw new WavelengthError('Wavelength compressed wasm response is empty');
   }
 
   const stream = body.pipeThrough(new DecompressionStream('gzip'));

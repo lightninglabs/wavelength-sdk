@@ -17,8 +17,8 @@ export type PasskeyAssertion = {
 
 /**
  * The per-platform passkey ceremony the passkey hook drives. The browser
- * (WebAuthn/PRF) implementation is walletdk-web's `webPasskeyCeremony`; a native
- * transport supplies its own. Injecting it keeps walletdk-react free of any
+ * (WebAuthn/PRF) implementation is wavelength-web's `webPasskeyCeremony`; a native
+ * transport supplies its own. Injecting it keeps wavelength-react free of any
  * transport dependency.
  */
 export type PasskeyCeremony = {

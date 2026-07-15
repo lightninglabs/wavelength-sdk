@@ -74,7 +74,7 @@ export function toWavelengthEvent(raw: {
     // warning instead of silently advancing lifecycle state to runtimeReady.
     return {
       type: 'log',
-      payload: { level: 'warn', message: `unknown walletdk event: ${raw.type}` },
+      payload: { level: 'warn', message: `unknown Wavelength event: ${raw.type}` },
     };
   }
 }
