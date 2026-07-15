@@ -5,6 +5,17 @@ import type {
   DepositRequest,
   DepositResult,
   Entry,
+  ExitBatchEvent,
+  ExitBatchOptions,
+  ExitBatchResult,
+  ExitRequest,
+  ExitResult,
+  ExitStatusResult,
+  ExitSummaryResult,
+  GetExitPlanRequest,
+  GetExitPlanResult,
+  ListRequest,
+  ListResult,
   PrepareSendResult,
   ReceiveRequest,
   ReceiveResult,
@@ -14,12 +25,14 @@ import type {
   RuntimePhase,
   SendRequest,
   SendResult,
+  SweepWalletRequest,
+  SweepWalletResult,
   UnlockWalletRequest,
   UnlockWalletResult,
   WavelengthLogPayload,
   WalletInfo,
 } from "@lightninglabs/wavelength-core";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWalletEngine } from "./provider";
 import { useWalletMutationState } from "./useWalletMutation";
 import { useWalletSelector } from "./useWalletSelector";
@@ -368,5 +381,260 @@ export function useWalletRefresh(): UseWalletRefreshResult {
     refreshPending: m.pending,
     refreshError: m.error,
     resetRefresh: m.reset,
+  };
+}
+
+/** The result of {@link useWalletExit}. */
+export type UseWalletExitResult = {
+  /** Starts a single exit (cooperative or unilateral). */
+  exit: (req: ExitRequest) => Promise<ExitResult>;
+  exitPending: boolean;
+  exitError: Error | null;
+  exitData: ExitResult | null;
+  resetExit: () => void;
+};
+
+/** Starts a single exit for one outpoint. Takes the full request union. */
+export function useWalletExit(): UseWalletExitResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<ExitResult>();
+  const exit = useCallback(
+    (req: ExitRequest) => m.track(() => engine.exit(req)),
+    [engine, m.track],
+  );
+
+  return {
+    exit,
+    exitPending: m.pending,
+    exitError: m.error,
+    exitData: m.data,
+    resetExit: m.reset,
+  };
+}
+
+/** The result of {@link useWalletExitPlan}. */
+export type UseWalletExitPlanResult = {
+  /** Previews unilateral-exit readiness and funding for a set of outpoints. */
+  plan: (req: GetExitPlanRequest) => Promise<GetExitPlanResult>;
+  planPending: boolean;
+  planError: Error | null;
+  planData: GetExitPlanResult | null;
+  resetPlan: () => void;
+};
+
+/** Previews unilateral-exit readiness. Pair with useWalletExitBatch to start. */
+export function useWalletExitPlan(): UseWalletExitPlanResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<GetExitPlanResult>();
+  const plan = useCallback(
+    (req: GetExitPlanRequest) => m.track(() => engine.getExitPlan(req)),
+    [engine, m.track],
+  );
+
+  return {
+    plan,
+    planPending: m.pending,
+    planError: m.error,
+    planData: m.data,
+    resetPlan: m.reset,
+  };
+}
+
+/** The result of {@link useWalletList}. */
+export type UseWalletListResult = {
+  /** Lists wallet activity, VTXOs, or on-chain outputs. */
+  list: (req: ListRequest) => Promise<ListResult>;
+  listPending: boolean;
+  listError: Error | null;
+  listData: ListResult | null;
+  resetList: () => void;
+};
+
+/** Lists wallet data on demand (e.g. VTXOs for an exit picker). */
+export function useWalletList(): UseWalletListResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<ListResult>({ keepPreviousData: true });
+  const list = useCallback(
+    (req: ListRequest) => m.track(() => engine.list(req)),
+    [engine, m.track],
+  );
+
+  return {
+    list,
+    listPending: m.pending,
+    listError: m.error,
+    listData: m.data,
+    resetList: m.reset,
+  };
+}
+
+/** The result of {@link useWalletExitBatch}. */
+export type UseWalletExitBatchResult = {
+  /**
+   * Starts a batch of exits. Resolves once every exit has STARTED, not
+   * completed: a unilateral exit runs for hours or days afterward.
+   */
+  exitBatch: (opts: ExitBatchOptions) => Promise<ExitBatchResult>;
+  exitBatchPending: boolean;
+  exitBatchError: Error | null;
+  exitBatchData: ExitBatchResult | null;
+  /** The batch's progress events, in order, for the current or last run. */
+  exitBatchEvents: readonly ExitBatchEvent[];
+  resetExitBatch: () => void;
+};
+
+/**
+ * Orchestrates a multi-outpoint exit with funding-contention guards. Guards
+ * against re-entrancy: calling `exitBatch` again while a run is already in
+ * flight returns the same in-flight promise instead of starting a second
+ * concurrent run (which would otherwise reset the shared event log out from
+ * under the first run).
+ */
+export function useWalletExitBatch(): UseWalletExitBatchResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<ExitBatchResult>();
+  const [events, setEvents] = useState<readonly ExitBatchEvent[]>([]);
+  const inFlight = useRef<Promise<ExitBatchResult> | null>(null);
+  const exitBatch = useCallback(
+    (opts: ExitBatchOptions) => {
+      if (inFlight.current) return inFlight.current;
+      setEvents([]);
+      const p = m.track(() =>
+        engine.exitBatch({
+          ...opts,
+          onEvent: (event) => setEvents((prev) => [...prev, event]),
+        }),
+      );
+      inFlight.current = p;
+      // Clear on settle (both branches) so we never leave a stale in-flight
+      // promise, and never surface an unhandled rejection here.
+      void p.then(
+        () => { inFlight.current = null; },
+        () => { inFlight.current = null; },
+      );
+
+      return p;
+    },
+    [engine, m.track],
+  );
+  const resetExitBatch = useCallback(() => {
+    setEvents([]);
+    m.reset();
+  }, [m.reset]);
+
+  return {
+    exitBatch,
+    exitBatchPending: m.pending,
+    exitBatchError: m.error,
+    exitBatchData: m.data,
+    exitBatchEvents: events,
+    resetExitBatch,
+  };
+}
+
+/** The result of {@link useWalletExits}. */
+export type UseWalletExitsResult = {
+  /** The wallet-wide in-progress exit portfolio, or null before first load. */
+  summary: ExitSummaryResult | null;
+  summaryPending: boolean;
+  summaryError: Error | null;
+  /** Refetches the summary on demand. */
+  refreshSummary: () => Promise<ExitSummaryResult>;
+};
+
+/**
+ * Reads the in-progress exit portfolio. Fetches on mount and whenever wallet
+ * activity changes (so a completed exit clears without manual refresh).
+ */
+export function useWalletExits(): UseWalletExitsResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<ExitSummaryResult>({ keepPreviousData: true });
+  const activity = useWalletSelector((s) => s.activity);
+  const refreshSummary = useCallback(
+    () => m.track(() => engine.exitSummary()),
+    [engine, m.track],
+  );
+  useEffect(() => {
+    void refreshSummary();
+    // Refetch when the activity slice changes reference (a stream push).
+  }, [refreshSummary, activity]);
+
+  return {
+    summary: m.data,
+    summaryPending: m.pending,
+    summaryError: m.error,
+    refreshSummary,
+  };
+}
+
+/** The result of {@link useWalletExitStatus}. */
+export type UseWalletExitStatusResult = {
+  /** The exit's status, or null before first load. */
+  status: ExitStatusResult | null;
+  statusPending: boolean;
+  statusError: Error | null;
+  /** Refetches the status on demand. */
+  refreshStatus: () => Promise<ExitStatusResult>;
+};
+
+/**
+ * Reads one exit's status. Defaults to the cheap phase-only call; pass
+ * `{ detailed: true }` for tree progress, CSV countdown, and fees (a live
+ * round-trip). Pass `{ pollMs }` to poll while the hook is mounted (a plain
+ * `setInterval` with no visibility/focus gating; polling stops on unmount).
+ * Fetches on mount and whenever `outpoint` or the options change.
+ */
+export function useWalletExitStatus(
+  outpoint: string,
+  opts: { detailed?: boolean; pollMs?: number } = {},
+): UseWalletExitStatusResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<ExitStatusResult>({ keepPreviousData: true });
+  const { detailed, pollMs } = opts;
+  const refreshStatus = useCallback(
+    () => m.track(() => engine.exitStatus({ outpoint, detailed })),
+    [engine, m.track, outpoint, detailed],
+  );
+  useEffect(() => {
+    void refreshStatus();
+    if (!pollMs) return;
+    const id = setInterval(() => void refreshStatus(), pollMs);
+
+    return () => clearInterval(id);
+  }, [refreshStatus, pollMs]);
+
+  return {
+    status: m.data,
+    statusPending: m.pending,
+    statusError: m.error,
+    refreshStatus,
+  };
+}
+
+/** The result of {@link useWalletSweep}. */
+export type UseWalletSweepResult = {
+  /** Previews (broadcast:false) or broadcasts (broadcast:true) a backing-wallet sweep to an address. */
+  sweep: (req: SweepWalletRequest) => Promise<SweepWalletResult>;
+  sweepPending: boolean;
+  sweepError: Error | null;
+  sweepData: SweepWalletResult | null;
+  resetSweep: () => void;
+};
+
+/** Previews or broadcasts a sweep of the backing on-chain wallet. */
+export function useWalletSweep(): UseWalletSweepResult {
+  const engine = useWalletEngine();
+  const m = useWalletMutationState<SweepWalletResult>();
+  const sweep = useCallback(
+    (req: SweepWalletRequest) => m.track(() => engine.sweepWallet(req)),
+    [engine, m.track],
+  );
+
+  return {
+    sweep,
+    sweepPending: m.pending,
+    sweepError: m.error,
+    sweepData: m.data,
+    resetSweep: m.reset,
   };
 }
