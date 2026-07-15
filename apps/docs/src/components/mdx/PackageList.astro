@@ -1,0 +1,76 @@
+---
+interface Package {
+  name: string;
+  role: string;
+}
+
+interface Props {
+  packages: Package[];
+}
+
+const { packages } = Astro.props;
+---
+
+<div class="wdk-package-list">
+  {packages.map((pkg) => (
+    <section class="wdk-package-list__item" aria-label={`Package ${pkg.name}`}>
+      <p class="wdk-package-list__label">Package</p>
+      <code class="wdk-package-list__name">{pkg.name}</code>
+      <p class="wdk-package-list__label">Role</p>
+      <p class="wdk-package-list__role">{pkg.role}</p>
+    </section>
+  ))}
+</div>
+
+<style>
+  /* A compact package directory: the shared card treatment feels at home in
+     the docs while giving each long package name its own uninterrupted line. */
+  .wdk-package-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 1.25rem 0 1.75rem;
+  }
+
+  .wdk-package-list__item {
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-top: 2px solid color-mix(in srgb, var(--teal) 70%, var(--border));
+    border-radius: 11px;
+    background: var(--surface);
+  }
+
+  .wdk-package-list__label {
+    margin: 0 0 4px;
+    color: var(--text-dim);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Doubled class selector keeps this component's code treatment from being
+     replaced by the generic inline-code rules in the docs prose column. */
+  .wdk-package-list .wdk-package-list__name {
+    display: inline;
+    color: var(--text-code);
+    background: var(--surface-2);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .wdk-package-list__item .wdk-package-list__label:nth-of-type(2) {
+    margin-top: 16px;
+  }
+
+  .wdk-package-list__role {
+    margin: 0;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 700px) {
+    .wdk-package-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
