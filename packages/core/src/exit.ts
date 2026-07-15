@@ -66,3 +66,54 @@ export function isExitInfeasibilityFundable(
     reason === 'wallet_underfunded' || reason === 'wallet_too_few_inputs'
   );
 }
+
+/**
+ * Starts a batch of exits, one outpoint per daemon call, and reports which
+ * started, which were skipped, and which never started. It resolves once every
+ * exit has been STARTED, not completed: a unilateral exit continues to run for
+ * hours or days after this resolves. On the unilateral path it previews funding
+ * with `getExitPlan`, skips outpoints already running an exit, refuses to start
+ * anything if the wallet cannot fund the batch, and re-plans between starts;
+ * because fee inputs are leased only at broadcast time, it also treats a
+ * mid-batch `exit` rejection as a clean stop. On the cooperative path it queues
+ * each outpoint into the next round.
+ */
+export async function exitBatch(
+  opts: ExitBatchOptions & {
+    client: WavelengthClient;
+    signal?: AbortSignal;
+    onEvent?: (event: ExitBatchEvent) => void;
+  },
+): Promise<ExitBatchResult> {
+  const { client, signal, onEvent } = opts;
+  const started: ExitBatchResult['started'] = [];
+  const skipped: string[] = [];
+  let remaining = [...opts.outpoints];
+
+  while (remaining.length > 0) {
+    signal?.throwIfAborted();
+
+    const outpoint = remaining[0];
+    onEvent?.({ type: 'starting', outpoint });
+    try {
+      const result = await client.exit(
+        opts.mode === 'unilateral'
+          ? { outpoint, forceUnrollAck: FORCE_UNROLL_ACK }
+          : { outpoint, destination: opts.destination },
+      );
+      started.push({ outpoint, result });
+      remaining = remaining.slice(1);
+      onEvent?.({ type: 'started', outpoint, result });
+    } catch (error) {
+      const stoppedBy: ExitBatchStop = {
+        reason: 'rejected',
+        outpoint,
+        error: error as Error,
+      };
+      onEvent?.({ type: 'stopped', stoppedBy, remaining });
+      return { started, skipped, remaining, stoppedBy };
+    }
+  }
+
+  return { started, skipped, remaining: [] };
+}

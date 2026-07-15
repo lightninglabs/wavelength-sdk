@@ -155,8 +155,8 @@ export {
   EntryFailureCodeFailed,
 } from './results.ts';
 
-// Exit-batch orchestration: types now, exitBatch itself lands in a later change.
-export { isExitInfeasibilityFundable } from './exit.ts';
+// Exit-batch orchestration.
+export { exitBatch, isExitInfeasibilityFundable } from './exit.ts';
 export type {
   ExitBatchEvent,
   ExitBatchOptions,
