@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 
 test('in-content h2 carries the accent underline motif', async ({ page }) => {
   // Use a standard DocLayout page (quickstart now uses QuickstartLayout).
-  await page.goto('/introduction/what-is-wavelength/');
+  await page.goto('/introduction/what-is-wavelength-sdk/');
 
   // Confirm an in-content h2 exists (MDX bodies start at ##; h1 is injected
   // by DocLayout from frontmatter).
@@ -37,7 +37,7 @@ test('in-content h2 carries the accent underline motif', async ({ page }) => {
 
 test('in-content h2 uses display font and correct size', async ({ page }) => {
   // Use a standard DocLayout page (quickstart now uses QuickstartLayout).
-  await page.goto('/introduction/what-is-wavelength/');
+  await page.goto('/introduction/what-is-wavelength-sdk/');
 
   const h2Styles = await page.evaluate(() => {
     const el = document.querySelector('.wdk-doc__content h2');

@@ -1,6 +1,6 @@
 ---
 title: wavelength-core
-description: Cross-platform interfaces, shared types, and error codes that every Wavelength platform target builds on.
+description: Cross-platform interfaces, shared types, and error codes that every Wavelength SDK platform target builds on.
 pageLayout: reference
 ---
 
@@ -13,7 +13,7 @@ import FieldCards from '~/components/mdx/FieldCards.astro';
 import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
 `@lightninglabs/wavelength-core` is the framework-agnostic contract every
-Wavelength transport implements: a typed [`WavelengthClient`](#WavelengthClient) interface, the
+Wavelength SDK transport implements: a typed [`WavelengthClient`](#WavelengthClient) interface, the
 [`WalletEngine`](#WalletEngine) orchestrator built on top of it, the request
 and result shapes its methods take and return, and the shared error and event
 model. It has no browser or React dependency: [`wavelength-web`](/reference/wavelength-web/)
@@ -2402,7 +2402,7 @@ export const errorCodeSig = `type WavelengthErrorCode =
 
 <ApiSymbol name="WavelengthError" kind="class">
 
-Base error class thrown by all Wavelength packages. Carries a machine-readable
+Base error class thrown by all Wavelength SDK packages. Carries a machine-readable
 `code` alongside the human-readable message.
 
 <Signature title="wavelength-core.d.ts" code={wavelengthErrorSig} />

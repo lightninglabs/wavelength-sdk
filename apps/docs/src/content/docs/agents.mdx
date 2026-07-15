@@ -8,7 +8,7 @@ sidebar:
 import Callout from '~/components/mdx/Callout.astro';
 import PromptTabs from '~/components/mdx/PromptTabs.astro';
 
-Your coding agent can do most of a Wavelength integration for you. This page
+Your coding agent can do most of a Wavelength SDK integration for you. This page
 wires it up: installable skills that teach the agent our APIs and
 conventions, machine-readable docs it can fetch efficiently, and prompts
 that kick off the work.
@@ -45,16 +45,16 @@ The same catalog is served from this site, so
 - Every page on this site has a markdown twin: append `.md` to any URL.
   Agents get the same content as the HTML at a fraction of the tokens.
 
-## Add Wavelength to your AGENTS.md
+## Add the Wavelength SDK to your AGENTS.md
 
 Paste this into your repo's `AGENTS.md` (or `CLAUDE.md`); your agent then
 carries the ground rules in every session:
 
 ```markdown
 <!-- BEGIN: wavelength-agent-rules -->
-## Wavelength
+## Wavelength SDK
 
-Wavelength embeds a self-custodial Lightning wallet in this app: Lightning
+The Wavelength SDK embeds a self-custodial Lightning wallet in this app: Lightning
 payments with no node, channels, or liquidity to manage.
 
 - Packages: @lightninglabs/wavelength-web (browser transport, has

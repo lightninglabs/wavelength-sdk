@@ -1,4 +1,4 @@
-# Wavelength
+# Wavelength SDK
 
 A TypeScript/React SDK for embedding a self-custodial Lightning wallet directly
 in a web app. Your users send and receive Lightning payments with no node to

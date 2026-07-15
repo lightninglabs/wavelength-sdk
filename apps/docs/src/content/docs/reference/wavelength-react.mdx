@@ -1,6 +1,6 @@
 ---
 title: wavelength-react
-description: React bindings for Wavelength - the WavelengthProvider component and hooks for balance, activity, and wallet operations.
+description: React bindings for the Wavelength SDK - the WavelengthProvider component and hooks for balance, activity, and wallet operations.
 pageLayout: reference
 ---
 
@@ -10,7 +10,7 @@ import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 
-`@lightninglabs/wavelength-react` is the React binding for Wavelength: a context provider that hands a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
+`@lightninglabs/wavelength-react` is the React binding for the Wavelength SDK: a context provider that hands a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
 
 <Callout type="note">
 This package re-exports the entire `wavelength-core` surface (`WavelengthClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/wavelength-react` instead of adding `@lightninglabs/wavelength-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [wavelength-web](/reference/wavelength-web/) or `createNativeWalletEngine` from [wavelength-react-native](/reference/wavelength-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WavelengthProvider` subtree; each throws if it is not.
@@ -33,7 +33,7 @@ Context provider that hands a [`WalletEngine`](/reference/wavelength-core/#Walle
 
 <ParamsTable rows={[
   { name: 'engine', type: 'WalletEngine', desc: 'A WalletEngine from any transport, e.g. createWebWalletEngine() from wavelength-web or createNativeWalletEngine() from wavelength-react-native. Required; the provider throws synchronously if it is missing.' },
-  { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call Wavelength hooks.' },
+  { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call Wavelength SDK hooks.' },
 ]} />
 
 <Callout type="note">

@@ -122,7 +122,7 @@ function PayButton({ bolt11 }: { bolt11: string }) {
 
 ## Interpret error codes
 
-Every Wavelength-originated error extends [`WavelengthError`](/reference/wavelength-core/#WavelengthError) and carries a `code`
+Every error the Wavelength SDK originates extends [`WavelengthError`](/reference/wavelength-core/#WavelengthError) and carries a `code`
 string that identifies the failure reason at the machine level. Match on
 `err.code` to show a specific message rather than a generic fallback. Named
 SDK codes include `runtime_not_ready`, `asset_load_failed`, and

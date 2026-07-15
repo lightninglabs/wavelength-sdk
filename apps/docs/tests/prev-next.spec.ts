@@ -50,7 +50,7 @@ test.describe('PrevNext component', () => {
 
   test('first nav page has no previous link and has a next link', async ({ page }) => {
     // What is Wavelength is the first page in the nav (Introduction section).
-    await page.goto('/introduction/what-is-wavelength/');
+    await page.goto('/introduction/what-is-wavelength-sdk/');
     await expect(page.locator('[data-prev-link]')).toHaveCount(0);
     await expect(page.locator('[data-next-link]')).toBeVisible();
   });

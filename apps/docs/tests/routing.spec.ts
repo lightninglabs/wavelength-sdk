@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 
 const URLS = [
-  '/', '/introduction/what-is-wavelength/', '/concepts/balances-and-vtxos/',
+  '/', '/introduction/what-is-wavelength-sdk/', '/concepts/balances-and-vtxos/',
   '/glossary/', '/reference/wavelength-core/',
   '/web/get-started/quickstart/', '/guides/send-a-payment/',
   '/react-native/get-started/quickstart/',

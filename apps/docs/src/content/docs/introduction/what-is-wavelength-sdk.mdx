@@ -1,6 +1,6 @@
 ---
-title: What is Wavelength?
-description: An overview of Wavelength as a self-custodial Bitcoin, Lightning, and Ark wallet SDK that embeds in your web or mobile app.
+title: What is the Wavelength SDK?
+description: An overview of the Wavelength SDK as a self-custodial Bitcoin, Lightning, and Ark wallet that embeds in your web or mobile app.
 ---
 
 import DiagramFrame from '~/components/diagrams/DiagramFrame.astro';
@@ -9,11 +9,11 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## What it is
 
-Wavelength is a TypeScript SDK for embedding a **self-custodial Bitcoin, Lightning, and Ark wallet** directly in your web or mobile app. Your users hold their own keys. You do not run a wallet server on their behalf.
+The Wavelength SDK is a TypeScript library for embedding a **self-custodial Bitcoin, Lightning, and Ark wallet** directly in your web or mobile app. Your users hold their own keys. You do not run a wallet server on their behalf.
 
 The full wallet daemon ([wavelength](https://github.com/lightninglabs/wavelength)) is compiled to run **inside your app**: to WebAssembly in the browser on web, and into the app binary on React Native. There is no separate process, no local socket, and no backend you must operate to host the wallet logic. Your app boots the daemon and talks to it through a typed client.
 
-Wavelength ships as these packages:
+The Wavelength SDK ships as these packages:
 
 | Package | Role |
 |---|---|
@@ -26,7 +26,7 @@ Wavelength ships as these packages:
 
 ## Mental model
 
-Think of Wavelength as **your app talking to a local wallet daemon**, not your app talking to a remote wallet API.
+Think of the Wavelength SDK as **your app talking to a local wallet daemon**, not your app talking to a remote wallet API.
 
 <DiagramFrame label="Diagram: your app calls the typed WavelengthClient, which forwards to the embedded daemon running in your app, which reaches the backend gateways.">
   <FlowLane

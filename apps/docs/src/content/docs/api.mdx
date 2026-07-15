@@ -13,10 +13,10 @@ This slice is for **remote integrations**: a backend service that manages a wall
 
 Wavelength ships two different ways to reach the same daemon, and they solve different problems.
 
-- **The SDK** ([What is Wavelength?](/introduction/what-is-wavelength/)) compiles `waved` to WebAssembly and runs it **inside the browser**. Each of your users gets their own wallet instance, with keys held on their device. There is no server-side daemon to run or operate.
+- **The SDK** ([What is the Wavelength SDK?](/introduction/what-is-wavelength-sdk/)) compiles `waved` to run **inside your app**: to WebAssembly in the browser on web, and into the app binary on React Native. Each of your users gets their own wallet instance, with keys held on their device. There is no server-side daemon to run or operate.
 - **The API** documented here talks to a **daemon you run**, over the network, using gRPC or REST. Use this when the wallet needs to live server-side: a treasury or operations service, a CI job that needs test funds, or any integration that does not run inside an end user's browser tab.
 
-If you are building a product where each user holds their own keys in their own browser, start with the SDK. If you are automating or operating a wallet from a backend you control, this API slice is for you.
+If you are building a product where each user holds their own keys on their own device, start with the SDK. If you are automating or operating a wallet from a backend you control, this API slice is for you.
 
 ## How this reference is organized
 

@@ -8,7 +8,7 @@ const BASE_URL = 'https://wavelength.lightning.engineering';
 
 const pages = [
   { path: '/', label: 'home' },
-  { path: '/introduction/what-is-wavelength/', label: 'introduction doc' },
+  { path: '/introduction/what-is-wavelength-sdk/', label: 'introduction doc' },
 ];
 
 for (const { path, label } of pages) {

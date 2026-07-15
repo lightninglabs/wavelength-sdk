@@ -7,7 +7,7 @@ import Callout from '~/components/mdx/Callout.astro';
 
 ## WalletState & phases
 
-Before you enable send or receive, the wallet must exist, unlock, and finish syncing with the operator. Wavelength exposes that readiness at two related layers: a daemon-reported wallet state and a broader runtime phase your UI can render.
+Before you enable send or receive, the wallet must exist, unlock, and finish syncing with the operator. The Wavelength SDK exposes that readiness at two related layers: a daemon-reported wallet state and a broader runtime phase your UI can render.
 
 **WalletState** (on **WalletInfo**) is a lowercase string union the SDK normalizes from the daemon's numeric wallet-state field:
 
@@ -96,7 +96,7 @@ function PasskeyUnlock({ credentialId }: { credentialId: string }) {
 }
 ```
 
-Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). Wavelength folds passkey into the engine via an injected passkey ceremony; the core client only sees the PRF bytes.
+Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). The Wavelength SDK folds passkey into the engine via an injected passkey ceremony; the core client only sees the PRF bytes.
 
 <Callout type="note">
 WebAuthn registration, PRF extension availability, and credential persistence are platform mechanics. See [Use a passkey](/guides/use-a-passkey/) for browser-specific steps; this page is the shared mental model.

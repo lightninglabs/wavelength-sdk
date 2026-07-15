@@ -29,7 +29,7 @@ export const NAV: NavGroup[] = [
     label: 'Introduction',
     section: 'introduction',
     items: [
-      { slug: 'introduction/what-is-wavelength', label: 'What is Wavelength', section: 'introduction' },
+      { slug: 'introduction/what-is-wavelength-sdk', label: 'What is the Wavelength SDK', section: 'introduction' },
       { slug: 'introduction/the-wavelength-system', label: 'The Wavelength system', section: 'introduction' },
       { slug: 'introduction/system-architecture', label: 'System architecture', section: 'introduction' },
     ],
@@ -249,7 +249,7 @@ export const SLICES: Slice[] = [
   {
     key: 'sdk',
     label: 'SDK',
-    href: '/introduction/what-is-wavelength/',
+    href: '/introduction/what-is-wavelength-sdk/',
     prefixes: [],
     nav: NAV,
   },
@@ -258,7 +258,7 @@ export const SLICES: Slice[] = [
   { key: 'agents', label: 'Agents', href: '/agents/', prefixes: ['/agents'], nav: AGENTS_NAV },
 ];
 
-/** One way to integrate Wavelength: a labelled entry point. */
+/** One way to integrate the Wavelength SDK: a labelled entry point. */
 export interface Surface {
   label: string;
   href: string;
