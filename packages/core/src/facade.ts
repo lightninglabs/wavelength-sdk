@@ -1,11 +1,54 @@
 import type { RuntimeConfig } from './config.ts';
 import type { CreateWalletRequest, UnlockWalletRequest } from './requests.ts';
+import { WavelengthError } from './errors.ts';
+
+/** Portable mobile and WASM facade methods available through `callFacade()`. */
+export const FACADE_METHODS = [
+  'start',
+  'stop',
+  'getInfo',
+  'status',
+  'balance',
+  'createWallet',
+  'unlockWallet',
+  'openWalletFromPasskey',
+  'deposit',
+  'receive',
+  'prepareSend',
+  'sendPrepared',
+  'list',
+  'exit',
+  'exitStatus',
+  'exitSummary',
+  'getExitPlan',
+  'sweepWallet',
+  'confirmedBalanceSat',
+  'pendingInboundSat',
+  'walletReady',
+  'isRunning',
+] as const;
+
+/** One portable daemon facade method accepted by `callFacade()`. */
+export type FacadeMethod = (typeof FACADE_METHODS)[number];
+
+const FACADE_METHOD_SET: ReadonlySet<string> = new Set(FACADE_METHODS);
+
+export function assertFacadeMethod(
+  method: unknown,
+): asserts method is FacadeMethod {
+  if (typeof method !== 'string' || !FACADE_METHOD_SET.has(method)) {
+    throw new WavelengthError(
+      `unsupported facade method: ${String(method)}`,
+      'unsupported_facade_method',
+    );
+  }
+}
 
 /**
  * Selects how the embedded daemon dials the Ark operator and swap server. The
  * browser transport must use 'rest' (a browser cannot speak native gRPC over
  * the wire), while native transports use 'grpc'. The choice also changes what
- * the address fields mean: with 'rest', arkServerUrl and swapServerUrl are
+ * the address fields mean: with 'rest', the Ark and swap server addresses are
  * gateway URLs; with 'grpc', they are host:port gRPC addresses.
  */
 export type ServerTransport = 'rest' | 'grpc';
@@ -18,23 +61,33 @@ export type ServerTransport = 'rest' | 'grpc';
 export type MobileConfig = {
   data_dir?: string;
   network?: string;
-  allow_mainnet?: boolean;
   debug_level?: string;
-  wallet_type?: string;
-  wallet_esplora_url?: string;
+  allow_mainnet?: boolean;
   server_address?: string;
+  server_tls_cert_path?: string;
   server_transport?: ServerTransport;
   server_insecure?: boolean;
+  wallet_type?: 'lwwallet' | 'btcwallet';
+  wallet_esplora_url?: string;
+  wallet_password_file?: string;
+  wallet_poll_interval_seconds?: number;
+  wallet_recovery_window?: number;
+  wallet_fee_url?: string;
+  wallet_block_headers_source?: string;
+  wallet_filter_headers_source?: string;
   swap_server_address?: string;
+  swap_server_tls_cert_path?: string;
   swap_server_transport?: ServerTransport;
   swap_server_insecure?: boolean;
   swap_database_file_name?: string;
+  max_operator_fee_sat?: number;
+  signing_workers?: number;
+  buffer_size?: number;
 };
 
 /**
  * Maps the public RuntimeConfig onto the flat config the mobile facade
- * expects. Only the lightweight Esplora-backed wallet runs embedded, so
- * wallet_type is always lwwallet.
+ * expects.
  *
  * Mailbox addressing: the facade's MobileConfig has a single server_address
  * (and swap_server_address) per service. Mailbox traffic shares that edge, so
@@ -51,24 +104,41 @@ export function toMobileConfig(
   serverTransport: ServerTransport,
 ): MobileConfig {
   const out: MobileConfig = {
-    network: config.network,
-    allow_mainnet: config.allowMainnet,
     data_dir: config.dataDir,
+    network: config.network,
     debug_level: config.debugLevel,
-    wallet_type: 'lwwallet',
-    wallet_esplora_url: config.esploraUrl,
-    server_address: config.arkServerUrl,
+    allow_mainnet: config.allowMainnet,
+    server_address: config.arkServerAddress,
+    server_tls_cert_path: config.arkServerTlsCertPath,
     server_transport: serverTransport,
-    server_insecure: config.serverInsecure,
+    server_insecure: config.arkServerInsecure,
+    wallet_type: config.walletType ?? 'lwwallet',
+    wallet_esplora_url: config.walletEsploraUrl,
+    wallet_password_file: config.walletPasswordFile,
+    wallet_poll_interval_seconds: config.walletPollIntervalSeconds,
+    wallet_recovery_window: config.walletRecoveryWindow,
+    wallet_fee_url: config.walletFeeUrl,
+    wallet_block_headers_source: config.walletBlockHeadersSource,
+    wallet_filter_headers_source: config.walletFilterHeadersSource,
+    max_operator_fee_sat: config.maxOperatorFeeSat,
+    signing_workers: config.signingWorkers,
+    buffer_size: config.bufferSize,
   };
 
   // Leaving the swap server address unset disables the swap subsystem, so omit
   // every swap field when the host asked to run without swaps.
   if (!config.disableSwaps) {
-    out.swap_server_address = config.swapServerUrl;
+    out.swap_server_address = config.swapServerAddress;
+    out.swap_server_tls_cert_path = config.swapServerTlsCertPath;
     out.swap_server_transport = serverTransport;
     out.swap_server_insecure = config.swapServerInsecure;
     out.swap_database_file_name = config.swapDatabaseFileName;
+  }
+
+  for (const key of Object.keys(out) as Array<keyof MobileConfig>) {
+    if (out[key] === undefined) {
+      delete out[key];
+    }
   }
 
   return out;

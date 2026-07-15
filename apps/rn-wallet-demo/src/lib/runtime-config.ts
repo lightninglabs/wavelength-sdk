@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { defaultConfig } from '@lightninglabs/wavelength-react-native';
-import { RuntimeConfig } from '@lightninglabs/wavelength-react';
+import type { DebugLevel } from '@lightninglabs/wavelength-react';
 
 // The Android emulator reaches the host machine as 10.0.2.2; the iOS
 // simulator shares the host loopback.
@@ -19,8 +19,18 @@ export type RuntimeNetwork = (typeof NETWORKS)[number];
 // edit (every field required so inputs are always controlled). The native
 // transport speaks gRPC, so the server fields are host:port addresses, not
 // REST URLs; dataDir starts empty and is filled from getDefaultDataDir().
-export type RuntimeForm = Omit<Required<RuntimeConfig>, 'network'> & {
+export type RuntimeForm = {
   network: RuntimeNetwork;
+  dataDir: string;
+  allowMainnet: boolean;
+  arkServerAddress: string;
+  walletEsploraUrl: string;
+  swapServerAddress: string;
+  swapDatabaseFileName: string;
+  arkServerInsecure: boolean;
+  swapServerInsecure: boolean;
+  disableSwaps: boolean;
+  debugLevel: DebugLevel;
 };
 
 // RuntimeFieldSetter updates a single field of the runtime form, preserving
@@ -40,10 +50,10 @@ const demoFieldDefaults = {
   // directory on native, which on Android is the filesystem root and hangs
   // runtime startup indefinitely.
   swapDatabaseFileName: '',
-  serverInsecure: false,
+  arkServerInsecure: false,
   swapServerInsecure: false,
   disableSwaps: false,
-  debugLevel: 'info',
+  debugLevel: 'info' as DebugLevel,
 };
 
 // hostedDefaults builds the form for a hosted test network from the SDK's own
@@ -57,9 +67,9 @@ function hostedDefaults(
   return {
     ...demoFieldDefaults,
     network,
-    arkServerUrl: preset.arkServerUrl ?? '',
-    esploraUrl: preset.esploraUrl ?? '',
-    swapServerUrl: preset.swapServerUrl ?? '',
+    arkServerAddress: preset.arkServerAddress ?? '',
+    walletEsploraUrl: preset.walletEsploraUrl ?? '',
+    swapServerAddress: preset.swapServerAddress ?? '',
   };
 }
 
@@ -78,10 +88,10 @@ export const testnet4Defaults: RuntimeForm = hostedDefaults('testnet4');
 export const regtestDefaults: RuntimeForm = {
   ...demoFieldDefaults,
   network: 'regtest',
-  arkServerUrl: `${HOST}:7070`,
-  esploraUrl: `http://${HOST}:8501`,
-  swapServerUrl: `${HOST}:10030`,
-  serverInsecure: true,
+  arkServerAddress: `${HOST}:7070`,
+  walletEsploraUrl: `http://${HOST}:8501`,
+  swapServerAddress: `${HOST}:10030`,
+  arkServerInsecure: true,
   swapServerInsecure: true,
   debugLevel: 'debug',
 };

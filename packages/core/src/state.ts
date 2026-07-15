@@ -80,7 +80,8 @@ export type WalletInfo = Omit<Info, 'walletState'> & {
  * Maps a raw daemon Info (numeric walletState, no walletReady) onto the public
  * {@link WalletInfo}: it converts walletState to the string union and backfills
  * walletReady (ready iff walletState === 'ready'), mirroring the Go
- * Info.WalletReady() method. Transports apply this at the getInfo boundary.
+ * Info.WalletReady() method. Shared facade normalization applies this after
+ * the transport returns getInfo.
  *
  * @param raw - The raw daemon Info payload (untrusted shape).
  * @returns The normalized {@link WalletInfo}.

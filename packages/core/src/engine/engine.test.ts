@@ -1,5 +1,6 @@
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import type { Entry, ListResult } from '../results.ts';
 import type { WalletInfo } from '../state.ts';
 import { FakeWavelengthClient } from '../testing/fake-client.ts';
 import { createWalletEngine } from './engine.ts';
@@ -648,10 +649,62 @@ describe('engine ready-phase processes', () => {
     await flush();
     await engine.start({} as never);
     const balancesBefore = client.countOf('balance');
-    client.emit({ type: 'activity' } as never);
+    client.emit({ type: 'activity', payload: { cursor: 1 } as Entry });
     mock.timers.tick(250);
     await flush();
     assert.ok(client.countOf('balance') > balancesBefore);
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('reconciles on stream loss and retries from the last cursor', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const client = new FakeWavelengthClient();
+    client.info = readyInfo;
+    const engine = createWalletEngine({ client });
+    client.resolveReady();
+    await flush();
+    await engine.start({} as never);
+
+    client.emit({ type: 'activity', payload: { cursor: 12 } as Entry });
+    const listsBefore = client.countOf('list');
+    client.emit({ type: 'activityStream', payload: { state: 'ended' } });
+    await flush();
+    assert.ok(client.countOf('list') > listsBefore);
+
+    mock.timers.tick(1000);
+    await flush();
+    const opens = client.calls.filter((call) => call.method === 'startActivity');
+    assert.deepEqual(opens.at(-1)?.args[0], {
+      includeExisting: false,
+      cursor: 12,
+    });
+    engine.dispose();
+    mock.timers.reset();
+  });
+
+  it('treats replayed entries as idempotent refresh notifications', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+    const client = new FakeWavelengthClient();
+    client.info = readyInfo;
+    client.listValue = {
+      activity: { entries: [{ id: 'canonical', cursor: 0 }] },
+    } as ListResult;
+    const engine = createWalletEngine({ client });
+    client.resolveReady();
+    await flush();
+    await engine.start({} as never);
+
+    const replay = { id: 'replayed', cursor: 12 } as Entry;
+    client.emit({ type: 'activity', payload: replay });
+    client.emit({ type: 'activity', payload: replay });
+    mock.timers.tick(250);
+    await flush();
+
+    assert.deepEqual(
+      engine.getSnapshot().activity.map((entry) => entry.id),
+      ['canonical'],
+    );
     engine.dispose();
     mock.timers.reset();
   });
@@ -666,7 +719,7 @@ describe('engine ready-phase processes', () => {
     await engine.start({} as never);
     client.fail('getInfo', new Error('gone'));
     for (let i = 0; i < 5; i++) {
-      client.emit({ type: 'activity' } as never);
+      client.emit({ type: 'activity', payload: { cursor: i + 1 } as Entry });
       mock.timers.tick(250);
       await flush();
     }
@@ -831,7 +884,7 @@ describe('engine ready-phase processes', () => {
     await engine.start({} as never);
     client.fail('getInfo', new Error('gone'));
     for (let i = 0; i < 5; i++) {
-      client.emit({ type: 'activity' } as never);
+      client.emit({ type: 'activity', payload: { cursor: i + 1 } as Entry });
       mock.timers.tick(250);
       await flush();
     }
@@ -894,7 +947,7 @@ describe('engine ready-phase processes', () => {
     await engine.start({} as never);
     client.fail('getInfo', new Error('gone'));
     for (let i = 0; i < 4; i++) {
-      client.emit({ type: 'activity' } as never);
+      client.emit({ type: 'activity', payload: { cursor: i + 1 } as Entry });
       mock.timers.tick(250);
       await flush();
     }
@@ -902,13 +955,13 @@ describe('engine ready-phase processes', () => {
     // Heal the client and drive one successful refresh cycle: the counter
     // must reset here rather than carry the prior 4 failures forward.
     client.stub('getInfo', client.info);
-    client.emit({ type: 'activity' } as never);
+    client.emit({ type: 'activity', payload: { cursor: 5 } as Entry });
     mock.timers.tick(250);
     await flush();
     assert.equal(engine.getSnapshot().phase, 'ready');
     client.fail('getInfo', new Error('gone again'));
     for (let i = 0; i < 4; i++) {
-      client.emit({ type: 'activity' } as never);
+      client.emit({ type: 'activity', payload: { cursor: i + 6 } as Entry });
       mock.timers.tick(250);
       await flush();
     }

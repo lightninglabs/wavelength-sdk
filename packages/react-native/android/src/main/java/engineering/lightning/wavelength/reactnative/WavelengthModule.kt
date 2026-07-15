@@ -155,41 +155,40 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
   // switch stays dumb on purpose because all typing lives in TypeScript.
   private fun dispatch(method: String, paramsJson: String): String {
     val params = paramsJson.toByteArray(Charsets.UTF_8)
-    val result: ByteArray? = when (method) {
-      "start" -> { Mobile.start(paramsJson); null }
-      "stop" -> { Mobile.stop(); null }
-      "getInfo" -> Mobile.getInfo()
-      "status" -> Mobile.status()
-      "balance" -> Mobile.balance()
-      "createWallet" -> Mobile.createWallet(params)
-      "unlockWallet" -> Mobile.unlockWallet(params)
-      "openWalletFromPasskey" -> Mobile.openWalletFromPasskey(params)
-      "deposit" -> Mobile.deposit(params)
-      "receive" -> Mobile.receive(params)
-      "prepareSend" -> Mobile.prepareSend(params)
-      "sendPrepared" -> Mobile.sendPrepared(params)
-      "list" -> Mobile.list(params)
-      "exit" -> Mobile.exit(params)
-      "exitStatus" -> Mobile.exitStatus(params)
-      "getExitPlan" -> Mobile.getExitPlan(params)
-      "sweepWallet" -> Mobile.sweepWallet(params)
+    return when (method) {
+      "start" -> { Mobile.start(paramsJson); "" }
+      "stop" -> { Mobile.stop(); "" }
+      "getInfo" -> Mobile.getInfo().toString(Charsets.UTF_8)
+      "status" -> Mobile.status().toString(Charsets.UTF_8)
+      "balance" -> Mobile.balance().toString(Charsets.UTF_8)
+      "createWallet" -> Mobile.createWallet(params).toString(Charsets.UTF_8)
+      "unlockWallet" -> Mobile.unlockWallet(params).toString(Charsets.UTF_8)
+      "openWalletFromPasskey" -> Mobile.openWalletFromPasskey(params).toString(Charsets.UTF_8)
+      "deposit" -> Mobile.deposit(params).toString(Charsets.UTF_8)
+      "receive" -> Mobile.receive(params).toString(Charsets.UTF_8)
+      "prepareSend" -> Mobile.prepareSend(params).toString(Charsets.UTF_8)
+      "sendPrepared" -> Mobile.sendPrepared(params).toString(Charsets.UTF_8)
+      "list" -> Mobile.list(params).toString(Charsets.UTF_8)
+      "exit" -> Mobile.exit(params).toString(Charsets.UTF_8)
+      "exitStatus" -> Mobile.exitStatus(params).toString(Charsets.UTF_8)
+      "exitSummary" -> Mobile.exitSummary(params).toString(Charsets.UTF_8)
+      "getExitPlan" -> Mobile.getExitPlan(params).toString(Charsets.UTF_8)
+      "sweepWallet" -> Mobile.sweepWallet(params).toString(Charsets.UTF_8)
+      "confirmedBalanceSat" -> Mobile.confirmedBalanceSat().toString()
+      "pendingInboundSat" -> Mobile.pendingInboundSat().toString()
+      "walletReady" -> Mobile.walletReady().toString()
+      "isRunning" -> Mobile.isRunning().toString()
       else -> throw IllegalArgumentException("unknown wavelength verb: $method")
     }
-    return result?.toString(Charsets.UTF_8) ?: ""
   }
 
   private var subscription: Subscription? = null
-
-  // closing marks an intentional close so the pump reports a clean end
-  // instead of an error when next() unblocks with a cancellation.
-  @Volatile private var closing = false
 
   override fun startActivity(reqJson: String, promise: Promise) {
     executor.execute {
       try {
         synchronized(this) {
           if (subscription == null) {
-            closing = false
             val sub = Mobile.subscribe(reqJson.toByteArray(Charsets.UTF_8))
             subscription = sub
             Thread({ pump(sub) }, "wavelength-activity").apply {
@@ -209,8 +208,11 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
     executor.execute {
       try {
         val sub = synchronized(this) {
-          closing = true
-          subscription
+          val active = subscription
+          // Detach before close returns so a queued start can't reuse a pump
+          // that's already stopping.
+          subscription = null
+          active
         }
         sub?.close()
         promise.resolve(null)
@@ -232,11 +234,20 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
           // Only the exact terminal "EOF" is a clean close; a substring match
           // would misclassify real failures like "unexpected EOF" as clean
           // ends and silently freeze the stream.
-          if (closing || e.message == "EOF") {
+          val stopped = synchronized(this) { subscription !== sub }
+          // An intentional stop has no terminal event. A replacement may
+          // already be open by the time this old pump unblocks.
+          if (stopped) {
+            break
+          }
+          if (e.message == "EOF") {
             sendEvent("end", "")
           } else {
             sendEvent("error", e.message ?: "wavelength activity stream failed")
           }
+          break
+        }
+        if (synchronized(this) { subscription !== sub }) {
           break
         }
         sendEvent("entry", entry.toString(Charsets.UTF_8))

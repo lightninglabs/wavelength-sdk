@@ -1,6 +1,8 @@
 import type { WavelengthListener } from './events.ts';
 import type { RuntimeConfig } from './config.ts';
+import type { FacadeMethod } from './facade.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
+import type { ActivityStreamOptions } from './activity-options.ts';
 import type {
   CreateWalletRequest,
   DepositRequest,
@@ -94,20 +96,17 @@ export interface WavelengthClient {
    * `broadcast: false` first to preview; `broadcast: true` moves funds.
    */
   sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
-  /**
-   * An advanced, unstable escape hatch: it invokes a daemon RPC verb by name,
-   * bypassing the typed methods above. The verb names and payload shapes are the
-   * raw wire contract and may change between releases; prefer the typed methods.
-   * Responses are camelCase-normalized the same way.
-   */
-  callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
+  /** Invokes a portable daemon facade method with a normalized response. */
+  callFacade<T = unknown>(method: FacadeMethod, params?: unknown): Promise<T>;
+  /** Reports whether the embedded daemon is running. */
+  isRunning(): Promise<boolean>;
   /** Subscribes a listener to runtime events; returns an unsubscribe function. */
   subscribe(listener: WavelengthListener): () => void;
   /**
    * Opens the wallet activity stream and forwards each entry to subscribers as an
    * `'activity'` event until {@link stopActivity} is called.
    */
-  startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
+  startActivity(opts?: ActivityStreamOptions): Promise<void>;
   /** Closes the activity stream opened by {@link startActivity}. */
   stopActivity(): void;
   /**

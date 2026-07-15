@@ -79,14 +79,31 @@ function makeFake() {
 }
 
 describe('NativeWavelengthClient', () => {
-  it('callRaw parses and camelizes the native JSON response', async () => {
+  it('callFacade parses a native scalar JSON response', async () => {
     const fake = makeFake();
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);
-    fake.responses.set('balance', '{"ConfirmedSat":21}');
+    fake.responses.set('isRunning', 'true');
 
-    const balance = await client.balance();
-    assert.equal(balance.confirmedSat, 21);
-    assert.equal(fake.calls[0].method, 'balance');
+    assert.equal(await client.callFacade('isRunning'), true);
+    assert.equal(fake.calls[0].method, 'isRunning');
+  });
+
+  it('normalizes a native JSON facade response in core', async () => {
+    const fake = makeFake();
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    fake.responses.set('list', JSON.stringify({
+      View: 'activity',
+      Activity: { Entries: null },
+      VTXOs: null,
+      Onchain: null,
+    }));
+
+    assert.deepEqual(await client.callFacade('list'), {
+      view: 'activity',
+      activity: { entries: [] },
+      vtxos: undefined,
+      onchain: undefined,
+    });
   });
 
   it('start injects the platform data dir and dials grpc', async () => {
@@ -94,11 +111,12 @@ describe('NativeWavelengthClient', () => {
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('getInfo', '{"WalletState":0}');
 
-    await client.start({ network: 'regtest', arkServerUrl: 'h:7070' });
+    await client.start({ network: 'regtest', arkServerAddress: 'h:7070' });
 
     const cfg = JSON.parse(fake.calls[0].paramsJson) as Record<string, unknown>;
     assert.equal(cfg.data_dir, '/data/wavelength');
     assert.equal(cfg.server_transport, 'grpc');
+    assert.equal(cfg.server_address, 'h:7070');
     assert.equal(fake.calls[1].method, 'getInfo');
   });
 
@@ -131,16 +149,28 @@ describe('NativeWavelengthClient', () => {
     const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
-    await client.startActivity({ includeExisting: true });
+    await client.startActivity({
+      includeExisting: true,
+      kinds: ['send', 'exit'],
+      cursor: 99,
+    });
     await client.startActivity();
     assert.equal(fake.counts().startActivityCount, 1);
     assert.deepEqual(JSON.parse(fake.startActivityRequests[0]), {
       includeExisting: true,
+      kinds: ['send', 'exit'],
+      cursor: 99,
     });
 
-    fake.emit({ kind: 'entry', payload: '{"Kind":"send"}' });
+    fake.emit({
+      kind: 'entry',
+      payload: '{"Kind":"send","Progress":null,"Request":null}',
+    });
     assert.deepEqual(events, [
-      { type: 'activity', payload: { kind: 'send' } },
+      {
+        type: 'activity',
+        payload: { kind: 'send', progress: undefined, request: undefined },
+      },
     ]);
   });
 
@@ -179,25 +209,6 @@ describe('NativeWavelengthClient', () => {
 
     await client.startActivity();
     assert.equal(fake.counts().startActivityCount, 2);
-  });
-
-  it('swallows the native end that follows a client-initiated stop', async () => {
-    const fake = makeFake();
-    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
-    const events: WavelengthEvent[] = [];
-    client.subscribe((e) => events.push(e));
-
-    await client.startActivity();
-    client.stopActivity();
-    // The op chain runs the stop asynchronously; let it settle.
-    await Promise.resolve();
-    await Promise.resolve();
-    fake.emit({ kind: 'end', payload: '' });
-
-    assert.deepEqual(
-      events.filter((e) => e.type === 'activityStream'),
-      [],
-    );
   });
 
   it('serializes a stop-then-start so the subscribe waits for the close', async () => {

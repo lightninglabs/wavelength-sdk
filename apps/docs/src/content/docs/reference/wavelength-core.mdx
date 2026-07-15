@@ -20,14 +20,60 @@ model. It has no browser or React dependency: [`wavelength-web`](/reference/wave
 implements it for the browser, and [`wavelength-react`](/reference/wavelength-react/)
 re-exports it and layers hooks on top of a `WalletEngine`.
 
-Every method response is camelCase-normalized at the boundary: the embedded
+Every method response is normalized at the client boundary. The embedded
 daemon speaks PascalCase JSON, and the client rewrites every key to camelCase
 (via [`camelizeKeys()`](#camelizeKeys)) before it reaches you, so you never
-see a `WalletState` or `AmountSat` field in application code. All errors the
-SDK itself raises are a [`WavelengthError`](#WavelengthError) carrying a
-machine-readable [`WavelengthErrorCode`](#WavelengthErrorCode); daemon-originated
-failures currently surface as the generic `wavelength_error` code with a
-descriptive message.
+see a `WalletState` or `AmountSat` field in application code. Known Go nil
+pointers become absent or `undefined`, and known repeated fields become `[]`.
+Numeric values remain JavaScript numbers. This normalization is
+schema-aware: unrelated `null` values are not recursively rewritten. All
+errors the SDK itself raises are a [`WavelengthError`](#WavelengthError) carrying
+a machine-readable [`WavelengthErrorCode`](#WavelengthErrorCode);
+daemon-originated failures currently surface as the generic `wavelength_error`
+code with a descriptive message.
+
+## Named result exports
+
+Nested response shapes can be imported directly from
+`@lightninglabs/wavelength-core`: `CreditPreview`, `SendQuoteStatus`,
+`VTXOInventory`, `WalletVTXO`, `OnchainHistory`, `OnchainTx`,
+`EntryProgress`, `EntryRequestType`, `EntryRequest`, and `EntryFailureCode`.
+
+The generated string-enum values are also exported as named constants:
+
+- Send rails: `SendRailUnspecified`, `SendRailOffchainUnknown`,
+  `SendRailInArk`, `SendRailLightning`, `SendRailOnchain`, `SendRailCredit`,
+  and `SendRailMixed`.
+- Quote and list values: `SendQuoteStatusUnspecified`,
+  `SendQuoteStatusComplete`, `SendQuoteStatusLocalOnly`, `ListViewActivity`,
+  `ListViewVTXOs`, and `ListViewOnchain`.
+- Exit paths and status values: `ExitPathCooperative`, `ExitPathUnilateral`,
+  `ExitPathUnilateralFallback`, `ExitJobStatusUnspecified`,
+  `ExitJobStatusPending`, `ExitJobStatusMaterializing`,
+  `ExitJobStatusCSVPending`, `ExitJobStatusSweeping`,
+  `ExitJobStatusCompleted`, and `ExitJobStatusFailed`.
+- Exit infeasibility reasons: `ExitInfeasibilityReasonUnspecified`,
+  `ExitInfeasibilityReasonSweepBelowDust`,
+  `ExitInfeasibilityReasonUneconomical`,
+  `ExitInfeasibilityReasonWalletUnderfunded`, and
+  `ExitInfeasibilityReasonWalletTooFewInputs`.
+- Entry kinds and statuses: `EntryKindSend`, `EntryKindReceive`,
+  `EntryKindDeposit`, `EntryKindExit`, `EntryStatusPending`,
+  `EntryStatusComplete`, and `EntryStatusFailed`.
+- Entry phases: `EntryPhaseUnspecified`, `EntryPhaseRequestCreated`,
+  `EntryPhaseWaitingForPayment`, `EntryPhasePaymentDetected`,
+  `EntryPhaseSettling`, `EntryPhaseConfirmed`, `EntryPhaseRefunding`,
+  `EntryPhaseRefunded`, `EntryPhaseFailed`, and
+  `EntryPhaseWaitingForConfirmation`.
+- Entry request and failure values: `EntryRequestTypeLightning`,
+  `EntryRequestTypeOnchain`, `EntryRequestTypeArk`,
+  `EntryFailureCodeTimedOut`, `EntryFailureCodeExpired`,
+  `EntryFailureCodeRefunded`, `EntryFailureCodeNeedsIntervention`, and
+  `EntryFailureCodeFailed`.
+
+`@lightninglabs/wavelength-web`,
+`@lightninglabs/wavelength-react-native`, and
+`@lightninglabs/wavelength-react` re-export this complete core contract.
 
 ## Configuration
 
@@ -46,14 +92,26 @@ export const runtimeConfigSig = `type RuntimeConfig = {
   network?: Network;
   allowMainnet?: boolean;
   dataDir?: string;
-  arkServerUrl?: string;
-  esploraUrl?: string;
-  swapServerUrl?: string;
-  swapDatabaseFileName?: string;
-  serverInsecure?: boolean;
-  swapServerInsecure?: boolean;
-  disableSwaps?: boolean;
   debugLevel?: string;
+  arkServerAddress?: string;
+  arkServerTlsCertPath?: string;
+  arkServerInsecure?: boolean;
+  walletType?: 'lwwallet' | 'btcwallet';
+  walletEsploraUrl?: string;
+  walletPasswordFile?: string;
+  walletPollIntervalSeconds?: number;
+  walletRecoveryWindow?: number;
+  walletFeeUrl?: string;
+  walletBlockHeadersSource?: string;
+  walletFilterHeadersSource?: string;
+  swapServerAddress?: string;
+  swapServerTlsCertPath?: string;
+  swapServerInsecure?: boolean;
+  swapDatabaseFileName?: string;
+  disableSwaps?: boolean;
+  maxOperatorFeeSat?: number;
+  signingWorkers?: number;
+  bufferSize?: number;
 };`;
 
 export const networkSig = `type Network = 'mainnet' | 'testnet' | 'testnet4' | 'signet' | 'regtest';`;
@@ -63,15 +121,26 @@ export const mobileConfigSig = `type MobileConfig = {
   network?: string;
   allow_mainnet?: boolean;
   debug_level?: string;
-  wallet_type?: string;
+  wallet_type?: 'lwwallet' | 'btcwallet';
   wallet_esplora_url?: string;
+  wallet_password_file?: string;
+  wallet_poll_interval_seconds?: number;
+  wallet_recovery_window?: number;
+  wallet_fee_url?: string;
+  wallet_block_headers_source?: string;
+  wallet_filter_headers_source?: string;
   server_address?: string;
+  server_tls_cert_path?: string;
   server_transport?: ServerTransport;
   server_insecure?: boolean;
   swap_server_address?: string;
+  swap_server_tls_cert_path?: string;
   swap_server_transport?: ServerTransport;
   swap_server_insecure?: boolean;
   swap_database_file_name?: string;
+  max_operator_fee_sat?: number;
+  signing_workers?: number;
+  buffer_size?: number;
 };`;
 
 <ApiSymbol name="networkDefaults" kind="function">
@@ -102,8 +171,8 @@ The preset config fields for that network and transport.
 
 <ApiSymbol name="DEBUG_LEVELS" kind="const">
 
-The daemon log verbosity levels accepted by `RuntimeConfig.debugLevel`, from
-most to least verbose. Exported for UIs that render a level picker;
+The standard daemon log verbosity levels, from most to least verbose. Exported
+for UIs that render a level picker;
 `debugLevel` itself stays a plain string because the daemon also accepts a
 per-subsystem list such as `'ROND=debug,info'`.
 
@@ -119,19 +188,60 @@ fields you need.
 
 <Signature title="wavelength-core.d.ts" code={runtimeConfigSig} />
 
+The fields stay flat even when they apply to one embedded backend. For example,
+this `btcwallet` configuration uses only top-level `RuntimeConfig` fields:
+
+```ts
+const config: RuntimeConfig = {
+  network: 'signet',
+  walletType: 'btcwallet',
+  walletFeeUrl: 'https://fees.example.com',
+  walletBlockHeadersSource: 'neutrino',
+  walletFilterHeadersSource: 'neutrino',
+  walletRecoveryWindow: 250,
+  maxOperatorFeeSat: 100,
+  signingWorkers: 4,
+  bufferSize: 64,
+};
+```
+
 <ParamsTable rows={[
-  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Required. Use \'mainnet\' only together with allowMainnet.' },
-  { name: 'allowMainnet', type: 'boolean', desc: 'Must be true to run on mainnet; ignored on test networks. The daemon refuses to start on mainnet without it.' },
+  { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Use mainnet only together with allowMainnet.' },
+  { name: 'allowMainnet', type: 'boolean', desc: 'Must be true to run on mainnet. The SDK rejects a mainnet config without it before startup.' },
   { name: 'dataDir', type: 'string', desc: 'Storage root for daemon and wallet state (an OPFS path in the browser). A daemon default is used when unset.' },
-  { name: 'arkServerUrl', type: 'string', desc: 'The Ark operator’s mailbox edge server (its REST gateway in the browser). Required to reach the Ark network.' },
-  { name: 'esploraUrl', type: 'string', desc: 'The Esplora REST endpoint the lightweight wallet uses for chain data. Required.' },
-  { name: 'swapServerUrl', type: 'string', desc: 'The Lightning swap server’s REST gateway. Leave unset (or set disableSwaps) to run without Lightning swaps.' },
-  { name: 'swapDatabaseFileName', type: 'string', desc: 'Advanced. The daemon-owned SQLite file for swap state; a sensible default is used when unset.' },
-  { name: 'serverInsecure', type: 'boolean', desc: 'Advanced. Disables TLS for the Ark server connection; for local development only.' },
-  { name: 'swapServerInsecure', type: 'boolean', desc: 'Advanced. Disables TLS for the swap server connection; for local development only.' },
-  { name: 'disableSwaps', type: 'boolean', desc: 'Turns off the Lightning swap subsystem entirely.' },
-  { name: 'debugLevel', type: 'string', desc: "The daemon's log verbosity (e.g. 'info', 'debug'). Distinct from the client's RPC-payload debug option." },
+  { name: 'debugLevel', type: 'string', desc: "Daemon log verbosity. Accepts a standard DebugLevel or a per-subsystem expression such as 'ROND=debug,info'. Distinct from the web client's RPC-payload debug option." },
+  { name: 'arkServerAddress', type: 'string', desc: 'Ark operator and mailbox endpoint. Use a REST URL on web and a host:port gRPC address on React Native.' },
+  { name: 'arkServerTlsCertPath', type: 'string', desc: 'Optional filesystem TLS certificate path for native transports. The web transport rejects it.' },
+  { name: 'arkServerInsecure', type: 'boolean', desc: 'Disables TLS for the Ark endpoint. Use only for local development.' },
+  { name: 'walletType', type: "'lwwallet' | 'btcwallet'", desc: 'Embedded wallet backend. Default: lwwallet.' },
+  { name: 'walletEsploraUrl', type: 'string', desc: 'HTTP Esplora endpoint for lwwallet only, on both platforms.' },
+  { name: 'walletPasswordFile', type: 'string', desc: 'Password file for lwwallet only.' },
+  { name: 'walletPollIntervalSeconds', type: 'number', desc: 'Chain polling interval for lwwallet only. Must be a nonnegative safe integer.' },
+  { name: 'walletRecoveryWindow', type: 'number', desc: 'Wallet address look-ahead window for either supported embedded backend. Must fit in uint32.' },
+  { name: 'walletFeeUrl', type: 'string', desc: 'Fee estimator endpoint for btcwallet only.' },
+  { name: 'walletBlockHeadersSource', type: 'string', desc: 'Block-header source for btcwallet only.' },
+  { name: 'walletFilterHeadersSource', type: 'string', desc: 'Compact-filter-header source for btcwallet only.' },
+  { name: 'swapServerAddress', type: 'string', desc: 'Swap endpoint. Use a REST URL on web and a host:port gRPC address on React Native.' },
+  { name: 'swapServerTlsCertPath', type: 'string', desc: 'Optional filesystem TLS certificate path for native transports. The web transport rejects it unless swaps are disabled.' },
+  { name: 'swapServerInsecure', type: 'boolean', desc: 'Disables TLS for the swap endpoint. Use only for local development.' },
+  { name: 'swapDatabaseFileName', type: 'string', desc: 'Daemon-owned SQLite file for swap state.' },
+  { name: 'disableSwaps', type: 'boolean', desc: 'Disables Lightning swaps and suppresses preset and override swap fields.' },
+  { name: 'maxOperatorFeeSat', type: 'number', desc: 'Maximum operator fee in satoshis. Must be a nonnegative safe integer.' },
+  { name: 'signingWorkers', type: 'number', desc: 'Signing worker count. Must be a nonnegative safe integer.' },
+  { name: 'bufferSize', type: 'number', desc: 'Runtime buffer size. Must be a nonnegative safe integer.' },
 ]} />
+
+The SDK validates `RuntimeConfig` before it starts the daemon. It rejects
+backend-only fields used with the wrong `walletType`, invalid numeric values,
+mainnet without `allowMainnet: true`, and `arkServerTlsCertPath` on web. Web
+accepts `swapServerTlsCertPath` only when `disableSwaps: true`, which
+suppresses every swap field. `lwwallet` fields are `walletEsploraUrl`, `walletPasswordFile`, and
+`walletPollIntervalSeconds`. `btcwallet` fields are `walletFeeUrl`,
+`walletBlockHeadersSource`, and `walletFilterHeadersSource`.
+
+LND and eager-round-join disable are intentionally unavailable through this
+mobile start contract. Most apps should use `defaultConfig()` from their
+transport package and override only the fields they need.
 
 </ApiSymbol>
 
@@ -155,39 +265,39 @@ addresses (React Native transport):
     title: 'signet',
     accent: 'teal',
     fields: [
-      { label: 'arkServerUrl', value: { rest: 'https://arkd-signet-rest.staging.lightningcluster.com', grpc: 'arkd-signet.staging.lightningcluster.com:443' } },
-      { label: 'esploraUrl', value: 'https://mempool-signet.testnet.lightningcluster.com/api' },
-      { label: 'swapServerUrl', value: { rest: 'https://swapd-signet-rest.staging.lightningcluster.com', grpc: 'swapd-signet.staging.lightningcluster.com:443' } },
+      { label: 'arkServerAddress', value: { rest: 'https://arkd-signet-rest.staging.lightningcluster.com', grpc: 'arkd-signet.staging.lightningcluster.com:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool-signet.testnet.lightningcluster.com/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-signet-rest.staging.lightningcluster.com', grpc: 'swapd-signet.staging.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'testnet',
     accent: 'sky',
     fields: [
-      { label: 'arkServerUrl', value: { rest: 'https://arkd-rest.testnet.lightningcluster.com', grpc: 'arkd.testnet.lightningcluster.com:443' } },
-      { label: 'esploraUrl', value: 'https://mempool.space/testnet/api' },
-      { label: 'swapServerUrl', value: { rest: 'https://swapd-rest.testnet.lightningcluster.com', grpc: 'swapd.testnet.lightningcluster.com:443' } },
+      { label: 'arkServerAddress', value: { rest: 'https://arkd-rest.testnet.lightningcluster.com', grpc: 'arkd.testnet.lightningcluster.com:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool.space/testnet/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-rest.testnet.lightningcluster.com', grpc: 'swapd.testnet.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'testnet4',
     accent: 'lime',
     fields: [
-      { label: 'arkServerUrl', value: { rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com', grpc: 'arkd-testnet4.testnet.lightningcluster.com:443' } },
-      { label: 'esploraUrl', value: 'https://mempool.space/testnet4/api' },
-      { label: 'swapServerUrl', value: { rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com', grpc: 'swapd-testnet4.testnet.lightningcluster.com:443' } },
+      { label: 'arkServerAddress', value: { rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com', grpc: 'arkd-testnet4.testnet.lightningcluster.com:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool.space/testnet4/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com', grpc: 'swapd-testnet4.testnet.lightningcluster.com:443' } },
     ],
   },
   {
     title: 'mainnet',
-    empty: 'No public preset - build the RuntimeConfig by hand with your own arkServerUrl, esploraUrl, swapServerUrl, and allowMainnet.',
+    empty: 'No public preset - build the RuntimeConfig by hand with your own arkServerAddress, walletEsploraUrl, swapServerAddress, and allowMainnet.',
   },
 ]} />
 
 <Callout type="caution" title="mainnet has no public preset">
 mainnet is not a `PresetNetwork`, so there is no `defaultConfig` for it. There
 is no canonical public gateway for mainnet yet, so build the `RuntimeConfig` by
-hand: supply your own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or
+hand: supply your own `arkServerAddress`, `walletEsploraUrl`, and `swapServerAddress` (or
 `disableSwaps`) and pass `allowMainnet: true`, or `start()` will refuse to run.
 </Callout>
 
@@ -205,10 +315,15 @@ Browser transports use `rest`; native transports use `grpc`.
 <ApiSymbol name="MobileConfig" kind="type">
 
 The flat configuration shape passed to the embedded mobile facade. Application
-code normally supplies [`RuntimeConfig`](#RuntimeConfig) instead; this type is
-useful when implementing or debugging a transport.
+code normally supplies [`RuntimeConfig`](#RuntimeConfig) instead. This internal
+shape is shown for transport debugging and is not exported from the core
+package.
 
 <Signature title="wavelength-core.d.ts" code={mobileConfigSig} />
+
+Calling `client.callFacade('start', mobileConfig)` sends this lower-level shape
+directly to the daemon and bypasses public `RuntimeConfig` validation. App code
+should call `client.start(config)` instead.
 
 </ApiSymbol>
 
@@ -232,12 +347,13 @@ export const wavelengthClientSig = `interface WavelengthClient {
   list(req?: ListRequest): Promise<ListResult>;
   exit(req: ExitRequest): Promise<ExitResult>;
   exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>;
-  exitSummary(req: ExitSummaryRequest): Promise<ExitSummaryResult>;
+  exitSummary(req?: ExitSummaryRequest): Promise<ExitSummaryResult>;
   getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
   sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
-  callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
+  callFacade<T = unknown>(method: FacadeMethod, params?: unknown): Promise<T>;
+  isRunning(): Promise<boolean>;
   subscribe(listener: WavelengthListener): () => void;
-  startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
+  startActivity(opts?: ActivityStreamOptions): Promise<void>;
   stopActivity(): void;
   dispose(): void;
 }`;
@@ -261,8 +377,9 @@ sections below.
 `ready()` once, then `start(config)` once, then any of the wallet operations
 (any number of times, in any order appropriate to your app), then `stop()`
 when you are done running the daemon, then `dispose()` to release the
-client's own resources. `dispose()` is terminal: build a new client to start
-again.
+client's own resources. `isRunning()` is the exception: it can be called
+before startup or after shutdown to inspect the daemon process state.
+`dispose()` is terminal: build a new client to start again.
 
 </ApiSymbol>
 
@@ -434,6 +551,13 @@ The engine interface. Every method mirrors the matching `WavelengthClient` metho
 The engine runs several processes automatically, keyed off `phase`, so hosts never reimplement them:
 
 - **Activity-stream auto-refresh**: while `phase` is `'ready'`, the engine opens the transport's activity stream and, on each event, runs a bounded settle-reconcile: an immediate `refresh()` followed by up to three follow-up re-reads (at 750ms, 1500ms, and 3000ms) that stop early once the balance has moved off its pre-event baseline and then held steady across two reads. This covers the daemon reporting an entry settled a beat before `balance()` reflects the new funds.
+- **Activity-stream recovery**: terminal `activityStream` events trigger a
+  `list()` reconciliation, then the engine retries from the last safe numeric
+  activity cursor with bounded exponential backoff. The cursor resets when the
+  runtime stops or restarts. Replayed events trigger the same idempotent
+  snapshot refresh instead of being appended directly, so the engine provides
+  eventual snapshot consistency after a disconnect. The current web and
+  native bridges do not expose structured gap cursor or reason details.
 - **Sync auto-poll**: while `phase` is `'syncing'`, the engine calls `refresh()` every 2000ms until the phase leaves `'syncing'`. After 5 consecutive failures it stops polling and escalates to `phase: 'error'` instead of polling forever.
 - **Restore readiness poll**: while `phase` is `'restoring'` (any `restoreWallet()` in flight; when the request sets `recoverState: true` the recovery scan is additionally tracked through `snapshot.recovery`), the engine polls `getInfo()` every 1500ms until the wallet reports ready, then settles the `restoreWallet()` promise and kicks a refresh.
 - **Background-refresh failure budget**: any refresh kicked after a mutation (create/unlock/restore/deposit/receive/send) or by a poll above shares one consecutive-failure counter. At 5 consecutive failures the engine sets `snapshot.error` and escalates `phase` to `'error'`, so a dead daemon cannot hide behind a healthy-looking ready wallet.
@@ -668,6 +792,7 @@ Whether a wallet was freshly created from the derived seed, plus the mnemonic
 export const getInfoSig = `getInfo(): Promise<WalletInfo>`;
 export const statusSig = `status(): Promise<WalletStatus>`;
 export const balanceMethodSig = `balance(): Promise<Balance>`;
+export const isRunningSig = `isRunning(): Promise<boolean>`;
 
 export const walletInfoSig = `type WalletInfo = {
   version: string;
@@ -701,7 +826,21 @@ also returns; reach for it when you need `walletState` or build metadata.
 `status()` is a lighter operational check (ready/unlocked/pending count) that
 also embeds the balance, useful for a quick health probe. `balance()` returns
 only the `Balance` you would find nested in `status().balance`; call it
-directly when that is all you need.
+directly when that is all you need. `isRunning()` reports only whether the
+embedded daemon process is running.
+
+The typed methods are the preferred way to read facade-level scalar values:
+
+```ts
+const confirmedBalanceSat = (await client.balance()).confirmedSat;
+const pendingInboundSat = (await client.balance()).pendingInSat;
+const walletReady = (await client.getInfo()).walletReady;
+const running = await client.isRunning();
+```
+
+The `confirmedBalanceSat`, `pendingInboundSat`, `walletReady`, and `isRunning`
+facade verbs also remain available through [`callFacade()`](#callFacade) for
+portable low-level integrations.
 
 <ApiSymbol name="getInfo" kind="function">
 
@@ -735,6 +874,19 @@ Returns the current wallet balance.
 
 <Returns type="Promise<Balance>">
 The current confirmed and pending balances, in satoshis.
+</Returns>
+
+</ApiSymbol>
+
+<ApiSymbol name="isRunning" kind="function">
+
+Reports whether the embedded daemon is running. This does not report wallet
+readiness; use [`getInfo()`](#getInfo) when you need `walletReady`.
+
+<Signature title="wavelength-core.d.ts" code={isRunningSig} />
+
+<Returns type="Promise<boolean>">
+`true` while the embedded daemon process is running.
 </Returns>
 
 </ApiSymbol>
@@ -1143,6 +1295,7 @@ export const listSig = `list(req?: ListRequest): Promise<ListResult>`;
 export const listRequestSig = `type ListRequest = {
   view?: ListView;
   pendingOnly?: boolean;
+  kinds?: EntryKind[];
   limit?: number;
   offset?: number;
   cursor?: string;
@@ -1191,7 +1344,12 @@ export const onchainTxSig = `type OnchainTx = {
 export const subscribeSig = `subscribe(listener: WavelengthListener): () => void`;
 export const wavelengthListenerSig = `type WavelengthListener = (event: WavelengthEvent) => void;`;
 
-export const startActivitySig = `startActivity(opts?: { includeExisting?: boolean }): Promise<void>`;
+export const startActivitySig = `startActivity(opts?: ActivityStreamOptions): Promise<void>`;
+export const activityStreamOptionsSig = `type ActivityStreamOptions = {
+  includeExisting?: boolean;
+  kinds?: EntryKind[];
+  cursor?: number;
+};`;
 export const stopActivitySig = `stopActivity(): void`;
 
 export const entrySig = `type Entry = {
@@ -1206,6 +1364,7 @@ export const entrySig = `type Entry = {
   note: string;
   failureReason: string;
   failureCode: EntryFailureCode;
+  cursor: number;
   progress?: EntryProgress;
   request?: EntryRequest;
 };`;
@@ -1217,6 +1376,7 @@ export const entryProgressSig = `type EntryProgress = {
   txid: string;
   confirmationHeight: number;
   vTXOOutpoint: string;
+  preimage: string;
 };`;
 
 export const entryRequestSig = `type EntryRequest = {
@@ -1262,6 +1422,15 @@ Lists wallet activity or UTXOs per the request.
 A tagged union with only the field matching the requested view populated.
 </Returns>
 
+Filter the activity view by one or more entry kinds:
+
+```ts
+await client.list({
+  view: 'activity',
+  kinds: ['receive', 'deposit'],
+});
+```
+
 <ApiTypeLabel name="ListRequest" />
 
 <Signature title="wavelength-core.d.ts" code={listRequestSig} />
@@ -1269,6 +1438,7 @@ A tagged union with only the field matching the requested view populated.
 <ParamsTable rows={[
   { name: 'view', type: 'ListView', desc: "Optional. Which view to list: activity entries, VTXOs, or on-chain outputs. Default: 'activity'." },
   { name: 'pendingOnly', type: 'boolean', desc: 'Optional. When true, returns only pending items. Applies to the activity view only.' },
+  { name: 'kinds', type: 'EntryKind[]', desc: 'Optional. Returns only the selected entry kinds. Applies to the activity view only.' },
   { name: 'limit', type: 'number', desc: 'Optional. The maximum number of items to return; zero uses the daemon default.' },
   { name: 'offset', type: 'number', desc: 'Optional. The number of items to skip for pagination. Applies to the vtxos and onchain views only; the activity view paginates by cursor and ignores offset.' },
   { name: 'cursor', type: 'string', desc: "Optional. The opaque pagination token for the activity view. Empty starts from the newest entry; otherwise pass the nextCursor from the previous ActivityList page. Ignored by the vtxos and onchain views." },
@@ -1385,13 +1555,38 @@ Opens the wallet activity stream and forwards each entry to subscribers as an
 
 <Signature title="wavelength-core.d.ts" code={startActivitySig} />
 
+```ts
+// Replay entries that already exist, then continue with new activity.
+await client.startActivity({
+  includeExisting: true,
+  kinds: ['send', 'receive'],
+});
+
+// Resume after the last entry this consumer processed.
+await client.startActivity({
+  kinds: ['send', 'receive'],
+  cursor: lastCursor,
+});
+```
+
 <ParamsTable rows={[
   { name: 'opts.includeExisting', type: 'boolean', desc: 'Optional. When true, immediately emits an activity event for every entry that already exists, in addition to future changes.' },
+  { name: 'opts.kinds', type: 'EntryKind[]', desc: 'Optional. Streams only the selected activity kinds.' },
+  { name: 'opts.cursor', type: 'number', desc: 'Optional. Resumes after the last monotonic Entry.cursor the consumer processed. Must be a nonnegative safe integer.' },
 ]} />
+
+<ApiTypeLabel name="ActivityStreamOptions" />
+
+<Signature title="wavelength-core.d.ts" code={activityStreamOptionsSig} />
 
 <Returns type="Promise<void>">
 Resolves once the activity stream is open.
 </Returns>
+
+A direct `WavelengthClient` receives an `activityStream` event when the stream
+ends or fails and chooses its own retry policy. [`WalletEngine`](#WalletEngine)
+adds reconciliation and bounded cursor-based recovery for apps that want that
+managed behavior.
 
 </ApiSymbol>
 
@@ -1426,6 +1621,7 @@ streamed via [`startActivity()`](#startActivity) as `activity` events.
   { name: 'note', type: 'string', desc: 'An optional note recorded with the activity.' },
   { name: 'failureReason', type: 'string', desc: "Human-readable supplement to failureCode; populated only when status is 'failed'." },
   { name: 'failureCode', type: 'EntryFailureCode', desc: "Stable, machine-readable classification of why the entry failed. Empty unless status is 'failed'." },
+  { name: 'cursor', type: 'number', desc: 'The monotonic position of this update on the activity stream. Persist it to resume with ActivityStreamOptions.cursor. It is zero on entries returned outside the stream.' },
   { name: 'progress', type: 'EntryProgress', desc: 'Optional. Lifecycle metadata the daemon normalized for this entry. Absent when the backing subsystem supplied no progress hint.' },
   { name: 'request', type: 'EntryRequest', desc: 'Optional. The user-recognizable request that created the entry (an invoice, address, or Ark address). Absent when the backing subsystem did not persist one.' },
 ]} />
@@ -1447,6 +1643,7 @@ subsystem; an empty field means not applicable or not yet known.
   { name: 'txid', type: 'string', desc: 'Populated when the backing ledger row has an on-chain txid.' },
   { name: 'confirmationHeight', type: 'number', desc: 'Populated once the source records it.' },
   { name: 'vTXOOutpoint', type: 'string', desc: 'Populated when a swap observes the Ark vHTLC output.' },
+  { name: 'preimage', type: 'string', desc: 'The hex-encoded Lightning payment preimage when known. For a completed Lightning-backed send, it is proof of payment for the invoice.' },
 ]} />
 
 </ApiSymbol>
@@ -1561,10 +1758,19 @@ Discriminates which request shape an [`EntryRequest`](#EntryRequest) carries.
 ## Exiting Ark
 
 export const exitSig = `exit(req: ExitRequest): Promise<ExitResult>`;
-export const exitRequestSig = `type ExitRequest = {
-  outpoint: string;
-  destination?: string;
-};`;
+export const exitRequestSig = `type ExitRequest =
+  | {
+      outpoint: string;
+      destination?: string;
+      forceUnrollAck?: never;
+    }
+  | {
+      outpoint: string;
+      destination?: never;
+      forceUnrollAck: typeof FORCE_UNROLL_ACK;
+    };
+
+const FORCE_UNROLL_ACK = 'I_KNOW_WHAT_I_AM_DOING' as const;`;
 export const exitResultSig = `type ExitResult = {
   path: ExitPath;
   cooperative: boolean;
@@ -1628,7 +1834,7 @@ export const exitJobStatusSig = `type ExitJobStatus =
   | 'completed'
   | 'failed';`;
 
-export const exitSummarySig = `exitSummary(req: ExitSummaryRequest): Promise<ExitSummaryResult>`;
+export const exitSummarySig = `exitSummary(req?: ExitSummaryRequest): Promise<ExitSummaryResult>`;
 export const exitSummaryRequestSig = `type ExitSummaryRequest = Record<string, never>;`;
 export const exitSummaryResultSig = `type ExitSummaryResult = {
   exits: ExitSummaryEntry[];
@@ -1713,13 +1919,14 @@ funds and cannot be undone.
 
 <ApiSymbol name="exit" kind="function">
 
-Exits a single outpoint, attempting a cooperative leave to the optional
-destination.
+Exits a single outpoint through one explicit branch: a cooperative leave,
+optionally to `destination`, or an acknowledged unilateral unroll. When
+`destination` is omitted, the daemon generates a fresh backing-wallet address.
 
 <Signature title="wavelength-core.d.ts" code={exitSig} />
 
 <ParamsTable rows={[
-  { name: 'req', type: 'ExitRequest', desc: 'The outpoint to exit and an optional destination.' },
+  { name: 'req', type: 'ExitRequest', desc: 'The outpoint and either an optional cooperative destination or the exact unilateral acknowledgement.' },
 ]} />
 
 <Returns type="Promise<ExitResult>">
@@ -1728,16 +1935,30 @@ The outcome, discriminated by `path`.
 
 <ApiTypeLabel name="ExitRequest" />
 
-When `destination` is set, the SDK first attempts a cooperative leave with
-the leave output bound for that on-chain address; unilateral unroll is
-reached only through the daemon's explicit force-acknowledgement flow, which
-is not exposed as a plain SDK field.
+`destination` and `forceUnrollAck` are mutually exclusive. Omit both to make a
+cooperative exit to a fresh backing-wallet address:
+
+```ts
+await client.exit({ outpoint });
+```
+
+A cooperative error rejects the call and never falls back to unilateral
+unroll. Starting unilateral unroll requires the exported `FORCE_UNROLL_ACK`
+constant:
+
+```ts
+await client.exit({
+  outpoint,
+  forceUnrollAck: FORCE_UNROLL_ACK,
+});
+```
 
 <Signature title="wavelength-core.d.ts" code={exitRequestSig} />
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint to exit, in "txid:index" format.' },
-  { name: 'destination', type: 'string', desc: 'Optional. An on-chain address that receives the leave output when the cooperative path succeeds. Empty asks the daemon to generate a fresh backing-wallet destination internally.' },
+  { name: 'destination', type: 'string', desc: 'Optional. Cooperative branch only. The on-chain address that receives the leave output. When omitted, the daemon generates a fresh backing-wallet address. Mutually exclusive with forceUnrollAck.' },
+  { name: 'forceUnrollAck', type: 'typeof FORCE_UNROLL_ACK', desc: 'Unilateral branch only. Must be the exact exported acknowledgement constant and cannot be combined with destination.' },
 ]} />
 
 <ApiTypeLabel name="ExitResult" />
@@ -2075,33 +2296,55 @@ Describes one backing-wallet UTXO selected by `sweepWallet()`.
 See the [leaving Ark guide](/concepts/leaving-ark/) for a walkthrough of the
 exit and sweep flow end to end.
 
-## Advanced: raw calls
+## Portable facade calls
 
-export const callRawSig = `callRaw<T = unknown>(method: string, params?: unknown): Promise<T>`;
+export const facadeMethodSig = `type FacadeMethod =
+  | 'start' | 'stop' | 'getInfo' | 'status' | 'balance'
+  | 'createWallet' | 'unlockWallet' | 'openWalletFromPasskey'
+  | 'deposit' | 'receive' | 'prepareSend' | 'sendPrepared'
+  | 'list' | 'exit' | 'exitStatus' | 'exitSummary'
+  | 'getExitPlan' | 'sweepWallet'
+  | 'confirmedBalanceSat' | 'pendingInboundSat'
+  | 'walletReady' | 'isRunning';`;
+export const callFacadeSig = `callFacade<T = unknown>(
+  method: FacadeMethod,
+  params?: unknown,
+): Promise<T>`;
 export const camelizeKeysSig = `function camelizeKeys<T = unknown>(value: unknown): T`;
 
-<ApiSymbol name="callRaw" kind="function">
+<ApiSymbol name="callFacade" kind="function">
 
-An advanced, unstable escape hatch: it invokes a daemon RPC verb by name,
-bypassing the typed methods documented above. Responses are camelCase-normalized
-the same way as every other method.
+Invokes one portable mobile/wasm facade method. This is the low-level escape
+hatch for transport integrations; application code should prefer the typed
+methods documented above.
 
-<Signature title="wavelength-core.d.ts" code={callRawSig} />
+<Signature title="wavelength-core.d.ts" code={callFacadeSig} />
 
 <ParamsTable rows={[
-  { name: 'method', type: 'string', desc: 'The daemon RPC verb name to invoke.' },
-  { name: 'params', type: 'unknown', desc: 'Optional. The raw request payload for that verb.' },
+  { name: 'method', type: 'FacadeMethod', desc: 'One of the portable facade method names listed below.' },
+  { name: 'params', type: 'unknown', desc: 'Optional. The raw mobile/wasm request shape for that method, not the typed SDK request mapper.' },
 ]} />
 
 <Returns type="Promise<T>">
-The camelCase-normalized response, typed as `T` (unchecked; you assert the shape).
+The response with normal SDK casing and method-aware null normalization, typed
+as `T` (unchecked; the caller asserts the shape).
 </Returns>
 
-<Callout type="caution" title="Unstable wire contract">
-The verb names and payload shapes accepted by `callRaw()` are the raw daemon
-wire contract and may change between releases without notice. Prefer the
-typed methods documented above whenever one covers your use case; reach for
-`callRaw()` only when no typed method exists yet.
+<ApiTypeLabel name="FacadeMethod" />
+
+<Signature title="wavelength-core.d.ts" code={facadeMethodSig} />
+
+The whitelist excludes the streaming `subscribe` operation and private worker
+control methods such as `$ready` and `$init`. Requests use the raw mobile/wasm
+shapes, while responses use the same camelCase keys and schema-aware nil
+normalization as typed methods. The four scalar verbs
+`confirmedBalanceSat`, `pendingInboundSat`, `walletReady`, and `isRunning` are
+included for portable bridge callers.
+
+<Callout type="caution" title="Prefer the typed methods">
+Typed methods map SDK request shapes, validate relevant inputs, and return
+named results. Use `callFacade()` only when you specifically need the portable
+facade contract.
 </Callout>
 
 </ApiSymbol>
@@ -2109,8 +2352,8 @@ typed methods documented above whenever one covers your use case; reach for
 <ApiSymbol name="camelizeKeys" kind="function">
 
 Maps a daemon PascalCase JSON response onto the SDK's camelCase shapes.
-Transports apply this at the response boundary so every method (including
-`callRaw()`) returns camelCase keys.
+The shared client applies this after transport invocation so typed methods and
+`callFacade()` return camelCase keys consistently across transports.
 
 <Signature title="wavelength-core.d.ts" code={camelizeKeysSig} />
 
@@ -2244,8 +2487,8 @@ Maps a raw daemon `Info` payload (numeric `walletState`, no `walletReady`)
 onto the public `WalletInfo`: converts `walletState` to the string union via
 [`walletStateFromProto()`](#walletStateFromProto) and backfills `walletReady`
 (ready iff `walletState === 'ready'`), mirroring the daemon's
-`Info.WalletReady()` method. Transports apply this at the `getInfo()`
-boundary.
+`Info.WalletReady()` method. `BaseWavelengthClient` applies this through shared
+facade normalization after the transport returns the raw `getInfo()` result.
 
 <Signature title="wavelength-core.d.ts" code={normalizeInfoSig} />
 
@@ -2309,7 +2552,9 @@ export const activityStreamPayloadSig = `type ActivityStreamPayload =
 Discriminated union of runtime events delivered to subscribers. Narrow on
 `type` to read the payload: `'activity'` carries the changed
 [`Entry`](#Entry), `'log'` carries a level and message, and the lifecycle
-events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
+events (`'runtimeReady'`, `'runtimeStopped'`) carry none. There are five event
+types: `runtimeReady`, `runtimeStopped`, `activity`, `activityStream`, and
+`log`.
 
 <Signature title="wavelength-core.d.ts" code={wavelengthEventSig} />
 
@@ -2320,6 +2565,11 @@ events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
 | `activity` | `Entry` | An activity entry changed; delivered while `startActivity()` is active. |
 | `activityStream` | `ActivityStreamPayload` | The activity stream ended or failed without a consumer-initiated close. |
 | `log` | `WavelengthLogPayload` | A daemon log line. |
+
+Direct clients receive `activityStream` terminal events and choose their own
+retry policy. The event carries only `state` and, for failures, `message`.
+Structured gap cursor and reason details are not available through the current
+web and native bridges.
 
 </ApiSymbol>
 

@@ -13,7 +13,17 @@ import Callout from '~/components/mdx/Callout.astro';
 `@lightninglabs/wavelength-react` is the React binding for the Wavelength SDK: a context provider that hands a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
 
 <Callout type="note">
-This package re-exports the entire `wavelength-core` surface (`WavelengthClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/wavelength-react` instead of adding `@lightninglabs/wavelength-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [wavelength-web](/reference/wavelength-web/) or `createNativeWalletEngine` from [wavelength-react-native](/reference/wavelength-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WavelengthProvider` subtree; each throws if it is not.
+This package re-exports the complete `wavelength-core` contract (`export * from
+'@lightninglabs/wavelength-core'`), including `WavelengthClient`, `WalletEngine`,
+`FacadeMethod`, `ActivityStreamOptions`, every request/result and nested
+response type, and every core-exported generated string-enum constant. You can import the core
+contract directly from `@lightninglabs/wavelength-react` instead of adding
+`@lightninglabs/wavelength-core` as a separate dependency. The engine itself is
+not built here: create one with `createWebWalletEngine` from
+[wavelength-web](/reference/wavelength-web/) or `createNativeWalletEngine` from
+[wavelength-react-native](/reference/wavelength-react-native/). Every hook on this
+page, including `useWalletPasskey`, must be called within a `WavelengthProvider`
+subtree; each throws if it is not.
 </Callout>
 
 ## Provider
@@ -469,7 +479,17 @@ The per-platform contract `useWalletPasskey` drives. It is defined in `wavelengt
 
 ## Re-exported from wavelength-core
 
-`@lightninglabs/wavelength-react` re-exports the full `@lightninglabs/wavelength-core` surface (`export * from '@lightninglabs/wavelength-core'`), so `WavelengthClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/wavelength-web`, `@lightninglabs/wavelength-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [wavelength-core reference](/reference/wavelength-core/) rather than repeated here.
+`@lightninglabs/wavelength-react` re-exports the complete
+`@lightninglabs/wavelength-core` surface. That includes `WavelengthClient`,
+`WalletEngine`, `createWalletEngine`, `FacadeMethod`, `ActivityStreamOptions`,
+`RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry`, the complete
+activity/exit/send/list type families, all named nested response types, and all
+generated string-enum constants. `RuntimePhase`, `WalletState`,
+`RecoveryState`, `PasskeyCancelledError`, and `toError` are included too.
+`defaultConfig` comes from the transport packages
+(`@lightninglabs/wavelength-web` and
+`@lightninglabs/wavelength-react-native`). The core contract and enum constant
+families are listed on the [wavelength-core reference](/reference/wavelength-core/).
 
 ## See also
 

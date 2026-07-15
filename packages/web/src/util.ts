@@ -1,7 +1,6 @@
 import {
   ActivityStreamPayload,
   camelizeKeys,
-  Entry,
   WavelengthEvent,
   WavelengthEventType,
   WavelengthLogPayload,
@@ -11,7 +10,7 @@ export { errorMessage } from '@lightninglabs/wavelength-core';
 /**
  * A single in-flight RPC awaiting its worker response, keyed by request id in
  * the worker client's pending map. resolve/reject settle the promise the caller
- * received from callRaw when the matching worker message arrives.
+ * received from callFacade when the matching worker message arrives.
  */
 export type PendingCall = {
   resolve: (value: unknown) => void;
@@ -36,19 +35,15 @@ export function debugTs(): string {
 }
 
 /**
- * Maps a raw event forwarded across the worker boundary onto the typed
- * {@link WavelengthEvent} union, camelizing the payloads that carry daemon JSON.
- * The postMessage boundary is untyped, so the mapping is explicit per
- * discriminant.
+ * Maps a non-activity event forwarded across the worker boundary onto the
+ * typed {@link WavelengthEvent} union. Activity entries are normalized by the
+ * client instance at the shared core boundary.
  */
 export function toWavelengthEvent(raw: {
   type: WavelengthEventType;
   payload?: unknown;
 }): WavelengthEvent {
   switch (raw.type) {
-  case 'activity':
-    return { type: 'activity', payload: camelizeKeys<Entry>(raw.payload) };
-
   case 'activityStream':
     // The payload is a plain state/message object, not daemon JSON, so it
     // crosses the worker boundary as-is with no camelizing.

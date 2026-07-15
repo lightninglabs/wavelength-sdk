@@ -1,6 +1,8 @@
 let wasmReady = false;
 let loadPromise = null;
 let activityHandle = null;
+let activityOpen = null;
+let activityGeneration = 0;
 
 // The client sends the runtime base URL as this worker's first message (see the
 // $init handler below). The bundler fingerprints the worker's own URL, so the
@@ -75,9 +77,30 @@ self.onmessage = async (event) => {
     // cannot cross postMessage, so the worker owns the pull loop and forwards
     // each entry to the main thread as an 'activity' event.
     if (method === "$startActivity") {
-      if (!activityHandle) {
-        activityHandle = await self.wavewalletdkCall("subscribe", params || {});
-        pumpActivity(activityHandle);
+      const generation = activityGeneration;
+      const pending = activityOpen;
+      if (!activityHandle && pending?.generation === generation) {
+        await pending.promise;
+      } else if (!activityHandle) {
+        let open;
+        const promise = self.wavewalletdkCall("subscribe", params || {})
+          .then((handle) => {
+            if (activityGeneration !== generation) {
+              handle.close();
+
+              return;
+            }
+            activityHandle = handle;
+            pumpActivity(handle);
+          })
+          .finally(() => {
+            if (activityOpen === open) {
+              activityOpen = null;
+            }
+          });
+        open = { generation, promise };
+        activityOpen = open;
+        await promise;
       }
       self.postMessage({ id, ok: true, result: { subscribed: true } });
 
@@ -85,6 +108,7 @@ self.onmessage = async (event) => {
     }
 
     if (method === "$stopActivity") {
+      activityGeneration += 1;
       const handle = activityHandle;
       activityHandle = null;
       if (handle) {
@@ -241,12 +265,14 @@ async function pumpActivity(handle) {
     // by $stopActivity; signal it so the host can resubscribe. A handle
     // swapped out by $stopActivity is an expected close and stays silent.
     if (activityHandle === handle) {
+      activityHandle = null;
       postEvent("activityStream", { state: "ended" });
     }
   } catch (err) {
     // An error after a client-initiated close is expected; only surface a
     // failure the consumer did not cause.
     if (activityHandle === handle) {
+      activityHandle = null;
       postEvent("activityStream", {
         state: "failed",
         message: String(err?.message || err),

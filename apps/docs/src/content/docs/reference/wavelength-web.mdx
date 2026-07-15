@@ -23,8 +23,11 @@ browser (WebAuthn/PRF) passkey ceremony.
 This package re-exports the entire [`@lightninglabs/wavelength-core`](/reference/wavelength-core/)
 public surface (`export * from '@lightninglabs/wavelength-core'`). You only need
 to import from `@lightninglabs/wavelength-web` to get the client factory, every
-request/result type, every enum, and `defaultConfig()`. There is no need to
-also depend on `@lightninglabs/wavelength-core` directly.
+request/result and nested response type, every core-exported generated
+string-enum constant, and `defaultConfig()`. This includes `FacadeMethod`, `ActivityStreamOptions`,
+`EntryProgress`, `CreditPreview`, and the complete activity, list, send, and
+exit type families. There is no need to also depend on
+`@lightninglabs/wavelength-core` directly.
 </Callout>
 
 export const createWebClientSig = `function createWebClient(
@@ -117,8 +120,8 @@ export const defaultConfigSig = `function defaultConfig(
 
 Returns a ready-to-use `RuntimeConfig` for a network, preloaded with the
 canonical public REST gateway endpoints the web transport dials, merged with
-any overrides. Pass overrides to set `dataDir` or point at your own
-infrastructure.
+any overrides. This is a shallow merge of top-level `RuntimeConfig` fields.
+Pass overrides to set `dataDir` or point at your own infrastructure.
 
 <Signature title="wavelength-web.d.ts" code={defaultConfigSig} />
 
@@ -141,6 +144,10 @@ const config = defaultConfig('signet', { dataDir: 'my-wallet' });
 deployment yet, and regtest's local ports vary per development environment.
 Build their `RuntimeConfig` by hand, mainnet with your own gateway URLs and
 `allowMainnet`, regtest with local URLs and the insecure-transport flags.
+On web, `arkServerAddress` and `swapServerAddress` are REST URLs, and
+`walletEsploraUrl` is an HTTP Esplora endpoint. The web transport rejects
+`arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
+`disableSwaps: true`, which suppresses every swap field.
 The per-network endpoint values are on the
 [wavelength-core reference](/reference/wavelength-core/#Network).
 
@@ -182,7 +189,7 @@ Browser-specific options for `createWebClient`. The config passed to
   { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("./wavewalletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWavelengthClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
-  { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs callRaw calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
+  { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs facade calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
 ]} />
 
 </ApiSymbol>

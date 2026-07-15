@@ -16,8 +16,17 @@ export type {
 // Network selection and runtime configuration. App code normally builds a
 // config through a transport package's defaultConfig helper; networkDefaults
 // is the shared endpoint table those helpers compose over.
-export { DEBUG_LEVELS, networkDefaults } from './config.ts';
-export type { DebugLevel, Network, PresetNetwork, RuntimeConfig } from './config.ts';
+export {
+  DEBUG_LEVELS,
+  networkDefaults,
+  validateRuntimeConfig,
+} from './config.ts';
+export type {
+  DebugLevel,
+  Network,
+  PresetNetwork,
+  RuntimeConfig,
+} from './config.ts';
 
 // Wallet lifecycle state and the phases a UI renders.
 export { WalletState, normalizeInfo, phaseFromInfo, walletStateFromProto } from './state.ts';
@@ -44,16 +53,23 @@ export type {
   SweepWalletRequest,
   UnlockWalletRequest,
 } from './requests.ts';
+export { FORCE_UNROLL_ACK } from './requests.ts';
+export type { ActivityStreamOptions } from './activity-options.ts';
 
 // Result shapes (a couple SDK-augmented, the rest re-exported from generated).
 export type {
   ActivityList,
   Balance,
   CreateWalletResult,
+  CreditPreview,
   DepositResult,
   Entry,
+  EntryFailureCode,
   EntryKind,
   EntryPhase,
+  EntryProgress,
+  EntryRequest,
+  EntryRequestType,
   EntryStatus,
   ExitCSV,
   ExitFees,
@@ -69,21 +85,81 @@ export type {
   GetExitPlanResult,
   ListResult,
   ListView,
+  OnchainHistory,
+  OnchainTx,
   OpenWalletFromPasskeyResult,
   PrepareSendResult,
   ReceiveResult,
   SendRail,
+  SendQuoteStatus,
   SendResult,
   SweepWalletResult,
   UnlockWalletResult,
+  VTXOInventory,
+  WalletVTXO,
   WalletSweepInput,
+} from './results.ts';
+export {
+  SendRailUnspecified,
+  SendRailOffchainUnknown,
+  SendRailInArk,
+  SendRailLightning,
+  SendRailOnchain,
+  SendRailCredit,
+  SendRailMixed,
+  SendQuoteStatusUnspecified,
+  SendQuoteStatusComplete,
+  SendQuoteStatusLocalOnly,
+  ListViewActivity,
+  ListViewVTXOs,
+  ListViewOnchain,
+  ExitPathCooperative,
+  ExitPathUnilateral,
+  ExitPathUnilateralFallback,
+  ExitJobStatusUnspecified,
+  ExitJobStatusPending,
+  ExitJobStatusMaterializing,
+  ExitJobStatusCSVPending,
+  ExitJobStatusSweeping,
+  ExitJobStatusCompleted,
+  ExitJobStatusFailed,
+  ExitInfeasibilityReasonUnspecified,
+  ExitInfeasibilityReasonSweepBelowDust,
+  ExitInfeasibilityReasonUneconomical,
+  ExitInfeasibilityReasonWalletUnderfunded,
+  ExitInfeasibilityReasonWalletTooFewInputs,
+  EntryKindSend,
+  EntryKindReceive,
+  EntryKindDeposit,
+  EntryKindExit,
+  EntryStatusPending,
+  EntryStatusComplete,
+  EntryStatusFailed,
+  EntryPhaseUnspecified,
+  EntryPhaseRequestCreated,
+  EntryPhaseWaitingForPayment,
+  EntryPhasePaymentDetected,
+  EntryPhaseSettling,
+  EntryPhaseConfirmed,
+  EntryPhaseRefunding,
+  EntryPhaseRefunded,
+  EntryPhaseFailed,
+  EntryPhaseWaitingForConfirmation,
+  EntryRequestTypeLightning,
+  EntryRequestTypeOnchain,
+  EntryRequestTypeArk,
+  EntryFailureCodeTimedOut,
+  EntryFailureCodeExpired,
+  EntryFailureCodeRefunded,
+  EntryFailureCodeNeedsIntervention,
+  EntryFailureCodeFailed,
 } from './results.ts';
 
 // The client contract every transport implements.
 export type { WavelengthClient } from './client.ts';
 
 // The transport-agnostic half of the client, for transport implementers:
-// extend it and supply callRaw, ready, the activity plumbing, and the
+// extend it and supply invokeFacade, ready, the activity plumbing, and the
 // transport flavor.
 export { BaseWavelengthClient } from './base-client.ts';
 
@@ -105,23 +181,16 @@ export type {
   WalletKind,
 } from './passkey.ts';
 
-// The daemon facade protocol shared by every transport: the flat Start config
-// and the Go-shaped request mappers. Transport implementers use these; app
-// code normally does not.
-export {
-  base64FromUtf8,
-  toGoCreateWalletReq,
-  toGoUnlockWalletReq,
-  toMobileConfig,
-} from './facade.ts';
-export type { MobileConfig, ServerTransport } from './facade.ts';
+// The daemon facade method catalog shared by every transport.
+export { FACADE_METHODS, base64FromUtf8 } from './facade.ts';
+export type { FacadeMethod } from './facade.ts';
 
 // The daemon build this SDK release is paired with (generated types and
 // runtime assets alike).
 export { RUNTIME_MANIFEST_VERSION } from './version.ts';
 
-// camelizeKeys maps a daemon PascalCase JSON response to the SDK's camelCase
-// shapes; every transport applies it at its response boundary.
+// BaseWavelengthClient applies camelizeKeys once to every facade response.
+// Transports should return daemon-shaped values instead of normalizing them.
 export { camelizeKeys } from './casing.ts';
 
 // classifyDestination decides which fields a send UI should render for a pasted

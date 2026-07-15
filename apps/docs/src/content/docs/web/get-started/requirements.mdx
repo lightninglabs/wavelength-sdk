@@ -68,14 +68,18 @@ prints, and build the config by hand, including the insecure-transport flags
 for plain-HTTP local gateways:
 
 ```ts title="config.ts"
-await client.start({
+import type { RuntimeConfig } from '@lightninglabs/wavelength-web';
+
+const config: RuntimeConfig = {
   network: 'regtest',
-  arkServerUrl: 'http://127.0.0.1:7071',
-  esploraUrl: 'http://127.0.0.1:8501',
-  swapServerUrl: 'http://127.0.0.1:10032',
-  serverInsecure: true,
+  arkServerAddress: 'http://127.0.0.1:7071',
+  walletEsploraUrl: 'http://127.0.0.1:8501',
+  swapServerAddress: 'http://127.0.0.1:10032',
+  arkServerInsecure: true,
   swapServerInsecure: true,
-});
+};
+
+await client.start(config);
 ```
 
 **Mainnet** has no public preset yet, so like regtest there is no
@@ -85,9 +89,14 @@ and set `allowMainnet: true` before going live:
 ```ts title="config.ts"
 await client.start({
   network: 'mainnet',
-  arkServerUrl: 'https://your-ark-server.example.com',
-  esploraUrl: 'https://your-esplora.example.com/api',
-  swapServerUrl: 'https://your-swap-server.example.com',
+  arkServerAddress: 'https://your-ark-server.example.com',
+  walletEsploraUrl: 'https://your-esplora.example.com/api',
+  swapServerAddress: 'https://your-swap-server.example.com',
   allowMainnet: true,
 });
 ```
+
+On web, `arkServerAddress` and `swapServerAddress` must be REST URLs.
+`walletEsploraUrl` is an HTTP Esplora endpoint. The web transport always
+rejects `arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
+`disableSwaps: true`, which suppresses every swap field.

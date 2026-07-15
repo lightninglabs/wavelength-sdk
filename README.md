@@ -130,19 +130,23 @@ There is no regtest preset (local ports vary per machine); build that config
 by hand with your stack's endpoints and the insecure-transport flags:
 
 ```ts
-const config = {
+import type { RuntimeConfig } from "@lightninglabs/wavelength-web";
+
+const config: RuntimeConfig = {
   network: "regtest",
-  arkServerUrl: "http://localhost:7071",
-  esploraUrl: "http://localhost:3002",
-  swapServerUrl: "http://localhost:10032",
-  serverInsecure: true,
+  arkServerAddress: "http://127.0.0.1:7071",
+  walletEsploraUrl: "http://127.0.0.1:8501",
+  swapServerAddress: "http://127.0.0.1:10032",
+  arkServerInsecure: true,
   swapServerInsecure: true,
 };
 ```
 
 Every field is documented on the [`RuntimeConfig`](packages/core/src/config.ts)
-type. `mainnet` has no public preset yet, so like regtest it is built by hand:
-supply the endpoints and `allowMainnet: true` yourself.
+type. On web, `arkServerAddress` and `swapServerAddress` are REST URLs;
+`walletEsploraUrl` is an HTTP Esplora endpoint on every platform. `mainnet` has
+no public preset yet, so like regtest it is built by hand: supply the endpoints
+and `allowMainnet: true` yourself.
 
 ## Runtime assets
 

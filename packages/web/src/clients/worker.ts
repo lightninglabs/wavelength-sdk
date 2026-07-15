@@ -1,12 +1,17 @@
 import {
   BaseWavelengthClient,
-  camelizeKeys,
   WavelengthError,
   WavelengthEventType,
 } from '@lightninglabs/wavelength-core';
+import type {
+  ActivityStreamOptions,
+  FacadeMethod,
+} from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
-import { PendingCall, toWavelengthEvent } from '../util';
+import { PendingCall, errorMessage, toWavelengthEvent } from '../util';
+
+type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
 
 /**
  * Runs the wasm runtime in a dedicated Web Worker to keep the UI thread free. It
@@ -51,10 +56,20 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   }
 
   ready(): Promise<void> {
-    return this.callRaw('$ready').then(() => undefined);
+    return this.request('$ready').then(() => undefined);
   }
 
-  callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+  protected invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
+    return this.request<T>(method, params);
+  }
+
+  private request<T = unknown>(
+    method: FacadeMethod | WorkerControlMethod,
+    params: unknown = {},
+  ): Promise<T> {
     const id = this.nextRequestID++;
 
     const promise = new Promise<T>((resolve, reject) => {
@@ -73,14 +88,27 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   // subscription handle holds JS callbacks that cannot cross postMessage, so the
   // worker drives the pull loop and forwards each entry as an 'activity' event
   // message instead of returning the handle.
-  async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
-    await this.callRaw('$startActivity', {
+  protected async openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void> {
+    const request = {
       includeExisting: opts.includeExisting ?? false,
-    });
+      kinds: opts.kinds ?? [],
+      cursor: opts.cursor ?? 0,
+    };
+    await this.request('$startActivity', request);
   }
 
   stopActivity(): void {
-    void this.callRaw('$stopActivity').catch(() => undefined);
+    void this.request('$stopActivity').catch((err) => {
+      this.emit({
+        type: 'log',
+        payload: {
+          level: 'warn',
+          message: `failed to close the activity stream: ${errorMessage(err)}`,
+        },
+      });
+    });
   }
 
   private handleMessage(message: unknown) {
@@ -114,9 +142,16 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     }
 
     if (data.event) {
-      // Map the worker's raw event onto the typed union, camelizing payloads
-      // that carry daemon JSON (e.g. an 'activity' Entry) so stream consumers see
-      // the same camelCase shapes as the typed responses.
+      if (data.event.type === 'activity') {
+        this.emit({
+          type: 'activity',
+          payload: this.normalizeActivityEntry(data.event.payload),
+        });
+
+        return;
+      }
+
+      // Map lifecycle, log, and terminal events separately from daemon entries.
       this.emit(toWavelengthEvent(data.event));
 
       return;
@@ -133,7 +168,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     this.pending.delete(data.id);
 
     if (data.ok) {
-      pending.resolve(camelizeKeys(data.result));
+      pending.resolve(data.result);
 
       return;
     }

@@ -55,7 +55,7 @@ for a full wiring example.
 ### Connection refused (wrong URLs or ports)
 
 Daemon logs or network errors show `connection refused` or failed fetches to
-`arkServerUrl`, `esploraUrl`, or `swapServerUrl`.
+`arkServerAddress`, `walletEsploraUrl`, or `swapServerAddress`.
 
 **Fix:** Verify each gateway is reachable from the browser (not just from your
 shell). For **regtest**, start arktest and match the URLs in your
@@ -66,7 +66,10 @@ regtest URL comes from you; the demo app ships its own local defaults (Ark
 on `7071`, Esplora on `8501`, swap on `10032`).
 
 Signet, testnet, and testnet4 presets from `defaultConfig()` should work without a local
-backend; if they fail, check corporate proxies or ad blockers first.
+backend; if they fail, check corporate proxies or ad blockers first. On web,
+Ark and swap values must be REST URLs. The transport always rejects
+`arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
+`disableSwaps: true`, which suppresses every swap field.
 
 ### 401 Unauthorized from a gateway
 
@@ -124,7 +127,7 @@ If an entry stays pending far longer than expected:
    activity-driven refreshes). Without React, call
    **`client.list({ pendingOnly: true })`** directly.
 2. Inspect daemon **`log`** events (`useWalletLogs()` or `client.subscribe()`).
-3. Confirm **`swapServerUrl`** is correct and swaps are enabled
+3. Confirm **`swapServerAddress`** is correct and swaps are enabled
    (`disableSwaps` is false).
 4. Retry only after the prior attempt reaches `failed`/`refunded`; duplicate
    sends to the same invoice can race.

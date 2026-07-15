@@ -19,7 +19,7 @@ The daemon also owns local persistence (wallet database, swap state) and signing
 
 ## The three backend gateways
 
-Once started, the daemon reaches **three external REST gateways**. These are the only network services Wavelength depends on. Configure them in `RuntimeConfig` (or use your transport package's `defaultConfig(network)` for the public signet, testnet, and testnet4 presets):
+Once started, the daemon reaches three external backend services. Configure them in `RuntimeConfig` (or use your transport package's `defaultConfig(network)` for the public signet, testnet, and testnet4 presets):
 
 <PlatformTabs>
 <div data-label="Web">
@@ -30,7 +30,7 @@ import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 const client = createWebClient();
 await client.ready();
 await client.start(defaultConfig('signet'));
-// arkServerUrl, esploraUrl, swapServerUrl pre-filled for signet
+// arkServerAddress, walletEsploraUrl, swapServerAddress pre-filled for signet
 ```
 
 </div>
@@ -42,7 +42,7 @@ import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-rea
 const client = createNativeClient();
 await client.ready();
 await client.start(defaultConfig('signet'));
-// arkServerUrl, esploraUrl, swapServerUrl pre-filled for signet
+// arkServerAddress, walletEsploraUrl, swapServerAddress pre-filled for signet
 ```
 
 </div>
@@ -50,15 +50,15 @@ await client.start(defaultConfig('signet'));
 
 | Field | Service | What the daemon uses it for |
 |---|---|---|
-| `arkServerUrl` | Ark operator REST gateway | Ark **rounds**, VTXO lifecycle, and **mailbox relay** for out-of-round transfers |
-| `swapServerUrl` | Swap server REST gateway | **Lightning↔Ark atomic swaps** (Lightning receive and send) |
-| `esploraUrl` | Esplora-compatible indexer | **Chain and UTXO queries**; must implement the Esplora `/address/:addr/utxo` API |
+| `arkServerAddress` | Ark operator and mailbox edge | Ark **rounds**, VTXO lifecycle, and **mailbox relay** for out-of-round transfers. A REST URL on web; a `host:port` gRPC address on React Native. |
+| `swapServerAddress` | Swap server | **Lightning↔Ark atomic swaps** (Lightning receive and send). A REST URL on web; a `host:port` gRPC address on React Native. |
+| `walletEsploraUrl` | Esplora-compatible indexer | **Chain and UTXO queries**; an HTTP endpoint on both platforms that implements the Esplora `/address/:addr/utxo` API |
 
 **Mailbox and operator share one edge.** VTXO mailbox traffic goes through the same Ark server URL. There is no separate `mailboxUrl` in `RuntimeConfig`; the redundant mailbox fields were removed so you configure a single Ark gateway.
 
-Lightning is not a fourth gateway. Lightning send and receive are **swap operations** routed through `swapServerUrl`. On-chain visibility (boarding deposits, cooperative leaves, unilateral exits) goes through Esplora and the Ark operator as appropriate.
+Lightning is not a fourth gateway. Lightning send and receive are **swap operations** routed through `swapServerAddress`. On-chain visibility (boarding deposits, cooperative leaves, unilateral exits) goes through Esplora and the Ark operator as appropriate.
 
-Set `disableSwaps: true` (or omit `swapServerUrl`) if you only need Ark and on-chain flows without Lightning.
+Set `disableSwaps: true` if you only need Ark and on-chain flows without Lightning. It suppresses the preset and any override swap fields.
 
 ## How boarding, swaps, and exits connect
 
@@ -80,7 +80,7 @@ Wavelength does not open Lightning channels in the browser. Lightning payments a
 - **Receive Lightning** (`receive()`) starts a **receive swap**: the swap server holds a Lightning invoice; when it is paid, you receive Ark balance (a VTXO).
 - **Send Lightning** (`send({ invoice })`) runs a **send swap**: you spend Ark balance; the swap server pays the BOLT-11 invoice on Lightning. For a quote-then-confirm flow instead of a single call, see `prepareSend()`/`sendPrepared()`.
 
-Both directions go through `swapServerUrl`. Swaps can sit in a pending state while liquidity or routing resolves; the daemon tracks them in your activity stream and can refund if a swap expires.
+Both directions go through `swapServerAddress`. Swaps can sit in a pending state while liquidity or routing resolves; the daemon tracks them in your activity stream and can refund if a swap expires.
 
 ### On-chain out: leave and exit
 

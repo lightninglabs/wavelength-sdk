@@ -43,11 +43,15 @@ Think of the Wavelength SDK as **your app talking to a local wallet daemon**, no
 2. **The client** forwards those calls to the embedded daemon running in your app (on web, in a Web Worker by default, or the main thread if configured).
 3. **The daemon** holds keys, tracks VTXOs, coordinates Ark rounds, and reaches out to public infrastructure when it needs chain data, mailbox relay, or Lightning swaps.
 
-The daemon connects to **three backend REST gateways** (configured in `RuntimeConfig`):
+The daemon connects to three backend services configured in `RuntimeConfig`:
 
-- **Ark operator + mailbox** (`arkServerUrl`) for rounds and VTXO/mailbox relay
-- **Swap server** (`swapServerUrl`) for Lightning↔Ark atomic swaps
-- **Esplora** (`esploraUrl`) for chain and UTXO queries
+- **Ark operator + mailbox** (`arkServerAddress`) for rounds and VTXO/mailbox relay
+- **Swap server** (`swapServerAddress`) for Lightning↔Ark atomic swaps
+- **Esplora** (`walletEsploraUrl`) for chain and UTXO queries
+
+On web, the Ark and swap addresses are REST URLs. On React Native, they are
+`host:port` gRPC addresses. `walletEsploraUrl` is an HTTP Esplora endpoint on
+both platforms.
 
 Your app never calls those gateways directly. It only talks to the local daemon. **User keys never leave the device.** Seed generation, signing, and wallet state live on the device (OPFS in the browser; the app data directory on React Native). The gateways see protocol traffic, not your users' private keys.
 

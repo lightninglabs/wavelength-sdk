@@ -1,11 +1,12 @@
 import {
   BaseWavelengthClient,
   WavelengthError,
-  camelizeKeys,
   errorMessage,
 } from '@lightninglabs/wavelength-core';
 import type {
+  ActivityStreamOptions,
   Entry,
+  FacadeMethod,
   RuntimeConfig,
   WalletInfo,
 } from '@lightninglabs/wavelength-core';
@@ -46,12 +47,11 @@ export type SubscribeToNativeEvents = (
   listener: (event: NativeActivityEvent) => void,
 ) => () => void;
 
-/**
+  /**
  * The React Native transport: implements {@link BaseWavelengthClient}'s pipe
- * over the gomobile Turbo Module. JSON strings cross the RN bridge and all
- * typing and casing normalization happens here in TS, mirroring how the web
- * transport treats the worker boundary.
- */
+ * over the gomobile Turbo Module. JSON strings cross the RN bridge, then the
+ * shared base client normalizes responses and streamed entries in TS.
+  */
 export class NativeWavelengthClient extends BaseWavelengthClient {
   // The embedded daemon runs natively, so it dials the servers over gRPC.
   protected readonly serverTransport = 'grpc' as const;
@@ -63,9 +63,6 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
   // Whether a native subscription is currently open. Only read and written
   // inside serialized ops, so it never races.
   private streamOpen = false;
-  // Set inside a stop op so onNativeEvent knows the imminent native 'end' is
-  // client-initiated and must be swallowed.
-  private closing = false;
   private native: WavelengthNativeModule;
   private subscribeToNativeEvents: SubscribeToNativeEvents;
 
@@ -101,14 +98,17 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
     });
   }
 
-  async callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+  protected async invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
     try {
       const resultJson = await this.native.call(
         method,
         JSON.stringify(params ?? {}),
       );
 
-      return camelizeKeys<T>(resultJson ? JSON.parse(resultJson) : null);
+      return (resultJson ? JSON.parse(resultJson) : null) as T;
     } catch (err) {
       throw new WavelengthError(errorMessage(err), 'wavelength_error', {
         cause: err,
@@ -119,17 +119,22 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
   // startActivity opens the native pull subscription; the native side pumps
   // entries to 'wavelengthActivity' device events, which are re-emitted here
   // as typed 'activity' events. Idempotent while a stream is open.
-  async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
+  protected async openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void> {
     return this.enqueue(async () => {
       if (this.streamOpen) {
         return;
       }
-      this.closing = false;
       this.removeNativeListener ??= this.subscribeToNativeEvents((event) =>
         this.onNativeEvent(event),
       );
       await this.native.startActivity(
-        JSON.stringify({ includeExisting: opts.includeExisting ?? false }),
+        JSON.stringify({
+          includeExisting: opts.includeExisting ?? false,
+          kinds: opts.kinds ?? [],
+          cursor: opts.cursor ?? 0,
+        }),
       );
       this.streamOpen = true;
     });
@@ -140,10 +145,8 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
       if (!this.streamOpen) {
         return;
       }
-      // Set closing before the native close so the terminal native 'end',
-      // which arrives only after the close resolves, is recognized as
-      // client-initiated and swallowed.
-      this.closing = true;
+      // Native stop detaches the old subscription before close and emits no
+      // terminal event for it, so a queued start can safely open a new pump.
       this.streamOpen = false;
       try {
         await this.native.stopActivity();
@@ -166,7 +169,7 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
     case 'entry': {
       let entry: Entry;
       try {
-        entry = camelizeKeys<Entry>(JSON.parse(event.payload));
+        entry = this.normalizeActivityEntry(JSON.parse(event.payload));
       } catch (err) {
         this.emit({
           type: 'log',
@@ -184,12 +187,8 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
     }
 
     case 'end':
-      // A client-initiated close is expected and silent; only an end the
-      // consumer did not ask for is surfaced so it can resubscribe.
       this.streamOpen = false;
-      if (!this.closing) {
-        this.emit({ type: 'activityStream', payload: { state: 'ended' } });
-      }
+      this.emit({ type: 'activityStream', payload: { state: 'ended' } });
 
       return;
 
@@ -214,11 +213,8 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
   }
 
   dispose(): void {
-    // super.dispose() calls stopActivity(), which enqueues the native close;
-    // marking closing swallows the resulting terminal 'end'. Do not touch
-    // streamOpen here: the enqueued stop reads it to decide whether to close
-    // the native subscription, so clearing it now would leak the pump.
-    this.closing = true;
+    // super.dispose() calls stopActivity(). Keep streamOpen intact until that
+    // queued stop reads it, or disposal would leak the native pump.
     super.dispose();
     this.removeNativeListener?.();
     this.removeNativeListener = null;

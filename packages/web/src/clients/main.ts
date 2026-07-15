@@ -1,8 +1,10 @@
 import {
   BaseWavelengthClient,
-  camelizeKeys,
-  Entry,
   WavelengthError,
+} from '@lightninglabs/wavelength-core';
+import type {
+  ActivityStreamOptions,
+  FacadeMethod,
 } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
 import type { WebClientOptions } from '../index';
@@ -15,6 +17,11 @@ import {
 } from '../runtime';
 import { ActivityHandle, debugTs, errorMessage } from '../util';
 
+type ActivityOpen = {
+  generation: number;
+  promise: Promise<void>;
+};
+
 /**
  * Runs the wasm runtime on the page's main thread. It is the escape hatch for
  * environments without Web Worker support (or where main-thread execution is
@@ -25,6 +32,8 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
+  private activityOpen: ActivityOpen | null = null;
+  private activityGeneration = 0;
   private readonly runtimeBaseUrl: string | undefined;
   private readonly debug: boolean;
   private readonly onRuntimeReady = () => this.emit({ type: 'runtimeReady' });
@@ -49,7 +58,10 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     return this.ensureLoaded();
   }
 
-  async callRaw<T = unknown>(method: string, params: unknown = {}): Promise<T> {
+  protected async invokeFacade<T = unknown>(
+    method: FacadeMethod,
+    params: unknown = {},
+  ): Promise<T> {
     await this.ensureLoaded();
 
     const globalWallet = globalThis as typeof globalThis & {
@@ -72,7 +84,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
         console.log(`${debugTs()} Executed ${method} result:`, result);
       }
 
-      return camelizeKeys<T>(result);
+      return result;
     } catch (err) {
       throw new WavelengthError(errorMessage(err), 'wavelength_error', {
         cause: err,
@@ -85,9 +97,18 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   // 'wavewalletdk-activity' DOM event; the wasm bridge hands back a
   // subscription handle instead, so the client drives the loop. Idempotent: a
   // second call while a stream is open is a no-op.
-  async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
+  protected async openActivityStream(
+    opts: ActivityStreamOptions,
+  ): Promise<void> {
     await this.ensureLoaded();
     if (this.activityHandle) {
+      return;
+    }
+    const generation = this.activityGeneration;
+    const pending = this.activityOpen;
+    if (pending?.generation === generation) {
+      await pending.promise;
+
       return;
     }
 
@@ -99,14 +120,36 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       );
     }
 
-    const handle = (await call('subscribe', {
+    const request = {
       includeExisting: opts.includeExisting ?? false,
-    })) as ActivityHandle;
-    this.activityHandle = handle;
-    void this.pumpActivity(handle);
+      kinds: opts.kinds ?? [],
+      cursor: opts.cursor ?? 0,
+    };
+    let open!: ActivityOpen;
+    const promise = call('subscribe', request)
+      .then((handle) => {
+        const activityHandle = handle as ActivityHandle;
+        if (this.activityGeneration !== generation) {
+          activityHandle.close();
+
+          return;
+        }
+        this.activityHandle = activityHandle;
+        void this.pumpActivity(activityHandle);
+      })
+      .finally(() => {
+        if (this.activityOpen === open) {
+          this.activityOpen = null;
+        }
+      });
+    open = { generation, promise };
+    this.activityOpen = open;
+
+    await promise;
   }
 
   stopActivity(): void {
+    this.activityGeneration += 1;
     const handle = this.activityHandle;
     this.activityHandle = null;
     handle?.close();
@@ -121,18 +164,23 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
         entry !== null && this.activityHandle === handle;
         entry = await handle.next()
       ) {
-        this.emit({ type: 'activity', payload: camelizeKeys<Entry>(entry) });
+        this.emit({
+          type: 'activity',
+          payload: this.normalizeActivityEntry(entry),
+        });
       }
       // A stream that ends while this is still the active handle was not
       // closed by stopActivity; signal it so the host can resubscribe. A
       // handle swapped out by stopActivity is an expected close and is silent.
       if (this.activityHandle === handle) {
+        this.activityHandle = null;
         this.emit({ type: 'activityStream', payload: { state: 'ended' } });
       }
     } catch (err) {
       // An error after a client-initiated close is expected; only surface a
       // failure the consumer did not cause.
       if (this.activityHandle === handle) {
+        this.activityHandle = null;
         this.emit({
           type: 'activityStream',
           payload: { state: 'failed', message: errorMessage(err) },

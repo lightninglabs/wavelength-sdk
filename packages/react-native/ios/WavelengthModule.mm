@@ -16,7 +16,6 @@ static NSString *const kWavelengthErrorCode = @"wavelength_error";
 
 @implementation WavelengthModule {
   MobileSubscription *_subscription;
-  BOOL _closing;
   WavelengthPasskey *_passkey;
 }
 
@@ -102,6 +101,7 @@ RCT_EXPORT_MODULE(Wavelength)
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     NSError *error = nil;
     NSData *result = nil;
+    NSString *json = @"";
     NSData *params = [paramsJson dataUsingEncoding:NSUTF8StringEncoding];
 
     if ([method isEqualToString:@"start"]) {
@@ -134,10 +134,28 @@ RCT_EXPORT_MODULE(Wavelength)
       result = MobileExit(params, &error);
     } else if ([method isEqualToString:@"exitStatus"]) {
       result = MobileExitStatus(params, &error);
+    } else if ([method isEqualToString:@"exitSummary"]) {
+      result = MobileExitSummary(params, &error);
     } else if ([method isEqualToString:@"getExitPlan"]) {
       result = MobileGetExitPlan(params, &error);
     } else if ([method isEqualToString:@"sweepWallet"]) {
       result = MobileSweepWallet(params, &error);
+    } else if ([method isEqualToString:@"confirmedBalanceSat"]) {
+      int64_t value = 0;
+      MobileConfirmedBalanceSat(&value, &error);
+      json = [NSString stringWithFormat:@"%lld",
+          (long long)value];
+    } else if ([method isEqualToString:@"pendingInboundSat"]) {
+      int64_t value = 0;
+      MobilePendingInboundSat(&value, &error);
+      json = [NSString stringWithFormat:@"%lld",
+          (long long)value];
+    } else if ([method isEqualToString:@"walletReady"]) {
+      BOOL value = NO;
+      MobileWalletReady(&value, &error);
+      json = value ? @"true" : @"false";
+    } else if ([method isEqualToString:@"isRunning"]) {
+      json = MobileIsRunning() ? @"true" : @"false";
     } else {
       reject(kWavelengthErrorCode,
              [NSString stringWithFormat:@"unknown wavelength verb: %@", method],
@@ -149,10 +167,10 @@ RCT_EXPORT_MODULE(Wavelength)
       reject(kWavelengthErrorCode, error.localizedDescription, error);
       return;
     }
-    NSString *json = result
-        ? [[NSString alloc] initWithData:result encoding:NSUTF8StringEncoding]
-        : @"";
-    resolve(json);
+    if (result != nil) {
+      json = [[NSString alloc] initWithData:result encoding:NSUTF8StringEncoding];
+    }
+    resolve(json ?: @"");
   });
 }
 
@@ -178,7 +196,6 @@ RCT_EXPORT_MODULE(Wavelength)
       sub = MobileSubscribe(req, &error);
       if (error == nil && sub != nil) {
         self->_subscription = sub;
-        self->_closing = NO;
       }
     }
     if (error != nil || sub == nil) {
@@ -199,8 +216,10 @@ RCT_EXPORT_MODULE(Wavelength)
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     MobileSubscription *sub = nil;
     @synchronized (self) {
-      self->_closing = YES;
       sub = self->_subscription;
+      // Detach before close returns so a queued start can't reuse a pump
+      // that's already stopping.
+      self->_subscription = nil;
     }
     NSError *error = nil;
     if (sub != nil) {
@@ -228,11 +247,16 @@ RCT_EXPORT_MODULE(Wavelength)
         // "unexpected EOF" as clean ends.
         BOOL eof = error == nil ||
             [error.localizedDescription isEqualToString:@"EOF"];
-        BOOL closing;
+        BOOL stopped;
         @synchronized (self) {
-          closing = self->_closing;
+          stopped = self->_subscription != sub;
         }
-        if (closing || eof) {
+        // An intentional stop has no terminal event. A replacement may
+        // already be open by the time this old pump unblocks.
+        if (stopped) {
+          break;
+        }
+        if (eof) {
           [self sendEventWithName:kWavelengthEvent
                              body:@{ @"kind" : @"end", @"payload" : @"" }];
         } else {
@@ -243,6 +267,13 @@ RCT_EXPORT_MODULE(Wavelength)
                                    ?: @"wavelength activity stream failed"
                              }];
         }
+        break;
+      }
+      BOOL stopped;
+      @synchronized (self) {
+        stopped = self->_subscription != sub;
+      }
+      if (stopped) {
         break;
       }
       NSString *json =

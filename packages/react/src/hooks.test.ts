@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { act } from "@testing-library/react";
-import type { WalletInfo } from "@lightninglabs/wavelength-core";
+import type { Entry, WalletInfo } from "@lightninglabs/wavelength-core";
 import { createTestEngine } from "./testing/engine";
 import { flushMicrotasks, renderWithEngine } from "./testing/render";
 import {
@@ -223,7 +223,7 @@ describe("mutation hooks", () => {
     // actually execute before the assertion runs.
     const balancesBefore = client.countOf("balance");
     await act(async () => {
-      client.emit({ type: "activity" } as never);
+      client.emit({ type: "activity", payload: { cursor: 1 } as Entry });
       await new Promise((resolve) => setTimeout(resolve, 300));
       await flushMicrotasks();
     });
