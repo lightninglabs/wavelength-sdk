@@ -5,15 +5,15 @@ description: Remote gRPC and REST access to the wallet daemon for server-side in
 
 ## What this is
 
-The wallet daemon (`darepod`) exposes a compact wallet API, `WalletService`, over both gRPC and REST. It is 14 methods covering the full wallet lifecycle: create and unlock a wallet, send and receive Lightning and on-chain payments, read balance and activity, and exit to a fully self-custodial on-chain position. A companion service, `WalletInspectionService`, adds one read-only method for inspecting activity entries in detail, for 15 methods total.
+The wallet daemon (`waved`) exposes a compact wallet API, `WalletService`, over both gRPC and REST. It is 14 methods covering the full wallet lifecycle: create and unlock a wallet, send and receive Lightning and on-chain payments, read balance and activity, and exit to a fully self-custodial on-chain position. A companion service, `WalletInspectionService`, adds one read-only method for inspecting activity entries in detail, for 15 methods total.
 
-This slice is for **remote integrations**: a backend service that manages a wallet on behalf of your product, an internal dashboard, a monitoring script, or any process that talks to a `darepod` instance you run yourself, rather than embedding a wallet in a browser tab.
+This slice is for **remote integrations**: a backend service that manages a wallet on behalf of your product, an internal dashboard, a monitoring script, or any process that talks to a `waved` instance you run yourself, rather than embedding a wallet in a browser tab.
 
 ## API vs SDK
 
 Wavelength ships two different ways to reach the same daemon, and they solve different problems.
 
-- **The SDK** ([What is Wavelength?](/introduction/what-is-walletdk/)) compiles `darepod` to WebAssembly and runs it **inside the browser**. Each of your users gets their own wallet instance, with keys held on their device. There is no server-side daemon to run or operate.
+- **The SDK** ([What is Wavelength?](/introduction/what-is-wavelength/)) compiles `waved` to WebAssembly and runs it **inside the browser**. Each of your users gets their own wallet instance, with keys held on their device. There is no server-side daemon to run or operate.
 - **The API** documented here talks to a **daemon you run**, over the network, using gRPC or REST. Use this when the wallet needs to live server-side: a treasury or operations service, a CI job that needs test funds, or any integration that does not run inside an end user's browser tab.
 
 If you are building a product where each user holds their own keys in their own browser, start with the SDK. If you are automating or operating a wallet from a backend you control, this API slice is for you.
@@ -28,10 +28,10 @@ Every RPC gets its own page, grouped into five sidebar sections by what it does 
 - **Balance and activity**: [Balance](/api/wallet/balance/), [List](/api/wallet/list/), [SubscribeWallet](/api/wallet/subscribe-wallet/), [InspectActivity](/api/wallet/inspect-activity/)
 - **Exit and sweep**: [GetExitPlan](/api/wallet/get-exit-plan/), [Exit](/api/wallet/exit/), [ExitStatus](/api/wallet/exit-status/), [SweepWallet](/api/wallet/sweep-wallet/)
 
-Start with [Get started](/api/get-started/) to build `darepod` with the wallet API enabled and make your first call, then [REST conventions](/api/rest/) for the shared request, error, and streaming shape across every method.
+Start with [Get started](/api/get-started/) to build `waved` with the wallet API enabled and make your first call, then [REST conventions](/api/rest/) for the shared request, error, and streaming shape across every method.
 
-If you would rather drive the daemon interactively or from a shell script, see the [CLI](/cli/) slice: `darepocli` wraps this same `WalletService` behind a command-line interface.
+If you would rather drive the daemon interactively or from a shell script, see the [CLI](/cli/) slice: `wavecli` wraps this same `WalletService` behind a command-line interface.
 
 ## Versioning
 
-The API surface is versioned together with the daemon, not independently. It is currently **pre-release**: method signatures and JSON field names can change between `darepo-client` releases. Pin a specific daemon version for production integrations.
+The API surface is versioned together with the daemon, not independently. It is currently **pre-release**: method signatures and JSON field names can change between `wavelength` releases. Pin a specific daemon version for production integrations.

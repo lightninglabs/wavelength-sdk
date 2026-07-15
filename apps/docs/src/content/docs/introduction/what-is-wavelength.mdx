@@ -11,7 +11,7 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 Wavelength is a TypeScript SDK for embedding a **self-custodial Bitcoin, Lightning, and Ark wallet** directly in your web or mobile app. Your users hold their own keys. You do not run a wallet server on their behalf.
 
-The full wallet daemon ([darepo-client](https://github.com/lightninglabs/darepo-client)) is compiled to run **inside your app**: to WebAssembly in the browser on web, and into the app binary on React Native. There is no separate process, no local socket, and no backend you must operate to host the wallet logic. Your app boots the daemon and talks to it through a typed client.
+The full wallet daemon ([wavelength](https://github.com/lightninglabs/wavelength)) is compiled to run **inside your app**: to WebAssembly in the browser on web, and into the app binary on React Native. There is no separate process, no local socket, and no backend you must operate to host the wallet logic. Your app boots the daemon and talks to it through a typed client.
 
 Wavelength ships as these packages:
 
@@ -59,7 +59,7 @@ A minimal boot sequence looks like this:
 ```ts
 import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
-const client = createWebClient({ runtimeBaseUrl: '/walletdk/' });
+const client = createWebClient({ runtimeBaseUrl: '/wavewalletdk/' });
 
 await client.ready();                        // load WASM runtime
 await client.start(defaultConfig('signet')); // boot daemon, connect gateways

@@ -1,5 +1,5 @@
 ---
-title: walletdk-core
+title: wavelength-core
 description: Cross-platform interfaces, shared types, and error codes that every Wavelength platform target builds on.
 pageLayout: reference
 ---
@@ -16,8 +16,8 @@ import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 Wavelength transport implements: a typed [`WavelengthClient`](#WavelengthClient) interface, the
 [`WalletEngine`](#WalletEngine) orchestrator built on top of it, the request
 and result shapes its methods take and return, and the shared error and event
-model. It has no browser or React dependency: [`walletdk-web`](/reference/walletdk-web/)
-implements it for the browser, and [`walletdk-react`](/reference/walletdk-react/)
+model. It has no browser or React dependency: [`wavelength-web`](/reference/wavelength-web/)
+implements it for the browser, and [`wavelength-react`](/reference/wavelength-react/)
 re-exports it and layers hooks on top of a `WalletEngine`.
 
 Every method response is camelCase-normalized at the boundary: the embedded
@@ -26,7 +26,7 @@ daemon speaks PascalCase JSON, and the client rewrites every key to camelCase
 see a `WalletState` or `AmountSat` field in application code. All errors the
 SDK itself raises are a [`WavelengthError`](#WavelengthError) carrying a
 machine-readable [`WavelengthErrorCode`](#WavelengthErrorCode); daemon-originated
-failures currently surface as the generic `walletdk_error` code with a
+failures currently surface as the generic `wavelength_error` code with a
 descriptive message.
 
 ## Configuration
@@ -80,14 +80,14 @@ Returns the canonical public endpoint preset for a network in one transport's
 flavor: REST gateway URLs for `'rest'` (the web transport), host:port gRPC
 addresses for `'grpc'` (native transports). This is the building block the
 transport packages' `defaultConfig` helpers compose over; app code normally
-calls [walletdk-web's](/reference/walletdk-web/#defaultConfig) or
-[walletdk-react-native's](/reference/walletdk-react-native/#defaultConfig)
+calls [wavelength-web's](/reference/wavelength-web/#defaultConfig) or
+[wavelength-react-native's](/reference/wavelength-react-native/#defaultConfig)
 `defaultConfig` instead.
 
 Only the preset networks are accepted. `mainnet` and `regtest` have no
 preset: a `RuntimeConfig` for either is built by hand.
 
-<Signature title="walletdk-core.d.ts" code={networkDefaultsSig} />
+<Signature title="wavelength-core.d.ts" code={networkDefaultsSig} />
 
 <ParamsTable rows={[
   { name: 'network', type: 'PresetNetwork', desc: 'The Bitcoin network to look up; mainnet and regtest are excluded because they have no preset.' },
@@ -107,7 +107,7 @@ most to least verbose. Exported for UIs that render a level picker;
 `debugLevel` itself stays a plain string because the daemon also accepts a
 per-subsystem list such as `'ROND=debug,info'`.
 
-<Signature title="walletdk-core.d.ts" code={debugLevelsSig} />
+<Signature title="wavelength-core.d.ts" code={debugLevelsSig} />
 
 </ApiSymbol>
 
@@ -117,7 +117,7 @@ Configuration passed to `WavelengthClient.start()`. For the common case, start
 from your transport package's `defaultConfig(network)` and override only the
 fields you need.
 
-<Signature title="walletdk-core.d.ts" code={runtimeConfigSig} />
+<Signature title="wavelength-core.d.ts" code={runtimeConfigSig} />
 
 <ParamsTable rows={[
   { name: 'network', type: 'Network', desc: 'The Bitcoin network to run against. Required. Use \'mainnet\' only together with allowMainnet.' },
@@ -143,7 +143,7 @@ endpoint preset (the domain of `networkDefaults` and the transports'
 `defaultConfig`). mainnet and regtest are excluded: mainnet has no public
 deployment yet, and regtest's local ports vary per development environment.
 
-<Signature title="walletdk-core.d.ts" code={networkSig} />
+<Signature title="wavelength-core.d.ts" code={networkSig} />
 
 The transport packages' `defaultConfig()` helpers draw from one canonical
 endpoint table per network, so the common case needs no URLs looked up.
@@ -198,7 +198,7 @@ hand: supply your own `arkServerUrl`, `esploraUrl`, and `swapServerUrl` (or
 The wire protocol used by a transport to connect to the Ark and swap servers.
 Browser transports use `rest`; native transports use `grpc`.
 
-<Signature title="walletdk-core.d.ts" code={serverTransportSig} />
+<Signature title="wavelength-core.d.ts" code={serverTransportSig} />
 
 </ApiSymbol>
 
@@ -208,13 +208,13 @@ The flat configuration shape passed to the embedded mobile facade. Application
 code normally supplies [`RuntimeConfig`](#RuntimeConfig) instead; this type is
 useful when implementing or debugging a transport.
 
-<Signature title="walletdk-core.d.ts" code={mobileConfigSig} />
+<Signature title="wavelength-core.d.ts" code={mobileConfigSig} />
 
 </ApiSymbol>
 
 ## Client lifecycle
 
-export const walletDKClientSig = `interface WavelengthClient {
+export const wavelengthClientSig = `interface WavelengthClient {
   ready(): Promise<void>;
   start(config: RuntimeConfig): Promise<WalletInfo>;
   stop(): Promise<void>;
@@ -250,12 +250,12 @@ export const disposeSig = `dispose(): void`;
 <ApiSymbol name="WavelengthClient" kind="type">
 
 The typed RPC surface every transport implements. Create a client with
-[`createWebClient()`](/reference/walletdk-web/) from walletdk-web or
-`createNativeClient()` from [walletdk-react-native](/reference/walletdk-react-native/),
+[`createWebClient()`](/reference/wavelength-web/) from wavelength-web or
+`createNativeClient()` from [wavelength-react-native](/reference/wavelength-react-native/),
 call `start(config)`, then use the wallet methods documented in the
 sections below.
 
-<Signature title="walletdk-core.d.ts" code={walletDKClientSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthClientSig} />
 
 **Call order.** A client's methods are only meaningful in this order: await
 `ready()` once, then `start(config)` once, then any of the wallet operations
@@ -272,7 +272,7 @@ Resolves once the runtime assets (the wasm daemon and its supporting files)
 are loaded and the client is otherwise usable. Always await this before
 `start()`.
 
-<Signature title="walletdk-core.d.ts" code={readySig} />
+<Signature title="wavelength-core.d.ts" code={readySig} />
 
 <Returns type="Promise<void>">
 Resolves when the client is ready to `start()`. Rejects with a `WavelengthError`
@@ -286,7 +286,7 @@ Resolves when the client is ready to `start()`. Rejects with a `WavelengthError`
 Starts the embedded daemon with the given config and resolves with its
 initial [`WalletInfo`](#WalletInfo).
 
-<Signature title="walletdk-core.d.ts" code={startSig} />
+<Signature title="wavelength-core.d.ts" code={startSig} />
 
 <ParamsTable rows={[
   { name: 'config', type: 'RuntimeConfig', desc: 'The runtime configuration to start the daemon with. Build it with your transport package\'s defaultConfig(network) plus any overrides.' },
@@ -307,7 +307,7 @@ new client. Use `dispose()` instead when you are done with the client
 entirely, since it also releases the client's own resources (subscriptions,
 the activity stream, and, for the worker transport, the underlying Worker).
 
-<Signature title="walletdk-core.d.ts" code={stopSig} />
+<Signature title="wavelength-core.d.ts" code={stopSig} />
 
 <Returns type="Promise<void>">
 Resolves once the daemon has stopped.
@@ -322,7 +322,7 @@ activity stream opened by [`startActivity()`](#startActivity) and, for the
 worker transport, terminates the underlying Worker. The client is unusable
 afterward; construct a new one to start again.
 
-<Signature title="walletdk-core.d.ts" code={disposeSig} />
+<Signature title="wavelength-core.d.ts" code={disposeSig} />
 
 <Returns type="void">
 Nothing; the client is torn down synchronously.
@@ -365,13 +365,13 @@ export const restoreWalletRequestSig = `type RestoreWalletRequest = CreateWallet
   mnemonic: string[];
 };`;
 
-`WalletEngine` is the headless wallet orchestrator every framework binding is built on: it owns the lifecycle phase machine, the state snapshot (`phase`, `info`, `balance`, `activity`, `recovery`, `logs`), and the background processes that keep them fresh. Build one over any transport with [`createWalletEngine()`](#createWalletEngine), or reach for a transport's own factory (`createWebWalletEngine()` from [walletdk-web](/reference/walletdk-web/), `createNativeWalletEngine()` from [walletdk-react-native](/reference/walletdk-react-native/)), which builds the client for you. Pass the engine to `WavelengthProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly: `getSnapshot()`/`subscribe()` work the same for a vanilla consumer as for a framework binding.
+`WalletEngine` is the headless wallet orchestrator every framework binding is built on: it owns the lifecycle phase machine, the state snapshot (`phase`, `info`, `balance`, `activity`, `recovery`, `logs`), and the background processes that keep them fresh. Build one over any transport with [`createWalletEngine()`](#createWalletEngine), or reach for a transport's own factory (`createWebWalletEngine()` from [wavelength-web](/reference/wavelength-web/), `createNativeWalletEngine()` from [wavelength-react-native](/reference/wavelength-react-native/)), which builds the client for you. Pass the engine to `WavelengthProvider` from [wavelength-react](/reference/wavelength-react/), or drive it directly: `getSnapshot()`/`subscribe()` work the same for a vanilla consumer as for a framework binding.
 
 <ApiSymbol name="createWalletEngine" kind="function">
 
 Creates a `WalletEngine` over any transport client.
 
-<Signature title="walletdk-core.d.ts" code={createWalletEngineSig} />
+<Signature title="wavelength-core.d.ts" code={createWalletEngineSig} />
 
 <ParamsTable rows={[
   { name: 'options', type: 'WalletEngineOptions', desc: 'The client to drive, plus optional default config and autoStart.' },
@@ -385,7 +385,7 @@ A live engine. It calls `client.ready()` immediately; `getSnapshot().phase` move
 
 A discriminated union: the types require a config when autoStart is enabled, so `autoStart: true` without `config` is a compile error.
 
-<Signature title="walletdk-core.d.ts" code={walletEngineOptionsSig} />
+<Signature title="wavelength-core.d.ts" code={walletEngineOptionsSig} />
 
 <ParamsTable rows={[
   { name: 'client', type: 'WavelengthClient', desc: 'The transport client the engine drives.' },
@@ -399,7 +399,7 @@ An advanced utility type used to omit a property from each member of a
 discriminated union independently. It is exported for transport and binding
 implementers; application code rarely needs it directly.
 
-<Signature title="walletdk-core.d.ts" code={distributiveOmitSig} />
+<Signature title="wavelength-core.d.ts" code={distributiveOmitSig} />
 
 </ApiSymbol>
 
@@ -407,7 +407,7 @@ implementers; application code rarely needs it directly.
 
 The engine interface. Every method mirrors the matching `WavelengthClient` method plus engine bookkeeping: refetching info, kicking a background refresh, or advancing the phase machine.
 
-<Signature title="walletdk-core.d.ts" code={walletEngineSig} />
+<Signature title="wavelength-core.d.ts" code={walletEngineSig} />
 
 <ParamsTable rows={[
   { name: 'client', type: 'WavelengthClient', desc: 'The underlying transport client, as an escape hatch.' },
@@ -446,7 +446,7 @@ The engine runs several processes automatically, keyed off `phase`, so hosts nev
 
 The engine's immutable state snapshot, returned by [`getSnapshot()`](#WalletEngine) and delivered to [`subscribe()`](#WalletEngine) listeners. A new object per change; refresh fetches that changed nothing keep the previous field references, so consumers can cheaply compare slices with `Object.is`.
 
-<Signature title="walletdk-core.d.ts" code={`type WalletSnapshot = {
+<Signature title="wavelength-core.d.ts" code={`type WalletSnapshot = {
   phase: RuntimePhase;
   error: Error | null;
   info: WalletInfo | null;
@@ -472,7 +472,7 @@ The engine's immutable state snapshot, returned by [`getSnapshot()`](#WalletEngi
 
 The state of a background wallet recovery started by `restoreWallet()`, a discriminated union keyed on `status`.
 
-<Signature title="walletdk-core.d.ts" code={`type RecoveryState =
+<Signature title="wavelength-core.d.ts" code={`type RecoveryState =
   | { status: 'idle' }
   | { status: 'restoring' }
   | { status: 'done'; result: CreateWalletResult }
@@ -493,7 +493,7 @@ Read it to drive a "restoring your balance and history" banner while the wallet 
 
 Parameters for [`WalletEngine.restoreWallet()`](#WalletEngine): everything [`CreateWalletRequest`](#createWallet) accepts, with `mnemonic` promoted from optional to required, since a restore is meaningless without one.
 
-<Signature title="walletdk-core.d.ts" code={restoreWalletRequestSig} />
+<Signature title="wavelength-core.d.ts" code={restoreWalletRequestSig} />
 
 <ParamsTable rows={[
   { name: 'mnemonic', type: 'string[]', desc: 'The recovery phrase to restore from. Required (unlike CreateWalletRequest.mnemonic, which is optional).' },
@@ -553,7 +553,7 @@ Creates a new wallet from the given request: generates (or imports) a
 mnemonic, enciphers it with `password`, and returns the seed words for backup
 display.
 
-<Signature title="walletdk-core.d.ts" code={createWalletMethodSig} />
+<Signature title="wavelength-core.d.ts" code={createWalletMethodSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'CreateWalletRequest', desc: 'Parameters for creating (or importing) the wallet.' },
@@ -566,7 +566,7 @@ counters.
 
 <ApiTypeLabel name="CreateWalletRequest" />
 
-<Signature title="walletdk-core.d.ts" code={createWalletRequestSig} />
+<Signature title="wavelength-core.d.ts" code={createWalletRequestSig} />
 
 <ParamsTable rows={[
   { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
@@ -578,7 +578,7 @@ counters.
 
 <ApiTypeLabel name="CreateWalletResult" />
 
-<Signature title="walletdk-core.d.ts" code={createWalletResultSig} />
+<Signature title="wavelength-core.d.ts" code={createWalletResultSig} />
 
 <ParamsTable rows={[
   { name: 'mnemonic', type: 'string[]', desc: 'The seed words. Display this to the user for backup; it is not recoverable from the daemon afterward.' },
@@ -598,7 +598,7 @@ counters.
 
 Unlocks an existing wallet with the given password.
 
-<Signature title="walletdk-core.d.ts" code={unlockWalletMethodSig} />
+<Signature title="wavelength-core.d.ts" code={unlockWalletMethodSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'UnlockWalletRequest', desc: 'The password to unlock with.' },
@@ -610,7 +610,7 @@ The daemon identity after unlock.
 
 <ApiTypeLabel name="UnlockWalletRequest" />
 
-<Signature title="walletdk-core.d.ts" code={unlockWalletRequestSig} />
+<Signature title="wavelength-core.d.ts" code={unlockWalletRequestSig} />
 
 <ParamsTable rows={[
   { name: 'password', type: 'string', desc: "The plain password the client base64-encodes into the daemon's byte field." },
@@ -618,7 +618,7 @@ The daemon identity after unlock.
 
 <ApiTypeLabel name="UnlockWalletResult" />
 
-<Signature title="walletdk-core.d.ts" code={unlockWalletResultSig} />
+<Signature title="wavelength-core.d.ts" code={unlockWalletResultSig} />
 
 <ParamsTable rows={[
   { name: 'identityPubKey', type: 'string', desc: "The wallet's identity public key." },
@@ -632,7 +632,7 @@ Opens a wallet from a passkey assertion: derives a wallet from the PRF output
 of a [`PasskeyCeremony`](#PasskeyCeremony) ceremony, creating one on first use
 per device or unlocking the existing one thereafter.
 
-<Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyMethodSig} />
+<Signature title="wavelength-core.d.ts" code={openWalletFromPasskeyMethodSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'OpenWalletFromPasskeyRequest', desc: 'The passkey PRF output to derive the wallet from.' },
@@ -645,7 +645,7 @@ Whether a wallet was freshly created from the derived seed, plus the mnemonic
 
 <ApiTypeLabel name="OpenWalletFromPasskeyRequest" />
 
-<Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyRequestSig} />
+<Signature title="wavelength-core.d.ts" code={openWalletFromPasskeyRequestSig} />
 
 <ParamsTable rows={[
   { name: 'prfOutput', type: 'string', desc: 'The PRF output (hex) derived from the passkey ceremony. See PasskeyAssertion.' },
@@ -653,7 +653,7 @@ Whether a wallet was freshly created from the derived seed, plus the mnemonic
 
 <ApiTypeLabel name="OpenWalletFromPasskeyResult" />
 
-<Signature title="walletdk-core.d.ts" code={openWalletFromPasskeyResultSig} />
+<Signature title="wavelength-core.d.ts" code={openWalletFromPasskeyResultSig} />
 
 <ParamsTable rows={[
   { name: 'imported', type: 'boolean', desc: 'true when a new local wallet was created from the derived seed (a fresh device that has never seen this passkey); false when an existing local wallet was unlocked.' },
@@ -707,7 +707,7 @@ directly when that is all you need.
 
 Returns the current normalized wallet info.
 
-<Signature title="walletdk-core.d.ts" code={getInfoSig} />
+<Signature title="wavelength-core.d.ts" code={getInfoSig} />
 
 <Returns type="Promise<WalletInfo>">
 The current wallet and daemon info.
@@ -719,7 +719,7 @@ The current wallet and daemon info.
 
 Returns the daemon's runtime status snapshot.
 
-<Signature title="walletdk-core.d.ts" code={statusSig} />
+<Signature title="wavelength-core.d.ts" code={statusSig} />
 
 <Returns type="Promise<WalletStatus>">
 The current readiness, lock, network, balance, and pending-activity snapshot.
@@ -731,7 +731,7 @@ The current readiness, lock, network, balance, and pending-activity snapshot.
 
 Returns the current wallet balance.
 
-<Signature title="walletdk-core.d.ts" code={balanceMethodSig} />
+<Signature title="wavelength-core.d.ts" code={balanceMethodSig} />
 
 <Returns type="Promise<Balance>">
 The current confirmed and pending balances, in satoshis.
@@ -744,7 +744,7 @@ The current confirmed and pending balances, in satoshis.
 Wallet and daemon info returned by [`getInfo()`](#getInfo) and
 [`start()`](#start).
 
-<Signature title="walletdk-core.d.ts" code={walletInfoSig} />
+<Signature title="wavelength-core.d.ts" code={walletInfoSig} />
 
 <ParamsTable rows={[
   { name: 'version', type: 'string', desc: 'The daemon version string.' },
@@ -764,7 +764,7 @@ Wallet and daemon info returned by [`getInfo()`](#getInfo) and
 
 Runtime status snapshot returned by [`status()`](#status).
 
-<Signature title="walletdk-core.d.ts" code={walletStatusSig} />
+<Signature title="wavelength-core.d.ts" code={walletStatusSig} />
 
 <ParamsTable rows={[
   { name: 'ready', type: 'boolean', desc: 'Whether the wallet is unlocked and fully usable.' },
@@ -781,7 +781,7 @@ Runtime status snapshot returned by [`status()`](#status).
 Wallet-level balance returned by [`balance()`](#balance) and embedded in
 [`WalletStatus.balance`](#WalletStatus). All amounts are in satoshis.
 
-<Signature title="walletdk-core.d.ts" code={balanceSig} />
+<Signature title="wavelength-core.d.ts" code={balanceSig} />
 
 <ParamsTable rows={[
   { name: 'confirmedSat', type: 'number', desc: 'Spendable VTXO balance.' },
@@ -816,7 +816,7 @@ export const receiveResultSig = `type ReceiveResult = {
 
 Generates an on-chain deposit (boarding) address.
 
-<Signature title="walletdk-core.d.ts" code={depositMethodSig} />
+<Signature title="wavelength-core.d.ts" code={depositMethodSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'DepositRequest', desc: 'Optional. Defaults to {} when omitted.' },
@@ -828,7 +828,7 @@ The boarding address and its initial [`Entry`](#Entry) in the activity feed.
 
 <ApiTypeLabel name="DepositRequest" />
 
-<Signature title="walletdk-core.d.ts" code={depositRequestSig} />
+<Signature title="wavelength-core.d.ts" code={depositRequestSig} />
 
 <ParamsTable rows={[
   { name: 'amountSatHint', type: 'number', desc: 'Optional. A hint for the amount (in sats) the caller intends to deposit.' },
@@ -836,7 +836,7 @@ The boarding address and its initial [`Entry`](#Entry) in the activity feed.
 
 <ApiTypeLabel name="DepositResult" />
 
-<Signature title="walletdk-core.d.ts" code={depositResultSig} />
+<Signature title="wavelength-core.d.ts" code={depositResultSig} />
 
 <ParamsTable rows={[
   { name: 'address', type: 'string', desc: 'The boarding (on-chain) address to deposit to.' },
@@ -849,7 +849,7 @@ The boarding address and its initial [`Entry`](#Entry) in the activity feed.
 
 Generates a receive invoice for the requested amount.
 
-<Signature title="walletdk-core.d.ts" code={receiveMethodSig} />
+<Signature title="wavelength-core.d.ts" code={receiveMethodSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'ReceiveRequest', desc: 'The amount (and optional memo) to request.' },
@@ -861,7 +861,7 @@ The invoice and its initial [`Entry`](#Entry) in the activity feed.
 
 <ApiTypeLabel name="ReceiveRequest" />
 
-<Signature title="walletdk-core.d.ts" code={receiveRequestSig} />
+<Signature title="wavelength-core.d.ts" code={receiveRequestSig} />
 
 <ParamsTable rows={[
   { name: 'amountSat', type: 'number', desc: 'The amount to request, in sats.' },
@@ -870,7 +870,7 @@ The invoice and its initial [`Entry`](#Entry) in the activity feed.
 
 <ApiTypeLabel name="ReceiveResult" />
 
-<Signature title="walletdk-core.d.ts" code={receiveResultSig} />
+<Signature title="wavelength-core.d.ts" code={receiveResultSig} />
 
 <ParamsTable rows={[
   { name: 'invoice', type: 'string', desc: 'The BOLT-11 Lightning invoice to be paid.' },
@@ -947,7 +947,7 @@ the expected fee, settlement rail, and a single-use `sendIntentId`. Pair it
 with [`sendPrepared()`](#sendPrepared) for a quote &rarr; confirm &rarr; pay
 flow.
 
-<Signature title="walletdk-core.d.ts" code={prepareSendSig} />
+<Signature title="wavelength-core.d.ts" code={prepareSendSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'SendRequest', desc: 'The Lightning invoice or on-chain address to quote a send for.' },
@@ -963,7 +963,7 @@ The quote: fee, rail, and the `sendIntentId` to pass to `sendPrepared()`.
 
 Dispatches a payment previously quoted by [`prepareSend()`](#prepareSend).
 
-<Signature title="walletdk-core.d.ts" code={sendPreparedSig} />
+<Signature title="wavelength-core.d.ts" code={sendPreparedSig} />
 
 <ParamsTable rows={[
   { name: 'prepared', type: 'PrepareSendResult', desc: "The quote returned by prepareSend(). Its sendIntentId is consumed on dispatch; if dispatch fails, prepare a fresh send before retrying." },
@@ -981,7 +981,7 @@ Quotes and dispatches a payment in a single call, folding
 [`prepareSend()`](#prepareSend) and [`sendPrepared()`](#sendPrepared)
 together.
 
-<Signature title="walletdk-core.d.ts" code={sendSig} />
+<Signature title="wavelength-core.d.ts" code={sendSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'SendRequest', desc: 'The Lightning invoice or on-chain address to pay.' },
@@ -1000,7 +1000,7 @@ as a discriminated union: supply `invoice` for a Lightning send or
 `onchainAddress` for an on-chain send. The two arms are mutually exclusive,
 and `sweepAll` applies only to the on-chain arm.
 
-<Signature title="walletdk-core.d.ts" code={sendRequestSig} />
+<Signature title="wavelength-core.d.ts" code={sendRequestSig} />
 
 **Lightning arm**
 
@@ -1027,7 +1027,7 @@ and `sweepAll` applies only to the on-chain arm.
 
 The quote and intent id returned by [`prepareSend()`](#prepareSend).
 
-<Signature title="walletdk-core.d.ts" code={prepareSendResultSig} />
+<Signature title="wavelength-core.d.ts" code={prepareSendResultSig} />
 
 <ParamsTable rows={[
   { name: 'sendIntentId', type: 'string', desc: 'Single-use id identifying this quote; pass the whole result object to sendPrepared() to dispatch it.' },
@@ -1053,7 +1053,7 @@ The quote and intent id returned by [`prepareSend()`](#prepareSend).
 The result of a dispatched send, returned by [`sendPrepared()`](#sendPrepared)
 and [`send()`](#send).
 
-<Signature title="walletdk-core.d.ts" code={sendResultSig} />
+<Signature title="wavelength-core.d.ts" code={sendResultSig} />
 
 <ParamsTable rows={[
   { name: 'entry', type: 'Entry', desc: 'The activity entry tracking this send; see Entry.' },
@@ -1067,7 +1067,7 @@ and [`send()`](#send).
 
 Identifies the expected settlement rail for a prepared send.
 
-<Signature title="walletdk-core.d.ts" code={sendRailSig} />
+<Signature title="wavelength-core.d.ts" code={sendRailSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1100,7 +1100,7 @@ that apply to it. Pure, synchronous, and offline: it reads a BOLT-11 amount from
 the invoice's human-readable part without decoding the bech32 payload, so an
 amountless invoice is detected before any network call.
 
-<Signature title="walletdk-core.d.ts" code={classifyDestinationSig} />
+<Signature title="wavelength-core.d.ts" code={classifyDestinationSig} />
 
 <Callout type="note">
 `classifyDestination` deliberately does **not** name a settlement rail. A string it reports as `invoice` may still quote as `in_ark`, `credit`, or `mixed` (an address always settles `onchain`). Read [`rail`](#SendRail) from the [`PrepareSendResult`](#PrepareSendResult) for the authoritative answer, and treat any rail shown before that as provisional.
@@ -1112,7 +1112,7 @@ amountless invoice is detected before any network call.
 
 The result of [`classifyDestination()`](#classifyDestination).
 
-<Signature title="walletdk-core.d.ts" code={destinationSig} />
+<Signature title="wavelength-core.d.ts" code={destinationSig} />
 
 <ParamsTable rows={[
   { name: "{ kind: 'empty' }", type: 'variant', desc: 'The input is blank. Render no conditional fields.' },
@@ -1127,7 +1127,7 @@ The result of [`classifyDestination()`](#classifyDestination).
 The amount an invoice carries, when it can be read from the human-readable
 part. A discriminated union keyed on `status`.
 
-<Signature title="walletdk-core.d.ts" code={invoiceAmountSig} />
+<Signature title="wavelength-core.d.ts" code={invoiceAmountSig} />
 
 <ParamsTable rows={[
   { name: "{ status: 'known', sat }", type: 'variant', desc: 'A whole number of satoshis, read directly from the invoice.' },
@@ -1189,7 +1189,7 @@ export const onchainTxSig = `type OnchainTx = {
 };`;
 
 export const subscribeSig = `subscribe(listener: WavelengthListener): () => void`;
-export const walletDKListenerSig = `type WavelengthListener = (event: WavelengthEvent) => void;`;
+export const wavelengthListenerSig = `type WavelengthListener = (event: WavelengthEvent) => void;`;
 
 export const startActivitySig = `startActivity(opts?: { includeExisting?: boolean }): Promise<void>`;
 export const stopActivitySig = `stopActivity(): void`;
@@ -1252,7 +1252,7 @@ export const entryRequestTypeSig = `type EntryRequestType = 'lightning' | 'oncha
 
 Lists wallet activity or UTXOs per the request.
 
-<Signature title="walletdk-core.d.ts" code={listSig} />
+<Signature title="wavelength-core.d.ts" code={listSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'ListRequest', desc: 'Optional. Defaults to {} (the activity view) when omitted.' },
@@ -1264,7 +1264,7 @@ A tagged union with only the field matching the requested view populated.
 
 <ApiTypeLabel name="ListRequest" />
 
-<Signature title="walletdk-core.d.ts" code={listRequestSig} />
+<Signature title="wavelength-core.d.ts" code={listRequestSig} />
 
 <ParamsTable rows={[
   { name: 'view', type: 'ListView', desc: "Optional. Which view to list: activity entries, VTXOs, or on-chain outputs. Default: 'activity'." },
@@ -1280,7 +1280,7 @@ A tagged union on `view`: exactly one of `activity`, `vtxos`, or `onchain` is
 populated, matching the requested (or default) view. Switch on `view` to read
 the right field.
 
-<Signature title="walletdk-core.d.ts" code={listResultSig} />
+<Signature title="wavelength-core.d.ts" code={listResultSig} />
 
 <ParamsTable rows={[
   { name: 'view', type: 'ListView', desc: 'The populated variant. Mirrors the request’s view; an empty request view is reported as \'activity\'.' },
@@ -1291,7 +1291,7 @@ the right field.
 
 <ApiTypeLabel name="ListView" />
 
-<Signature title="walletdk-core.d.ts" code={listViewSig} />
+<Signature title="wavelength-core.d.ts" code={listViewSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1301,7 +1301,7 @@ the right field.
 
 <ApiTypeLabel name="ActivityList" />
 
-<Signature title="walletdk-core.d.ts" code={activityListSig} />
+<Signature title="wavelength-core.d.ts" code={activityListSig} />
 
 <ParamsTable rows={[
   { name: 'entries', type: 'Entry[]', desc: 'The matching activity entries; see Entry.' },
@@ -1314,7 +1314,7 @@ the right field.
 
 The paginated inventory returned for the `vtxos` list view.
 
-<Signature title="walletdk-core.d.ts" code={vtxoInventorySig} />
+<Signature title="wavelength-core.d.ts" code={vtxoInventorySig} />
 
 <ParamsTable rows={[
   { name: 'vtxos', type: 'WalletVTXO[]', desc: 'The VTXOs on the current page.' },
@@ -1327,7 +1327,7 @@ The paginated inventory returned for the `vtxos` list view.
 
 One spendable or spent VTXO in a wallet inventory.
 
-<Signature title="walletdk-core.d.ts" code={walletVtxoSig} />
+<Signature title="wavelength-core.d.ts" code={walletVtxoSig} />
 
 </ApiSymbol>
 
@@ -1335,7 +1335,7 @@ One spendable or spent VTXO in a wallet inventory.
 
 The paginated history returned for the `onchain` list view.
 
-<Signature title="walletdk-core.d.ts" code={onchainHistorySig} />
+<Signature title="wavelength-core.d.ts" code={onchainHistorySig} />
 
 <ParamsTable rows={[
   { name: 'txs', type: 'OnchainTx[]', desc: 'The on-chain transactions on the current page.' },
@@ -1349,7 +1349,7 @@ The paginated history returned for the `onchain` list view.
 
 One transaction in the on-chain history returned by the daemon.
 
-<Signature title="walletdk-core.d.ts" code={onchainTxSig} />
+<Signature title="wavelength-core.d.ts" code={onchainTxSig} />
 
 </ApiSymbol>
 
@@ -1359,7 +1359,7 @@ One transaction in the on-chain history returned by the daemon.
 
 Subscribes a listener to runtime events.
 
-<Signature title="walletdk-core.d.ts" code={subscribeSig} />
+<Signature title="wavelength-core.d.ts" code={subscribeSig} />
 
 <ParamsTable rows={[
   { name: 'listener', type: 'WavelengthListener', desc: 'Callback invoked with each WavelengthEvent.' },
@@ -1371,7 +1371,7 @@ An unsubscribe function; call it to stop receiving events on this listener.
 
 **`WavelengthListener`**
 
-<Signature title="walletdk-core.d.ts" code={walletDKListenerSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthListenerSig} />
 
 See [`WavelengthEvent`](#WavelengthEvent) in the events section below for the
 event shapes delivered to a listener.
@@ -1383,7 +1383,7 @@ event shapes delivered to a listener.
 Opens the wallet activity stream and forwards each entry to subscribers as an
 `'activity'` event until [`stopActivity()`](#stopActivity) is called.
 
-<Signature title="walletdk-core.d.ts" code={startActivitySig} />
+<Signature title="wavelength-core.d.ts" code={startActivitySig} />
 
 <ParamsTable rows={[
   { name: 'opts.includeExisting', type: 'boolean', desc: 'Optional. When true, immediately emits an activity event for every entry that already exists, in addition to future changes.' },
@@ -1399,7 +1399,7 @@ Resolves once the activity stream is open.
 
 Closes the activity stream opened by [`startActivity()`](#startActivity).
 
-<Signature title="walletdk-core.d.ts" code={stopActivitySig} />
+<Signature title="wavelength-core.d.ts" code={stopActivitySig} />
 
 <Returns type="void">
 Nothing; stops emitting `'activity'` events synchronously.
@@ -1412,7 +1412,7 @@ Nothing; stops emitting `'activity'` events synchronously.
 A single row in the wallet activity feed, returned by [`list()`](#list) and
 streamed via [`startActivity()`](#startActivity) as `activity` events.
 
-<Signature title="walletdk-core.d.ts" code={entrySig} />
+<Signature title="wavelength-core.d.ts" code={entrySig} />
 
 <ParamsTable rows={[
   { name: 'id', type: 'string', desc: 'The activity id. Not a payment hash; see SendResult.paymentHash for that.' },
@@ -1438,7 +1438,7 @@ The wrapper-owned view of the lifecycle metadata the daemon computes for an
 [`Entry`](#Entry). Fields are populated on a best-effort basis by the backing
 subsystem; an empty field means not applicable or not yet known.
 
-<Signature title="walletdk-core.d.ts" code={entryProgressSig} />
+<Signature title="wavelength-core.d.ts" code={entryProgressSig} />
 
 <ParamsTable rows={[
   { name: 'phase', type: 'EntryPhase', desc: 'The coarse lifecycle phase for the entry.' },
@@ -1457,7 +1457,7 @@ The wrapper-owned, flattened view of the request that created an
 [`Entry`](#Entry). Exactly one variant's fields are populated, named by
 `type`; read `type` first and treat the other fields as zero.
 
-<Signature title="walletdk-core.d.ts" code={entryRequestSig} />
+<Signature title="wavelength-core.d.ts" code={entryRequestSig} />
 
 <ParamsTable rows={[
   { name: 'type', type: 'EntryRequestType', desc: 'Names the populated variant.' },
@@ -1473,7 +1473,7 @@ The wrapper-owned, flattened view of the request that created an
 
 The user-visible wallet activity category.
 
-<Signature title="walletdk-core.d.ts" code={entryKindSig} />
+<Signature title="wavelength-core.d.ts" code={entryKindSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1488,7 +1488,7 @@ The user-visible wallet activity category.
 
 The collapsed wallet activity state.
 
-<Signature title="walletdk-core.d.ts" code={entryStatusSig} />
+<Signature title="wavelength-core.d.ts" code={entryStatusSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1502,7 +1502,7 @@ The collapsed wallet activity state.
 
 A coarse, wrapper-owned lifecycle phase for an [`Entry`](#Entry).
 
-<Signature title="walletdk-core.d.ts" code={entryPhaseSig} />
+<Signature title="wavelength-core.d.ts" code={entryPhaseSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1532,7 +1532,7 @@ detail about what is currently happening.
 A wrapper-owned, stable classification of why a failed [`Entry`](#Entry)
 failed.
 
-<Signature title="walletdk-core.d.ts" code={entryFailureCodeSig} />
+<Signature title="wavelength-core.d.ts" code={entryFailureCodeSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1548,7 +1548,7 @@ failed.
 
 Discriminates which request shape an [`EntryRequest`](#EntryRequest) carries.
 
-<Signature title="walletdk-core.d.ts" code={entryRequestTypeSig} />
+<Signature title="wavelength-core.d.ts" code={entryRequestTypeSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1716,7 +1716,7 @@ funds and cannot be undone.
 Exits a single outpoint, attempting a cooperative leave to the optional
 destination.
 
-<Signature title="walletdk-core.d.ts" code={exitSig} />
+<Signature title="wavelength-core.d.ts" code={exitSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'ExitRequest', desc: 'The outpoint to exit and an optional destination.' },
@@ -1733,7 +1733,7 @@ the leave output bound for that on-chain address; unilateral unroll is
 reached only through the daemon's explicit force-acknowledgement flow, which
 is not exposed as a plain SDK field.
 
-<Signature title="walletdk-core.d.ts" code={exitRequestSig} />
+<Signature title="wavelength-core.d.ts" code={exitRequestSig} />
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint to exit, in "txid:index" format.' },
@@ -1746,7 +1746,7 @@ A tagged union over the three exit paths. Read `path` first and only inspect
 the variant fields associated with that path; the remaining fields are
 zero-valued.
 
-<Signature title="walletdk-core.d.ts" code={exitResultSig} />
+<Signature title="wavelength-core.d.ts" code={exitResultSig} />
 
 <ParamsTable rows={[
   { name: 'path', type: 'ExitPath', desc: 'Discriminates between the three legal outcomes; switch on this before reading the variant fields below.' },
@@ -1759,7 +1759,7 @@ zero-valued.
 
 <ApiTypeLabel name="ExitPath" />
 
-<Signature title="walletdk-core.d.ts" code={exitPathSig} />
+<Signature title="wavelength-core.d.ts" code={exitPathSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1773,7 +1773,7 @@ zero-valued.
 
 Queries the status of an exit.
 
-<Signature title="walletdk-core.d.ts" code={exitStatusSig} />
+<Signature title="wavelength-core.d.ts" code={exitStatusSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'ExitStatusRequest', desc: 'The outpoint whose exit status is queried.' },
@@ -1785,7 +1785,7 @@ Whether a job exists for the outpoint, and its current status.
 
 <ApiTypeLabel name="ExitStatusRequest" />
 
-<Signature title="walletdk-core.d.ts" code={exitStatusRequestSig} />
+<Signature title="wavelength-core.d.ts" code={exitStatusRequestSig} />
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint whose exit status is queried.' },
@@ -1799,7 +1799,7 @@ an error condition. The detailed fields (`phaseDetail`, `progress`, `cSV`,
 `fees`, `bestCaseBlocksRemaining`, `currentHeight`) are populated only when the
 request set `detailed`; otherwise they are empty, nil, or zero.
 
-<Signature title="walletdk-core.d.ts" code={exitStatusResultSig} />
+<Signature title="wavelength-core.d.ts" code={exitStatusResultSig} />
 
 <ParamsTable rows={[
   { name: 'found', type: 'boolean', desc: 'Whether an exit job exists for the requested outpoint.' },
@@ -1819,7 +1819,7 @@ request set `detailed`; otherwise they are empty, nil, or zero.
 Materialization progress through the recovery tree. Populated only for a
 detailed query against a live exit job.
 
-<Signature title="walletdk-core.d.ts" code={exitProgressSig} />
+<Signature title="wavelength-core.d.ts" code={exitProgressSig} />
 
 <ParamsTable rows={[
   { name: 'confirmedTxs', type: 'number', desc: 'Proof transactions confirmed on-chain.' },
@@ -1838,7 +1838,7 @@ detailed query against a live exit job.
 The target’s CSV maturity countdown. Populated only once the target
 transaction has confirmed.
 
-<Signature title="walletdk-core.d.ts" code={exitCSVSig} />
+<Signature title="wavelength-core.d.ts" code={exitCSVSig} />
 
 <ParamsTable rows={[
   { name: 'targetConfirmHeight', type: 'number', desc: 'The height at which the target transaction confirmed.' },
@@ -1853,7 +1853,7 @@ The on-chain cost breakdown for the exit. The CPFP total is estimated;
 `sweepFeeActual` reports whether `sweepFeeSat` is the real built-sweep fee
 rather than an estimate.
 
-<Signature title="walletdk-core.d.ts" code={exitFeesSig} />
+<Signature title="wavelength-core.d.ts" code={exitFeesSig} />
 
 <ParamsTable rows={[
   { name: 'cPFPFeeSat', type: 'number', desc: 'The estimated total CPFP fee, in sats.' },
@@ -1871,7 +1871,7 @@ rather than an estimate.
 Collapses the underlying unroll job phases to a short wallet-facing string
 set.
 
-<Signature title="walletdk-core.d.ts" code={exitJobStatusSig} />
+<Signature title="wavelength-core.d.ts" code={exitJobStatusSig} />
 
 | Value | Meaning |
 |---|---|
@@ -1892,7 +1892,7 @@ totals for the amount being recovered, the estimated fees, and the estimated
 net recoverable. Completed and failed exits are omitted; they have no amount
 left to recover.
 
-<Signature title="walletdk-core.d.ts" code={exitSummarySig} />
+<Signature title="wavelength-core.d.ts" code={exitSummarySig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'ExitSummaryRequest', desc: 'Takes no arguments; the daemon reports the wallet-wide portfolio.' },
@@ -1906,11 +1906,11 @@ The in-progress exits plus aggregate totals.
 
 Takes no arguments.
 
-<Signature title="walletdk-core.d.ts" code={exitSummaryRequestSig} />
+<Signature title="wavelength-core.d.ts" code={exitSummaryRequestSig} />
 
 <ApiTypeLabel name="ExitSummaryResult" />
 
-<Signature title="walletdk-core.d.ts" code={exitSummaryResultSig} />
+<Signature title="wavelength-core.d.ts" code={exitSummaryResultSig} />
 
 <ParamsTable rows={[
   { name: 'exits', type: 'ExitSummaryEntry[]', desc: 'One entry per in-progress exit.' },
@@ -1924,7 +1924,7 @@ Takes no arguments.
 
 One in-progress exit’s coarse contribution to the portfolio.
 
-<Signature title="walletdk-core.d.ts" code={exitSummaryEntrySig} />
+<Signature title="wavelength-core.d.ts" code={exitSummaryEntrySig} />
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint being exited.' },
@@ -1941,7 +1941,7 @@ One in-progress exit’s coarse contribution to the portfolio.
 Previews unilateral-exit readiness (and the backing-wallet funding required)
 for a set of VTXO outpoints, without moving funds.
 
-<Signature title="walletdk-core.d.ts" code={getExitPlanSig} />
+<Signature title="wavelength-core.d.ts" code={getExitPlanSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'GetExitPlanRequest', desc: 'The outpoints to plan an exit for.' },
@@ -1953,7 +1953,7 @@ Per-outpoint funding plans plus aggregate totals.
 
 <ApiTypeLabel name="GetExitPlanRequest" />
 
-<Signature title="walletdk-core.d.ts" code={getExitPlanRequestSig} />
+<Signature title="wavelength-core.d.ts" code={getExitPlanRequestSig} />
 
 <ParamsTable rows={[
   { name: 'outpoints', type: 'string[]', desc: 'The VTXO outpoints to plan an exit for.' },
@@ -1965,7 +1965,7 @@ Per-outpoint funding plans plus aggregate totals.
 Describes the combined backing-wallet funding plan for every previewed
 outpoint plus aggregate totals.
 
-<Signature title="walletdk-core.d.ts" code={getExitPlanResultSig} />
+<Signature title="wavelength-core.d.ts" code={getExitPlanResultSig} />
 
 <ParamsTable rows={[
   { name: 'plans', type: 'ExitPlanEntry[]', desc: 'One entry per requested outpoint.' },
@@ -1980,7 +1980,7 @@ outpoint plus aggregate totals.
 Describes how to fund the backing wallet before `exit()` for a single
 previewed VTXO outpoint.
 
-<Signature title="walletdk-core.d.ts" code={exitPlanEntrySig} />
+<Signature title="wavelength-core.d.ts" code={exitPlanEntrySig} />
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint this entry describes.' },
@@ -2006,7 +2006,7 @@ Explains why a previewed exit cannot start. A structural block (dust or
 uneconomical) is one no amount of wallet funding fixes; the others are funding
 shortfalls the wallet could cover.
 
-<Signature title="walletdk-core.d.ts" code={exitInfeasibilityReasonSig} />
+<Signature title="wavelength-core.d.ts" code={exitInfeasibilityReasonSig} />
 
 | Value | Meaning |
 |---|---|
@@ -2023,7 +2023,7 @@ shortfalls the wallet could cover.
 Previews or broadcasts a sweep of the backing wallet. Call it with
 `broadcast: false` first to preview; `broadcast: true` moves funds.
 
-<Signature title="walletdk-core.d.ts" code={sweepWalletSig} />
+<Signature title="wavelength-core.d.ts" code={sweepWalletSig} />
 
 <ParamsTable rows={[
   { name: 'req', type: 'SweepWalletRequest', desc: 'The destination and broadcast flag for the sweep.' },
@@ -2035,7 +2035,7 @@ The selected inputs, fees, and (on broadcast) the resulting txid.
 
 <ApiTypeLabel name="SweepWalletRequest" />
 
-<Signature title="walletdk-core.d.ts" code={sweepWalletRequestSig} />
+<Signature title="wavelength-core.d.ts" code={sweepWalletRequestSig} />
 
 <ParamsTable rows={[
   { name: 'destinationAddress', type: 'string', desc: 'The on-chain address to sweep the backing wallet to.' },
@@ -2046,7 +2046,7 @@ The selected inputs, fees, and (on broadcast) the resulting txid.
 
 <ApiTypeLabel name="SweepWalletResult" />
 
-<Signature title="walletdk-core.d.ts" code={sweepWalletResultSig} />
+<Signature title="wavelength-core.d.ts" code={sweepWalletResultSig} />
 
 <ParamsTable rows={[
   { name: 'inputs', type: 'WalletSweepInput[]', desc: 'The backing-wallet UTXOs selected for this sweep.' },
@@ -2063,7 +2063,7 @@ The selected inputs, fees, and (on broadcast) the resulting txid.
 
 Describes one backing-wallet UTXO selected by `sweepWallet()`.
 
-<Signature title="walletdk-core.d.ts" code={walletSweepInputSig} />
+<Signature title="wavelength-core.d.ts" code={walletSweepInputSig} />
 
 <ParamsTable rows={[
   { name: 'outpoint', type: 'string', desc: 'The UTXO outpoint.' },
@@ -2086,7 +2086,7 @@ An advanced, unstable escape hatch: it invokes a daemon RPC verb by name,
 bypassing the typed methods documented above. Responses are camelCase-normalized
 the same way as every other method.
 
-<Signature title="walletdk-core.d.ts" code={callRawSig} />
+<Signature title="wavelength-core.d.ts" code={callRawSig} />
 
 <ParamsTable rows={[
   { name: 'method', type: 'string', desc: 'The daemon RPC verb name to invoke.' },
@@ -2112,7 +2112,7 @@ Maps a daemon PascalCase JSON response onto the SDK's camelCase shapes.
 Transports apply this at the response boundary so every method (including
 `callRaw()`) returns camelCase keys.
 
-<Signature title="walletdk-core.d.ts" code={camelizeKeysSig} />
+<Signature title="wavelength-core.d.ts" code={camelizeKeysSig} />
 
 <ParamsTable rows={[
   { name: 'value', type: 'unknown', desc: 'The raw daemon response (or any nested value) to camelize.' },
@@ -2167,7 +2167,7 @@ Wallet lifecycle state returned in `WalletInfo.walletState`. The daemon sends
 a numeric enum; the SDK maps it to these lowercase strings at the response
 boundary via [`walletStateFromProto()`](#walletStateFromProto).
 
-<Signature title="walletdk-core.d.ts" code={walletStateSig} />
+<Signature title="wavelength-core.d.ts" code={walletStateSig} />
 
 | Value | Meaning |
 |---|---|
@@ -2190,7 +2190,7 @@ never returned by `phaseFromInfo()`, and appears whenever an engine
 the server-assisted recovery scan is additionally tracked through
 `snapshot.recovery`.
 
-<Signature title="walletdk-core.d.ts" code={runtimePhaseSig} />
+<Signature title="wavelength-core.d.ts" code={runtimePhaseSig} />
 
 | Value | Owner | Meaning |
 |---|---|---|
@@ -2214,7 +2214,7 @@ The subset of lifecycle phases derived from wallet information by
 [`phaseFromInfo()`](#phaseFromInfo). Runtime-owned phases such as `starting`
 and `stopped` are represented by `RuntimePhase`, not this type.
 
-<Signature title="walletdk-core.d.ts" code={walletPhaseSig} />
+<Signature title="wavelength-core.d.ts" code={walletPhaseSig} />
 
 </ApiSymbol>
 
@@ -2223,7 +2223,7 @@ and `stopped` are represented by `RuntimePhase`, not this type.
 Derives the wallet-state phase from a `WalletInfo`-shaped value. Runtime
 phases are not represented here; the caller owns those.
 
-<Signature title="walletdk-core.d.ts" code={phaseFromInfoSig} />
+<Signature title="wavelength-core.d.ts" code={phaseFromInfoSig} />
 
 <ParamsTable rows={[
   { name: 'info.walletState', type: 'WalletState', desc: 'Optional. The wallet lifecycle state to derive a phase from.' },
@@ -2247,7 +2247,7 @@ onto the public `WalletInfo`: converts `walletState` to the string union via
 `Info.WalletReady()` method. Transports apply this at the `getInfo()`
 boundary.
 
-<Signature title="walletdk-core.d.ts" code={normalizeInfoSig} />
+<Signature title="wavelength-core.d.ts" code={normalizeInfoSig} />
 
 <ParamsTable rows={[
   { name: 'raw', type: 'unknown', desc: 'The raw daemon Info payload (untrusted shape).' },
@@ -2265,7 +2265,7 @@ The normalized `WalletInfo`, with `walletState` as the SDK string union and
 Normalizes a raw daemon `walletState` (a proto number) to the SDK string
 union. Already-string values pass through unchanged.
 
-<Signature title="walletdk-core.d.ts" code={walletStateFromProtoSig} />
+<Signature title="wavelength-core.d.ts" code={walletStateFromProtoSig} />
 
 <ParamsTable rows={[
   { name: 'value', type: 'number | WalletState | undefined', desc: 'The raw walletState as a proto number, an SDK string, or undefined.' },
@@ -2284,21 +2284,21 @@ creation over an existing wallet.
 
 ## Events and logging
 
-export const walletDKEventSig = `type WavelengthEvent =
+export const wavelengthEventSig = `type WavelengthEvent =
   | { type: 'runtimeReady' }
   | { type: 'runtimeStopped' }
   | { type: 'activity'; payload: Entry }
   | { type: 'activityStream'; payload: ActivityStreamPayload }
   | { type: 'log'; payload: WavelengthLogPayload };`;
 
-export const walletDKEventTypeSig = `type WavelengthEventType = WavelengthEvent['type'];`;
+export const wavelengthEventTypeSig = `type WavelengthEventType = WavelengthEvent['type'];`;
 
-export const walletDKLogPayloadSig = `type WavelengthLogPayload = {
+export const wavelengthLogPayloadSig = `type WavelengthLogPayload = {
   level: WavelengthLogLevel;
   message: string;
 };`;
 
-export const walletDKLogLevelSig = `type WavelengthLogLevel = 'debug' | 'info' | 'warn' | 'error';`;
+export const wavelengthLogLevelSig = `type WavelengthLogLevel = 'debug' | 'info' | 'warn' | 'error';`;
 export const activityStreamStateSig = `type ActivityStreamState = 'ended' | 'failed';`;
 export const activityStreamPayloadSig = `type ActivityStreamPayload =
   | { state: 'ended' }
@@ -2311,7 +2311,7 @@ Discriminated union of runtime events delivered to subscribers. Narrow on
 [`Entry`](#Entry), `'log'` carries a level and message, and the lifecycle
 events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
 
-<Signature title="walletdk-core.d.ts" code={walletDKEventSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthEventSig} />
 
 | `type` | Payload | Meaning |
 |---|---|---|
@@ -2328,7 +2328,7 @@ events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
 Whether an activity stream ended normally or failed unexpectedly. A
 consumer-initiated close emits no stream-status event.
 
-<Signature title="walletdk-core.d.ts" code={activityStreamStateSig} />
+<Signature title="wavelength-core.d.ts" code={activityStreamStateSig} />
 
 </ApiSymbol>
 
@@ -2337,7 +2337,7 @@ consumer-initiated close emits no stream-status event.
 The payload carried by an `activityStream` event. Narrow on `state` to access
 the failure message.
 
-<Signature title="walletdk-core.d.ts" code={activityStreamPayloadSig} />
+<Signature title="wavelength-core.d.ts" code={activityStreamPayloadSig} />
 
 </ApiSymbol>
 
@@ -2345,7 +2345,7 @@ the failure message.
 
 The set of `WavelengthEvent` discriminants.
 
-<Signature title="walletdk-core.d.ts" code={walletDKEventTypeSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthEventTypeSig} />
 
 </ApiSymbol>
 
@@ -2354,7 +2354,7 @@ The set of `WavelengthEvent` discriminants.
 A subscriber callback invoked with each `WavelengthEvent`, passed to
 [`subscribe()`](#subscribe).
 
-<Signature title="walletdk-core.d.ts" code={walletDKListenerSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthListenerSig} />
 
 </ApiSymbol>
 
@@ -2362,7 +2362,7 @@ A subscriber callback invoked with each `WavelengthEvent`, passed to
 
 The payload carried by a `'log'` event.
 
-<Signature title="walletdk-core.d.ts" code={walletDKLogPayloadSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthLogPayloadSig} />
 
 <ParamsTable rows={[
   { name: 'level', type: 'WavelengthLogLevel', desc: 'The severity of the log line.' },
@@ -2375,7 +2375,7 @@ The payload carried by a `'log'` event.
 
 The severity of a `'log'` event emitted by the runtime.
 
-<Signature title="walletdk-core.d.ts" code={walletDKLogLevelSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthLogLevelSig} />
 
 | Value | Meaning |
 |---|---|
@@ -2388,13 +2388,13 @@ The severity of a `'log'` event emitted by the runtime.
 
 ## Errors
 
-export const walletDKErrorSig = `class WavelengthError extends Error {
+export const wavelengthErrorSig = `class WavelengthError extends Error {
   readonly code: WavelengthErrorCode;
   constructor(message: string, code?: WavelengthErrorCode, options?: { cause?: unknown });
 }`;
 
 export const errorCodeSig = `type WavelengthErrorCode =
-  | 'walletdk_error'
+  | 'wavelength_error'
   | 'runtime_not_ready'
   | 'asset_load_failed'
   | 'worker_error'
@@ -2405,11 +2405,11 @@ export const errorCodeSig = `type WavelengthErrorCode =
 Base error class thrown by all Wavelength packages. Carries a machine-readable
 `code` alongside the human-readable message.
 
-<Signature title="walletdk-core.d.ts" code={walletDKErrorSig} />
+<Signature title="wavelength-core.d.ts" code={wavelengthErrorSig} />
 
 <ParamsTable rows={[
   { name: 'message', type: 'string', desc: 'Human-readable description of what went wrong.' },
-  { name: 'code', type: 'WavelengthErrorCode', desc: 'Machine-readable error code. Defaults to walletdk_error.' },
+  { name: 'code', type: 'WavelengthErrorCode', desc: 'Machine-readable error code. Defaults to wavelength_error.' },
   { name: 'options.cause', type: 'unknown', desc: 'Optional. The underlying error or value that caused this one, forwarded to the native Error cause chain (options.cause) so it survives in stack traces and error inspection tools.' },
 ]} />
 
@@ -2419,14 +2419,14 @@ Base error class thrown by all Wavelength packages. Carries a machine-readable
 
 Stable, machine-readable error classification on `WavelengthError`. Named SDK
 codes are listed below; daemon-originated errors currently fall back to
-`walletdk_error`. The `(string & {})` arm keeps the union open for forward
+`wavelength_error`. The `(string & {})` arm keeps the union open for forward
 compatibility while still offering autocomplete on the known codes.
 
-<Signature title="walletdk-core.d.ts" code={errorCodeSig} />
+<Signature title="wavelength-core.d.ts" code={errorCodeSig} />
 
 | Code | Thrown when |
 |---|---|
-| `walletdk_error` | The generic default: any SDK error without a more specific code, and all daemon-originated failures today. |
+| `wavelength_error` | The generic default: any SDK error without a more specific code, and all daemon-originated failures today. |
 | `runtime_not_ready` | A method is called before `ready()` has resolved, or after `dispose()`. |
 | `asset_load_failed` | `ready()` fails to load the runtime assets (wasm binary or its supporting files). |
 | `worker_error` | The worker transport's underlying Worker fails or crashes. |
@@ -2441,9 +2441,9 @@ export const toErrorSig = `function toError(value: unknown): Error`;
 
 <ApiSymbol name="PasskeyCancelledError" kind="class">
 
-Thrown by passkey ceremonies when the user dismisses the OS prompt, so hosts can suppress cancellation copy without string-matching the message. `walletdk-react`'s `useWalletPasskey` rethrows it without recording it into `createError`/`openError`.
+Thrown by passkey ceremonies when the user dismisses the OS prompt, so hosts can suppress cancellation copy without string-matching the message. `wavelength-react`'s `useWalletPasskey` rethrows it without recording it into `createError`/`openError`.
 
-<Signature title="walletdk-core.d.ts" code={passkeyCancelledErrorSig} />
+<Signature title="wavelength-core.d.ts" code={passkeyCancelledErrorSig} />
 
 <ParamsTable rows={[
   { name: 'message', type: 'string', desc: "Optional. Defaults to 'passkey ceremony was cancelled'." },
@@ -2455,7 +2455,7 @@ Thrown by passkey ceremonies when the user dismisses the OS prompt, so hosts can
 
 Normalizes an unknown thrown value to an `Error`, preserving an existing `Error` instance (and therefore its stack and `cause`) unchanged. Used throughout the SDK, including by every mutation hook's throw-and-capture convention, to guarantee `error` fields are always `Error | null`, never a string or other thrown value.
 
-<Signature title="walletdk-core.d.ts" code={toErrorSig} />
+<Signature title="wavelength-core.d.ts" code={toErrorSig} />
 
 <ParamsTable rows={[
   { name: 'value', type: 'unknown', desc: 'The thrown value to normalize; may already be an Error.' },
@@ -2484,7 +2484,7 @@ export const passkeyCeremonySig = `type PasskeyCeremony = {
 
 Labels how a local wallet is unlocked.
 
-<Signature title="walletdk-core.d.ts" code={walletKindSig} />
+<Signature title="wavelength-core.d.ts" code={walletKindSig} />
 
 | Value | Meaning |
 |---|---|
@@ -2499,7 +2499,7 @@ A passkey ceremony result: the PRF output (hex) shared with the Go SDK, plus
 the credential id that produced it so callers can scope later assertions to
 the same passkey.
 
-<Signature title="walletdk-core.d.ts" code={passkeyAssertionSig} />
+<Signature title="wavelength-core.d.ts" code={passkeyAssertionSig} />
 
 <ParamsTable rows={[
   { name: 'prfOutput', type: 'string', desc: 'The PRF output (hex) shared with the Go SDK. Pass this into OpenWalletFromPasskeyRequest.prfOutput.' },
@@ -2513,13 +2513,13 @@ the same passkey.
 The per-platform passkey ceremony contract a host injects to drive
 [`openWalletFromPasskey()`](#openWalletFromPasskey). Injecting it keeps
 consumers of this contract free of any transport dependency:
-[`walletdk-web`](/reference/walletdk-web/) supplies the browser
+[`wavelength-web`](/reference/wavelength-web/) supplies the browser
 (WebAuthn/PRF) implementation as `webPasskeyCeremony`, and
-`walletdk-react`'s `useWalletPasskey` hook drives whichever implementation
+`wavelength-react`'s `useWalletPasskey` hook drives whichever implementation
 you pass it. The React Native transport supplies its own implementation,
-`createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)).
+`createNativePasskeyCeremony` ([wavelength-react-native](/reference/wavelength-react-native/)).
 
-<Signature title="walletdk-core.d.ts" code={passkeyCeremonySig} />
+<Signature title="wavelength-core.d.ts" code={passkeyCeremonySig} />
 
 <ParamsTable rows={[
   { name: 'supportsPasskeyPrf', type: '() => Promise<boolean>', desc: 'Resolves true when the platform supports passkey PRF.' },

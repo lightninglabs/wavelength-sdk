@@ -1,21 +1,21 @@
 ---
 title: Get started
-description: Build darepod with the wallet API enabled and make your first call over gRPC or REST.
+description: Build waved with the wallet API enabled and make your first call over gRPC or REST.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
-## Build darepod with the wallet API
+## Build waved with the wallet API
 
-`WalletService` and `WalletInspectionService` are compiled into `darepod` only when the daemon is built with the `wavewalletrpc` build tag. That tag requires `swapruntime` transitively: building with `wavewalletrpc` but without `swapruntime` is a deliberate compile error, and a default `make build` includes neither, so the wallet API is off unless you opt in.
+`WalletService` and `WalletInspectionService` are compiled into `waved` only when the daemon is built with the `wavewalletrpc` build tag. That tag requires `swapruntime` transitively: building with `wavewalletrpc` but without `swapruntime` is a deliberate compile error, and a default `make build` includes neither, so the wallet API is off unless you opt in.
 
-Build both `darepod` and `darepocli` with the tag using the provided make target:
+Build both `waved` and `wavecli` with the tag using the provided make target:
 
 ```sh
 make build-wavewalletrpc
 ```
 
-This produces `bin/darepod` and `bin/darepocli` with the wallet RPC surface registered. `make install-wavewalletrpc` does the same via `go install`, landing the binaries in `$GOPATH/bin`.
+This produces `bin/waved` and `bin/wavecli` with the wallet RPC surface registered. `make install-wavewalletrpc` does the same via `go install`, landing the binaries in `$GOPATH/bin`.
 
 <Callout type="note" title="Default builds omit the API">
 Without the `wavewalletrpc` tag, `WalletService` and `WalletInspectionService` are compiled out entirely and never registered. A call against a default build fails with gRPC's standard unknown-service error, which surfaces as the `Unimplemented` status code. If a call fails that way, rebuild with `make build-wavewalletrpc`.
@@ -23,7 +23,7 @@ Without the `wavewalletrpc` tag, `WalletService` and `WalletInspectionService` a
 
 ## Endpoints
 
-`darepod` starts two listeners by default:
+`waved` starts two listeners by default:
 
 | Protocol | Default address | Notes |
 |---|---|---|
@@ -38,7 +38,7 @@ The daemon's gRPC server wires up TLS and macaroon authentication by default: it
 
 ## Your first call
 
-With `darepod` running a `wavewalletrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
+With `waved` running a `wavewalletrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
 
 Over REST (a local daemon started with `--no-macaroons`; otherwise add a `-H "macaroon: <hex>"` header):
 
@@ -49,13 +49,13 @@ curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
 Over the CLI, the equivalent is:
 
 ```sh
-darepocli getinfo --no-tls --no-macaroons
+wavecli getinfo --no-tls --no-macaroons
 ```
 
-`getinfo` talks to the daemon's own `DaemonService` rather than `WalletService.Status` directly, but it is the fastest way to confirm `darepocli` can reach `darepod` at all before you start scripting `WalletService` calls. `--no-tls --no-macaroons` matches a daemon run with authentication disabled; it is the right pairing for local and regtest use.
+`getinfo` talks to the daemon's own `DaemonService` rather than `WalletService.Status` directly, but it is the fastest way to confirm `wavecli` can reach `waved` at all before you start scripting `WalletService` calls. `--no-tls --no-macaroons` matches a daemon run with authentication disabled; it is the right pairing for local and regtest use.
 
 ## Where to go next
 
 - Walk the method reference starting with [Create](/api/wallet/create/) and [Unlock](/api/wallet/unlock/) to bring up a wallet, then [PrepareSend](/api/wallet/prepare-send/) and [Send](/api/wallet/send/) to move funds.
 - Read [REST conventions](/api/rest/) for the full request, error, and streaming shape shared by every route.
-- Explore the same surface from a terminal in the [CLI](/cli/) slice: `darepocli` wraps every `WalletService` method as a subcommand.
+- Explore the same surface from a terminal in the [CLI](/cli/) slice: `wavecli` wraps every `WalletService` method as a subcommand.

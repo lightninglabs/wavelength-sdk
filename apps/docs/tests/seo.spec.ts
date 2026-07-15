@@ -4,11 +4,11 @@ import { test, expect } from '@playwright/test';
 // representative pages. These are server-rendered head tags; crawlers rely on
 // them without executing JavaScript.
 
-const BASE_URL = 'https://dadocs.lightning.engineering';
+const BASE_URL = 'https://wavelength.lightning.engineering';
 
 const pages = [
   { path: '/', label: 'home' },
-  { path: '/introduction/what-is-walletdk/', label: 'introduction doc' },
+  { path: '/introduction/what-is-wavelength/', label: 'introduction doc' },
 ];
 
 for (const { path, label } of pages) {

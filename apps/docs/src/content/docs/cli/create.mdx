@@ -11,12 +11,12 @@ the supplied password. Pass `--recover` with a `--mnemonic-file` to import an
 existing mnemonic and rebuild Ark wallet state instead.
 
 The wallet password is never read from the command line. It comes from stdin,
-the `DAREPOD_WALLET_PASSWORD` environment variable, or `--wallet_password_file`;
+the `WAVED_WALLET_PASSWORD` environment variable, or `--wallet_password_file`;
 the interactive prompt asks for confirmation. The optional aezeed seed
-passphrase comes from `DAREPOD_SEED_PASSPHRASE` or `--seed_passphrase_file`.
+passphrase comes from `WAVED_SEED_PASSPHRASE` or `--seed_passphrase_file`.
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | darepocli create
+echo -n 'hunter2hunter2' | wavecli create
 ```
 
 <Callout type="caution" title="The mnemonic is shown once">
@@ -40,7 +40,7 @@ the wallet unrecoverable.
 ## Example
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | darepocli --no-tls create
+echo -n 'hunter2hunter2' | wavecli --no-tls create
 ```
 
 The mnemonic goes to stderr; stdout carries the identity and recovery summary:

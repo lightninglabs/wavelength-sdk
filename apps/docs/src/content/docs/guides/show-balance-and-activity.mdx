@@ -9,12 +9,12 @@ related:
 ---
 
 
-This guide assumes your app already renders inside a [`WavelengthProvider`](/reference/walletdk-react/#WavelengthProvider) with a
+This guide assumes your app already renders inside a [`WavelengthProvider`](/reference/wavelength-react/#WavelengthProvider) with a
 wallet unlocked and ready. See [Create a wallet](/guides/create-a-wallet/).
 
 ## Read the balance
 
-[`useWalletBalance()`](/reference/walletdk-react/#useWalletBalance) is a plain selector: it returns the current [`Balance`](/reference/walletdk-core/#Balance)
+[`useWalletBalance()`](/reference/wavelength-react/#useWalletBalance) is a plain selector: it returns the current [`Balance`](/reference/wavelength-core/#Balance)
 directly (`null` before it is known), and re-renders your component only when
 the balance actually changes, for example after a payment settles. There is
 no `pending`/`busy` flag on it; a `null` balance is your loading signal.
@@ -40,8 +40,8 @@ function Balance() {
 
 ## Subscribe to activity
 
-[`useWalletActivity()`](/reference/walletdk-react/#useWalletActivity) is the same kind of selector: it returns the full
-transaction history array directly. Each [`Entry`](/reference/walletdk-core/#Entry) has `id`, `kind` (`send`,
+[`useWalletActivity()`](/reference/wavelength-react/#useWalletActivity) is the same kind of selector: it returns the full
+transaction history array directly. Each [`Entry`](/reference/wavelength-core/#Entry) has `id`, `kind` (`send`,
 `receive`, `deposit`, or `exit`), `amountSat`, `status` (`pending`,
 `complete`, or `failed`), and timestamps. It also carries `feeSat`,
 `counterparty`, `note`, and `failureReason` (a human-readable message set when
@@ -49,7 +49,7 @@ transaction history array directly. Each [`Entry`](/reference/walletdk-core/#Ent
 
 The engine stays live: new entries arrive through the activity stream and
 pending entries update in place when they settle. This live-update behavior
-comes from the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) your [`WavelengthProvider`](/reference/walletdk-react/#WavelengthProvider) wraps; see
+comes from the [`WalletEngine`](/reference/wavelength-core/#WalletEngine) your [`WavelengthProvider`](/reference/wavelength-react/#WavelengthProvider) wraps; see
 [Create a wallet](/guides/create-a-wallet/) for how it is set up. No
 polling or manual refresh is needed.
 
@@ -86,10 +86,10 @@ function ActivityFeed() {
 
 ## Pull-to-refresh
 
-[`useWalletBalance()`](/reference/walletdk-react/#useWalletBalance) and [`useWalletActivity()`](/reference/walletdk-react/#useWalletActivity) update on their own as the
+[`useWalletBalance()`](/reference/wavelength-react/#useWalletBalance) and [`useWalletActivity()`](/reference/wavelength-react/#useWalletActivity) update on their own as the
 engine's background processes (the activity stream, the settle reconcile, the
 sync poll) keep the snapshot fresh, so most UIs need nothing more. For an
-explicit pull-to-refresh control, call `refresh()` from [`useWalletRefresh()`](/reference/walletdk-react/#useWalletRefresh)
+explicit pull-to-refresh control, call `refresh()` from [`useWalletRefresh()`](/reference/wavelength-react/#useWalletRefresh)
 and show its `refreshPending` flag while the call is in flight. That
 `refreshPending` is scoped to this hook instance's own calls; the engine's own
 background refreshes never flip it, so it only lights up when the user

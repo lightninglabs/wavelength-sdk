@@ -6,10 +6,10 @@ export interface ApiLinkTarget {
 type ReferencePage = 'core' | 'react' | 'web' | 'react-native';
 
 const pagePaths: Record<ReferencePage, string> = {
-  core: '/reference/walletdk-core/',
-  react: '/reference/walletdk-react/',
-  web: '/reference/walletdk-web/',
-  'react-native': '/reference/walletdk-react-native/',
+  core: '/reference/wavelength-core/',
+  react: '/reference/wavelength-react/',
+  web: '/reference/wavelength-web/',
+  'react-native': '/reference/wavelength-react-native/',
 };
 
 const coreSymbols = [

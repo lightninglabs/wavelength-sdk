@@ -10,7 +10,7 @@ test('nav flattens, accents and prev/next resolve', () => {
   expect(flat.length).toBeGreaterThan(20);
   expect(accentForSlug('concepts/balances-and-vtxos')).toBe('teal');
   expect(accentForSlug('guides/send-a-payment')).toBe('violet');
-  expect(accentForSlug('reference/walletdk-web')).toBe('teal');
+  expect(accentForSlug('reference/wavelength-web')).toBe('teal');
   const pn = prevNext('guides/send-a-payment');
   expect(pn.section).toBe('guides');
   expect(pn.total).toBeGreaterThan(1);
@@ -29,10 +29,10 @@ test('nav order is journey-first: get started before reference', () => {
 test('reference group includes all four packages', () => {
   const ref = NAV.find((g) => g.section === 'reference');
   expect(ref?.items.map((i) => i.slug)).toEqual([
-    'reference/walletdk-core',
-    'reference/walletdk-react',
-    'reference/walletdk-web',
-    'reference/walletdk-react-native',
+    'reference/wavelength-core',
+    'reference/wavelength-react',
+    'reference/wavelength-web',
+    'reference/wavelength-react-native',
   ]);
 });
 

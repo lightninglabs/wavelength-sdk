@@ -36,7 +36,7 @@ When you show balance in a UI, users usually want one "available" number. Wavele
 
 Confirmed satoshis are what you show as "available." Pending fields explain why the total on-screen balance can differ from what a user can spend right now, and why a payment can appear in the activity feed before it affects confirmed balance.
 
-Pair `balance()` with the activity stream when you need per-operation detail: each **Entry** carries its own status (`pending`, `complete`, or `failed`) and a coarse phase (for example `waiting_for_payment`, `settling`, or `confirmed`) that describes where that specific operation sits in its pipeline. See the [walletdk-core reference](/reference/walletdk-core/) for the full **Balance** and **Entry** shapes.
+Pair `balance()` with the activity stream when you need per-operation detail: each **Entry** carries its own status (`pending`, `complete`, or `failed`) and a coarse phase (for example `waiting_for_payment`, `settling`, or `confirmed`) that describes where that specific operation sits in its pipeline. See the [wavelength-core reference](/reference/wavelength-core/) for the full **Balance** and **Entry** shapes.
 
 ## Boarding → rounds → VTXO lifecycle
 

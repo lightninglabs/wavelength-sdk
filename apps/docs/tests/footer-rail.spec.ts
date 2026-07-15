@@ -54,7 +54,7 @@ test('guide footer clears the left sidebar and extends to the right edge', async
 });
 
 test('reference footer clears the sidebar and extends to the right edge', async ({ page }) => {
-  await page.goto('/reference/walletdk-core/');
+  await page.goto('/reference/wavelength-core/');
   const footer = page.locator('.wdk-footer');
   const sidebar = page.locator('.wdk-sidebar');
   const rail = page.locator('.wdk-ref__rail');

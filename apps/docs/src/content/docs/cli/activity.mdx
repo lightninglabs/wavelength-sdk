@@ -8,9 +8,9 @@ exits. The `activity inspect` subcommand drills into one entry and correlates
 its swap, VTXO, and ledger detail.
 
 ```bash title="Terminal"
-darepocli activity
-darepocli activity --pending --kind send,recv
-darepocli activity --format json
+wavecli activity
+wavecli activity --pending --kind send,recv
+wavecli activity --format json
 ```
 
 ## Flags
@@ -30,7 +30,7 @@ By default `activity` renders a compact table to stdout, with columns
 `--format json` emits the raw response for pipelines instead:
 
 ```bash title="Terminal"
-darepocli activity --format json
+wavecli activity --format json
 ```
 
 ```json
@@ -66,7 +66,7 @@ inspection response.
 | `--format` | `expanded` | Output format: expanded, x, or json. |
 
 ```bash title="Terminal"
-darepocli activity inspect <id>
+wavecli activity inspect <id>
 ```
 
 ## Underlying RPC

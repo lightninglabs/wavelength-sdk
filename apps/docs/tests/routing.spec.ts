@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 
 const URLS = [
-  '/', '/introduction/what-is-walletdk/', '/concepts/balances-and-vtxos/',
-  '/glossary/', '/reference/walletdk-core/',
+  '/', '/introduction/what-is-wavelength/', '/concepts/balances-and-vtxos/',
+  '/glossary/', '/reference/wavelength-core/',
   '/web/get-started/quickstart/', '/guides/send-a-payment/',
   '/react-native/get-started/quickstart/',
   '/react-native/get-started/installation/',
@@ -13,7 +13,7 @@ const URLS = [
   '/react-native/get-started/passkey-setup/',
   '/react-native/get-started/run-the-demo-app/',
   '/react-native/troubleshooting/',
-  '/reference/walletdk-web/', '/web/support/troubleshooting/',
+  '/reference/wavelength-web/', '/web/support/troubleshooting/',
 ];
 
 test('every existing URL still resolves', async ({ page }) => {

@@ -29,7 +29,7 @@ export const NAV: NavGroup[] = [
     label: 'Introduction',
     section: 'introduction',
     items: [
-      { slug: 'introduction/what-is-walletdk', label: 'What is Wavelength', section: 'introduction' },
+      { slug: 'introduction/what-is-wavelength', label: 'What is Wavelength', section: 'introduction' },
       { slug: 'introduction/the-swapdk-system', label: 'The SwapDK system', section: 'introduction' },
       { slug: 'introduction/system-architecture', label: 'System architecture', section: 'introduction' },
     ],
@@ -103,10 +103,10 @@ export const NAV: NavGroup[] = [
     label: 'Reference',
     section: 'reference',
     items: [
-      { slug: 'reference/walletdk-core', label: 'walletdk-core', section: 'reference' },
-      { slug: 'reference/walletdk-react', label: 'walletdk-react', section: 'reference' },
-      { slug: 'reference/walletdk-web', label: 'walletdk-web', section: 'reference' },
-      { slug: 'reference/walletdk-react-native', label: 'walletdk-react-native', section: 'reference' },
+      { slug: 'reference/wavelength-core', label: 'wavelength-core', section: 'reference' },
+      { slug: 'reference/wavelength-react', label: 'wavelength-react', section: 'reference' },
+      { slug: 'reference/wavelength-web', label: 'wavelength-web', section: 'reference' },
+      { slug: 'reference/wavelength-react-native', label: 'wavelength-react-native', section: 'reference' },
     ],
   },
   {
@@ -191,13 +191,13 @@ export const API_NAV: NavGroup[] = [
   },
 ];
 
-/** CLI slice sidebar: one page per top-level darepocli command. */
+/** CLI slice sidebar: one page per top-level wavecli command. */
 export const CLI_NAV: NavGroup[] = [
   {
     label: 'Overview',
     section: 'cli-overview',
     items: [
-      { slug: 'cli', label: 'darepocli', section: 'cli-overview' },
+      { slug: 'cli', label: 'wavecli', section: 'cli-overview' },
     ],
   },
   {
@@ -249,7 +249,7 @@ export const SLICES: Slice[] = [
   {
     key: 'sdk',
     label: 'SDK',
-    href: '/introduction/what-is-walletdk/',
+    href: '/introduction/what-is-wavelength/',
     prefixes: [],
     nav: NAV,
   },

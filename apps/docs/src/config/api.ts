@@ -27,32 +27,32 @@ export const API_CLI: Record<string, string | null> = {
 };
 
 /**
- * Curated `darepocli` invocation per RPC method name, used by the Examples
+ * Curated `wavecli` invocation per RPC method name, used by the Examples
  * CLI tab on each API reference page. Unlike API_CLI (a /cli/ page slug used
  * for the chip link), this is the full command line, subcommand included,
  * with realistic sample values matching API_SAMPLES. Null exactly where
  * API_CLI is null (no CLI command maps to the RPC).
  */
 export const API_CLI_INVOCATION: Record<string, string | null> = {
-  Create: 'darepocli create',
-  Unlock: 'darepocli unlock',
-  PrepareSend: 'darepocli send lnbcrt250u1p3xyz...truncated --note "coffee run" --force',
-  Send: 'darepocli send lnbcrt250u1p3xyz...truncated --note "coffee run" --force',
-  Recv: 'darepocli recv --offchain --amt 25000 --memo "invoice for coffee run"',
-  List: 'darepocli activity',
-  Deposit: 'darepocli recv --onchain',
-  Balance: 'darepocli balance',
+  Create: 'wavecli create',
+  Unlock: 'wavecli unlock',
+  PrepareSend: 'wavecli send lnbcrt250u1p3xyz...truncated --note "coffee run" --force',
+  Send: 'wavecli send lnbcrt250u1p3xyz...truncated --note "coffee run" --force',
+  Recv: 'wavecli recv --offchain --amt 25000 --memo "invoice for coffee run"',
+  List: 'wavecli activity',
+  Deposit: 'wavecli recv --onchain',
+  Balance: 'wavecli balance',
   Status: null,
   GetExitPlan:
-    'darepocli exit plan --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
-  Exit: 'darepocli exit --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
+    'wavecli exit plan --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
+  Exit: 'wavecli exit --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
   ExitStatus:
-    'darepocli exit status --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
-  ExitSummary: 'darepocli exit summary',
-  SweepWallet: 'darepocli wallet-sweep --destination bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    'wavecli exit status --outpoint 4b2e9f1a7c3d5e6f8091a2b3c4d5e6f70819a2b3c4d5e6f708192a3b4c5d6e7f:0',
+  ExitSummary: 'wavecli exit summary',
+  SweepWallet: 'wavecli wallet-sweep --destination bcrt1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
   SubscribeWallet: null,
   InspectActivity:
-    'darepocli activity inspect a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9',
+    'wavecli activity inspect a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9',
 };
 
 /**

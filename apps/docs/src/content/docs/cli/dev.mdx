@@ -18,9 +18,9 @@ and their methods. The command tree is three levels deep:
 (with a short alias) and the call is a method on that service.
 
 ```bash title="Terminal"
-darepocli dev
-darepocli dev waverpc.DaemonService GetInfo
-darepocli dev daemon get-info --describe
+wavecli dev
+wavecli dev waverpc.DaemonService GetInfo
+wavecli dev daemon get-info --describe
 ```
 
 <Callout type="note" title="Prefer schema for the everyday surface">
@@ -43,7 +43,7 @@ payload.
 Run with no arguments to print a JSON summary of the available services:
 
 ```bash title="Terminal"
-darepocli dev
+wavecli dev
 ```
 
 ## Services
@@ -60,7 +60,7 @@ alias for terser invocation):
   backing-wallet services.
 
 ```bash title="Terminal"
-darepocli dev daemon
+wavecli dev daemon
 ```
 
 Running a service with no call prints a JSON summary of its methods, each with
@@ -73,8 +73,8 @@ Each method leaf takes flags generated from its request message fields, or a
 message until the stream ends; client-streaming methods are not supported.
 
 ```bash title="Terminal"
-darepocli dev waverpc.DaemonService GetInfo
-darepocli dev waverpc.DaemonService GetInfo --describe
+wavecli dev waverpc.DaemonService GetInfo
+wavecli dev waverpc.DaemonService GetInfo --describe
 ```
 
 `--describe` short-circuits dispatch and dumps the method's input-field schema,

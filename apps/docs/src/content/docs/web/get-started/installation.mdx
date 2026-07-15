@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: How to add the walletdk-web and walletdk-react packages to your project, including required peer dependencies.
+description: How to add the wavelength-web and wavelength-react packages to your project, including required peer dependencies.
 ---
 
 ## The packages
@@ -57,7 +57,7 @@ import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-
 // Configure transport options once. runtimeBaseUrl points at the hosted WASM
 // asset folder.
 const engine = createWebWalletEngine({
-  runtimeBaseUrl: 'https://your-host/walletdk/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/',
   config: defaultConfig('signet'),
   autoStart: true,
 });
@@ -93,7 +93,7 @@ after `ready()` resolves:
 import { createWebClient, defaultConfig } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient({
-  runtimeBaseUrl: 'https://your-host/walletdk/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/',
 });
 
 await client.ready();

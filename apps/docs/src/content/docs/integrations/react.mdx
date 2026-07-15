@@ -11,9 +11,9 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 `@lightninglabs/wavelength-core` and never imports a specific transport. The
 provider takes a prebuilt **`WalletEngine`**; each transport ships its own
 factory to build one (`createWebWalletEngine` from
-[`@lightninglabs/wavelength-web`](/reference/walletdk-web/) for the web
+[`@lightninglabs/wavelength-web`](/reference/wavelength-web/) for the web
 transport, `createNativeWalletEngine` from
-[`@lightninglabs/wavelength-react-native`](/reference/walletdk-react-native/)
+[`@lightninglabs/wavelength-react-native`](/reference/wavelength-react-native/)
 for React Native).
 
 Build the engine once, typically at module scope outside any component, and
@@ -29,7 +29,7 @@ import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-
 import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
-  runtimeBaseUrl: 'https://your-host/walletdk/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/',
   config: defaultConfig('signet'),
   autoStart: true,
 });
@@ -70,7 +70,7 @@ while `phase === 'syncing'`, activity-driven balance refresh, the restore
 readiness poll, and an unsolicited `'stopped'` transition on a runtime crash)
 is owned by the `WalletEngine` itself and works the same whether or not React
 is in the picture. If you would rather not use `autoStart`, call `start()`
-from [`useWallet()`](/reference/walletdk-react/#useWallet) yourself once
+from [`useWallet()`](/reference/wavelength-react/#useWallet) yourself once
 `phase === 'runtimeReady'`.
 
 `phase` is a `RuntimePhase`, one of: `'loading'`, `'runtimeReady'`,

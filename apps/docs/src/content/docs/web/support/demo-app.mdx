@@ -36,9 +36,9 @@ Treat the demo as the source of truth for wiring details that docs summarize.
 Key entry points: `src/main.tsx` (engine bootstrap), `src/App.tsx` (orchestration),
 and `src/lib/runtime-config.ts` (gateway defaults).
 
-See also: [`createWebWalletEngine`](/reference/walletdk-web/#createWebWalletEngine),
-[`useWallet`](/reference/walletdk-react/#useWallet), and
-[`useWalletPasskey`](/reference/walletdk-react/#useWalletPasskey) in the
+See also: [`createWebWalletEngine`](/reference/wavelength-web/#createWebWalletEngine),
+[`useWallet`](/reference/wavelength-react/#useWallet), and
+[`useWalletPasskey`](/reference/wavelength-react/#useWalletPasskey) in the
 API reference for details behind each of these bullets.
 
 ## How to run it
@@ -51,12 +51,12 @@ overrides) live on the dedicated run page:
 
 Out of the box the demo boots a **signet** wallet against Lightning Labs public
 gateways. No local backend is required for signet. For regtest, start
-[arktest](https://github.com/lightninglabs/darepo-client) locally and point the
+[arktest](https://github.com/lightninglabs/wavelength) locally and point the
 runtime form at the ports it prints.
 
 Runtime assets are staged (never committed) under
 `public/runtime/<RUNTIME_MANIFEST_VERSION>/`. Before the first `pnpm dev`, and
-after upgrading the SDK or rebuilding WASM from `darepo-client`, run
+after upgrading the SDK or rebuilding WASM from `wavelength`, run
 `pnpm --filter web-wallet-demo run wasm:local` to stage fresh binaries.
 
 React Native readers: see [Run the demo app](/react-native/get-started/run-the-demo-app/)

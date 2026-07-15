@@ -14,9 +14,9 @@ import type { MethodDoc } from './schema';
 import { apiDoc } from './index';
 import { API_CLI_INVOCATION, API_SAMPLES } from '../../config/api';
 
-/** Default daemon gRPC endpoint (darepod DefaultRPCHost). */
+/** Default daemon gRPC endpoint (waved DefaultRPCHost). */
 export const GRPC_HOST = 'localhost:10029';
-/** Default daemon REST gateway (darepod DefaultRPCGatewayHost). */
+/** Default daemon REST gateway (waved DefaultRPCGatewayHost). */
 export const REST_BASE = 'http://localhost:10031';
 
 function body(method: MethodDoc): Record<string, unknown> {
@@ -28,7 +28,7 @@ function jsonBody(method: MethodDoc, indent: string): string {
   return json.split('\n').join(`\n${indent}`);
 }
 
-/** The darepocli invocation for this RPC, or null when no command maps. */
+/** The wavecli invocation for this RPC, or null when no command maps. */
 export function cliSample(method: MethodDoc): string | null {
   return API_CLI_INVOCATION[method.name] ?? null;
 }

@@ -61,7 +61,7 @@ A round is one cycle in which the operator collects participant requests, constr
 
 ### Transport
 
-A transport is the layer that runs the embedded wallet daemon for a given platform. Wavelength ships two: the web transport (`walletdk-web`, daemon compiled to WebAssembly, reaches gateways over REST) and the React Native transport (`walletdk-react-native`, daemon compiled into the app binary, uses gRPC). Both implement the same `WavelengthClient` contract, so app code is transport-agnostic.
+A transport is the layer that runs the embedded wallet daemon for a given platform. Wavelength ships two: the web transport (`wavelength-web`, daemon compiled to WebAssembly, reaches gateways over REST) and the React Native transport (`wavelength-react-native`, daemon compiled into the app binary, uses gRPC). Both implement the same `WavelengthClient` contract, so app code is transport-agnostic.
 
 ### Unilateral exit
 

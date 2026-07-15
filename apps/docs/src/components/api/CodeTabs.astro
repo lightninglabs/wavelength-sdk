@@ -140,7 +140,7 @@ const themes = { dark: 'vitesse-dark', light: 'vitesse-light' } as const;
 
       // Restore the reader's last-picked language if this page offers it;
       // a page with no matching tab (for example no CLI tab on a method
-      // with no darepocli equivalent) keeps the server-rendered default.
+      // with no wavecli equivalent) keeps the server-rendered default.
       if (storedLang) {
         const restoreIndex = tabs.findIndex((t) => t.dataset.tabBtn === storedLang);
         if (restoreIndex > 0) select(restoreIndex, false);

@@ -47,7 +47,7 @@ extension (Safari 17.4+, Chrome 114+). There is no synchronous PRF probe;
 password creation/unlock or recovery-phrase restore when passkeys are
 unavailable.
 
-On the web, `useWalletPasskey` (from `walletdk-react`) takes a `PasskeyCeremony`
+On the web, `useWalletPasskey` (from `wavelength-react`) takes a `PasskeyCeremony`
 implementation as its argument; pass `webPasskeyCeremony` from
 `@lightninglabs/wavelength-web`. See the [passkey guide](/guides/use-a-passkey/)
 for a full wiring example.
@@ -75,7 +75,7 @@ refreshed credentials inside the daemon. Persistent 401s usually mean the
 server is unhealthy or the URL points at the wrong service. These are
 daemon-log-only: the daemon does not currently map gateway-originated errors
 to a specific `WavelengthError` code, so a persistent 401 surfaces client-side
-(if at all) as a generic `walletdk_error`, not a dedicated code you can match
+(if at all) as a generic `wavelength_error`, not a dedicated code you can match
 on.
 
 **Fix:** Restart the backend (arktest for regtest, or wait and retry for hosted
@@ -119,7 +119,7 @@ update when the refund completes.
 
 If an entry stays pending far longer than expected:
 
-1. Call **`refresh()`** (from `useWalletRefresh()` in `walletdk-react`) or
+1. Call **`refresh()`** (from `useWalletRefresh()` in `wavelength-react`) or
    rely on the engine's activity subscription (the engine debounces
    activity-driven refreshes). Without React, call
    **`client.list({ pendingOnly: true })`** directly.

@@ -4,25 +4,25 @@ import { resolveApiLink } from './api-links.ts';
 
 test('resolves a core symbol to its reference anchor', () => {
   assert.deepEqual(resolveApiLink('WalletEngine'), {
-    href: '/reference/walletdk-core/#WalletEngine',
+    href: '/reference/wavelength-core/#WalletEngine',
     symbol: 'WalletEngine',
   });
 });
 
 test('resolves a transport symbol to its package reference page', () => {
   assert.deepEqual(resolveApiLink('createNativeWalletEngine'), {
-    href: '/reference/walletdk-react-native/#createNativeWalletEngine',
+    href: '/reference/wavelength-react-native/#createNativeWalletEngine',
     symbol: 'createNativeWalletEngine',
   });
 });
 
 test('resolves documented inline types to their exact definition anchors', () => {
   assert.deepEqual(resolveApiLink('DepositResult'), {
-    href: '/reference/walletdk-core/#DepositResult',
+    href: '/reference/wavelength-core/#DepositResult',
     symbol: 'DepositResult',
   });
   assert.deepEqual(resolveApiLink('WebWalletEngineOptions'), {
-    href: '/reference/walletdk-web/#WebWalletEngineOptions',
+    href: '/reference/wavelength-web/#WebWalletEngineOptions',
     symbol: 'WebWalletEngineOptions',
   });
 });

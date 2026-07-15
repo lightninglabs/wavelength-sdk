@@ -18,7 +18,7 @@ just serve the runtime files alongside your app:
 import { createWebClient } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient({
-  runtimeBaseUrl: 'https://cdn.example.com/walletdk/v0.1.0/',
+  runtimeBaseUrl: 'https://cdn.example.com/wavewalletdk/v0.1.0/',
 });
 ```
 
@@ -29,7 +29,7 @@ binaries listed below need to be hosted at `runtimeBaseUrl`.
 ## Self-hosting (override)
 
 The WASM runtime is a fixed set of files built from
-[darepo-client](https://github.com/lightninglabs/darepo-client). Import
+[wavelength](https://github.com/lightninglabs/wavelength). Import
 `RUNTIME_ASSET_FILES` from `@lightninglabs/wavelength-web` to see every filename
 that must be served together at one base URL. `RUNTIME_MANIFEST_VERSION`
 identifies the daemon build the SDK is paired with:
@@ -44,31 +44,31 @@ console.log(RUNTIME_ASSET_FILES);
 
 Host all of them under a single path and set `runtimeBaseUrl` to that
 directory. Prefer a path that includes `RUNTIME_MANIFEST_VERSION` (for example
-`/walletdk/<version>/`): every asset set then gets a unique URL, so browsers
+`/wavewalletdk/<version>/`): every asset set then gets a unique URL, so browsers
 pick up new assets on an SDK upgrade instead of serving stale cached copies,
 and you can cache the files aggressively. Trailing slashes are optional; the
 client normalizes the base URL. If unset, assets resolve relative to the page
 URL in both worker and main-thread mode, so you can also just serve the
 runtime files alongside your app.
 
-**Build and copy from darepo-client.** From a checkout of `darepo-client`, build
+**Build and copy from wavelength.** From a checkout of `wavelength`, build
 the WASM wallet target and copy the output into your app's static folder:
 
 ```bash title="Terminal"
-# Build the WASM runtime into darepo-client/bin/wasm/
-make -C /path/to/darepo-client wasm-wallet
+# Build the WASM runtime into wavelength/bin/wasm/
+make -C /path/to/wavelength wasm-wallet
 
 # Copy every runtime binary into a directory named after
 # RUNTIME_MANIFEST_VERSION (example: Vite public/)
-mkdir -p "./public/walletdk/<version>"
+mkdir -p "./public/wavewalletdk/<version>"
 for f in wavewalletdk.wasm wavewalletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
          sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
-  cp "/path/to/darepo-client/bin/wasm/$f" "./public/walletdk/<version>/"
+  cp "/path/to/wavelength/bin/wasm/$f" "./public/wavewalletdk/<version>/"
 done
 ```
 
 The monorepo demo wraps the same steps in `pnpm --filter web-wallet-demo run
-wasm:local`, which builds from a sibling `darepo-client` checkout and stages
+wasm:local`, which builds from a sibling `wavelength` checkout and stages
 files into `apps/web-wallet-demo/public/runtime/<version>/`, the versioned
 path the demo's `runtimeBaseUrl` points at. After `vite build`, those files
 land in `dist/` and are served from the app origin.

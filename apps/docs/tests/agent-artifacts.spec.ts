@@ -38,10 +38,10 @@ test('well-known skills catalog and files are served', async ({ request }) => {
   expect(res.status()).toBe(200);
   const catalog = await res.json();
   expect(catalog.skills.map((s: { name: string }) => s.name).sort()).toEqual([
-    'walletdk-api',
-    'walletdk-cli',
-    'walletdk-react-native',
-    'walletdk-web',
+    'wavelength-api',
+    'wavelength-cli',
+    'wavelength-react-native',
+    'wavelength-web',
   ]);
   for (const s of catalog.skills) {
     const file = await request.get(`/.well-known/skills/${s.name}/SKILL.md`);
@@ -117,6 +117,6 @@ test('agents page markdown mirror keeps all four prompts', async ({ request }) =
   expect(body).toContain('mount <WavelengthProvider');
   expect(body).toContain('createNativeWalletEngine()');
   expect(body).toContain('gRPC or REST');
-  expect(body).toContain('Write automation for the Wavelength wallet using darepocli.');
-  expect(body).toContain('darepocli mcp');
+  expect(body).toContain('Write automation for the Wavelength wallet using wavecli.');
+  expect(body).toContain('wavecli mcp');
 });

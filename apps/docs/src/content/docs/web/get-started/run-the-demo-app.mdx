@@ -71,23 +71,23 @@ the same headers.
 ## Optional (wasm:local, regtest, testnet)
 
 **Rebuild runtime assets locally.** When you are developing against a custom
-darepo-client build, stage fresh WASM files into the demo's `public/` folder:
+wavelength build, stage fresh WASM files into the demo's `public/` folder:
 
 ```bash title="Terminal"
-# Expects a sibling darepo-client checkout (override with WAVELENGTH_DIR)
+# Expects a sibling wavelength checkout (override with WAVELENGTH_DIR)
 pnpm --filter web-wallet-demo run wasm:local
 ```
 
-This runs `make wasm-wallet` in darepo-client and copies the full
+This runs `make wasm-wallet` in wavelength and copies the full
 `RUNTIME_ASSET_FILES` set into `public/runtime/<RUNTIME_MANIFEST_VERSION>/`,
 the versioned path the demo's `runtimeBaseUrl` points at.
 
 **Regtest with arktest.** To exercise deposits, swaps, and exits against a local
-chain, run [arktest](https://github.com/lightninglabs/darepo-client) in a
+chain, run [arktest](https://github.com/lightninglabs/wavelength) in a
 separate terminal:
 
 ```bash title="Terminal"
-# From a darepo-client checkout
+# From a wavelength checkout
 make build
 ./arktest-debug start --swapserver
 ```

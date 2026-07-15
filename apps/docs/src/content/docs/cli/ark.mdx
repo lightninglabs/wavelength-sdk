@@ -25,7 +25,7 @@ flags (`--rpcserver`, `--tlscertpath`, `--no-tls`).
 `ark` alone prints usage and exits; pick a subcommand, for example:
 
 ```bash title="Terminal"
-darepocli ark vtxos list --status live
+wavecli ark vtxos list --status live
 ```
 
 ## `vtxos`
@@ -47,7 +47,7 @@ amount.
 Calls the daemon `ListVTXOs` RPC.
 
 ```bash title="Terminal"
-darepocli ark vtxos list --status live
+wavecli ark vtxos list --status live
 ```
 
 ### `vtxos refresh`
@@ -68,7 +68,7 @@ join explicitly afterward.
 Calls the daemon `RefreshVTXOs` RPC.
 
 ```bash title="Terminal"
-darepocli ark vtxos refresh --all
+wavecli ark vtxos refresh --all
 ```
 
 ### `vtxos leave`
@@ -92,7 +92,7 @@ like `vtxos refresh` unless `--no_join` is set.
 Calls the daemon `LeaveVTXOs` RPC.
 
 ```bash title="Terminal"
-darepocli ark vtxos leave --outpoint abcd...:0 --address bcrt1...
+wavecli ark vtxos leave --outpoint abcd...:0 --address bcrt1...
 ```
 
 ## `rounds`
@@ -110,7 +110,7 @@ Fetches one round's status by its server-assigned id.
 Calls the daemon `GetRound` RPC.
 
 ```bash title="Terminal"
-darepocli ark rounds get --round-id r-1234
+wavecli ark rounds get --round-id r-1234
 ```
 
 ### `rounds join`
@@ -123,7 +123,7 @@ commands, to batch multiple intents into the same round.
 Calls the daemon `JoinNextRound` RPC.
 
 ```bash title="Terminal"
-darepocli ark rounds join
+wavecli ark rounds join
 ```
 
 ### `rounds list`
@@ -144,7 +144,7 @@ Lists round FSM states, optionally filtered.
 Calls the daemon `ListRounds` RPC.
 
 ```bash title="Terminal"
-darepocli ark rounds list --state confirmed
+wavecli ark rounds list --state confirmed
 ```
 
 ### `rounds watch`
@@ -155,7 +155,7 @@ they occur. Press Ctrl-C to stop.
 Calls the daemon `WatchRounds` RPC.
 
 ```bash title="Terminal"
-darepocli ark rounds watch
+wavecli ark rounds watch
 ```
 
 ## `oor`
@@ -173,7 +173,7 @@ Fetches one out-of-round session's status by its id.
 Calls the daemon `GetOORSession` RPC.
 
 ```bash title="Terminal"
-darepocli ark oor get --session-id s-1234
+wavecli ark oor get --session-id s-1234
 ```
 
 ### `oor list`
@@ -192,7 +192,7 @@ Lists out-of-round session statuses, optionally filtered.
 Calls the daemon `ListOORSessions` RPC.
 
 ```bash title="Terminal"
-darepocli ark oor list --direction incoming
+wavecli ark oor list --direction incoming
 ```
 
 ### `oor receive`
@@ -207,7 +207,7 @@ with the indexer, and prints the resulting destination details.
 Calls the daemon `NewReceiveScript` RPC.
 
 ```bash title="Terminal"
-darepocli ark oor receive --label "invoice-42"
+wavecli ark oor receive --label "invoice-42"
 ```
 
 ## `board`
@@ -224,7 +224,7 @@ whole balance boards into one VTXO.
 Calls the daemon `Board` RPC.
 
 ```bash title="Terminal"
-darepocli ark board
+wavecli ark board
 ```
 
 ## `sweep`
@@ -248,7 +248,7 @@ publish one aggregate sweep transaction; without it the command only previews.
 Calls the daemon `SweepBoardingUTXOs` RPC.
 
 ```bash title="Terminal"
-darepocli ark sweep --broadcast
+wavecli ark sweep --broadcast
 ```
 
 ### `sweep list`
@@ -267,7 +267,7 @@ their lifecycle status, fee, confirmation height, and per-input spend state.
 Calls the daemon `ListBoardingSweeps` RPC.
 
 ```bash title="Terminal"
-darepocli ark sweep list --status pending
+wavecli ark sweep list --status pending
 ```
 
 ## `fees`
@@ -290,7 +290,7 @@ differ from this estimate.
 Calls the daemon `EstimateFee` RPC.
 
 ```bash title="Terminal"
-darepocli ark fees estimate --amount 50000
+wavecli ark fees estimate --amount 50000
 ```
 
 ### `fees history`
@@ -306,7 +306,7 @@ database, including total fees paid.
 Calls the daemon `GetFeeHistory` RPC.
 
 ```bash title="Terminal"
-darepocli ark fees history --limit 20
+wavecli ark fees history --limit 20
 ```
 
 ## `listtransactions`
@@ -328,7 +328,7 @@ composes the same data with the internal correlators stripped.
 Calls the daemon `ListTransactions` RPC.
 
 ```bash title="Terminal"
-darepocli ark listtransactions --type round --limit 25
+wavecli ark listtransactions --type round --limit 25
 ```
 
 ## `send`
@@ -355,7 +355,7 @@ raw daemon RPC directly.
 Calls the daemon `SendVTXO` RPC.
 
 ```bash title="Terminal"
-darepocli ark send inround --to bcrt1... --amount 10000
+wavecli ark send inround --to bcrt1... --amount 10000
 ```
 
 ### `send oor`
@@ -374,5 +374,5 @@ without waiting for a round.
 Calls the daemon `SendOOR` RPC.
 
 ```bash title="Terminal"
-darepocli ark send oor --to bcrt1... --amount 10000
+wavecli ark send oor --to bcrt1... --amount 10000
 ```
