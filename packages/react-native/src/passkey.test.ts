@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { PasskeyCancelledError } from '@lightninglabs/wavelength-core';
 import {
   nativePasskeyCeremony,
-  type WalletdkPasskeyNativeModule,
+  type WavelengthPasskeyNativeModule,
 } from './passkey.ts';
 
 // The PRF salt (SHA-256 of the shared namespace) in the two encodings the
@@ -41,7 +41,7 @@ function makeFake() {
           ? Promise.reject(new Error(fake.getResponse.slice(7)))
           : Promise.resolve(fake.getResponse);
       },
-    } satisfies WalletdkPasskeyNativeModule,
+    } satisfies WavelengthPasskeyNativeModule,
     calls,
   };
   return fake;
@@ -210,7 +210,7 @@ describe('nativePasskeyCeremony', () => {
   it('memoizes supportsPasskeyPrf per ceremony instance, and retries after a rejection', async () => {
     const calls: boolean[] = [];
     let behavior: 'reject' | 'resolve' = 'reject';
-    const native: WalletdkPasskeyNativeModule = {
+    const native: WavelengthPasskeyNativeModule = {
       passkeySupported: async () => {
         calls.push(true);
         if (behavior === 'reject') {
@@ -245,7 +245,7 @@ describe('nativePasskeyCeremony', () => {
 
     // A different ceremony instance gets its own memo, not the shared one.
     const otherCalls: boolean[] = [];
-    const otherNative: WalletdkPasskeyNativeModule = {
+    const otherNative: WavelengthPasskeyNativeModule = {
       passkeySupported: async () => {
         otherCalls.push(true);
 

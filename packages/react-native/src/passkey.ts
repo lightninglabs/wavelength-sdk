@@ -74,7 +74,7 @@ function withPasskeyTimeout<T>(op: Promise<T>, label: string): Promise<T> {
  * Narrowed to an interface (rather than the generated Spec) so unit tests can
  * inject a fake without loading react-native.
  */
-export type WalletdkPasskeyNativeModule = {
+export type WavelengthPasskeyNativeModule = {
   /** Reports whether the platform can run a passkey PRF ceremony. */
   passkeySupported(): Promise<boolean>;
   /** Runs a passkey registration ceremony; WebAuthn JSON in and out. */
@@ -101,7 +101,7 @@ export type NativePasskeyCeremonyOptions = {
  * base64url binary fields, the format both platform APIs speak natively.
  */
 export function nativePasskeyCeremony(
-  native: WalletdkPasskeyNativeModule,
+  native: WavelengthPasskeyNativeModule,
   options: NativePasskeyCeremonyOptions,
 ): PasskeyCeremony {
   const saltB64url = hexToBase64Url(PASSKEY_PRF_SALT_HEX);

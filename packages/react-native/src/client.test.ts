@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import {
   NativeWavelengthClient,
   type NativeActivityEvent,
-  type WalletdkNativeModule,
+  type WavelengthNativeModule,
 } from './client.ts';
 import type { WavelengthEvent } from '@lightninglabs/wavelength-core';
 
@@ -20,7 +20,7 @@ function makeFake() {
   let listener: ((event: NativeActivityEvent) => void) | null = null;
   let unsubscribed = 0;
 
-  const native: WalletdkNativeModule = {
+  const native: WavelengthNativeModule = {
     call(method, paramsJson) {
       calls.push({ method, paramsJson });
       const canned = responses.get(method);
@@ -44,7 +44,7 @@ function makeFake() {
         : Promise.resolve();
     },
     getDefaultDataDir() {
-      return Promise.resolve('/data/walletdk');
+      return Promise.resolve('/data/wavelength');
     },
   };
 
@@ -97,7 +97,7 @@ describe('NativeWavelengthClient', () => {
     await client.start({ network: 'regtest', arkServerUrl: 'h:7070' });
 
     const cfg = JSON.parse(fake.calls[0].paramsJson) as Record<string, unknown>;
-    assert.equal(cfg.data_dir, '/data/walletdk');
+    assert.equal(cfg.data_dir, '/data/wavelength');
     assert.equal(cfg.server_transport, 'grpc');
     assert.equal(fake.calls[1].method, 'getInfo');
   });

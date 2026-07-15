@@ -20,11 +20,11 @@
     "fetch-bindings": "bash scripts/fetch-bindings.sh"
   },
   "codegenConfig": {
-    "name": "WalletdkSpec",
+    "name": "WavelengthSpec",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "engineering.lightning.walletdk.reactnative"
+      "javaPackageName": "engineering.lightning.wavelength.reactnative"
     }
   },
   "dependencies": {
@@ -39,5 +39,5 @@
     "@types/react": "^19.2.17",
     "react": "19.2.3"
   },
-  "files": ["dist", "src", "android", "ios", "*.podspec", "!android/libs", "!ios/Walletdk.xcframework"]
+  "files": ["dist", "src", "android", "ios", "*.podspec", "!android/libs", "!ios/Wavewalletdk.xcframework"]
 }

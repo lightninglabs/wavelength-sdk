@@ -15,7 +15,7 @@ import type {
  * interface (rather than the generated Spec) so unit tests can inject a fake
  * without loading react-native.
  */
-export type WalletdkNativeModule = {
+export type WavelengthNativeModule = {
   /** Invokes a facade verb by name with a JSON payload, returning JSON. */
   call(method: string, paramsJson: string): Promise<string>;
   /** Opens the native activity subscription. */
@@ -27,7 +27,7 @@ export type WalletdkNativeModule = {
 };
 
 /**
- * One 'walletdkActivity' device event from the native side: an activity
+ * One 'wavelengthActivity' device event from the native side: an activity
  * entry, a clean end of stream, or a stream error.
  */
 export type NativeActivityEvent = {
@@ -38,9 +38,9 @@ export type NativeActivityEvent = {
 };
 
 /**
- * Subscribes a listener to the native 'walletdkActivity' events and returns
- * an unsubscribe function. The factory wires this to NativeEventEmitter; unit
- * tests supply their own.
+ * Subscribes a listener to the native 'wavelengthActivity' events and
+ * returns an unsubscribe function. The factory wires this to
+ * NativeEventEmitter; unit tests supply their own.
  */
 export type SubscribeToNativeEvents = (
   listener: (event: NativeActivityEvent) => void,
@@ -66,11 +66,11 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
   // Set inside a stop op so onNativeEvent knows the imminent native 'end' is
   // client-initiated and must be swallowed.
   private closing = false;
-  private native: WalletdkNativeModule;
+  private native: WavelengthNativeModule;
   private subscribeToNativeEvents: SubscribeToNativeEvents;
 
   constructor(
-    native: WalletdkNativeModule,
+    native: WavelengthNativeModule,
     subscribeToNativeEvents: SubscribeToNativeEvents,
   ) {
     super();
@@ -110,15 +110,15 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
 
       return camelizeKeys<T>(resultJson ? JSON.parse(resultJson) : null);
     } catch (err) {
-      throw new WavelengthError(errorMessage(err), 'walletdk_error', {
+      throw new WavelengthError(errorMessage(err), 'wavelength_error', {
         cause: err,
       });
     }
   }
 
   // startActivity opens the native pull subscription; the native side pumps
-  // entries to 'walletdkActivity' device events, which are re-emitted here as
-  // typed 'activity' events. Idempotent while a stream is open.
+  // entries to 'wavelengthActivity' device events, which are re-emitted here
+  // as typed 'activity' events. Idempotent while a stream is open.
   async startActivity(opts: { includeExisting?: boolean } = {}): Promise<void> {
     return this.enqueue(async () => {
       if (this.streamOpen) {
@@ -207,7 +207,7 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
         type: 'log',
         payload: {
           level: 'warn',
-          message: `unknown walletdk native event: ${event.kind}`,
+          message: `unknown wavelength native event: ${event.kind}`,
         },
       });
     }

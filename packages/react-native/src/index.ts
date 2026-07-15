@@ -7,7 +7,7 @@ import {
   type WalletEngine,
   type WalletEngineOptions,
 } from '@lightninglabs/wavelength-core';
-import NativeWalletdk from './NativeWalletdk';
+import NativeWavelength from './NativeWavelength';
 import { NativeWavelengthClient } from './client';
 import {
   nativePasskeyCeremony,
@@ -20,13 +20,13 @@ import {
  * today; an options parameter can be added later without a breaking change.
  */
 export function createNativeClient(): WavelengthClient {
-  // NativeModules.Walletdk is the interop view of the Turbo Module; the
+  // NativeModules.Wavelength is the interop view of the Turbo Module; the
   // emitter needs it (or any module carrying addListener/removeListeners) to
-  // route 'walletdkActivity' device events on both platforms.
-  const emitter = new NativeEventEmitter(NativeModules.Walletdk);
+  // route 'wavelengthActivity' device events on both platforms.
+  const emitter = new NativeEventEmitter(NativeModules.Wavelength);
 
-  return new NativeWavelengthClient(NativeWalletdk, (listener) => {
-    const subscription = emitter.addListener('walletdkActivity', listener);
+  return new NativeWavelengthClient(NativeWavelength, (listener) => {
+    const subscription = emitter.addListener('wavelengthActivity', listener);
 
     return () => subscription.remove();
   });
@@ -67,7 +67,7 @@ export function createNativeWalletEngine(
 export function createNativePasskeyCeremony(
   options: NativePasskeyCeremonyOptions,
 ): PasskeyCeremony {
-  return nativePasskeyCeremony(NativeWalletdk, options);
+  return nativePasskeyCeremony(NativeWavelength, options);
 }
 
 /**
@@ -81,12 +81,12 @@ export function createNativePasskeyCeremony(
  * directory is not guaranteed to exist until the runtime has started.
  */
 export function getDefaultDataDir(): Promise<string> {
-  return NativeWalletdk.getDefaultDataDir();
+  return NativeWavelength.getDefaultDataDir();
 }
 
 export type {
   NativePasskeyCeremonyOptions,
-  WalletdkPasskeyNativeModule,
+  WavelengthPasskeyNativeModule,
 } from './passkey';
 
 export { defaultConfig } from './config';
@@ -94,9 +94,9 @@ export { NativeWavelengthClient } from './client';
 export type {
   NativeActivityEvent,
   SubscribeToNativeEvents,
-  WalletdkNativeModule,
+  WavelengthNativeModule,
 } from './client';
 
 // Re-export the core contract so an RN consumer can import the client and
-// every type/enum from this one package, the way walletdk-web already does.
+// every type/enum from this one package, the way wavelength-web already does.
 export * from '@lightninglabs/wavelength-core';

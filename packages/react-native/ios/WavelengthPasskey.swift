@@ -13,8 +13,8 @@ import UIKit
 // Experimental: compiles and is driven by unit-tested TS request shapes, but
 // has not been verified end to end; that needs an Associated Domains
 // entitlement backed by a paid Apple Developer Program team.
-@objc(WalletdkPasskey)
-public final class WalletdkPasskey: NSObject {
+@objc(WavelengthPasskey)
+public final class WavelengthPasskey: NSObject {
 
   // Retains in-flight runners; ASAuthorizationController does not retain its
   // delegate, so each ceremony holds itself here until it completes. Typed
@@ -245,12 +245,12 @@ private final class PasskeyRunner: NSObject,
     var extensionResults: [String: Any] = [:]
     if let first = prfFirst {
       extensionResults = [
-        "prf": ["results": ["first": WalletdkPasskey.base64Url(first)]],
+        "prf": ["results": ["first": WavelengthPasskey.base64Url(first)]],
       ]
     }
     let body: [String: Any] = [
-      "id": WalletdkPasskey.base64Url(credentialId),
-      "rawId": WalletdkPasskey.base64Url(credentialId),
+      "id": WavelengthPasskey.base64Url(credentialId),
+      "rawId": WavelengthPasskey.base64Url(credentialId),
       "type": "public-key",
       "clientExtensionResults": extensionResults,
     ]
