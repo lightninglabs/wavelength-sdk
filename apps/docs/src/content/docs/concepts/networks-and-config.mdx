@@ -83,6 +83,19 @@ the SDK rejects the configuration before startup.
 
 Test networks ignore **`allowMainnet`**; it exists only for mainnet runs.
 
+## Mainnet access
+
+Signet and testnet are open to anyone. Mainnet is different: the mainnet server
+accepts only clients on an approved allowlist, so `allowMainnet` on its own is
+not enough to connect. Access is keyed to your client's identity, which is its
+mailbox ID.
+
+To request access, initialize and unlock your wallet, run `wavecli getinfo`, and
+copy the `identity_pubkey` value (a 66-character hex string). Submit that value
+through the [mainnet access request form](https://docs.google.com/forms/d/e/1FAIpQLScX-AwTYPCRqD9WI2LOtalgL25PSOJ__I6Gf4D8xW04WyWCpA/viewform). Once approved, your client can register and connect. If you
+re-initialize with a new seed, the identity changes and you have to request
+access again for the new `identity_pubkey`.
+
 ## Complete configuration
 
 Most apps only need `defaultConfig(network)` plus an optional data directory.
