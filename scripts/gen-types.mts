@@ -29,15 +29,15 @@ import { camelKey } from '../packages/core/src/casing.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
-const darepo = process.env.WAVELENGTH_DIR
+const wavelength = process.env.WAVELENGTH_DIR
   ? resolve(process.env.WAVELENGTH_DIR)
   : resolve(root, '../wavelength');
 const goPackage = 'github.com/lightninglabs/wavelength/sdk/wavewalletdk';
 const outFile = resolve(root, 'packages/core/src/generated.ts');
 
-if (!existsSync(darepo)) {
+if (!existsSync(wavelength)) {
   console.error(
-    `wavelength checkout not found at ${darepo}. Clone it as a sibling or set WAVELENGTH_DIR.`,
+    `wavelength checkout not found at ${wavelength}. Clone it as a sibling or set WAVELENGTH_DIR.`,
   );
   process.exit(1);
 }
@@ -75,7 +75,7 @@ writeFileSync(
     `      time.Time: "string"\n`,
 );
 execFileSync(tygoBin(), ['generate', '--config', cfg], {
-  cwd: darepo,
+  cwd: wavelength,
   stdio: 'inherit',
 });
 
@@ -113,7 +113,7 @@ const withEnums = camelized.replace(
 );
 
 // 4. Drop scalar consts tygo could not resolve. A Go const assigned from
-//    another package (e.g. `const MaxSigningWorkers = darepod.MaxSigningWorkers`)
+//    another package (e.g. `const MaxSigningWorkers = waved.MaxSigningWorkers`)
 //    is emitted as `export const NAME = any /* pkg.Ref */;`, which is invalid
 //    TS (`any` as a value) and not a JSON wire shape anyway. Strip each such
 //    declaration together with its leading JSDoc block. Enum value consts are

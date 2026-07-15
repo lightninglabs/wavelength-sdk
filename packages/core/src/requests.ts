@@ -139,7 +139,7 @@ export type ExitStatusRequest = {
    * Request recovery-tree progress, a CSV maturity countdown, a fee breakdown,
    * and a best-case block countdown. It costs one live actor round-trip plus a
    * fee estimate, so leave it unset or false (both give the coarse, cheaper
-   * phase-only status). Omitting it defaults to false; the darepocli `exit
+   * phase-only status). Omitting it defaults to false; the wavecli `exit
    * status` command defaults to true instead.
    */
   detailed?: boolean;

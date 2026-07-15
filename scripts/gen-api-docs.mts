@@ -17,13 +17,13 @@ import { API_NAV, flattenNav } from '../apps/docs/src/config/nav.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
-const darepo = process.env.WAVELENGTH_DIR
+const wavelength = process.env.WAVELENGTH_DIR
   ? resolve(process.env.WAVELENGTH_DIR)
   : resolve(root, '../wavelength');
 
-if (!existsSync(darepo)) {
+if (!existsSync(wavelength)) {
   console.error(
-    `wavelength checkout not found at ${darepo}. Clone it as a sibling or set WAVELENGTH_DIR.`,
+    `wavelength checkout not found at ${wavelength}. Clone it as a sibling or set WAVELENGTH_DIR.`,
   );
   process.exit(1);
 }
@@ -34,8 +34,8 @@ const outFile = resolve(root, 'apps/docs/src/data/api/wallet.json');
 
 const doc = apiDocSchema.parse(
   extractApiDoc(
-    readFileSync(resolve(darepo, protoRel), 'utf8'),
-    readFileSync(resolve(darepo, yamlRel), 'utf8'),
+    readFileSync(resolve(wavelength, protoRel), 'utf8'),
+    readFileSync(resolve(wavelength, yamlRel), 'utf8'),
     protoRel,
   ),
 );

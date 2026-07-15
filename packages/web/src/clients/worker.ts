@@ -14,7 +14,7 @@ import { PendingCall, toWavelengthEvent } from '../util';
  * createWebClient() (or pass runtimeThread: 'main' for the main-thread escape
  * hatch). Worker mode needs a daemon that stores the encrypted seed in OPFS
  * rather than localStorage (which is window-only and absent in Workers); the
- * shipped daemon does, as of lightninglabs/darepo-client#811.
+ * shipped daemon does, as of lightninglabs/wavelength#811.
  */
 export class WorkerWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;

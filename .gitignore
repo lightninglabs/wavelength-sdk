@@ -18,7 +18,7 @@ apps/*/public/
 .claude/launch.json
 
 # Staged gomobile bindings and native build output for the RN transport;
-# rebuilt from darepo-client by packages/react-native/scripts/fetch-bindings.sh.
+# rebuilt from wavelength by packages/react-native/scripts/fetch-bindings.sh.
 packages/react-native/android/libs/
-packages/react-native/ios/Walletdk.xcframework/
+packages/react-native/ios/Wavewalletdk.xcframework/
 packages/react-native/android/build/
