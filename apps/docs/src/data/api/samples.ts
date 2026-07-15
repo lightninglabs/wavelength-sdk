@@ -116,7 +116,7 @@ function requestFieldType(method: MethodDoc, fieldName: string): string | undefi
 function goValue(value: unknown, protoType?: string): string {
   if (typeof value === 'string') {
     if (protoType && apiDoc.enums[protoType]) {
-      return `walletdkrpc.${protoType}_${value}`;
+      return `wavewalletrpc.${protoType}_${value}`;
     }
     return JSON.stringify(value);
   }
@@ -161,8 +161,8 @@ export function goGrpcSample(method: MethodDoc): string {
   );
   const requestLines =
     fields.length > 0
-      ? [`req := &walletdkrpc.${method.requestType}{`, ...fields, `}`]
-      : [`req := &walletdkrpc.${method.requestType}{}`];
+      ? [`req := &wavewalletrpc.${method.requestType}{`, ...fields, `}`]
+      : [`req := &wavewalletrpc.${method.requestType}{}`];
 
   const call = method.responseStream
     ? [
@@ -193,7 +193,7 @@ export function goGrpcSample(method: MethodDoc): string {
     `}`,
     `defer conn.Close()`,
     ``,
-    `client := walletdkrpc.New${method.service}Client(conn)`,
+    `client := wavewalletrpc.New${method.service}Client(conn)`,
     `ctx := context.Background()`,
     ...requestLines,
     ...call,
@@ -234,13 +234,13 @@ export function pythonGrpcSample(method: MethodDoc): string {
 export function jsGrpcSample(method: MethodDoc): string {
   const call = method.responseStream
     ? [
-        `// Calls walletdkrpc.${method.service}.${method.name}.`,
+        `// Calls wavewalletrpc.${method.service}.${method.name}.`,
         `const stream = client.${lowerFirst(method.name)}(request);`,
         `stream.on('data', (update) => console.log(update));`,
         `stream.on('end', () => console.log('stream closed'));`,
       ]
     : [
-        `// Calls walletdkrpc.${method.service}.${method.name}.`,
+        `// Calls wavewalletrpc.${method.service}.${method.name}.`,
         `client.${lowerFirst(method.name)}(request, (err, response) => {`,
         `  if (err) throw err;`,
         `  console.log(response);`,
@@ -251,8 +251,8 @@ export function jsGrpcSample(method: MethodDoc): string {
     `const protoLoader = require('@grpc/proto-loader');`,
     ``,
     `const packageDefinition = protoLoader.loadSync('wallet.proto');`,
-    `const { walletdkrpc } = grpc.loadPackageDefinition(packageDefinition);`,
-    `const client = new walletdkrpc.${method.service}(`,
+    `const { wavewalletrpc } = grpc.loadPackageDefinition(packageDefinition);`,
+    `const client = new wavewalletrpc.${method.service}(`,
     `  '${GRPC_HOST}',`,
     `  grpc.credentials.createInsecure(),`,
     `);`,

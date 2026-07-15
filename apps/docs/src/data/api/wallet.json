@@ -1,10 +1,10 @@
 {
-  "source": "rpc/walletdkrpc/wallet.proto",
-  "package": "walletdkrpc",
+  "source": "rpc/wavewalletrpc/wallet.proto",
+  "package": "wavewalletrpc",
   "services": [
     {
       "name": "WalletService",
-      "comment": "WalletService exposes a simplified, swap-vocabulary-free wallet API on top\nof the running daemon. It composes the underlying swap subsystem, ark VTXO\noperations, boarding deposits, cooperative leave (VTXO-to-onchain), and\nunilateral exit behind one small surface: the seven core verbs that map\n1:1 to what a user actually does day-to-day - create, unlock, send, recv,\nlist, balance, exit - plus a few additional methods (Deposit, Status,\nSubscribeWallet) used internally and by recv --onchain. The service is\nregistered only when the daemon is built with the walletdkrpc build tag\n(which also requires swapruntime).",
+      "comment": "WalletService exposes a simplified, swap-vocabulary-free wallet API on top\nof the running daemon. It composes the underlying swap subsystem, ark VTXO\noperations, boarding deposits, cooperative leave (VTXO-to-onchain), and\nunilateral exit behind one small surface: the seven core verbs that map\n1:1 to what a user actually does day-to-day - create, unlock, send, recv,\nlist, balance, exit - plus a few additional methods (Deposit, Status,\nSubscribeWallet) used internally and by recv --onchain. The service is\nregistered only when the daemon is built with the wavewalletrpc build tag\n(which also requires swapruntime).",
       "methods": [
         "Create",
         "Unlock",
@@ -36,7 +36,7 @@
       "name": "Create",
       "slug": "create",
       "service": "WalletService",
-      "comment": "Create initializes a new wallet from a freshly generated aezeed\nmnemonic. The daemon generates the seed, encrypts it with the\nsupplied password, and returns the mnemonic so the caller can record\nit. For recovery flows the caller MAY supply an existing mnemonic in\nthe request; in that case the same mnemonic is echoed back. Proxies\ndaemonrpc.GenSeed + daemonrpc.InitWallet server-side.",
+      "comment": "Create initializes a new wallet from a freshly generated aezeed\nmnemonic. The daemon generates the seed, encrypts it with the\nsupplied password, and returns the mnemonic so the caller can record\nit. For recovery flows the caller MAY supply an existing mnemonic in\nthe request; in that case the same mnemonic is echoed back. Proxies\nwaverpc.GenSeed + waverpc.InitWallet server-side.",
       "requestType": "CreateRequest",
       "responseType": "CreateResponse",
       "requestStream": false,
@@ -51,7 +51,7 @@
       "name": "Unlock",
       "slug": "unlock",
       "service": "WalletService",
-      "comment": "Unlock decrypts the on-disk wallet seed using the supplied password\nand starts the wallet subsystem. Proxies daemonrpc.UnlockWallet.",
+      "comment": "Unlock decrypts the on-disk wallet seed using the supplied password\nand starts the wallet subsystem. Proxies waverpc.UnlockWallet.",
       "requestType": "UnlockRequest",
       "responseType": "UnlockResponse",
       "requestStream": false,
@@ -281,7 +281,7 @@
       "name": "ExitStatus",
       "slug": "exit-status",
       "service": "WalletService",
-      "comment": "ExitStatus reports the current phase of an unroll job for the\nspecified VTXO outpoint, including recovery chain progress and\nsweep state. Proxies daemonrpc.GetUnrollStatus.",
+      "comment": "ExitStatus reports the current phase of an unroll job for the\nspecified VTXO outpoint, including recovery chain progress and\nsweep state. Proxies waverpc.GetUnrollStatus.",
       "requestType": "ExitStatusRequest",
       "responseType": "ExitStatusResponse",
       "requestStream": false,
@@ -637,7 +637,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "quote_status describes how complete the prepare-time quote is.\nInvoice sends: COMPLETE when every amount and fee is backed by a\nswap remote quote; LOCAL_ONLY when the invoice parsed locally but\nthe swap quote API was unavailable. Onchain sends: COMPLETE when\ndaemonrpc.EstimateFee returned a binding operator quote;\nLOCAL_ONLY when only a local fee floor could be computed."
+          "comment": "quote_status describes how complete the prepare-time quote is.\nInvoice sends: COMPLETE when every amount and fee is backed by a\nswap remote quote; LOCAL_ONLY when the invoice parsed locally but\nthe swap quote API was unavailable. Onchain sends: COMPLETE when\nwaverpc.EstimateFee returned a binding operator quote;\nLOCAL_ONLY when only a local fee floor could be computed."
         },
         {
           "name": "destination_summary",
@@ -1123,7 +1123,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "view selects which slice of wallet state to return. The default\n(LIST_VIEW_UNSPECIFIED) is treated as LIST_VIEW_ACTIVITY.\n\nWIRE-BREAKING CHANGE: this message intentionally renumbers the\nPR #440 fields (pending_only/kinds/limit/offset). walletdkrpc has\nno deployed external consumers yet, so the cleaner shape with\n`view` at field 1 is preferred over a backwards-compatible\nappend. Any binary built against PR #440's ListRequest must be\nrecompiled."
+          "comment": "view selects which slice of wallet state to return. The default\n(LIST_VIEW_UNSPECIFIED) is treated as LIST_VIEW_ACTIVITY.\n\nWIRE-BREAKING CHANGE: this message intentionally renumbers the\nPR #440 fields (pending_only/kinds/limit/offset). wavewalletrpc has\nno deployed external consumers yet, so the cleaner shape with\n`view` at field 1 is preferred over a backwards-compatible\nappend. Any binary built against PR #440's ListRequest must be\nrecompiled."
         },
         {
           "name": "pending_only",

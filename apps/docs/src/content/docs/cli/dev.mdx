@@ -19,7 +19,7 @@ and their methods. The command tree is three levels deep:
 
 ```bash title="Terminal"
 darepocli dev
-darepocli dev daemonrpc.DaemonService GetInfo
+darepocli dev waverpc.DaemonService GetInfo
 darepocli dev daemon get-info --describe
 ```
 
@@ -51,10 +51,10 @@ darepocli dev
 The generated tree currently exposes these proto services (each has a short
 alias for terser invocation):
 
-- `daemonrpc.DaemonService` (alias `daemon`): the daemon's own API (info, wallet
+- `waverpc.DaemonService` (alias `daemon`): the daemon's own API (info, wallet
   init, VTXO and round operations, sends, sweeps, fees, recovery).
 - `swapclientrpc.SwapClientService`: the Lightning swap client service.
-- `walletdkrpc.WalletService` and `walletdkrpc.WalletInspectionService`: the
+- `wavewalletrpc.WalletService` and `wavewalletrpc.WalletInspectionService`: the
   wallet API the curated verbs are built on.
 - `walletrpc.VersionService` and `walletrpc.WalletService`: the embedded
   backing-wallet services.
@@ -73,8 +73,8 @@ Each method leaf takes flags generated from its request message fields, or a
 message until the stream ends; client-streaming methods are not supported.
 
 ```bash title="Terminal"
-darepocli dev daemonrpc.DaemonService GetInfo
-darepocli dev daemonrpc.DaemonService GetInfo --describe
+darepocli dev waverpc.DaemonService GetInfo
+darepocli dev waverpc.DaemonService GetInfo --describe
 ```
 
 `--describe` short-circuits dispatch and dumps the method's input-field schema,

@@ -7,18 +7,18 @@ import Callout from '~/components/mdx/Callout.astro';
 
 ## Build darepod with the wallet API
 
-`WalletService` and `WalletInspectionService` are compiled into `darepod` only when the daemon is built with the `walletdkrpc` build tag. That tag requires `swapruntime` transitively: building with `walletdkrpc` but without `swapruntime` is a deliberate compile error, and a default `make build` includes neither, so the wallet API is off unless you opt in.
+`WalletService` and `WalletInspectionService` are compiled into `darepod` only when the daemon is built with the `wavewalletrpc` build tag. That tag requires `swapruntime` transitively: building with `wavewalletrpc` but without `swapruntime` is a deliberate compile error, and a default `make build` includes neither, so the wallet API is off unless you opt in.
 
 Build both `darepod` and `darepocli` with the tag using the provided make target:
 
 ```sh
-make build-walletdkrpc
+make build-wavewalletrpc
 ```
 
-This produces `bin/darepod` and `bin/darepocli` with the wallet RPC surface registered. `make install-walletdkrpc` does the same via `go install`, landing the binaries in `$GOPATH/bin`.
+This produces `bin/darepod` and `bin/darepocli` with the wallet RPC surface registered. `make install-wavewalletrpc` does the same via `go install`, landing the binaries in `$GOPATH/bin`.
 
 <Callout type="note" title="Default builds omit the API">
-Without the `walletdkrpc` tag, `WalletService` and `WalletInspectionService` are compiled out entirely and never registered. A call against a default build fails with gRPC's standard unknown-service error, which surfaces as the `Unimplemented` status code. If a call fails that way, rebuild with `make build-walletdkrpc`.
+Without the `wavewalletrpc` tag, `WalletService` and `WalletInspectionService` are compiled out entirely and never registered. A call against a default build fails with gRPC's standard unknown-service error, which surfaces as the `Unimplemented` status code. If a call fails that way, rebuild with `make build-wavewalletrpc`.
 </Callout>
 
 ## Endpoints
@@ -38,7 +38,7 @@ The daemon's gRPC server wires up TLS and macaroon authentication by default: it
 
 ## Your first call
 
-With `darepod` running a `walletdkrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
+With `darepod` running a `wavewalletrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
 
 Over REST (a local daemon started with `--no-macaroons`; otherwise add a `-H "macaroon: <hex>"` header):
 

@@ -128,7 +128,7 @@ test('goGrpcSample and pythonGrpcSample render enum sample values as identifiers
   const list = doc.methods.find((m) => m.name === 'List')!;
   const go = goGrpcSample(list);
   const python = pythonGrpcSample(list);
-  expect(go).toContain('walletdkrpc.ListView_LIST_VIEW_ACTIVITY');
+  expect(go).toContain('wavewalletrpc.ListView_LIST_VIEW_ACTIVITY');
   expect(go).not.toContain('"LIST_VIEW_ACTIVITY"');
   expect(python).toContain('wallet_pb2.LIST_VIEW_ACTIVITY');
   expect(python).not.toContain('"LIST_VIEW_ACTIVITY"');

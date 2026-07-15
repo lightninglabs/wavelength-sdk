@@ -9,7 +9,7 @@ import { Balance } from "@lightninglabs/wavelength-react";
 // sole source of truth for value.
 
 // BucketKey identifies a balance-composition bucket. There is exactly one bucket
-// per walletdkrpc Balance field, so the composition is a complete decomposition
+// per wavewalletrpc Balance field, so the composition is a complete decomposition
 // of a single atomic snapshot: no field is ignored, none is counted twice.
 export type BucketKey =
   | "vtxo"
@@ -50,12 +50,12 @@ function sat(value: number | undefined | null): number {
   return Number(value ?? 0);
 }
 
-// balanceSat returns the spendable VTXO balance (walletdkrpc confirmed_sat).
+// balanceSat returns the spendable VTXO balance (wavewalletrpc confirmed_sat).
 export function balanceSat(balance: Balance | null): number {
   return sat(balance?.confirmedSat);
 }
 
-// pendingInSat returns the in-flight inbound amount (walletdkrpc
+// pendingInSat returns the in-flight inbound amount (wavewalletrpc
 // pending_in_sat). Despite the proto comment, the daemon sums the confirmed,
 // unconfirmed and adopted boarding totals into it: an in-flight Lightning
 // receive is not counted, so an unpaid invoice leaves this at zero.
@@ -63,7 +63,7 @@ export function pendingInSat(balance: Balance | null): number {
   return sat(balance?.pendingInSat);
 }
 
-// pendingOutSat returns the in-flight outbound amount (walletdkrpc
+// pendingOutSat returns the in-flight outbound amount (wavewalletrpc
 // pending_out_sat). Again despite the proto comment, the daemon reports only the
 // pending boarding sweep here: an in-flight send or exit is not counted.
 export function pendingOutSat(balance: Balance | null): number {
@@ -71,13 +71,13 @@ export function pendingOutSat(balance: Balance | null): number {
 }
 
 // creditAvailableSat returns the server-authoritative available credit balance
-// (walletdkrpc credit_available_sat).
+// (wavewalletrpc credit_available_sat).
 export function creditAvailableSat(balance: Balance | null): number {
   return sat(balance?.creditAvailableSat);
 }
 
 // creditReservedSat returns the server-authoritative in-flight credit
-// reservation (walletdkrpc credit_reserved_sat).
+// reservation (wavewalletrpc credit_reserved_sat).
 export function creditReservedSat(balance: Balance | null): number {
   return sat(balance?.creditReservedSat);
 }
