@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
-  NativeWalletDKClient,
+  NativeWavelengthClient,
   type NativeActivityEvent,
   type WalletdkNativeModule,
 } from './client.ts';
-import type { WalletDKEvent } from '@lightninglabs/wavelength-core';
+import type { WavelengthEvent } from '@lightninglabs/wavelength-core';
 
 // A scriptable fake of the native module: records calls, replays canned JSON,
 // and hands the test the event listener so it can inject activity events.
@@ -78,10 +78,10 @@ function makeFake() {
   };
 }
 
-describe('NativeWalletDKClient', () => {
+describe('NativeWavelengthClient', () => {
   it('callRaw parses and camelizes the native JSON response', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('balance', '{"ConfirmedSat":21}');
 
     const balance = await client.balance();
@@ -91,7 +91,7 @@ describe('NativeWalletDKClient', () => {
 
   it('start injects the platform data dir and dials grpc', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('getInfo', '{"WalletState":0}');
 
     await client.start({ network: 'regtest', arkServerUrl: 'h:7070' });
@@ -104,7 +104,7 @@ describe('NativeWalletDKClient', () => {
 
   it('start keeps an explicit dataDir', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('getInfo', '{}');
 
     await client.start({ network: 'regtest', dataDir: '/custom' });
@@ -113,13 +113,13 @@ describe('NativeWalletDKClient', () => {
     assert.equal(cfg.data_dir, '/custom');
   });
 
-  it('wraps native rejections in WalletDKError', async () => {
+  it('wraps native rejections in WavelengthError', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('getInfo', 'REJECT');
 
     await assert.rejects(client.getInfo(), (err: Error) => {
-      assert.equal(err.name, 'WalletDKError');
+      assert.equal(err.name, 'WavelengthError');
       assert.equal(err.message, 'boom');
       return true;
     });
@@ -127,8 +127,8 @@ describe('NativeWalletDKClient', () => {
 
   it('startActivity opens once and re-emits entries camelized', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity({ includeExisting: true });
@@ -146,8 +146,8 @@ describe('NativeWalletDKClient', () => {
 
   it('emits activityStream failed on a native error and allows reopening', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity();
@@ -166,8 +166,8 @@ describe('NativeWalletDKClient', () => {
 
   it('emits activityStream ended on an unexpected native end and allows reopening', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity();
@@ -183,8 +183,8 @@ describe('NativeWalletDKClient', () => {
 
   it('swallows the native end that follows a client-initiated stop', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity();
@@ -202,7 +202,7 @@ describe('NativeWalletDKClient', () => {
 
   it('serializes a stop-then-start so the subscribe waits for the close', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
 
     await client.startActivity();
     assert.equal(fake.counts().startActivityCount, 1);
@@ -224,8 +224,8 @@ describe('NativeWalletDKClient', () => {
 
   it('drops an unparseable activity entry with a contextual log', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity();
@@ -240,8 +240,8 @@ describe('NativeWalletDKClient', () => {
 
   it('logs a warning when the native close fails', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity();
@@ -259,7 +259,7 @@ describe('NativeWalletDKClient', () => {
 
   it('stopActivity and dispose release native resources', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     await client.startActivity();
 
     client.stopActivity();
@@ -274,8 +274,8 @@ describe('NativeWalletDKClient', () => {
 
   it('closes the native stream when disposed with an open subscription', async () => {
     const fake = makeFake();
-    const client = new NativeWalletDKClient(fake.native, fake.subscribe);
-    const events: WalletDKEvent[] = [];
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
 
     await client.startActivity();

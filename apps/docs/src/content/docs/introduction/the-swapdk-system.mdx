@@ -1,6 +1,6 @@
 ---
 title: The SwapDK system
-description: How SwapDK turns self-custodial Bitcoin and Lightning payments into a few API calls, and where WalletDK, the client you run, fits into the larger system.
+description: How SwapDK turns self-custodial Bitcoin and Lightning payments into a few API calls, and where Wavelength, the client you run, fits into the larger system.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
@@ -18,13 +18,13 @@ Lightning has always offered a fully self-sovereign path where you run your own 
 
 ## What you run vs. what is managed
 
-You run **WalletDK**, the self-custodial client (compiled from [darepo-client](https://github.com/lightninglabs/darepo-client)). It holds the user's keys, tracks their balance, and builds and signs their payments. Everything the wallet talks to is managed for you.
+You run **Wavelength**, the self-custodial client (compiled from [darepo-client](https://github.com/lightninglabs/darepo-client)). It holds the user's keys, tracks their balance, and builds and signs their payments. Everything the wallet talks to is managed for you.
 
 <SwapDkSystemMap />
 
 | Piece | Who runs it | What it does |
 |---|---|---|
-| **WalletDK** (the client) | You | Holds keys, tracks balances, builds and signs payments. Runs as an embedded SDK in a web or mobile app, as a standalone server, or as an MCP server for agents. |
+| **Wavelength** (the client) | You | Holds keys, tracks balances, builds and signs payments. Runs as an embedded SDK in a web or mobile app, as a standalone server, or as an MCP server for agents. |
 | **Coordination + settlement** | SwapDK | An Ark-like layer that batches off-chain transfers instantly and cheaply. It settles between users but never takes unilateral control of anyone's funds. |
 | **Liquidity via Loop** | SwapDK | Deep Lightning liquidity through Loop, so payments route reliably without you sourcing, funding, or managing channels. |
 | **The Lightning Network** | Open network | Everything speaks BOLT 11, so you can pay and be paid by any wallet, exchange, or app already on Lightning. |
@@ -53,6 +53,6 @@ SwapDK runs on signet, testnet, and testnet4 by default, and all are open to eve
 
 ## Where to go next
 
-- [What is WalletDK?](/introduction/what-is-walletdk/) - the client you run, and the packages it ships as.
+- [What is Wavelength?](/introduction/what-is-walletdk/) - the client you run, and the packages it ships as.
 - [Web quickstart](/web/get-started/quickstart/) or [React Native quickstart](/react-native/get-started/quickstart/) - a running wallet in a few minutes.
 - [System architecture](/introduction/system-architecture/) - how the embedded daemon connects to the backend gateways.

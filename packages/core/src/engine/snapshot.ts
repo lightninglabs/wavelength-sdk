@@ -1,6 +1,6 @@
 import type { Balance, CreateWalletResult, Entry } from '../results.ts';
 import type { WalletInfo, RuntimePhase } from '../state.ts';
-import type { WalletDKLogPayload } from '../events.ts';
+import type { WavelengthLogPayload } from '../events.ts';
 
 /**
  * The state of a background wallet recovery started by restoreWallet, a
@@ -50,7 +50,7 @@ export type WalletSnapshot = {
   /** The background recovery status set by restoreWallet. */
   readonly recovery: RecoveryState;
   /** A bounded tail of 'log' events from the runtime, newest last. */
-  readonly logs: readonly WalletDKLogPayload[];
+  readonly logs: readonly WavelengthLogPayload[];
 };
 
 /** The snapshot every engine starts from. */

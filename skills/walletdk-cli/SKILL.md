@@ -1,6 +1,6 @@
 ---
 name: walletdk-cli
-description: Automate the WalletDK wallet daemon with the darepocli command line tool. Use when scripting wallet operations, writing shell automation against darepod, parsing darepocli JSON output, or handling its exit codes. Triggers include "darepocli", "walletdk cli", "wallet daemon cli", and "script a walletdk wallet".
+description: Automate the Wavelength wallet daemon with the darepocli command line tool. Use when scripting wallet operations, writing shell automation against darepod, parsing darepocli JSON output, or handling its exit codes. Triggers include "darepocli", "walletdk cli", "wallet daemon cli", and "script a walletdk wallet".
 ---
 
 # darepocli automation

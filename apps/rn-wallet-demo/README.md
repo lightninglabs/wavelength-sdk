@@ -1,6 +1,6 @@
 # rn-wallet-demo
 
-The reference React Native app for [WalletDK](../../README.md): a
+The reference React Native app for [Wavelength](../../README.md): a
 self-custodial Lightning wallet embedded in an Expo app. It exercises the full
 wallet flow: create, restore, or unlock (password or passkey), recovery-phrase
 backup, on-chain boarding and Lightning receive with scannable QRs, send, live

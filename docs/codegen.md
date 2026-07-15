@@ -39,7 +39,7 @@ has (it builds the wasm runtime from the same checkout).
 ## What it does NOT do
 
 - It does **not** touch `darepo-client`; it only reads it (no wire-format change).
-- Request types and the `WalletDKClient` interface stay hand-authored
+- Request types and the `WavelengthClient` interface stay hand-authored
   (`packages/core/src/requests.ts` and `packages/core/src/client.ts`): requests
   carry real semantics (base64-encoding `[]byte` password fields, config folding)
   that a casing transform can't express, so those keep explicit mappers in

@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { BaseWalletDKClient } from './base-client.ts';
-import type { WalletDKEvent } from './events.ts';
+import { BaseWavelengthClient } from './base-client.ts';
+import type { WavelengthEvent } from './events.ts';
 
 // A fake transport that records every callRaw and replays canned responses,
 // so the verb mapping is testable without any runtime. Per the transport
 // contract, callRaw resolves already-camelized values, so the canned
 // responses below use camelCase keys.
-class FakeClient extends BaseWalletDKClient {
+class FakeClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'grpc' as const;
   calls: Array<{ method: string; params: unknown }> = [];
   responses = new Map<string, unknown>();
@@ -28,7 +28,7 @@ class FakeClient extends BaseWalletDKClient {
   stopActivity(): void {}
 }
 
-describe('BaseWalletDKClient', () => {
+describe('BaseWavelengthClient', () => {
   it('start maps the config through the transport knob and fetches info', async () => {
     const client = new FakeClient();
     client.responses.set('getInfo', { walletState: 2 });
@@ -61,7 +61,7 @@ describe('BaseWalletDKClient', () => {
 
   it('stop emits runtimeStopped to subscribers', async () => {
     const client = new FakeClient();
-    const events: WalletDKEvent[] = [];
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
     await client.stop();
     assert.deepEqual(events, [{ type: 'runtimeStopped' }]);
@@ -69,7 +69,7 @@ describe('BaseWalletDKClient', () => {
 
   it('dispose clears subscribers', async () => {
     const client = new FakeClient();
-    const events: WalletDKEvent[] = [];
+    const events: WavelengthEvent[] = [];
     client.subscribe((e) => events.push(e));
     client.dispose();
     await client.stop();

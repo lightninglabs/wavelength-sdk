@@ -16,7 +16,7 @@ import type {
   SendResult,
   UnlockWalletRequest,
   UnlockWalletResult,
-  WalletDKLogPayload,
+  WavelengthLogPayload,
   WalletInfo,
 } from "@lightninglabs/wavelength-core";
 import { useCallback } from "react";
@@ -76,7 +76,7 @@ export function useWalletRecovery(): {
 
 /** The buffered runtime log tail and a clear action. */
 export function useWalletLogs(): {
-  logs: readonly WalletDKLogPayload[];
+  logs: readonly WavelengthLogPayload[];
   clear: () => void;
 } {
   const engine = useWalletEngine();

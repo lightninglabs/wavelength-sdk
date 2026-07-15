@@ -1,12 +1,12 @@
 import {
-  BaseWalletDKClient,
+  BaseWavelengthClient,
   camelizeKeys,
-  WalletDKError,
-  WalletDKEventType,
+  WavelengthError,
+  WavelengthEventType,
 } from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime';
-import { PendingCall, toWalletDKEvent } from '../util';
+import { PendingCall, toWavelengthEvent } from '../util';
 
 /**
  * Runs the wasm runtime in a dedicated Web Worker to keep the UI thread free. It
@@ -16,7 +16,7 @@ import { PendingCall, toWalletDKEvent } from '../util';
  * rather than localStorage (which is window-only and absent in Workers); the
  * shipped daemon does, as of lightninglabs/darepo-client#811.
  */
-export class WorkerWalletDKClient extends BaseWalletDKClient {
+export class WorkerWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private readonly worker: Worker;
   private readonly pending = new Map<number, PendingCall>();
@@ -35,7 +35,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
     this.worker.onmessage = (event) => this.handleMessage(event.data);
     this.worker.onerror = (event) => {
       this.rejectAll(
-        new WalletDKError(
+        new WavelengthError(
           event.message || 'walletdk worker error',
           'worker_error',
         ),
@@ -93,7 +93,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       ok?: boolean;
       result?: unknown;
       error?: string;
-      event?: { type: WalletDKEventType; payload?: unknown };
+      event?: { type: WavelengthEventType; payload?: unknown };
       fatal?: { message?: string };
     };
 
@@ -103,7 +103,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       // move the lifecycle off 'ready' instead of appearing alive after the
       // engine died.
       this.rejectAll(
-        new WalletDKError(
+        new WavelengthError(
           data.fatal.message || 'walletdk worker stopped',
           'worker_error',
         ),
@@ -117,7 +117,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       // Map the worker's raw event onto the typed union, camelizing payloads
       // that carry daemon JSON (e.g. an 'activity' Entry) so stream consumers see
       // the same camelCase shapes as the typed responses.
-      this.emit(toWalletDKEvent(data.event));
+      this.emit(toWavelengthEvent(data.event));
 
       return;
     }
@@ -138,7 +138,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
       return;
     }
 
-    pending.reject(new WalletDKError(data.error || 'walletdk request failed'));
+    pending.reject(new WavelengthError(data.error || 'walletdk request failed'));
   }
 
   private rejectAll(err: Error) {
@@ -153,7 +153,7 @@ export class WorkerWalletDKClient extends BaseWalletDKClient {
     // Terminating the worker fires neither onerror nor a fatal message, so
     // reject any in-flight calls here so they do not hang past disposal.
     this.rejectAll(
-      new WalletDKError('walletdk client disposed', 'worker_error'),
+      new WavelengthError('walletdk client disposed', 'worker_error'),
     );
     this.worker.terminate();
   }

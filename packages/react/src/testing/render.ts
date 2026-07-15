@@ -1,10 +1,10 @@
-// Renders a hook inside a WalletDKProvider wired to a WalletEngine, the
+// Renders a hook inside a WavelengthProvider wired to a WalletEngine, the
 // common setup for every hook test. The wrapper is built with createElement
 // rather than JSX so the test files stay plain .ts.
 import { createElement, type ReactNode } from "react";
 import { renderHook, type RenderHookResult } from "@testing-library/react";
 import type { WalletEngine } from "@lightninglabs/wavelength-core";
-import { WalletDKProvider } from "../provider.tsx";
+import { WavelengthProvider } from "../provider.tsx";
 
 /**
  * Renders `hook` under a provider bound to `engine` and returns the standard
@@ -16,7 +16,7 @@ export function renderWithEngine<T>(
 ): RenderHookResult<T, unknown> {
   return renderHook(hook, {
     wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(WalletDKProvider, { engine }, children),
+      createElement(WavelengthProvider, { engine }, children),
   });
 }
 

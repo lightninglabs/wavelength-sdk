@@ -1,6 +1,6 @@
 ---
 title: System architecture
-description: How WalletDK's embedded wallet daemon connects to the Ark, Lightning, and Bitcoin backend gateways to enable payments, boarding, swaps, and exits.
+description: How Wavelength's embedded wallet daemon connects to the Ark, Lightning, and Bitcoin backend gateways to enable payments, boarding, swaps, and exits.
 ---
 
 import DiagramFrame from '~/components/diagrams/DiagramFrame.astro';
@@ -9,17 +9,17 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## The embedded daemon
 
-WalletDK embeds [darepo-client](https://github.com/lightninglabs/darepo-client), the same wallet daemon on every platform, and runs it wherever your app runs. On the web it is compiled to WebAssembly and runs inside the browser; you boot it with `createWebClient()` and `client.start()`. On React Native it is compiled into your app binary and runs on device; you boot it with `createNativeClient()` and `client.start()`. Either way it stays running for the session, and you drive it through one typed `WalletDKClient`.
+Wavelength embeds [darepo-client](https://github.com/lightninglabs/darepo-client), the same wallet daemon on every platform, and runs it wherever your app runs. On the web it is compiled to WebAssembly and runs inside the browser; you boot it with `createWebClient()` and `client.start()`. On React Native it is compiled into your app binary and runs on device; you boot it with `createNativeClient()` and `client.start()`. Either way it stays running for the session, and you drive it through one typed `WavelengthClient`.
 
-**`WalletDKClient` is the app-facing API.** It is defined in `@lightninglabs/wavelength-core` and implemented by each transport (`@lightninglabs/wavelength-web` on the web, `@lightninglabs/wavelength-react-native` on React Native). Your code never imports Go or protobuf types. You call typed methods (`deposit`, `receive`, `send`, `balance`, and so on) and receive plain JavaScript objects.
+**`WavelengthClient` is the app-facing API.** It is defined in `@lightninglabs/wavelength-core` and implemented by each transport (`@lightninglabs/wavelength-web` on the web, `@lightninglabs/wavelength-react-native` on React Native). Your code never imports Go or protobuf types. You call typed methods (`deposit`, `receive`, `send`, `balance`, and so on) and receive plain JavaScript objects.
 
-The wire protocol between the client and the embedded daemon differs by transport, and from your app's perspective it is an implementation detail. The React Native transport uses the daemon's native gRPC. Browsers cannot open arbitrary gRPC connections the way a native host can, so the web transport uses **REST** against the embedded daemon's HTTP facade instead. You still hold one `WalletDKClient` and call the same methods on either.
+The wire protocol between the client and the embedded daemon differs by transport, and from your app's perspective it is an implementation detail. The React Native transport uses the daemon's native gRPC. Browsers cannot open arbitrary gRPC connections the way a native host can, so the web transport uses **REST** against the embedded daemon's HTTP facade instead. You still hold one `WavelengthClient` and call the same methods on either.
 
 The daemon also owns local persistence (wallet database, swap state) and signing. Your app configures *where* the daemon connects on the network, not *how* it stores keys.
 
 ## The three backend gateways
 
-Once started, the daemon reaches **three external REST gateways**. These are the only network services WalletDK depends on. Configure them in `RuntimeConfig` (or use your transport package's `defaultConfig(network)` for the public signet, testnet, and testnet4 presets):
+Once started, the daemon reaches **three external REST gateways**. These are the only network services Wavelength depends on. Configure them in `RuntimeConfig` (or use your transport package's `defaultConfig(network)` for the public signet, testnet, and testnet4 presets):
 
 <PlatformTabs>
 <div data-label="Web">
@@ -62,7 +62,7 @@ Set `disableSwaps: true` (or omit `swapServerUrl`) if you only need Ark and on-c
 
 ## How boarding, swaps, and exits connect
 
-WalletDK unifies three payment rails behind one balance and one activity stream. Here is how each rail uses the gateways above.
+Wavelength unifies three payment rails behind one balance and one activity stream. Here is how each rail uses the gateways above.
 
 ### On-chain in: boarding
 
@@ -75,7 +75,7 @@ Until boarding completes, funds show as pending inbound balance.
 
 ### Lightning: swaps
 
-WalletDK does not open Lightning channels in the browser. Lightning payments are **atomic swaps** between Lightning and Ark:
+Wavelength does not open Lightning channels in the browser. Lightning payments are **atomic swaps** between Lightning and Ark:
 
 - **Receive Lightning** (`receive()`) starts a **receive swap**: the swap server holds a Lightning invoice; when it is paid, you receive Ark balance (a VTXO).
 - **Send Lightning** (`send({ invoice })`) runs a **send swap**: you spend Ark balance; the swap server pays the BOLT-11 invoice on Lightning. For a quote-then-confirm flow instead of a single call, see `prepareSend()`/`sendPrepared()`.
@@ -86,7 +86,7 @@ Both directions go through `swapServerUrl`. Swaps can sit in a pending state whi
 
 Spending to a normal Bitcoin address uses a **cooperative leave**: the Ark operator helps convert your VTXO into an on-chain transaction. This is the default path for `send({ onchainAddress })`. It is faster and cheaper than exiting alone.
 
-**Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WalletDKClient` for this path; see [Unilateral exit](/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
+**Unilateral exit** is the emergency fallback. If the operator is unavailable or you need to recover funds without cooperation, the daemon can execute a unilateral exit from a VTXO. It is slower, more expensive, and intended for edge cases. Use `exit()` and `exitStatus()` on `WavelengthClient` for this path; see [Unilateral exit](/guides/unilateral-exit/) for integration details. Call `getExitPlan()` first to preview readiness and backing-wallet funding requirements before triggering `exit()`.
 
 <DiagramFrame label="Diagram: the five payment rails. On-chain in: deposit, boarding, round, VTXO. Lightning receive: a receive swap through the swap server to a VTXO. Lightning send: a send swap through the swap server to a paid invoice. On-chain send: cooperative leave via the operator and Esplora. Emergency: unilateral exit to on-chain.">
   <FlowLane

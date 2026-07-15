@@ -14,7 +14,7 @@ export interface LlmsSection {
 // One llms section per slice, in slice order.
 export const SECTIONS: LlmsSection[] = SLICES.map((s) => ({ label: s.label, nav: s.nav }));
 
-const PREAMBLE = `# WalletDK
+const PREAMBLE = `# Wavelength
 
 > Embed a self-custodial Lightning wallet in your app: send and receive
 > Lightning payments with no node to run, no channels to open, and no inbound
@@ -26,7 +26,7 @@ Notes for agents:
   Fetch the .md URLs below instead of the HTML.
 - Check the npm registry for current @lightninglabs/wavelength-* versions
   instead of relying on memorized ones.
-- For integration work, install the WalletDK skills:
+- For integration work, install the Wavelength skills:
   npx skills add lightninglabs/dawallet (goes live at launch)
   npx skills add ${new URL(SITE_URL).host}
 - The full corpus in one file: ${SITE_URL}/llms-full.txt

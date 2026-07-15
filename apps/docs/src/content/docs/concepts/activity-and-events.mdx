@@ -1,15 +1,15 @@
 ---
 title: Activity & events
-description: How WalletDK exposes wallet history and real-time state changes through its activity stream and event model.
+description: How Wavelength exposes wallet history and real-time state changes through its activity stream and event model.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
 ## The activity stream
 
-Every deposit, payment, and exit shows up in one ordered history. WalletDK keeps that history as a stream you can snapshot once or subscribe to for live updates as operations settle.
+Every deposit, payment, and exit shows up in one ordered history. Wavelength keeps that history as a stream you can snapshot once or subscribe to for live updates as operations settle.
 
-Wallet history in WalletDK is an **activity stream**: a sequence of **Entry** objects, one per user-visible wallet operation. Deposits, Lightning receives, sends, and cooperative exits each create an entry when they start and update in place as they settle.
+Wallet history in Wavelength is an **activity stream**: a sequence of **Entry** objects, one per user-visible wallet operation. Deposits, Lightning receives, sends, and cooperative exits each create an entry when they start and update in place as they settle.
 
 You can read history in two ways:
 
@@ -22,7 +22,7 @@ You can read history in two ways:
 
 - `startActivity()` for a live stream that pushes updates until you call `stopActivity()`.
 
-For UI work, prefer the live stream. Call `subscribe()` first to register a listener, then `startActivity({ includeExisting: true })` so the daemon replays current rows before forwarding new changes. Each update arrives as a **WalletDKEvent** with `type: 'activity'` and the changed entry as payload. Pending entries mutate (status, phase, txid, confirmation height) until they reach `complete` or `failed`; your UI can update rows by `id` without polling `list()` on a timer.
+For UI work, prefer the live stream. Call `subscribe()` first to register a listener, then `startActivity({ includeExisting: true })` so the daemon replays current rows before forwarding new changes. Each update arrives as a **WavelengthEvent** with `type: 'activity'` and the changed entry as payload. Pending entries mutate (status, phase, txid, confirmation height) until they reach `complete` or `failed`; your UI can update rows by `id` without polling `list()` on a timer.
 
 <Callout type="note">
 `stopActivity()` closes the stream but leaves your `subscribe()` listener registered. You can call `startActivity()` again later without re-subscribing.
@@ -34,7 +34,7 @@ The React **useWalletActivity** hook wraps this pattern: it keeps an in-memory l
 
 Beyond activity rows, the client emits runtime and log events on the same subscription. Narrow on the event type before reading its payload.
 
-**WalletDKEvent** is a discriminated union. Narrow on `type` before reading `payload`:
+**WavelengthEvent** is a discriminated union. Narrow on `type` before reading `payload`:
 
 All four event types arrive through the same `subscribe(listener)` callback registered once.
 

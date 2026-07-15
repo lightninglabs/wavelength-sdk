@@ -1,11 +1,11 @@
 ---
 title: Requirements
-description: The browser support matrix, cross-origin isolation prerequisites, and backend services needed to integrate WalletDK Web.
+description: The browser support matrix, cross-origin isolation prerequisites, and backend services needed to integrate Wavelength Web.
 ---
 
 ## Browser support
 
-WalletDK runs the full wallet daemon in the browser as WebAssembly. Target
+Wavelength runs the full wallet daemon in the browser as WebAssembly. Target
 browsers with mature WASM, Web Worker, and storage APIs:
 
 | Browser | Minimum version |
@@ -42,7 +42,7 @@ behavior differs between main-thread and worker mode.
 
 ## Backends
 
-WalletDK is self-custodial: the seed never leaves the browser. The embedded
+Wavelength is self-custodial: the seed never leaves the browser. The embedded
 daemon still needs reachable **Ark**, **Esplora**, and (for Lightning swaps)
 **swap server** endpoints at runtime.
 

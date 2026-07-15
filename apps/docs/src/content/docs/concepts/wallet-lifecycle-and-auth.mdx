@@ -1,13 +1,13 @@
 ---
 title: Wallet lifecycle & auth
-description: The phases a WalletDK wallet moves through from creation to unlock, and how password-based and passkey-based authentication differ.
+description: The phases a Wavelength wallet moves through from creation to unlock, and how password-based and passkey-based authentication differ.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
 ## WalletState & phases
 
-Before you enable send or receive, the wallet must exist, unlock, and finish syncing with the operator. WalletDK exposes that readiness at two related layers: a daemon-reported wallet state and a broader runtime phase your UI can render.
+Before you enable send or receive, the wallet must exist, unlock, and finish syncing with the operator. Wavelength exposes that readiness at two related layers: a daemon-reported wallet state and a broader runtime phase your UI can render.
 
 **WalletState** (on **WalletInfo**) is a lowercase string union the SDK normalizes from the daemon's numeric wallet-state field:
 
@@ -22,7 +22,7 @@ The SDK maps the daemon's numeric proto enum to these strings at the boundary (`
 
 **RuntimePhase** is the broader lifecycle a host UI renders. It merges runtime boot/shutdown with wallet state, plus one phase the engine owns on its own:
 
-- **Runtime-owned phases**: `loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, `error`. The `WalletEngine` (from `@lightninglabs/wavelength-web`'s `createWebWalletEngine`, or the equivalent React Native factory) sets these while the runtime loads, `start()` runs, or `stop()` tears down. A failed `start()` or `stop()` lands directly on `'error'`; there is no separate failed sub-phase to branch on. `WalletDKProvider` (from `@lightninglabs/wavelength-react`) owns nothing here: it just publishes whichever engine you hand it. If you are calling `walletdk-core`/`walletdk-web` directly without an engine, you own deriving this state machine yourself.
+- **Runtime-owned phases**: `loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, `error`. The `WalletEngine` (from `@lightninglabs/wavelength-web`'s `createWebWalletEngine`, or the equivalent React Native factory) sets these while the runtime loads, `start()` runs, or `stop()` tears down. A failed `start()` or `stop()` lands directly on `'error'`; there is no separate failed sub-phase to branch on. `WavelengthProvider` (from `@lightninglabs/wavelength-react`) owns nothing here: it just publishes whichever engine you hand it. If you are calling `walletdk-core`/`walletdk-web` directly without an engine, you own deriving this state machine yourself.
 - **Wallet-owned phases** (derived by `phaseFromInfo()` in core): `needsWallet`, `locked`, `syncing`, `ready`.
 - **Engine-owned phase**: `restoring`. Unlike the wallet-owned phases, this one is never derived from `WalletInfo`; the engine enters it itself whenever `restoreWallet()` (`useWalletRestore()`'s `restore` in React) is called, and leaves it once the restored wallet reports ready. When the call sets `recoverState: true`, the server-assisted recovery scan is additionally tracked through `snapshot.recovery` for the lifetime of the scan. See [Restore a wallet](/guides/restore-a-wallet/) for the full flow.
 
@@ -96,7 +96,7 @@ function PasskeyUnlock({ credentialId }: { credentialId: string }) {
 }
 ```
 
-Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). WalletDK folds passkey into the engine via an injected passkey ceremony; the core client only sees the PRF bytes.
+Passkeys tie unlock to a device and biometric or PIN verification. They remove password re-entry but introduce platform constraints (browser support, secure context, cross-origin isolation on web). Wavelength folds passkey into the engine via an injected passkey ceremony; the core client only sees the PRF bytes.
 
 <Callout type="note">
 WebAuthn registration, PRF extension availability, and credential persistence are platform mechanics. See [Use a passkey](/guides/use-a-passkey/) for browser-specific steps; this page is the shared mental model.

@@ -80,7 +80,7 @@ export function AuthLayout({
                 <Bitcoin size={17} color="#ffffff" />
               </View>
               <View>
-                <Text style={styles.brandName}>WalletDK</Text>
+                <Text style={styles.brandName}>Wavelength</Text>
                 <Text style={styles.brandSub}>{network} · self-custody</Text>
               </View>
             </View>

@@ -1,6 +1,6 @@
 ---
 title: Handle phases & errors
-description: How to respond to WalletDK wallet phase transitions and interpret structured error codes in your application.
+description: How to respond to Wavelength wallet phase transitions and interpret structured error codes in your application.
 pageLayout: guide
 related:
   - guides/create-a-wallet
@@ -122,14 +122,14 @@ function PayButton({ bolt11 }: { bolt11: string }) {
 
 ## Interpret error codes
 
-Every WalletDK-originated error extends [`WalletDKError`](/reference/walletdk-core/#WalletDKError) and carries a `code`
+Every Wavelength-originated error extends [`WavelengthError`](/reference/walletdk-core/#WavelengthError) and carries a `code`
 string that identifies the failure reason at the machine level. Match on
 `err.code` to show a specific message rather than a generic fallback. Named
 SDK codes include `runtime_not_ready`, `asset_load_failed`, and
 `worker_error`; daemon-originated errors currently use `walletdk_error`.
 
 ```tsx title="errors.tsx"
-import { useWalletSend, WalletDKError } from '@lightninglabs/wavelength-react';
+import { useWalletSend, WavelengthError } from '@lightninglabs/wavelength-react';
 
 function PayButton({ bolt11 }: { bolt11: string }) {
   const { send, sendError, sendPending, resetSend } = useWalletSend();
@@ -139,7 +139,7 @@ function PayButton({ bolt11 }: { bolt11: string }) {
     try {
       await send({ invoice: bolt11 });
     } catch (err) {
-      if (err instanceof WalletDKError) {
+      if (err instanceof WavelengthError) {
         switch (err.code) {
           case 'runtime_not_ready':
             console.error('Runtime still loading.');

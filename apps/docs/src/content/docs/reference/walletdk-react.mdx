@@ -1,6 +1,6 @@
 ---
 title: walletdk-react
-description: React bindings for WalletDK - the WalletDKProvider component and hooks for balance, activity, and wallet operations.
+description: React bindings for Wavelength - the WavelengthProvider component and hooks for balance, activity, and wallet operations.
 pageLayout: reference
 ---
 
@@ -10,22 +10,22 @@ import ParamsTable from '~/components/mdx/ParamsTable.astro';
 import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 
-`@lightninglabs/wavelength-react` is the React binding for WalletDK: a context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
+`@lightninglabs/wavelength-react` is the React binding for Wavelength: a context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to a component subtree, plus hooks for reading its state and calling wallet operations.
 
 <Callout type="note">
-This package re-exports the entire `walletdk-core` surface (`WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/wavelength-react` instead of adding `@lightninglabs/wavelength-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [walletdk-web](/reference/walletdk-web/) or `createNativeWalletEngine` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WalletDKProvider` subtree; each throws if it is not.
+This package re-exports the entire `walletdk-core` surface (`WavelengthClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, request/result types, and every enum), so you can import core types directly from `@lightninglabs/wavelength-react` instead of adding `@lightninglabs/wavelength-core` as a separate dependency. The engine itself is not built here: create one with `createWebWalletEngine` from [walletdk-web](/reference/walletdk-web/) or `createNativeWalletEngine` from [walletdk-react-native](/reference/walletdk-react-native/). Every hook on this page, including `useWalletPasskey`, must be called within a `WavelengthProvider` subtree; each throws if it is not.
 </Callout>
 
 ## Provider
 
-export const walletDKProviderSig = `function WalletDKProvider(props: WalletDKProviderProps): JSX.Element`;
+export const walletDKProviderSig = `function WavelengthProvider(props: WavelengthProviderProps): JSX.Element`;
 
-export const walletDKProviderPropsSig = `type WalletDKProviderProps = {
+export const walletDKProviderPropsSig = `type WavelengthProviderProps = {
   children: ReactNode;
   engine: WalletEngine;
 };`;
 
-<ApiSymbol name="WalletDKProvider" kind="class">
+<ApiSymbol name="WavelengthProvider" kind="class">
 
 Context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) down to descendants. Wrap your application root (or any subtree) with this component so child hooks can access wallet state and operations.
 
@@ -33,20 +33,20 @@ Context provider that hands a [`WalletEngine`](/reference/walletdk-core/#WalletE
 
 <ParamsTable rows={[
   { name: 'engine', type: 'WalletEngine', desc: 'A WalletEngine from any transport, e.g. createWebWalletEngine() from walletdk-web or createNativeWalletEngine() from walletdk-react-native. Required; the provider throws synchronously if it is missing.' },
-  { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call WalletDK hooks.' },
+  { name: 'children', type: 'ReactNode', desc: 'The component subtree that can call Wavelength hooks.' },
 ]} />
 
 <Callout type="note">
-**The provider owns nothing.** `WalletDKProvider` does not build, start, poll, or dispose anything: it publishes the engine you hand it to `useSyncExternalStore` subscribers. Every lifecycle behavior described below (sync polling, activity-driven refresh, `autoStart`, the `stopped` transition on an unsolicited runtime stop) is owned by the `WalletEngine` itself, so it also applies to a vanilla (non-React) consumer that drives the same engine directly. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) on the walletdk-core reference for the full behavior list.
+**The provider owns nothing.** `WavelengthProvider` does not build, start, poll, or dispose anything: it publishes the engine you hand it to `useSyncExternalStore` subscribers. Every lifecycle behavior described below (sync polling, activity-driven refresh, `autoStart`, the `stopped` transition on an unsolicited runtime stop) is owned by the `WalletEngine` itself, so it also applies to a vanilla (non-React) consumer that drives the same engine directly. See [`WalletEngine`](/reference/walletdk-core/#WalletEngine) on the walletdk-core reference for the full behavior list.
 
 The provider never calls `engine.dispose()` on unmount. The code that constructed the engine (typically module scope, outside any component) owns its lifetime and is responsible for disposing it when the app is truly done with it.
 </Callout>
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKProviderProps" kind="type">
+<ApiSymbol name="WavelengthProviderProps" kind="type">
 
-Props for the `WalletDKProvider` component. `WalletDKProviderProps` is not itself an exported name; the props type is declared inline on the component's destructured parameter. It is named and documented separately here only for readability.
+Props for the `WavelengthProvider` component. `WavelengthProviderProps` is not itself an exported name; the props type is declared inline on the component's destructured parameter. It is named and documented separately here only for readability.
 
 <Signature title="walletdk-react.d.ts" code={walletDKProviderPropsSig} />
 
@@ -56,7 +56,7 @@ export const useWalletEngineSig = `function useWalletEngine(): WalletEngine`;
 
 <ApiSymbol name="useWalletEngine" kind="function">
 
-Returns the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) from the nearest `WalletDKProvider`: the escape hatch for anything the granular hooks below do not cover (for example calling `engine.client` directly, or a method with no dedicated hook). Throws outside a provider.
+Returns the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) from the nearest `WavelengthProvider`: the escape hatch for anything the granular hooks below do not cover (for example calling `engine.client` directly, or a method with no dedicated hook). Throws outside a provider.
 
 <Signature title="walletdk-react.d.ts" code={useWalletEngineSig} />
 
@@ -106,7 +106,7 @@ export const useWalletRecoverySig = `function useWalletRecovery(): {
   acknowledge(): void;
 };`;
 export const useWalletLogsSig = `function useWalletLogs(): {
-  logs: WalletDKLogPayload[];
+  logs: WavelengthLogPayload[];
   clear(): void;
 };`;
 
@@ -166,7 +166,7 @@ The buffered runtime log tail and a clear action.
 <Signature title="walletdk-react.d.ts" code={useWalletLogsSig} />
 
 <ParamsTable rows={[
-  { name: 'logs', type: 'WalletDKLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
+  { name: 'logs', type: 'WavelengthLogPayload[]', desc: "Bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
   { name: 'clear()', type: '() => void', desc: 'Clears the buffered log tail.' },
 ]} />
 
@@ -411,7 +411,7 @@ type PasskeyCeremony = {
 
 <ApiSymbol name="useWalletPasskey" kind="function">
 
-Drives a passkey ceremony and opens the wallet through the engine, refreshing engine state on success so `phase` advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; the React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)). Creation and opening track separately (`create*`/`open*` fields below) because apps render them on different screens. Must be called within a `WalletDKProvider` subtree; throws otherwise.
+Drives a passkey ceremony and opens the wallet through the engine, refreshing engine state on success so `phase` advances automatically. The ceremony is injected, which keeps `walletdk-react` free of any transport dependency: in the browser, pass [`webPasskeyCeremony`](/reference/walletdk-web/#webPasskeyCeremony) from `walletdk-web`; the React Native transport supplies `createNativePasskeyCeremony` ([walletdk-react-native](/reference/walletdk-react-native/)). Creation and opening track separately (`create*`/`open*` fields below) because apps render them on different screens. Must be called within a `WavelengthProvider` subtree; throws otherwise.
 
 <Signature title="walletdk-react.d.ts" code={useWalletPasskeySig} />
 
@@ -469,10 +469,10 @@ The per-platform contract `useWalletPasskey` drives. It is defined in `walletdk-
 
 ## Re-exported from walletdk-core
 
-`@lightninglabs/wavelength-react` re-exports the full `@lightninglabs/wavelength-core` surface (`export * from '@lightninglabs/wavelength-core'`), so `WalletDKClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/wavelength-web`, `@lightninglabs/wavelength-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
+`@lightninglabs/wavelength-react` re-exports the full `@lightninglabs/wavelength-core` surface (`export * from '@lightninglabs/wavelength-core'`), so `WavelengthClient`, `WalletEngine`, `createWalletEngine`, `RuntimeConfig`, `WalletInfo`, `WalletStatus`, `Balance`, `Entry` and the rest of the activity/exit/send type family, `RuntimePhase`, `WalletState`, `RecoveryState`, `PasskeyCancelledError`, `toError`, and every request/result/enum type are all importable directly from this package. `defaultConfig` is exported by the transport packages (`@lightninglabs/wavelength-web`, `@lightninglabs/wavelength-react-native`). The enumerated values for `RuntimePhase` and `WalletState` are documented on the [walletdk-core reference](/reference/walletdk-core/) rather than repeated here.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletEngine`, `WalletDKClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
+- [walletdk-core reference](/reference/walletdk-core/) for `WalletEngine`, `WavelengthClient`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, `RuntimePhase`, and `WalletState`.
 - [walletdk-web reference](/reference/walletdk-web/) for `createWebWalletEngine()` and `webPasskeyCeremony`, the browser transport and passkey ceremony used with this package.
 - [walletdk-react-native reference](/reference/walletdk-react-native/) for `createNativeWalletEngine()` and `createNativePasskeyCeremony()`, the React Native transport and passkey ceremony used with this package.

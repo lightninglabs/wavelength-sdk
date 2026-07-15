@@ -1,6 +1,6 @@
 import {
-  BaseWalletDKClient,
-  WalletDKError,
+  BaseWavelengthClient,
+  WavelengthError,
   camelizeKeys,
   errorMessage,
 } from '@lightninglabs/wavelength-core';
@@ -47,12 +47,12 @@ export type SubscribeToNativeEvents = (
 ) => () => void;
 
 /**
- * The React Native transport: implements {@link BaseWalletDKClient}'s pipe
+ * The React Native transport: implements {@link BaseWavelengthClient}'s pipe
  * over the gomobile Turbo Module. JSON strings cross the RN bridge and all
  * typing and casing normalization happens here in TS, mirroring how the web
  * transport treats the worker boundary.
  */
-export class NativeWalletDKClient extends BaseWalletDKClient {
+export class NativeWavelengthClient extends BaseWavelengthClient {
   // The embedded daemon runs natively, so it dials the servers over gRPC.
   protected readonly serverTransport = 'grpc' as const;
 
@@ -110,7 +110,7 @@ export class NativeWalletDKClient extends BaseWalletDKClient {
 
       return camelizeKeys<T>(resultJson ? JSON.parse(resultJson) : null);
     } catch (err) {
-      throw new WalletDKError(errorMessage(err), 'walletdk_error', {
+      throw new WavelengthError(errorMessage(err), 'walletdk_error', {
         cause: err,
       });
     }

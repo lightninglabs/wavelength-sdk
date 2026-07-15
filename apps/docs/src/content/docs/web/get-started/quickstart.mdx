@@ -1,6 +1,6 @@
 ---
 title: Quickstart (React)
-description: Get a WalletDK-powered React app running in five minutes - install the packages, wire the provider, create a wallet, and send your first payment.
+description: Get a Wavelength-powered React app running in five minutes - install the packages, wire the provider, create a wallet, and send your first payment.
 pageLayout: quickstart
 ---
 
@@ -21,11 +21,11 @@ Requires Node 20 or later to run locally. The runtime itself runs in Chrome 100+
 
 <Step title="Wire the provider">
 
-Create a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) with [`createWebWalletEngine()`](/reference/walletdk-web/#createWebWalletEngine), and wrap your app with [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
+Create a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) with [`createWebWalletEngine()`](/reference/walletdk-web/#createWebWalletEngine), and wrap your app with [`WavelengthProvider`](/reference/walletdk-react/#WavelengthProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
 
 ```tsx title="App.tsx"
 import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
-import { WalletDKProvider, useWallet } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider, useWallet } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: '/walletdk/',
@@ -35,10 +35,10 @@ const engine = createWebWalletEngine({
 
 export function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       <Balance />
       <SendButton />
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 
@@ -85,7 +85,7 @@ Once `create` resolves, `phase` from `useWallet` automatically advances (through
 
 <Step title="Try it">
 
-Call `send` from [`useWalletSend`](/reference/walletdk-react/#useWalletSend) with a Lightning invoice or on-chain address. WalletDK routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
+Call `send` from [`useWalletSend`](/reference/walletdk-react/#useWalletSend) with a Lightning invoice or on-chain address. Wavelength routes Lightning payments through the swap server and settles on-chain sends through a cooperative leave with the Ark operator.
 
 ```tsx title="SendButton.tsx"
 import { useWalletSend } from '@lightninglabs/wavelength-react';

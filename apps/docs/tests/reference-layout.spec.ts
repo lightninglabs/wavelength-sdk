@@ -81,7 +81,7 @@ test('reference type badges link to their documented API symbols', async ({ page
 test('authored reference links use the same visible prose treatment', async ({ page }) => {
   await page.goto('/reference/walletdk-react-native/');
 
-  const link = page.locator('.wdk-ref__content a[href*="WalletDKClient"]').first();
+  const link = page.locator('.wdk-ref__content a[href*="WavelengthClient"]').first();
   await expect(link).toBeVisible();
   await expect(link).toHaveCSS('border-bottom-style', 'none');
   await expect(link).toHaveCSS('text-decoration-line', 'none');

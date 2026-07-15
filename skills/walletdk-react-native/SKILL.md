@@ -1,11 +1,11 @@
 ---
 name: walletdk-react-native
-description: Embed a self-custodial Lightning wallet in a React Native or Expo app with the WalletDK SDK (@lightninglabs/wavelength-react-native, @lightninglabs/wavelength-react). Use when integrating WalletDK into a React Native or Expo app, creating a native wallet engine, sending or receiving Lightning payments on device, wiring WalletDKProvider with a native engine, or adding native passkey protection. Triggers include "walletdk react native", "createNativeWalletEngine", "embed a Lightning wallet in React Native", "createNativePasskeyCeremony", and "Expo wallet".
+description: Embed a self-custodial Lightning wallet in a React Native or Expo app with the Wavelength SDK (@lightninglabs/wavelength-react-native, @lightninglabs/wavelength-react). Use when integrating Wavelength into a React Native or Expo app, creating a native wallet engine, sending or receiving Lightning payments on device, wiring WavelengthProvider with a native engine, or adding native passkey protection. Triggers include "walletdk react native", "createNativeWalletEngine", "embed a Lightning wallet in React Native", "createNativePasskeyCeremony", and "Expo wallet".
 ---
 
-# WalletDK React Native integration
+# Wavelength React Native integration
 
-WalletDK embeds a self-custodial Lightning wallet in a React Native or Expo
+Wavelength embeds a self-custodial Lightning wallet in a React Native or Expo
 app. The wallet daemon is compiled directly into the app binary; there is no
 node to run, no backend to operate, and nothing listening on a socket.
 
@@ -21,7 +21,7 @@ Check the npm registry for current versions; do not rely on memorized ones.
   `createNativeClient()` builds a raw client; `createNativeWalletEngine()`
   wraps it in a `WalletEngine` and is the factory to use with the React
   provider. Re-exports everything from core.
-- `@lightninglabs/wavelength-react`: `<WalletDKProvider>` plus hooks. Takes an
+- `@lightninglabs/wavelength-react`: `<WavelengthProvider>` plus hooks. Takes an
   injected engine; it does not depend on the react-native package.
 
 ## Task routing
@@ -40,7 +40,7 @@ Check the npm registry for current versions; do not rely on memorized ones.
 ## Critical rules
 
 - Create the engine with `createNativeWalletEngine()` from
-  walletdk-react-native and pass it to `<WalletDKProvider engine={...}>`.
+  walletdk-react-native and pass it to `<WavelengthProvider engine={...}>`.
   Build the engine once, outside the component tree (module scope), and
   inject the same instance on every render.
 - Requires React Native 0.76 or newer, iOS 15.1+, and Android minSdk 24.

@@ -1,5 +1,5 @@
 /**
- * Ambient type augmentations for WalletDK docs.
+ * Ambient type augmentations for Wavelength docs.
  * Declares window globals used in inline scripts so TypeScript does not
  * report them as unknown properties.
  */

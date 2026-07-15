@@ -1,4 +1,4 @@
-# WalletDK
+# Wavelength
 
 A TypeScript/React SDK for embedding a self-custodial Lightning wallet directly
 in a web app. Your users send and receive Lightning payments with no node to
@@ -14,7 +14,7 @@ Your app drives it through a small, typed client.
 
 | Package | What it is |
 |---|---|
-| [`@lightninglabs/wavelength-core`](packages/core) | The contract: types, the `WalletDKClient` interface, errors, and enums. No DOM, no transport. |
+| [`@lightninglabs/wavelength-core`](packages/core) | The contract: types, the `WavelengthClient` interface, errors, and enums. No DOM, no transport. |
 | [`@lightninglabs/wavelength-web`](packages/web) | The browser (wasm) transport. Framework-agnostic: use it directly from vanilla JS, Vue, Svelte, or React. Re-exports `core`. |
 | [`@lightninglabs/wavelength-react-native`](packages/react-native) | The React Native transport. Re-exports `core`. |
 | [`@lightninglabs/wavelength-react`](packages/react) | React provider + hooks. |
@@ -36,14 +36,14 @@ npm install @lightninglabs/wavelength-web
 
 You build the engine with `createWebWalletEngine()` from `walletdk-web` (or
 `createNativeWalletEngine()` from `walletdk-react-native` on mobile). In React
-you pass that engine to `WalletDKProvider`; the provider itself is
+you pass that engine to `WavelengthProvider`; the provider itself is
 transport-agnostic and works the same way with either.
 
 ## Quickstart: React
 
 ```tsx
 import {
-  WalletDKProvider,
+  WavelengthProvider,
   useWallet,
   useWalletBalance,
   useWalletSend,
@@ -61,9 +61,9 @@ const engine = createWebWalletEngine({
 
 function Root() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       <Wallet />
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 

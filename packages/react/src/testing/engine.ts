@@ -1,11 +1,11 @@
 import { createWalletEngine, type WalletEngine } from "@lightninglabs/wavelength-core";
-import { FakeWalletDKClient } from "./fake-client";
+import { FakeWavelengthClient } from "./fake-client";
 
 /**
- * A WalletEngine over a FakeWalletDKClient, the standard setup for hook tests.
+ * A WalletEngine over a FakeWavelengthClient, the standard setup for hook tests.
  */
-export function createTestEngine(client = new FakeWalletDKClient()): {
-  client: FakeWalletDKClient;
+export function createTestEngine(client = new FakeWavelengthClient()): {
+  client: FakeWavelengthClient;
   engine: WalletEngine;
 } {
   return { client, engine: createWalletEngine({ client }) };

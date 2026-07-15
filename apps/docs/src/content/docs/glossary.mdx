@@ -1,15 +1,15 @@
 ---
 title: Glossary
-description: Definitions of key WalletDK, Ark, and Lightning Network terms used throughout the documentation.
+description: Definitions of key Wavelength, Ark, and Lightning Network terms used throughout the documentation.
 ---
 
 ### Ark
 
-Ark is the shared off-chain protocol layer WalletDK builds on. Users hold VTXOs (virtual UTXOs) that settle on-chain in batched rounds, so payments are instant and cheap while remaining self-custodial, and users can always exit to on-chain Bitcoin unilaterally. This underpins boarding, rounds, VTXOs, and leaving Ark, which have their own entries.
+Ark is the shared off-chain protocol layer Wavelength builds on. Users hold VTXOs (virtual UTXOs) that settle on-chain in batched rounds, so payments are instant and cheap while remaining self-custodial, and users can always exit to on-chain Bitcoin unilaterally. This underpins boarding, rounds, VTXOs, and leaving Ark, which have their own entries.
 
 ### Batch swap
 
-A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. WalletDK may perform batch swaps automatically as part of routine wallet maintenance. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for how VTXO expiry fits into the lifecycle.
+A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. Wavelength may perform batch swaps automatically as part of routine wallet maintenance. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for how VTXO expiry fits into the lifecycle.
 
 ### Boarding
 
@@ -17,11 +17,11 @@ Boarding is how you enter Ark from the Bitcoin base layer. You spend an on-chain
 
 ### Boarding address
 
-A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; WalletDK tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/guides/get-a-deposit-address/).
+A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; Wavelength tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/guides/get-a-deposit-address/).
 
 ### BOLT 11
 
-BOLT 11 is the standard Lightning invoice format. Every Lightning payment WalletDK sends or receives is a BOLT 11 invoice, so the wallet interoperates with any Lightning wallet, exchange, or app. See the [Lightning receive](#lightning-receive) and [Lightning send](#lightning-send) entries for how Lightning sends and receives are handled as swaps.
+BOLT 11 is the standard Lightning invoice format. Every Lightning payment Wavelength sends or receives is a BOLT 11 invoice, so the wallet interoperates with any Lightning wallet, exchange, or app. See the [Lightning receive](#lightning-receive) and [Lightning send](#lightning-send) entries for how Lightning sends and receives are handled as swaps.
 
 ### Cooperative leave
 
@@ -29,7 +29,7 @@ Cooperative leave is the normal way to withdraw Ark funds to a standard on-chain
 
 ### Esplora
 
-Esplora is a REST API for querying Bitcoin chain data and UTXOs. WalletDK's lightweight wallet backend uses an Esplora-compatible endpoint (configured as `esploraUrl`) to watch boarding deposits, fee estimates, and on-chain activity. The endpoint must implement the Esplora `/address/:addr/utxo` API (electrs or Blockstream-compatible) and is set via the `esploraUrl` field on `RuntimeConfig`. See [Networks & config](/concepts/networks-and-config/) and [System architecture](/introduction/system-architecture/).
+Esplora is a REST API for querying Bitcoin chain data and UTXOs. Wavelength's lightweight wallet backend uses an Esplora-compatible endpoint (configured as `esploraUrl`) to watch boarding deposits, fee estimates, and on-chain activity. The endpoint must implement the Esplora `/address/:addr/utxo` API (electrs or Blockstream-compatible) and is set via the `esploraUrl` field on `RuntimeConfig`. See [Networks & config](/concepts/networks-and-config/) and [System architecture](/introduction/system-architecture/).
 
 ### Lightning receive
 
@@ -41,11 +41,11 @@ A Lightning send moves value out of your Ark wallet over Lightning through an at
 
 ### Mailbox
 
-The mailbox is the operator's asynchronous message channel for events that the wallet cannot pull synchronously over a simple RPC. Swap notifications, round updates, and similar push-style events arrive through the mailbox edge, which shares the same REST gateway as the Ark operator (`arkServerUrl`). WalletDK polls and acknowledges mailbox messages as part of its background sync. See [Activity & events](/concepts/activity-and-events/) and [System architecture](/introduction/system-architecture/).
+The mailbox is the operator's asynchronous message channel for events that the wallet cannot pull synchronously over a simple RPC. Swap notifications, round updates, and similar push-style events arrive through the mailbox edge, which shares the same REST gateway as the Ark operator (`arkServerUrl`). Wavelength polls and acknowledges mailbox messages as part of its background sync. See [Activity & events](/concepts/activity-and-events/) and [System architecture](/introduction/system-architecture/).
 
 ### OOR (out-of-round)
 
-OOR (out-of-round) transfers move VTXOs between owners without waiting for the next batch round. They are the mechanism behind instant off-chain Ark payments and vHTLC funding or claiming. OOR is an advanced topic; WalletDK handles OOR transfers internally and detailed protocol coverage is deferred to a later docs pass. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) for how OOR funds and claims a vHTLC.
+OOR (out-of-round) transfers move VTXOs between owners without waiting for the next batch round. They are the mechanism behind instant off-chain Ark payments and vHTLC funding or claiming. OOR is an advanced topic; Wavelength handles OOR transfers internally and detailed protocol coverage is deferred to a later docs pass. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) for how OOR funds and claims a vHTLC.
 
 ### Operator (ASP)
 
@@ -53,7 +53,7 @@ The operator, also called the Ark Service Provider (ASP), runs the Ark coordinat
 
 ### Passkey
 
-A passkey is a phishing-resistant credential (WebAuthn on web, the platform authenticator on mobile) that can protect a WalletDK wallet instead of a password. WalletDK derives the wallet's encryption from the passkey's PRF (pseudo-random function) output, so the same passkey deterministically unlocks the same wallet. Passkey support requires platform support; see the requirements pages.
+A passkey is a phishing-resistant credential (WebAuthn on web, the platform authenticator on mobile) that can protect a Wavelength wallet instead of a password. Wavelength derives the wallet's encryption from the passkey's PRF (pseudo-random function) output, so the same passkey deterministically unlocks the same wallet. Passkey support requires platform support; see the requirements pages.
 
 ### Round
 
@@ -61,7 +61,7 @@ A round is one cycle in which the operator collects participant requests, constr
 
 ### Transport
 
-A transport is the layer that runs the embedded wallet daemon for a given platform. WalletDK ships two: the web transport (`walletdk-web`, daemon compiled to WebAssembly, reaches gateways over REST) and the React Native transport (`walletdk-react-native`, daemon compiled into the app binary, uses gRPC). Both implement the same `WalletDKClient` contract, so app code is transport-agnostic.
+A transport is the layer that runs the embedded wallet daemon for a given platform. Wavelength ships two: the web transport (`walletdk-web`, daemon compiled to WebAssembly, reaches gateways over REST) and the React Native transport (`walletdk-react-native`, daemon compiled into the app binary, uses gRPC). Both implement the same `WavelengthClient` contract, so app code is transport-agnostic.
 
 ### Unilateral exit
 

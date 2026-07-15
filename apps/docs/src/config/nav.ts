@@ -29,7 +29,7 @@ export const NAV: NavGroup[] = [
     label: 'Introduction',
     section: 'introduction',
     items: [
-      { slug: 'introduction/what-is-walletdk', label: 'What is WalletDK', section: 'introduction' },
+      { slug: 'introduction/what-is-walletdk', label: 'What is Wavelength', section: 'introduction' },
       { slug: 'introduction/the-swapdk-system', label: 'The SwapDK system', section: 'introduction' },
       { slug: 'introduction/system-architecture', label: 'System architecture', section: 'introduction' },
     ],
@@ -258,7 +258,7 @@ export const SLICES: Slice[] = [
   { key: 'agents', label: 'Agents', href: '/agents/', prefixes: ['/agents'], nav: AGENTS_NAV },
 ];
 
-/** One way to integrate WalletDK: a labelled entry point. */
+/** One way to integrate Wavelength: a labelled entry point. */
 export interface Surface {
   label: string;
   href: string;

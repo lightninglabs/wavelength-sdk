@@ -17,7 +17,7 @@ import {
 
 type Step = "create" | "restore";
 
-const APP_NAME = "WalletDK Demo";
+const APP_NAME = "Wavelength Demo";
 
 // passkeyName labels a freshly created passkey with the app name plus a
 // timestamp, so multiple test passkeys stay distinguishable in the OS prompt.

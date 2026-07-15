@@ -6,7 +6,7 @@ test('llms.txt is served and spec-shaped', async ({ request }) => {
   const res = await request.get('/llms.txt');
   expect(res.status()).toBe(200);
   const body = await res.text();
-  expect(body).toMatch(/^# WalletDK/);
+  expect(body).toMatch(/^# Wavelength/);
   for (const section of SECTIONS) {
     expect(body).toContain(`## ${section.label}`);
   }
@@ -114,9 +114,9 @@ test('agents page markdown mirror keeps all four prompts', async ({ request }) =
   // The tab labels live in data-label attributes stripped by the converter;
   // assert on content unique to each panel instead so we still confirm the
   // markdown mirror kept all four prompts as plain content.
-  expect(body).toContain('mount <WalletDKProvider');
+  expect(body).toContain('mount <WavelengthProvider');
   expect(body).toContain('createNativeWalletEngine()');
   expect(body).toContain('gRPC or REST');
-  expect(body).toContain('Write automation for the WalletDK wallet using darepocli.');
+  expect(body).toContain('Write automation for the Wavelength wallet using darepocli.');
   expect(body).toContain('darepocli mcp');
 });

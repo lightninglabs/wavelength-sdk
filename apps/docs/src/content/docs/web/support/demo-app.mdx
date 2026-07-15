@@ -1,6 +1,6 @@
 ---
 title: Demo app
-description: An overview of the WalletDK reference integration app - what it demonstrates and how to run it locally.
+description: An overview of the Wavelength reference integration app - what it demonstrates and how to run it locally.
 ---
 
 import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
@@ -9,14 +9,14 @@ import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
 
 ## The reference integration
 
-The **`web-wallet-demo`** app in the WalletDK monorepo is a full React
+The **`web-wallet-demo`** app in the Wavelength monorepo is a full React
 integration you can read, run, and copy patterns from. It is not a separate
 product; it exercises the same `@lightninglabs/wavelength-web` and
 `@lightninglabs/wavelength-react` packages your app would use.
 
 What it demonstrates:
 
-- **`WalletDKProvider`** with an injected `createWebWalletEngine()` engine
+- **`WavelengthProvider`** with an injected `createWebWalletEngine()` engine
   (self-hosted runtime assets, worker mode, optional RPC debug logging).
 - **Phase-based routing** from `useWallet()`: connect, create/unlock, backup,
   syncing, ready, stopped, and error screens driven by `phase` and `useWalletInfo()`.

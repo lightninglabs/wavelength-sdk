@@ -1,31 +1,31 @@
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import {
   createWalletEngine,
-  type WalletDKClient,
+  type WavelengthClient,
   type PasskeyCeremony,
   type DistributiveOmit,
   type WalletEngine,
   type WalletEngineOptions,
 } from '@lightninglabs/wavelength-core';
 import NativeWalletdk from './NativeWalletdk';
-import { NativeWalletDKClient } from './client';
+import { NativeWavelengthClient } from './client';
 import {
   nativePasskeyCeremony,
   type NativePasskeyCeremonyOptions,
 } from './passkey';
 
 /**
- * Creates a {@link WalletDKClient} backed by the React Native transport: the
+ * Creates a {@link WavelengthClient} backed by the React Native transport: the
  * daemon compiled into the app via the gomobile bindings. Takes no options
  * today; an options parameter can be added later without a breaking change.
  */
-export function createNativeClient(): WalletDKClient {
+export function createNativeClient(): WavelengthClient {
   // NativeModules.Walletdk is the interop view of the Turbo Module; the
   // emitter needs it (or any module carrying addListener/removeListeners) to
   // route 'walletdkActivity' device events on both platforms.
   const emitter = new NativeEventEmitter(NativeModules.Walletdk);
 
-  return new NativeWalletDKClient(NativeWalletdk, (listener) => {
+  return new NativeWavelengthClient(NativeWalletdk, (listener) => {
     const subscription = emitter.addListener('walletdkActivity', listener);
 
     return () => subscription.remove();
@@ -44,7 +44,7 @@ export type NativeWalletEngineOptions = DistributiveOmit<
 
 /**
  * Creates a {@link WalletEngine} over the React Native transport: the
- * one-call setup for an RN app. Pass the engine to WalletDKProvider from
+ * one-call setup for an RN app. Pass the engine to WavelengthProvider from
  * \@lightninglabs/wavelength-react.
  */
 export function createNativeWalletEngine(
@@ -90,7 +90,7 @@ export type {
 } from './passkey';
 
 export { defaultConfig } from './config';
-export { NativeWalletDKClient } from './client';
+export { NativeWavelengthClient } from './client';
 export type {
   NativeActivityEvent,
   SubscribeToNativeEvents,

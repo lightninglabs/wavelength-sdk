@@ -16,16 +16,16 @@ test('guide page renders a breadcrumb', async ({ page }) => {
   await page.goto(PAGE);
   const crumb = page.locator('.wdk-guide__breadcrumb');
   await expect(crumb).toBeVisible();
-  // The breadcrumb leads with the WalletDK > Guides trail.
-  await expect(crumb).toContainText('WalletDK');
+  // The breadcrumb leads with the Wavelength > Guides trail.
+  await expect(crumb).toContainText('Wavelength');
   await expect(crumb).toContainText('Guides');
 });
 
 test('the "Guides" breadcrumb crumb is not a link (there is no guides index page)', async ({ page }) => {
   await page.goto(PAGE);
   const crumb = page.locator('.wdk-guide__breadcrumb');
-  // "WalletDK" still links home.
-  await expect(crumb.locator('a', { hasText: 'WalletDK' })).toHaveAttribute('href', '/');
+  // "Wavelength" still links home.
+  await expect(crumb.locator('a', { hasText: 'Wavelength' })).toHaveAttribute('href', '/');
   // "Guides" is plain text, not an anchor, since no guides index page exists.
   await expect(crumb.locator('a', { hasText: 'Guides' })).toHaveCount(0);
   await expect(crumb.locator('span', { hasText: 'Guides' })).toBeVisible();

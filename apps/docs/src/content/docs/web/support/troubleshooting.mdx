@@ -1,13 +1,13 @@
 ---
 title: Troubleshooting / FAQ
-description: Solutions to common WalletDK integration errors and guidance for diagnosing stuck or pending sends.
+description: Solutions to common Wavelength integration errors and guidance for diagnosing stuck or pending sends.
 ---
 
 ## Common errors
 
 ### Runtime asset could not be loaded (`asset_load_failed`)
 
-The client throws `WalletDKError` with code **`asset_load_failed`** when
+The client throws `WavelengthError` with code **`asset_load_failed`** when
 `walletdk.wasm.gz`, `wasm_exec.js`, or the SQLite bridge cannot be fetched.
 
 **Fix:** Host every file listed in **`RUNTIME_ASSET_FILES`** together at one
@@ -74,7 +74,7 @@ Occasional **401** responses from the Ark or swap REST gateways are retried with
 refreshed credentials inside the daemon. Persistent 401s usually mean the
 server is unhealthy or the URL points at the wrong service. These are
 daemon-log-only: the daemon does not currently map gateway-originated errors
-to a specific `WalletDKError` code, so a persistent 401 surfaces client-side
+to a specific `WavelengthError` code, so a persistent 401 surfaces client-side
 (if at all) as a generic `walletdk_error`, not a dedicated code you can match
 on.
 

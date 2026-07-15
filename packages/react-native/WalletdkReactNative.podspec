@@ -5,7 +5,7 @@ package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 Pod::Spec.new do |s|
   s.name         = "WalletdkReactNative"
   s.version      = package["version"]
-  s.summary      = "React Native transport for the WalletDK SDK."
+  s.summary      = "React Native transport for the Wavelength SDK."
   s.homepage     = "https://github.com/lightninglabs/dawallet"
   s.license      = { :type => "MIT" }
   s.authors      = "Lightning Labs"

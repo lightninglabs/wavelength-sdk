@@ -5,11 +5,11 @@
 // tsconfig's "src" include (only src/**/*.test.ts and src/testing are
 // excluded) and typechecked on every run.
 
-import type { WalletDKClient } from '../client.ts';
+import type { WavelengthClient } from '../client.ts';
 import type { RuntimeConfig } from '../config.ts';
 import type { WalletEngineOptions } from './engine.ts';
 
-declare const client: WalletDKClient;
+declare const client: WavelengthClient;
 declare const config: RuntimeConfig;
 
 // autoStart: true without config is rejected.

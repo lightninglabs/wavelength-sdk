@@ -1,6 +1,6 @@
 ---
 title: walletdk-core
-description: Cross-platform interfaces, shared types, and error codes that every WalletDK platform target builds on.
+description: Cross-platform interfaces, shared types, and error codes that every Wavelength platform target builds on.
 pageLayout: reference
 ---
 
@@ -13,7 +13,7 @@ import FieldCards from '~/components/mdx/FieldCards.astro';
 import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
 `@lightninglabs/wavelength-core` is the framework-agnostic contract every
-WalletDK transport implements: a typed [`WalletDKClient`](#WalletDKClient) interface, the
+Wavelength transport implements: a typed [`WavelengthClient`](#WavelengthClient) interface, the
 [`WalletEngine`](#WalletEngine) orchestrator built on top of it, the request
 and result shapes its methods take and return, and the shared error and event
 model. It has no browser or React dependency: [`walletdk-web`](/reference/walletdk-web/)
@@ -24,8 +24,8 @@ Every method response is camelCase-normalized at the boundary: the embedded
 daemon speaks PascalCase JSON, and the client rewrites every key to camelCase
 (via [`camelizeKeys()`](#camelizeKeys)) before it reaches you, so you never
 see a `WalletState` or `AmountSat` field in application code. All errors the
-SDK itself raises are a [`WalletDKError`](#WalletDKError) carrying a
-machine-readable [`WalletDKErrorCode`](#WalletDKErrorCode); daemon-originated
+SDK itself raises are a [`WavelengthError`](#WavelengthError) carrying a
+machine-readable [`WavelengthErrorCode`](#WavelengthErrorCode); daemon-originated
 failures currently surface as the generic `walletdk_error` code with a
 descriptive message.
 
@@ -113,7 +113,7 @@ per-subsystem list such as `'ROND=debug,info'`.
 
 <ApiSymbol name="RuntimeConfig" kind="type">
 
-Configuration passed to `WalletDKClient.start()`. For the common case, start
+Configuration passed to `WavelengthClient.start()`. For the common case, start
 from your transport package's `defaultConfig(network)` and override only the
 fields you need.
 
@@ -214,7 +214,7 @@ useful when implementing or debugging a transport.
 
 ## Client lifecycle
 
-export const walletDKClientSig = `interface WalletDKClient {
+export const walletDKClientSig = `interface WavelengthClient {
   ready(): Promise<void>;
   start(config: RuntimeConfig): Promise<WalletInfo>;
   stop(): Promise<void>;
@@ -236,7 +236,7 @@ export const walletDKClientSig = `interface WalletDKClient {
   getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
   sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
   callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
-  subscribe(listener: WalletDKListener): () => void;
+  subscribe(listener: WavelengthListener): () => void;
   startActivity(opts?: { includeExisting?: boolean }): Promise<void>;
   stopActivity(): void;
   dispose(): void;
@@ -247,7 +247,7 @@ export const startSig = `start(config: RuntimeConfig): Promise<WalletInfo>`;
 export const stopSig = `stop(): Promise<void>`;
 export const disposeSig = `dispose(): void`;
 
-<ApiSymbol name="WalletDKClient" kind="type">
+<ApiSymbol name="WavelengthClient" kind="type">
 
 The typed RPC surface every transport implements. Create a client with
 [`createWebClient()`](/reference/walletdk-web/) from walletdk-web or
@@ -275,7 +275,7 @@ are loaded and the client is otherwise usable. Always await this before
 <Signature title="walletdk-core.d.ts" code={readySig} />
 
 <Returns type="Promise<void>">
-Resolves when the client is ready to `start()`. Rejects with a `WalletDKError`
+Resolves when the client is ready to `start()`. Rejects with a `WavelengthError`
 (code `asset_load_failed`) if the runtime assets fail to load.
 </Returns>
 
@@ -333,15 +333,15 @@ Nothing; the client is torn down synchronously.
 ## Wallet engine
 
 export const walletEngineOptionsSig = `type WalletEngineOptions =
-  | { client: WalletDKClient; config: RuntimeConfig; autoStart: true }
-  | { client: WalletDKClient; config?: RuntimeConfig; autoStart?: false };`;
+  | { client: WavelengthClient; config: RuntimeConfig; autoStart: true }
+  | { client: WavelengthClient; config?: RuntimeConfig; autoStart?: false };`;
 export const distributiveOmitSig = `type DistributiveOmit<T, K extends PropertyKey> =
   T extends unknown ? Omit<T, K> : never;`;
 
 export const createWalletEngineSig = `function createWalletEngine(options: WalletEngineOptions): WalletEngine`;
 
 export const walletEngineSig = `interface WalletEngine {
-  readonly client: WalletDKClient;
+  readonly client: WavelengthClient;
   getSnapshot(): WalletSnapshot;
   subscribe(listener: () => void): () => void;
   start(config?: RuntimeConfig): Promise<WalletInfo>;
@@ -365,7 +365,7 @@ export const restoreWalletRequestSig = `type RestoreWalletRequest = CreateWallet
   mnemonic: string[];
 };`;
 
-`WalletEngine` is the headless wallet orchestrator every framework binding is built on: it owns the lifecycle phase machine, the state snapshot (`phase`, `info`, `balance`, `activity`, `recovery`, `logs`), and the background processes that keep them fresh. Build one over any transport with [`createWalletEngine()`](#createWalletEngine), or reach for a transport's own factory (`createWebWalletEngine()` from [walletdk-web](/reference/walletdk-web/), `createNativeWalletEngine()` from [walletdk-react-native](/reference/walletdk-react-native/)), which builds the client for you. Pass the engine to `WalletDKProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly: `getSnapshot()`/`subscribe()` work the same for a vanilla consumer as for a framework binding.
+`WalletEngine` is the headless wallet orchestrator every framework binding is built on: it owns the lifecycle phase machine, the state snapshot (`phase`, `info`, `balance`, `activity`, `recovery`, `logs`), and the background processes that keep them fresh. Build one over any transport with [`createWalletEngine()`](#createWalletEngine), or reach for a transport's own factory (`createWebWalletEngine()` from [walletdk-web](/reference/walletdk-web/), `createNativeWalletEngine()` from [walletdk-react-native](/reference/walletdk-react-native/)), which builds the client for you. Pass the engine to `WavelengthProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly: `getSnapshot()`/`subscribe()` work the same for a vanilla consumer as for a framework binding.
 
 <ApiSymbol name="createWalletEngine" kind="function">
 
@@ -388,7 +388,7 @@ A discriminated union: the types require a config when autoStart is enabled, so 
 <Signature title="walletdk-core.d.ts" code={walletEngineOptionsSig} />
 
 <ParamsTable rows={[
-  { name: 'client', type: 'WalletDKClient', desc: 'The transport client the engine drives.' },
+  { name: 'client', type: 'WavelengthClient', desc: 'The transport client the engine drives.' },
   { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by start() when called with no argument.' },
   { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config; start() still throws if later called with no argument and no config.' },
 ]} />
@@ -405,12 +405,12 @@ implementers; application code rarely needs it directly.
 
 <ApiSymbol name="WalletEngine" kind="type">
 
-The engine interface. Every method mirrors the matching `WalletDKClient` method plus engine bookkeeping: refetching info, kicking a background refresh, or advancing the phase machine.
+The engine interface. Every method mirrors the matching `WavelengthClient` method plus engine bookkeeping: refetching info, kicking a background refresh, or advancing the phase machine.
 
 <Signature title="walletdk-core.d.ts" code={walletEngineSig} />
 
 <ParamsTable rows={[
-  { name: 'client', type: 'WalletDKClient', desc: 'The underlying transport client, as an escape hatch.' },
+  { name: 'client', type: 'WavelengthClient', desc: 'The underlying transport client, as an escape hatch.' },
   { name: 'getSnapshot()', type: '() => WalletSnapshot', desc: 'The current immutable state snapshot; see WalletSnapshot below.' },
   { name: 'subscribe(listener)', type: '(listener: () => void) => () => void', desc: 'Subscribes to snapshot changes; returns the unsubscribe function. Framework bindings call this via useSyncExternalStore.' },
   { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: "Starts the runtime. Falls back to the engine's configured config when called without an argument; throws if neither exists. A failure moves phase to 'error' and rejects. On success it best-effort calls refresh() (a locked or empty wallet can fail balance/list until bootstrap; that failure is swallowed)." },
@@ -453,7 +453,7 @@ The engine's immutable state snapshot, returned by [`getSnapshot()`](#WalletEngi
   balance: Balance | null;
   activity: Entry[];
   recovery: RecoveryState;
-  logs: WalletDKLogPayload[];
+  logs: WavelengthLogPayload[];
 };`} />
 
 <ParamsTable rows={[
@@ -463,7 +463,7 @@ The engine's immutable state snapshot, returned by [`getSnapshot()`](#WalletEngi
   { name: 'balance', type: 'Balance | null', desc: 'The most recent wallet balance, or null before it is known.' },
   { name: 'activity', type: 'Entry[]', desc: 'The most recent activity entries, newest-first as returned by the daemon.' },
   { name: 'recovery', type: 'RecoveryState', desc: 'The background recovery status set by restoreWallet(); see RecoveryState below.' },
-  { name: 'logs', type: 'WalletDKLogPayload[]', desc: "A bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
+  { name: 'logs', type: 'WavelengthLogPayload[]', desc: "A bounded tail (up to 200 entries) of 'log' events from the runtime, newest last." },
 ]} />
 
 </ApiSymbol>
@@ -1188,8 +1188,8 @@ export const onchainTxSig = `type OnchainTx = {
   description: string;
 };`;
 
-export const subscribeSig = `subscribe(listener: WalletDKListener): () => void`;
-export const walletDKListenerSig = `type WalletDKListener = (event: WalletDKEvent) => void;`;
+export const subscribeSig = `subscribe(listener: WavelengthListener): () => void`;
+export const walletDKListenerSig = `type WavelengthListener = (event: WavelengthEvent) => void;`;
 
 export const startActivitySig = `startActivity(opts?: { includeExisting?: boolean }): Promise<void>`;
 export const stopActivitySig = `stopActivity(): void`;
@@ -1362,18 +1362,18 @@ Subscribes a listener to runtime events.
 <Signature title="walletdk-core.d.ts" code={subscribeSig} />
 
 <ParamsTable rows={[
-  { name: 'listener', type: 'WalletDKListener', desc: 'Callback invoked with each WalletDKEvent.' },
+  { name: 'listener', type: 'WavelengthListener', desc: 'Callback invoked with each WavelengthEvent.' },
 ]} />
 
 <Returns type="() => void">
 An unsubscribe function; call it to stop receiving events on this listener.
 </Returns>
 
-**`WalletDKListener`**
+**`WavelengthListener`**
 
 <Signature title="walletdk-core.d.ts" code={walletDKListenerSig} />
 
-See [`WalletDKEvent`](#WalletDKEvent) in the events section below for the
+See [`WavelengthEvent`](#WavelengthEvent) in the events section below for the
 event shapes delivered to a listener.
 
 </ApiSymbol>
@@ -2284,27 +2284,27 @@ creation over an existing wallet.
 
 ## Events and logging
 
-export const walletDKEventSig = `type WalletDKEvent =
+export const walletDKEventSig = `type WavelengthEvent =
   | { type: 'runtimeReady' }
   | { type: 'runtimeStopped' }
   | { type: 'activity'; payload: Entry }
   | { type: 'activityStream'; payload: ActivityStreamPayload }
-  | { type: 'log'; payload: WalletDKLogPayload };`;
+  | { type: 'log'; payload: WavelengthLogPayload };`;
 
-export const walletDKEventTypeSig = `type WalletDKEventType = WalletDKEvent['type'];`;
+export const walletDKEventTypeSig = `type WavelengthEventType = WavelengthEvent['type'];`;
 
-export const walletDKLogPayloadSig = `type WalletDKLogPayload = {
-  level: WalletDKLogLevel;
+export const walletDKLogPayloadSig = `type WavelengthLogPayload = {
+  level: WavelengthLogLevel;
   message: string;
 };`;
 
-export const walletDKLogLevelSig = `type WalletDKLogLevel = 'debug' | 'info' | 'warn' | 'error';`;
+export const walletDKLogLevelSig = `type WavelengthLogLevel = 'debug' | 'info' | 'warn' | 'error';`;
 export const activityStreamStateSig = `type ActivityStreamState = 'ended' | 'failed';`;
 export const activityStreamPayloadSig = `type ActivityStreamPayload =
   | { state: 'ended' }
   | { state: 'failed'; message: string };`;
 
-<ApiSymbol name="WalletDKEvent" kind="type">
+<ApiSymbol name="WavelengthEvent" kind="type">
 
 Discriminated union of runtime events delivered to subscribers. Narrow on
 `type` to read the payload: `'activity'` carries the changed
@@ -2319,7 +2319,7 @@ events (`'runtimeReady'`, `'runtimeStopped'`) carry none.
 | `runtimeStopped` | (none) | The daemon stopped, including an unsolicited stop from a worker crash. |
 | `activity` | `Entry` | An activity entry changed; delivered while `startActivity()` is active. |
 | `activityStream` | `ActivityStreamPayload` | The activity stream ended or failed without a consumer-initiated close. |
-| `log` | `WalletDKLogPayload` | A daemon log line. |
+| `log` | `WavelengthLogPayload` | A daemon log line. |
 
 </ApiSymbol>
 
@@ -2341,37 +2341,37 @@ the failure message.
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKEventType" kind="type">
+<ApiSymbol name="WavelengthEventType" kind="type">
 
-The set of `WalletDKEvent` discriminants.
+The set of `WavelengthEvent` discriminants.
 
 <Signature title="walletdk-core.d.ts" code={walletDKEventTypeSig} />
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKListener" kind="type">
+<ApiSymbol name="WavelengthListener" kind="type">
 
-A subscriber callback invoked with each `WalletDKEvent`, passed to
+A subscriber callback invoked with each `WavelengthEvent`, passed to
 [`subscribe()`](#subscribe).
 
 <Signature title="walletdk-core.d.ts" code={walletDKListenerSig} />
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKLogPayload" kind="type">
+<ApiSymbol name="WavelengthLogPayload" kind="type">
 
 The payload carried by a `'log'` event.
 
 <Signature title="walletdk-core.d.ts" code={walletDKLogPayloadSig} />
 
 <ParamsTable rows={[
-  { name: 'level', type: 'WalletDKLogLevel', desc: 'The severity of the log line.' },
+  { name: 'level', type: 'WavelengthLogLevel', desc: 'The severity of the log line.' },
   { name: 'message', type: 'string', desc: 'The human-readable log message.' },
 ]} />
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKLogLevel" kind="type">
+<ApiSymbol name="WavelengthLogLevel" kind="type">
 
 The severity of a `'log'` event emitted by the runtime.
 
@@ -2388,36 +2388,36 @@ The severity of a `'log'` event emitted by the runtime.
 
 ## Errors
 
-export const walletDKErrorSig = `class WalletDKError extends Error {
-  readonly code: WalletDKErrorCode;
-  constructor(message: string, code?: WalletDKErrorCode, options?: { cause?: unknown });
+export const walletDKErrorSig = `class WavelengthError extends Error {
+  readonly code: WavelengthErrorCode;
+  constructor(message: string, code?: WavelengthErrorCode, options?: { cause?: unknown });
 }`;
 
-export const errorCodeSig = `type WalletDKErrorCode =
+export const errorCodeSig = `type WavelengthErrorCode =
   | 'walletdk_error'
   | 'runtime_not_ready'
   | 'asset_load_failed'
   | 'worker_error'
   | (string & {});`;
 
-<ApiSymbol name="WalletDKError" kind="class">
+<ApiSymbol name="WavelengthError" kind="class">
 
-Base error class thrown by all WalletDK packages. Carries a machine-readable
+Base error class thrown by all Wavelength packages. Carries a machine-readable
 `code` alongside the human-readable message.
 
 <Signature title="walletdk-core.d.ts" code={walletDKErrorSig} />
 
 <ParamsTable rows={[
   { name: 'message', type: 'string', desc: 'Human-readable description of what went wrong.' },
-  { name: 'code', type: 'WalletDKErrorCode', desc: 'Machine-readable error code. Defaults to walletdk_error.' },
+  { name: 'code', type: 'WavelengthErrorCode', desc: 'Machine-readable error code. Defaults to walletdk_error.' },
   { name: 'options.cause', type: 'unknown', desc: 'Optional. The underlying error or value that caused this one, forwarded to the native Error cause chain (options.cause) so it survives in stack traces and error inspection tools.' },
 ]} />
 
 </ApiSymbol>
 
-<ApiSymbol name="WalletDKErrorCode" kind="type">
+<ApiSymbol name="WavelengthErrorCode" kind="type">
 
-Stable, machine-readable error classification on `WalletDKError`. Named SDK
+Stable, machine-readable error classification on `WavelengthError`. Named SDK
 codes are listed below; daemon-originated errors currently fall back to
 `walletdk_error`. The `(string & {})` arm keeps the union open for forward
 compatibility while still offering autocomplete on the known codes.

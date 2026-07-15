@@ -1,6 +1,6 @@
 {
   "name": "walletdk",
-  "description": "Skills for building with WalletDK: embed a self-custodial Lightning wallet in a web or React Native app, integrate against the wallet daemon API, and automate with the CLI.",
+  "description": "Skills for building with Wavelength: embed a self-custodial Lightning wallet in a web or React Native app, integrate against the wallet daemon API, and automate with the CLI.",
   "owner": {
     "name": "Lightning Labs",
     "url": "https://github.com/lightninglabs"
@@ -9,7 +9,7 @@
     {
       "name": "walletdk",
       "source": "./",
-      "description": "Skills for building with WalletDK: embed a self-custodial Lightning wallet in a web or React Native app, integrate against the wallet daemon API, and automate with the CLI."
+      "description": "Skills for building with Wavelength: embed a self-custodial Lightning wallet in a web or React Native app, integrate against the wallet daemon API, and automate with the CLI."
     }
   ]
 }

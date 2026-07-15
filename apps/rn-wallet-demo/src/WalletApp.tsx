@@ -218,7 +218,7 @@ export function WalletApp() {
       return (
         <LoadingScreen
           network={network}
-          title="Starting WalletDK"
+          title="Starting Wavelength"
           sub="Initialising the embedded wallet runtime."
         />
       );

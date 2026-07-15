@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { WalletDKProvider } from "@lightninglabs/wavelength-react";
+import { WavelengthProvider } from "@lightninglabs/wavelength-react";
 import {
   createWebWalletEngine,
   RUNTIME_MANIFEST_VERSION,
@@ -58,9 +58,9 @@ async function boot() {
   createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <ThemeProvider>
-        <WalletDKProvider engine={engine}>
+        <WavelengthProvider engine={engine}>
           <App />
-        </WalletDKProvider>
+        </WavelengthProvider>
       </ThemeProvider>
     </React.StrictMode>,
   );

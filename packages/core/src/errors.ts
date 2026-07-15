@@ -1,12 +1,12 @@
 /**
- * A stable, machine-readable classification on {@link WalletDKError} so consumers
+ * A stable, machine-readable classification on {@link WavelengthError} so consumers
  * can branch without string-matching the message. The SDK's own failures use the
  * named codes; daemon-originated errors currently fall back to `'walletdk_error'`
  * (a richer daemon-code mapping is planned). The `(string & {})` arm keeps the
  * union open for forward compatibility while still offering autocomplete on the
  * known codes.
  */
-export type WalletDKErrorCode =
+export type WavelengthErrorCode =
   | 'walletdk_error'
   | 'runtime_not_ready'
   | 'asset_load_failed'
@@ -17,9 +17,9 @@ export type WalletDKErrorCode =
  * The error type thrown by the SDK. Carries a machine-readable {@link code} so
  * consumers can branch without string-matching the message.
  */
-export class WalletDKError extends Error {
+export class WavelengthError extends Error {
   /** The machine-readable error classification. */
-  readonly code: WalletDKErrorCode;
+  readonly code: WavelengthErrorCode;
 
   /**
    * @param message - The human-readable error message.
@@ -28,11 +28,11 @@ export class WalletDKError extends Error {
    */
   constructor(
     message: string,
-    code: WalletDKErrorCode = 'walletdk_error',
+    code: WavelengthErrorCode = 'walletdk_error',
     options?: { cause?: unknown },
   ) {
     super(message, options);
-    this.name = 'WalletDKError';
+    this.name = 'WavelengthError';
     // Assigned explicitly rather than via a constructor parameter property,
     // which node's strip-only TypeScript loader (used by the unit tests) does
     // not support.

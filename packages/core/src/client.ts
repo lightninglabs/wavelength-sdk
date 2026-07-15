@@ -1,4 +1,4 @@
-import type { WalletDKListener } from './events.ts';
+import type { WavelengthListener } from './events.ts';
 import type { RuntimeConfig } from './config.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
 import type {
@@ -33,11 +33,11 @@ import type {
 } from './results.ts';
 
 /**
- * The framework-agnostic contract every WalletDK transport implements. It wraps
+ * The framework-agnostic contract every Wavelength transport implements. It wraps
  * the embedded daemon's lifecycle, wallet operations, and activity stream behind
  * typed, camelCase-normalized methods.
  */
-export interface WalletDKClient {
+export interface WavelengthClient {
   /** Resolves once the runtime assets are loaded and the client is usable. */
   ready(): Promise<void>;
   /** Starts the embedded daemon with the given config and resolves with its initial info. */
@@ -102,7 +102,7 @@ export interface WalletDKClient {
    */
   callRaw<T = unknown>(method: string, params?: unknown): Promise<T>;
   /** Subscribes a listener to runtime events; returns an unsubscribe function. */
-  subscribe(listener: WalletDKListener): () => void;
+  subscribe(listener: WavelengthListener): () => void;
   /**
    * Opens the wallet activity stream and forwards each entry to subscribers as an
    * `'activity'` event until {@link stopActivity} is called.

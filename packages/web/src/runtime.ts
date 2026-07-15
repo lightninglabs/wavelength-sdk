@@ -1,4 +1,4 @@
-import { WalletDKError } from '@lightninglabs/wavelength-core';
+import { WavelengthError } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from './runtime-manifest';
 import { errorMessage } from './util';
 
@@ -24,8 +24,8 @@ export function resolveRuntimeAsset(
  * the cause (assets not hosted, or the base set wrong). The daemon binaries to
  * host are listed in RUNTIME_ASSET_FILES.
  */
-export function runtimeAssetError(url: string): WalletDKError {
-  return new WalletDKError(
+export function runtimeAssetError(url: string): WavelengthError {
+  return new WavelengthError(
     `walletdk runtime asset could not be loaded from ${url}. Host the daemon ` +
       'runtime assets (RUNTIME_ASSET_FILES) and point runtimeBaseUrl at them.',
     'asset_load_failed',
@@ -117,7 +117,7 @@ export async function instantiateCompressedWasm(
 
   const body = response.body;
   if (!body) {
-    throw new WalletDKError('walletdk compressed wasm response is empty');
+    throw new WavelengthError('walletdk compressed wasm response is empty');
   }
 
   const stream = body.pipeThrough(new DecompressionStream('gzip'));

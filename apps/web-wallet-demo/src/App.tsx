@@ -205,7 +205,7 @@ export function App() {
     return (
       <LoadingScreen
         network={network}
-        title="Starting WalletDK"
+        title="Starting Wavelength"
         sub="Downloading and instantiating the WASM runtime."
       />
     );

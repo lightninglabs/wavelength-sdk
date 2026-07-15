@@ -14,7 +14,7 @@ import { RestoreWalletScreen } from './RestoreWalletScreen';
 
 type Step = 'create' | 'restore';
 
-const APP_NAME = 'WalletDK Demo';
+const APP_NAME = 'Wavelength Demo';
 
 // OnboardingFlow serves the needsWallet phase (runtime started, no local
 // wallet). It routes between creating a wallet and restoring one from a

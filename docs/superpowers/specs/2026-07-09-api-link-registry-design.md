@@ -22,5 +22,5 @@ Make links to documented SDK symbols consistent and discoverable without turning
 ## Testing
 
 - Unit-test registry resolution for local and cross-page symbols and for unknown/compound types.
-- Add a docs Playwright assertion that representative reference pages contain links for `WalletEngineOptions`, `WalletEngine`, and `WalletDKClient` in table/return contexts.
+- Add a docs Playwright assertion that representative reference pages contain links for `WalletEngineOptions`, `WalletEngine`, and `WavelengthClient` in table/return contexts.
 - Build and typecheck the docs app, then run the relevant docs tests.

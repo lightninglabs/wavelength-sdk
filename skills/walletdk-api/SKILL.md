@@ -1,9 +1,9 @@
 ---
 name: walletdk-api
-description: Integrate against the WalletDK wallet daemon (darepod) over its gRPC or REST API. Use when calling WalletService RPCs, building a backend or non-browser integration, connecting to darepod, or mapping REST routes under /v1/wallet/. Triggers include "darepod", "WalletService", "walletdk grpc", "walletdk rest api", and "wallet daemon api".
+description: Integrate against the Wavelength wallet daemon (darepod) over its gRPC or REST API. Use when calling WalletService RPCs, building a backend or non-browser integration, connecting to darepod, or mapping REST routes under /v1/wallet/. Triggers include "darepod", "WalletService", "walletdk grpc", "walletdk rest api", and "wallet daemon api".
 ---
 
-# WalletDK daemon API integration
+# Wavelength daemon API integration
 
 The wallet daemon `darepod` exposes WalletService over gRPC with a matching
 REST gateway. This is the remote integration surface for backends and

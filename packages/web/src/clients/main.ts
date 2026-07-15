@@ -1,8 +1,8 @@
 import {
-  BaseWalletDKClient,
+  BaseWavelengthClient,
   camelizeKeys,
   Entry,
-  WalletDKError,
+  WavelengthError,
 } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest';
 import type { WebClientOptions } from '../index';
@@ -21,7 +21,7 @@ import { ActivityHandle, debugTs, errorMessage } from '../util';
  * preferred); select it via createWebClient({ runtimeThread: 'main' }). Unlike
  * worker mode it blocks rendering while the runtime is busy.
  */
-export class MainThreadWalletDKClient extends BaseWalletDKClient {
+export class MainThreadWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private loadPromise: Promise<void> | null = null;
   private activityHandle: ActivityHandle | null = null;
@@ -57,7 +57,7 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
     };
 
     if (typeof globalWallet.walletdkCall !== 'function') {
-      throw new WalletDKError(
+      throw new WavelengthError(
         'walletdk wasm runtime is not ready',
         'runtime_not_ready',
       );
@@ -74,7 +74,7 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
 
       return camelizeKeys<T>(result);
     } catch (err) {
-      throw new WalletDKError(errorMessage(err), 'walletdk_error', {
+      throw new WavelengthError(errorMessage(err), 'walletdk_error', {
         cause: err,
       });
     }
@@ -93,7 +93,7 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
 
     const call = walletdkCall();
     if (typeof call !== 'function') {
-      throw new WalletDKError(
+      throw new WavelengthError(
         'walletdk wasm runtime is not ready',
         'runtime_not_ready',
       );
@@ -167,7 +167,7 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
       }
     ).Go;
     if (!goCtor) {
-      throw new WalletDKError('Go WASM runtime did not load');
+      throw new WavelengthError('Go WASM runtime did not load');
     }
 
     const go = new goCtor();
@@ -180,13 +180,13 @@ export class MainThreadWalletDKClient extends BaseWalletDKClient {
     let ready = false;
     const bootExit = runPromise.then(
       () => {
-        throw new WalletDKError(
+        throw new WavelengthError(
           'walletdk runtime exited before signaling ready',
           'runtime_not_ready',
         );
       },
       (err) => {
-        throw new WalletDKError(errorMessage(err), 'runtime_not_ready', {
+        throw new WavelengthError(errorMessage(err), 'runtime_not_ready', {
           cause: err,
         });
       },

@@ -1,6 +1,6 @@
 ---
 title: walletdk-web
-description: Browser SDK factory, configuration, and passkey ceremony API for WalletDK web apps.
+description: Browser SDK factory, configuration, and passkey ceremony API for Wavelength web apps.
 pageLayout: reference
 ---
 
@@ -11,10 +11,10 @@ import Returns from '~/components/mdx/Returns.astro';
 import Callout from '~/components/mdx/Callout.astro';
 import ApiTypeLabel from '~/components/mdx/ApiTypeLabel.astro';
 
-`@lightninglabs/wavelength-web` is the browser/wasm transport for WalletDK: it
+`@lightninglabs/wavelength-web` is the browser/wasm transport for Wavelength: it
 runs the embedded daemon as WebAssembly, either in a dedicated Web Worker (the
 default) or on the page's main thread, and exposes it as a standard
-[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient). `createWebWalletEngine()`
+[`WavelengthClient`](/reference/walletdk-core/#WavelengthClient). `createWebWalletEngine()`
 wraps that client in a [`WalletEngine`](/reference/walletdk-core/#WalletEngine)
 in one call, which is the entry point most apps want. It also ships the
 browser (WebAuthn/PRF) passkey ceremony.
@@ -29,7 +29,7 @@ also depend on `@lightninglabs/wavelength-core` directly.
 
 export const createWebClientSig = `function createWebClient(
   options?: WebClientOptions,
-): WalletDKClient`;
+): WavelengthClient`;
 
 export const webClientOptionsSig = `type WebClientOptions = {
   workerURL?: string;
@@ -50,7 +50,7 @@ export const webWalletEngineOptionsSig = `type WebWalletEngineOptions = WebClien
 
 export const runtimeThreadSig = `type RuntimeThread = 'main' | 'worker';`;
 
-export const mainThreadWalletDKClientSig = `class MainThreadWalletDKClient implements WalletDKClient {
+export const mainThreadWavelengthClientSig = `class MainThreadWavelengthClient implements WavelengthClient {
   constructor(options?: WebClientOptions);
 }`;
 
@@ -150,12 +150,12 @@ The per-network endpoint values are on the
 
 <ApiSymbol name="createWebClient" kind="function">
 
-Creates and returns a `WalletDKClient` that runs the embedded daemon in the
+Creates and returns a `WavelengthClient` that runs the embedded daemon in the
 browser. Call once at application startup, then wrap it with
 [`createWalletEngine`](/reference/walletdk-core/#createWalletEngine) from `@lightninglabs/wavelength-core` (or use
 [`createWebWalletEngine`](#creating-an-engine) below to do both in one call)
 or call `start(defaultConfig(network))` directly. Defaults to the Web Worker
-transport ([`WorkerWalletDKClient`](#transports)); pass `runtimeThread:
+transport ([`WorkerWavelengthClient`](#transports)); pass `runtimeThread:
 'main'` to run on the page's main thread instead.
 
 <Signature title="walletdk-web.d.ts" code={createWebClientSig} />
@@ -164,7 +164,7 @@ transport ([`WorkerWalletDKClient`](#transports)); pass `runtimeThread:
   { name: 'options', type: 'WebClientOptions', desc: 'Optional browser-specific settings. Defaults to worker-thread mode with page-relative runtime assets.' },
 ]} />
 
-<Returns type="WalletDKClient">
+<Returns type="WavelengthClient">
 A live client instance. Call `ready()` to wait for the WASM runtime to load, then `start(config)` to boot the daemon.
 </Returns>
 
@@ -181,7 +181,7 @@ Browser-specific options for `createWebClient`. The config passed to
 <ParamsTable rows={[
   { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("./walletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (walletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
-  { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWalletDKClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
+  { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWavelengthClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
   { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs callRaw calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
 ]} />
 
@@ -202,7 +202,7 @@ support).
 
 <ApiSymbol name="createWebWalletEngine" kind="function">
 
-Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the browser/wasm transport: the one-call setup for a web app. It builds the client with `createWebClient()` internally, so you only need this one factory. Pass the result to `WalletDKProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly without React.
+Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the browser/wasm transport: the one-call setup for a web app. It builds the client with `createWebClient()` internally, so you only need this one factory. Pass the result to `WavelengthProvider` from [walletdk-react](/reference/walletdk-react/), or drive it directly without React.
 
 <Signature title="walletdk-web.d.ts" code={createWebWalletEngineSig} />
 
@@ -231,7 +231,7 @@ The browser-specific settings from `WebClientOptions` combined with [`WalletEngi
 
 ```tsx title="main.tsx"
 import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: 'https://your-host/walletdk/',
@@ -240,7 +240,7 @@ const engine = createWebWalletEngine({
 });
 
 export function Root() {
-  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
+  return <WavelengthProvider engine={engine}>{/* your app */}</WavelengthProvider>;
 }
 ```
 
@@ -248,15 +248,15 @@ export function Root() {
 
 ## Transports
 
-<ApiSymbol name="MainThreadWalletDKClient" kind="class">
+<ApiSymbol name="MainThreadWavelengthClient" kind="class">
 
 Runs the wasm runtime on the page's main thread. It implements
-[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient) directly and is
+[`WavelengthClient`](/reference/walletdk-core/#WavelengthClient) directly and is
 the escape hatch for environments without Web Worker support (or where
 main-thread execution is preferred for another reason). Unlike worker mode it
 blocks rendering while the runtime is busy.
 
-<Signature title="walletdk-web.d.ts" code={mainThreadWalletDKClientSig} />
+<Signature title="walletdk-web.d.ts" code={mainThreadWavelengthClientSig} />
 
 <ParamsTable rows={[
   { name: 'options', type: 'WebClientOptions', desc: 'Same options accepted by createWebClient. runtimeThread is ignored here since the constructor already picks the main thread.' },
@@ -269,7 +269,7 @@ runtime).
 
 </ApiSymbol>
 
-`WorkerWalletDKClient` is the default transport returned by `createWebClient()`
+`WorkerWavelengthClient` is the default transport returned by `createWebClient()`
 (when `runtimeThread` is unset or `'worker'`). It is not exported directly,
 select it via `createWebClient()`. Worker mode requires a daemon that stores
 the encrypted seed in OPFS rather than `localStorage` (which is window-only
@@ -481,7 +481,7 @@ credential, which lets the OS unlock it directly without showing a chooser.
 ## Re-exported from walletdk-core
 
 Types like `SendRequest` and `ReceiveRequest` referenced by
-[`WalletDKClient`](/reference/walletdk-core/#WalletDKClient) methods
+[`WavelengthClient`](/reference/walletdk-core/#WavelengthClient) methods
 (`send`, `prepareSend`, `receive`, and so on) originate in
 [`@lightninglabs/wavelength-core`](/reference/walletdk-core/) and are available
 here only because `walletdk-web` re-exports the entire core package (see the
@@ -524,6 +524,6 @@ Parameters accepted by `receive()`.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
-- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider` and the hooks that consume an engine created here.
+- [walletdk-core reference](/reference/walletdk-core/) for `WavelengthClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
+- [walletdk-react reference](/reference/walletdk-react/) for `WavelengthProvider` and the hooks that consume an engine created here.
 - [Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for a full self-hosting walkthrough of the files listed above.

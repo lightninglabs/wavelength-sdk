@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { convertPageHtml } from './convert.ts';
 
 const page = (body: string, head = '') => `<!doctype html><html><head>
-  <title>Use a passkey | WalletDK</title>
+  <title>Use a passkey | Wavelength</title>
   <meta name="description" content="Protect the wallet with a passkey.">
   ${head}</head><body><main data-pagefind-body>${body}</main></body></html>`;
 

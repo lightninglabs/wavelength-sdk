@@ -85,7 +85,7 @@ export function TopBar({ network }: { network: string }) {
           <View style={styles.brandTile}>
             <Bitcoin size={16} color="#ffffff" />
           </View>
-          <Text style={styles.brandName}>WalletDK</Text>
+          <Text style={styles.brandName}>Wavelength</Text>
         </View>
         <View style={styles.status}>
           <View

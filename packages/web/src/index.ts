@@ -1,5 +1,5 @@
 import {
-  WalletDKClient,
+  WavelengthClient,
   PasskeyCeremony,
   createWalletEngine,
   type DistributiveOmit,
@@ -11,8 +11,8 @@ import {
   registerPasskeyWallet,
   supportsPasskeyPrf,
 } from './passkey';
-import { MainThreadWalletDKClient } from './clients/main';
-import { WorkerWalletDKClient } from './clients/worker';
+import { MainThreadWavelengthClient } from './clients/main';
+import { WorkerWavelengthClient } from './clients/worker';
 
 /**
  * Selects which thread the wasm runtime runs on: 'worker' (default) in a
@@ -57,16 +57,16 @@ export type WebClientOptions = {
 };
 
 /**
- * Creates a {@link WalletDKClient} backed by the browser/wasm transport. Defaults
+ * Creates a {@link WavelengthClient} backed by the browser/wasm transport. Defaults
  * to the Web Worker transport; pass runtimeThread: 'main' to run the runtime on
  * the page's main thread instead.
  */
 export function createWebClient(
   options: WebClientOptions = {},
-): WalletDKClient {
+): WavelengthClient {
   return options.runtimeThread === 'main'
-    ? new MainThreadWalletDKClient(options)
-    : new WorkerWalletDKClient(options);
+    ? new MainThreadWavelengthClient(options)
+    : new WorkerWavelengthClient(options);
 }
 
 /**
@@ -80,7 +80,7 @@ export type WebWalletEngineOptions = WebClientOptions &
 
 /**
  * Creates a {@link WalletEngine} over the browser/wasm transport: the
- * one-call setup for a web app. Pass the engine to WalletDKProvider from
+ * one-call setup for a web app. Pass the engine to WavelengthProvider from
  * \@lightninglabs/wavelength-react, or drive it directly without React.
  */
 export function createWebWalletEngine(
@@ -109,7 +109,7 @@ export const webPasskeyCeremony: PasskeyCeremony = {
 
 export { defaultConfig } from './config';
 
-export { MainThreadWalletDKClient } from './clients/main';
+export { MainThreadWavelengthClient } from './clients/main';
 
 export { RUNTIME_ASSETS, RUNTIME_ASSET_FILES } from './runtime-manifest';
 

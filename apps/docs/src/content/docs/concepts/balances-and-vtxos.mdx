@@ -1,24 +1,24 @@
 ---
 title: Balances & VTXOs
-description: How WalletDK represents spendable funds as Virtual Transaction Outputs (VTXOs) and tracks their lifecycle from boarding through Ark rounds to final confirmation.
+description: How Wavelength represents spendable funds as Virtual Transaction Outputs (VTXOs) and tracks their lifecycle from boarding through Ark rounds to final confirmation.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
 ## VTXOs
 
-WalletDK tracks spendable funds the way Ark does: as off-chain outputs bundled into the operator's periodic batch transactions, not as a single on-chain UTXO in your app. The sections below walk through that model, how boarding turns into live balance, and why confirmed and pending numbers can differ.
+Wavelength tracks spendable funds the way Ark does: as off-chain outputs bundled into the operator's periodic batch transactions, not as a single on-chain UTXO in your app. The sections below walk through that model, how boarding turns into live balance, and why confirmed and pending numbers can differ.
 
 In Ark, your spendable balance is not a single on-chain UTXO in your wallet. It is a set of **Virtual Transaction Outputs (VTXOs)**: off-chain outputs created inside the operator's periodic **batch transactions**. Each batch builds a Virtual Transaction Tree (VTXT) whose leaves are individual VTXOs assigned to participants.
 
-A VTXO behaves like a UTXO you can spend, but it lives in Ark's shared batch structure until you exit, refresh, or the operator sweeps expired batches. WalletDK tracks every live VTXO the daemon knows about and uses them as inputs when you send, swap, or leave.
+A VTXO behaves like a UTXO you can spend, but it lives in Ark's shared batch structure until you exit, refresh, or the operator sweeps expired batches. Wavelength tracks every live VTXO the daemon knows about and uses them as inputs when you send, swap, or leave.
 
 Each VTXO carries two spend paths:
 
 - **Collaborative path**: you and the Ark operator co-sign, so the output can move instantly inside Ark (for example through a cooperative leave or an out-of-round transfer).
 - **Unilateral exit path**: you alone can broadcast after a relative timelock (CSV delay) if the operator stops cooperating.
 
-VTXOs also have a **sweep delay** tied to their batch. Before the operator becomes eligible to sweep the batch, the VTXO should either be refreshed through a **batch swap** (getting a fresh VTXO in a newer batch) or moved to on-chain Bitcoin. This refresh is daemon-driven: WalletDK detects the approaching expiry and submits the batch swap for you, so there is no method to call yourself. WalletDK surfaces expiry pressure through balance and activity updates rather than asking you to manage raw outpoints manually.
+VTXOs also have a **sweep delay** tied to their batch. Before the operator becomes eligible to sweep the batch, the VTXO should either be refreshed through a **batch swap** (getting a fresh VTXO in a newer batch) or moved to on-chain Bitcoin. This refresh is daemon-driven: Wavelength detects the approaching expiry and submits the batch swap for you, so there is no method to call yourself. Wavelength surfaces expiry pressure through balance and activity updates rather than asking you to manage raw outpoints manually.
 
 <Callout type="note">
 `balance()` and `list({ view: 'vtxos' })` read from the embedded daemon's view of live VTXOs. The operator's indexer is authoritative on the network side; the daemon reconciles that view as rounds complete and swaps settle.
@@ -26,7 +26,7 @@ VTXOs also have a **sweep delay** tied to their batch. Before the operator becom
 
 ## Confirmed vs pending
 
-When you show balance in a UI, users usually want one "available" number. WalletDK splits the picture into confirmed and pending fields so you can explain why spendable funds lag behind what they see on-chain or in the activity feed.
+When you show balance in a UI, users usually want one "available" number. Wavelength splits the picture into confirmed and pending fields so you can explain why spendable funds lag behind what they see on-chain or in the activity feed.
 
 `balance()` returns three satoshi fields that answer different questions:
 
@@ -47,7 +47,7 @@ On-chain Bitcoin enters Ark through **boarding**:
 3. Rounds advance on a fixed cadence (often around one minute on public test networks; roughly 90 seconds end-to-end is a reasonable UX expectation). During request collection the operator aggregates boarding inputs, VTXO creations, leaves, and batch swaps into one batch transaction.
 4. When the round completes, your boarded sats become one or more **VTXOs** in the new batch. The deposit entry moves from pending toward confirmed, and confirmed balance increases.
 
-Every VTXO you receive this way inherits the batch's **CSV expiry** (sweep delay). As that horizon approaches, the VTXO is **refreshed** with a **batch swap**: forfeiting the old VTXO in a round in exchange for a fresh one in a newer batch, which resets the expiry clock. WalletDK handles the round interaction; you do not pick batch transaction IDs yourself. See [Leaving Ark](/concepts/leaving-ark/) for the `exit()` / `getExitPlan()` / `sweepWallet()` APIs that apply if you choose to move funds on-chain instead of refreshing.
+Every VTXO you receive this way inherits the batch's **CSV expiry** (sweep delay). As that horizon approaches, the VTXO is **refreshed** with a **batch swap**: forfeiting the old VTXO in a round in exchange for a fresh one in a newer batch, which resets the expiry clock. Wavelength handles the round interaction; you do not pick batch transaction IDs yourself. See [Leaving Ark](/concepts/leaving-ark/) for the `exit()` / `getExitPlan()` / `sweepWallet()` APIs that apply if you choose to move funds on-chain instead of refreshing.
 
 <Callout type="tip">
 Boarding is not instant. Show pending inbound balance and the deposit entry's phase (`waiting_for_confirmation`, then `settling`) so users know their on-chain payment is recognized but not yet spendable inside Ark.

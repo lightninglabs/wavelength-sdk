@@ -1,4 +1,4 @@
-import type { WalletDKClient } from '../client.ts';
+import type { WavelengthClient } from '../client.ts';
 import {
   ACTIVITY_DEBOUNCE_MS,
   STREAM_BACKOFF_CAP_MS,
@@ -25,13 +25,13 @@ export class ActivityStream {
   // second concurrent startActivity() and double-subscribe.
   #opening = false;
   #opts: {
-    client: Pick<WalletDKClient, 'startActivity' | 'stopActivity'>;
+    client: Pick<WavelengthClient, 'startActivity' | 'stopActivity'>;
     onActivity: () => void;
     onDead: (error: Error) => void;
   };
 
   constructor(opts: {
-    client: Pick<WalletDKClient, 'startActivity' | 'stopActivity'>;
+    client: Pick<WavelengthClient, 'startActivity' | 'stopActivity'>;
     onActivity: () => void;
     onDead: (error: Error) => void;
   }) {

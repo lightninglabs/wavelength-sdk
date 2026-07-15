@@ -12,7 +12,7 @@ related:
 
 ## Send over Lightning
 
-WalletDK uses a send swap to route a Lightning payment from your Ark balance.
+Wavelength uses a send swap to route a Lightning payment from your Ark balance.
 Call `prepare({ invoice })` from [`useWalletPrepareSend()`](/reference/walletdk-react/#useWalletPrepareSend) to get a fee quote
 and a single-use `sendIntentId`. Pass the result to `sendPrepared()` from
 [`useWalletSend()`](/reference/walletdk-react/#useWalletSend) to execute.
@@ -105,7 +105,7 @@ await send({ onchainAddress: address, sweepAll: true });
 
 ## Handle errors
 
-`send` and `sendPrepared` from [`useWalletSend()`](/reference/walletdk-react/#useWalletSend) throw a [`WalletDKError`](/reference/walletdk-core/#WalletDKError) on
+`send` and `sendPrepared` from [`useWalletSend()`](/reference/walletdk-react/#useWalletSend) throw a [`WavelengthError`](/reference/walletdk-core/#WavelengthError) on
 failure and set the hook's `sendError`, which is always `Error | null`. Check
 `err.code` for a machine-readable reason. Display `err.message` to the user.
 
@@ -114,7 +114,7 @@ retry. Errors thrown during `sendPrepared` may indicate the payment was
 already sent; check the activity feed before retrying.
 
 ```tsx title="send.tsx"
-import { useWalletSend, WalletDKError } from '@lightninglabs/wavelength-react';
+import { useWalletSend, WavelengthError } from '@lightninglabs/wavelength-react';
 
 function SafeSend() {
   const { send, sendError, resetSend } = useWalletSend();
@@ -124,7 +124,7 @@ function SafeSend() {
     try {
       await send({ invoice: bolt11 });
     } catch (err) {
-      if (err instanceof WalletDKError) {
+      if (err instanceof WavelengthError) {
         console.error('Payment failed:', err.code, err.message);
       }
     }

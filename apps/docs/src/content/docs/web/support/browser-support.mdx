@@ -1,13 +1,13 @@
 ---
 title: Browser support
-description: The compatibility matrix showing which browsers and versions support WalletDK's WebAssembly runtime, OPFS storage, and passkey features.
+description: The compatibility matrix showing which browsers and versions support Wavelength's WebAssembly runtime, OPFS storage, and passkey features.
 ---
 
 import FieldCards from '~/components/mdx/FieldCards.astro';
 
 ## Matrix
 
-WalletDK targets evergreen desktop and mobile browsers with mature WebAssembly,
+Wavelength targets evergreen desktop and mobile browsers with mature WebAssembly,
 Worker, and storage APIs. Minimum versions below are **floors for the WASM
 runtime**; passkeys and OPFS persistence have stricter requirements noted in
 their columns.
@@ -77,7 +77,7 @@ real wallets. If OPFS itself is unavailable, wallet persistence is not
 currently guaranteed; treat this as an open question and verify behavior for
 your target environment before relying on it.
 
-**WebAuthn passkeys:** WalletDK derives wallet keys from the WebAuthn **PRF**
+**WebAuthn passkeys:** Wavelength derives wallet keys from the WebAuthn **PRF**
 extension. `webPasskeyCeremony.supportsPasskeyPrf()` checks for a user-verifying
 platform authenticator, but the authenticator must still return a PRF result at
 ceremony time. Gate passkey UI on the hook's `supported` flag: it is `null`

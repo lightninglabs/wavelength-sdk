@@ -1,6 +1,6 @@
 ---
 title: Create a wallet (password)
-description: Create a password-protected WalletDK wallet in a React app, with inline code at each step.
+description: Create a password-protected Wavelength wallet in a React app, with inline code at each step.
 pageLayout: guide
 related:
   - guides/restore-a-wallet
@@ -13,7 +13,7 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## Install the packages
 
-WalletDK ships as a transport package, one per platform, plus
+Wavelength ships as a transport package, one per platform, plus
 `@lightninglabs/wavelength-react`, the React bindings. All are ES modules with
 full TypeScript declarations.
 
@@ -50,7 +50,7 @@ native runtime binaries before your first build.
 ## Add the provider
 
 Build a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) outside your component tree and wrap your app in
-[`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider) so every component below it can reach the wallet through
+[`WavelengthProvider`](/reference/walletdk-react/#WavelengthProvider) so every component below it can reach the wallet through
 hooks. Pass `config` and `autoStart: true` so the engine boots the embedded
 daemon on its own as soon as the runtime is ready; no boot effect needed.
 
@@ -65,7 +65,7 @@ place.
 
 ```tsx title="App.tsx"
 import { createWebWalletEngine } from '@lightninglabs/wavelength-web';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 import { defaultConfig } from '@lightninglabs/wavelength-web';
 
 const engine = createWebWalletEngine({
@@ -76,9 +76,9 @@ const engine = createWebWalletEngine({
 
 export function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
@@ -90,7 +90,7 @@ export function App() {
 
 ```tsx title="App.tsx"
 import { createNativeWalletEngine } from '@lightninglabs/wavelength-react-native';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 import { defaultConfig } from '@lightninglabs/wavelength-react-native';
 
 const engine = createNativeWalletEngine({
@@ -100,9 +100,9 @@ const engine = createNativeWalletEngine({
 
 export function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```

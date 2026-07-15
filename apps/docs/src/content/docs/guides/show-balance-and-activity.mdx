@@ -1,6 +1,6 @@
 ---
 title: Show balance & activity
-description: How to read the WalletDK balance and subscribe to the activity stream to display transaction history in your UI.
+description: How to read the Wavelength balance and subscribe to the activity stream to display transaction history in your UI.
 pageLayout: guide
 related:
   - guides/send-a-payment
@@ -9,7 +9,7 @@ related:
 ---
 
 
-This guide assumes your app already renders inside a [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider) with a
+This guide assumes your app already renders inside a [`WavelengthProvider`](/reference/walletdk-react/#WavelengthProvider) with a
 wallet unlocked and ready. See [Create a wallet](/guides/create-a-wallet/).
 
 ## Read the balance
@@ -49,7 +49,7 @@ transaction history array directly. Each [`Entry`](/reference/walletdk-core/#Ent
 
 The engine stays live: new entries arrive through the activity stream and
 pending entries update in place when they settle. This live-update behavior
-comes from the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) your [`WalletDKProvider`](/reference/walletdk-react/#WalletDKProvider) wraps; see
+comes from the [`WalletEngine`](/reference/walletdk-core/#WalletEngine) your [`WavelengthProvider`](/reference/walletdk-react/#WavelengthProvider) wraps; see
 [Create a wallet](/guides/create-a-wallet/) for how it is set up. No
 polling or manual refresh is needed.
 

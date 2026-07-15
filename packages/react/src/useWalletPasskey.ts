@@ -25,7 +25,7 @@ export type PasskeyWalletOutcome = {
  * walletdk-react transport-free.
  * Creation and opening track separately because apps render them on different
  * screens. A cancelled ceremony (PasskeyCancelledError) rejects but is never
- * recorded into createError/openError. Must be used inside WalletDKProvider.
+ * recorded into createError/openError. Must be used inside WavelengthProvider.
  */
 export function useWalletPasskey(ceremony: PasskeyCeremony): {
   /**

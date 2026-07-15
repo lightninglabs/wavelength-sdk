@@ -1,4 +1,4 @@
-// A deterministic in-memory WalletDKClient for engine and hook tests, modeled
+// A deterministic in-memory WavelengthClient for engine and hook tests, modeled
 // on core/base-client.test.ts's FakeClient but implementing the interface
 // directly: the engine needs subscribe/startActivity/ready, not just callRaw.
 //
@@ -35,9 +35,9 @@ import type {
   SweepWalletResult,
   UnlockWalletRequest,
   UnlockWalletResult,
-  WalletDKClient,
-  WalletDKEvent,
-  WalletDKListener,
+  WavelengthClient,
+  WavelengthEvent,
+  WavelengthListener,
   WalletInfo,
   WalletStatus,
 } from '../index.ts';
@@ -65,15 +65,15 @@ function deferred<T>(): Deferred<T> {
 export type RecordedCall = { method: string; args: unknown[] };
 
 /**
- * A hand-rolled WalletDKClient fake. Configure per-method results via the setter
+ * A hand-rolled WavelengthClient fake. Configure per-method results via the setter
  * helpers, drive lifecycle with resolveReady/rejectReady and emit, and read back
  * what the engine and hook tests called through `calls`.
  */
-export class FakeWalletDKClient implements WalletDKClient {
+export class FakeWavelengthClient implements WavelengthClient {
   /** Every method invocation in order, for asserting what the engine and hook tests called. */
   readonly calls: RecordedCall[] = [];
 
-  private readonly listeners = new Set<WalletDKListener>();
+  private readonly listeners = new Set<WavelengthListener>();
 
   // Per-method override: a function producing the result (or a rejection). When
   // absent, the method returns the sensible default below.
@@ -132,7 +132,7 @@ export class FakeWalletDKClient implements WalletDKClient {
   }
 
   /** Delivers a runtime event to every current subscriber. */
-  emit(event: WalletDKEvent): void {
+  emit(event: WavelengthEvent): void {
     for (const listener of [...this.listeners]) {
       listener(event);
     }
@@ -249,7 +249,7 @@ export class FakeWalletDKClient implements WalletDKClient {
     return this.run('callRaw', [method, params], () => ({}) as T);
   }
 
-  subscribe(listener: WalletDKListener): () => void {
+  subscribe(listener: WavelengthListener): () => void {
     this.listeners.add(listener);
 
     return () => {

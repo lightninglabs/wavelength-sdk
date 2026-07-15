@@ -2,9 +2,9 @@ import {
   ActivityStreamPayload,
   camelizeKeys,
   Entry,
-  WalletDKEvent,
-  WalletDKEventType,
-  WalletDKLogPayload,
+  WavelengthEvent,
+  WavelengthEventType,
+  WavelengthLogPayload,
 } from '@lightninglabs/wavelength-core';
 export { errorMessage } from '@lightninglabs/wavelength-core';
 
@@ -37,14 +37,14 @@ export function debugTs(): string {
 
 /**
  * Maps a raw event forwarded across the worker boundary onto the typed
- * {@link WalletDKEvent} union, camelizing the payloads that carry daemon JSON.
+ * {@link WavelengthEvent} union, camelizing the payloads that carry daemon JSON.
  * The postMessage boundary is untyped, so the mapping is explicit per
  * discriminant.
  */
-export function toWalletDKEvent(raw: {
-  type: WalletDKEventType;
+export function toWavelengthEvent(raw: {
+  type: WavelengthEventType;
   payload?: unknown;
-}): WalletDKEvent {
+}): WavelengthEvent {
   switch (raw.type) {
   case 'activity':
     return { type: 'activity', payload: camelizeKeys<Entry>(raw.payload) };
@@ -60,7 +60,7 @@ export function toWalletDKEvent(raw: {
   case 'log':
     return {
       type: 'log',
-      payload: camelizeKeys<WalletDKLogPayload>(raw.payload),
+      payload: camelizeKeys<WavelengthLogPayload>(raw.payload),
     };
 
   case 'runtimeStopped':

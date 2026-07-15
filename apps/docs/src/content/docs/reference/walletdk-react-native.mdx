@@ -17,8 +17,8 @@ surface is stable; iOS passkey support is still experimental.
 </Callout>
 
 `@lightninglabs/wavelength-react-native` is the React Native transport for
-WalletDK: the daemon compiled into the app binary via gomobile bindings,
-exposed as a standard [`WalletDKClient`](/reference/walletdk-core/#WalletDKClient).
+Wavelength: the daemon compiled into the app binary via gomobile bindings,
+exposed as a standard [`WavelengthClient`](/reference/walletdk-core/#WavelengthClient).
 [`createNativeWalletEngine()`](#createNativeWalletEngine) wraps that client in a
 [`WalletEngine`](/reference/walletdk-core/#WalletEngine) in one call, which is
 the entry point most apps want. It also ships the native (Android Credential
@@ -32,7 +32,7 @@ factory, every request/result type, every enum, and `defaultConfig()`. There is
 no need to also depend on `@lightninglabs/wavelength-core` directly.
 </Callout>
 
-export const createNativeClientSig = `function createNativeClient(): WalletDKClient`;
+export const createNativeClientSig = `function createNativeClient(): WavelengthClient`;
 
 export const createNativeWalletEngineSig = `function createNativeWalletEngine(
   options?: NativeWalletEngineOptions,
@@ -96,7 +96,7 @@ The per-network endpoint values are on the
 
 <ApiSymbol name="createNativeClient" kind="function">
 
-Creates and returns a `WalletDKClient` backed by the React Native transport:
+Creates and returns a `WavelengthClient` backed by the React Native transport:
 the daemon compiled into the app via the gomobile bindings. Takes no options
 in this release; the signature reserves an options object for future use.
 Activity arrives as typed `activity` events, re-emitted here from native
@@ -104,7 +104,7 @@ Activity arrives as typed `activity` events, re-emitted here from native
 
 <Signature title="walletdk-react-native.d.ts" code={createNativeClientSig} />
 
-<Returns type="WalletDKClient">
+<Returns type="WavelengthClient">
 A live client instance. Call `ready()` (resolves immediately, since the
 runtime is already compiled in) then `start(config)` to boot the daemon.
 </Returns>
@@ -113,7 +113,7 @@ runtime is already compiled in) then `start(config)` to boot the daemon.
 
 <ApiSymbol name="createNativeWalletEngine" kind="function">
 
-Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the React Native transport: the one-call setup for an RN app. It builds the client with `createNativeClient()` internally, so you only need this one factory. Pass the result to `WalletDKProvider` from [walletdk-react](/reference/walletdk-react/).
+Creates a [`WalletEngine`](/reference/walletdk-core/#WalletEngine) over the React Native transport: the one-call setup for an RN app. It builds the client with `createNativeClient()` internally, so you only need this one factory. Pass the result to `WavelengthProvider` from [walletdk-react](/reference/walletdk-react/).
 
 <Signature title="walletdk-react-native.d.ts" code={createNativeWalletEngineSig} />
 
@@ -138,7 +138,7 @@ A live engine driving a freshly built native client. See [`WalletEngine`](/refer
 
 ```tsx title="App.tsx"
 import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -146,7 +146,7 @@ const engine = createNativeWalletEngine({
 });
 
 export default function Root() {
-  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
+  return <WavelengthProvider engine={engine}>{/* your app */}</WavelengthProvider>;
 }
 ```
 
@@ -217,6 +217,6 @@ until the runtime has started.
 
 ## See also
 
-- [walletdk-core reference](/reference/walletdk-core/) for `WalletDKClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
-- [walletdk-react reference](/reference/walletdk-react/) for `WalletDKProvider`, `useWalletPasskey`, and the other hooks that consume an engine created here.
+- [walletdk-core reference](/reference/walletdk-core/) for `WavelengthClient`, `WalletEngine`, `RuntimeConfig`, `WalletInfo`, `Balance`, `Entry`, and every other re-exported type.
+- [walletdk-react reference](/reference/walletdk-react/) for `WavelengthProvider`, `useWalletPasskey`, and the other hooks that consume an engine created here.
 - [Passkey setup](/react-native/get-started/passkey-setup/) for the Android and iOS domain-association walkthrough required by `createNativePasskeyCeremony`.

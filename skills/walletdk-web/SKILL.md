@@ -1,11 +1,11 @@
 ---
 name: walletdk-web
-description: Embed a self-custodial Lightning wallet in a web app with the WalletDK SDK (@lightninglabs/wavelength-web, @lightninglabs/wavelength-react, @lightninglabs/wavelength-core). Use when integrating WalletDK into a browser or React app, creating a wallet client, sending or receiving Lightning payments in the browser, wiring WalletDKProvider, hosting wasm runtime assets, or adding passkey protection. Triggers include "walletdk", "embed a Lightning wallet", "createWebWalletEngine", "WalletDKProvider", "useWalletPasskey", and "walletdk runtime assets".
+description: Embed a self-custodial Lightning wallet in a web app with the Wavelength SDK (@lightninglabs/wavelength-web, @lightninglabs/wavelength-react, @lightninglabs/wavelength-core). Use when integrating Wavelength into a browser or React app, creating a wallet client, sending or receiving Lightning payments in the browser, wiring WavelengthProvider, hosting wasm runtime assets, or adding passkey protection. Triggers include "walletdk", "embed a Lightning wallet", "createWebWalletEngine", "WavelengthProvider", "useWalletPasskey", and "walletdk runtime assets".
 ---
 
-# WalletDK web integration
+# Wavelength web integration
 
-WalletDK embeds a self-custodial Lightning wallet in a web app. The wallet
+Wavelength embeds a self-custodial Lightning wallet in a web app. The wallet
 daemon runs as WebAssembly in a Web Worker in the user's browser; there is no
 node to run, no channels to open, and no inbound liquidity to manage.
 
@@ -20,7 +20,7 @@ Check the npm registry for current versions; do not rely on memorized ones.
   builds a raw client; `createWebWalletEngine()` wraps it in a `WalletEngine`
   and is the factory to use with the React provider. Re-exports everything
   from core.
-- `@lightninglabs/wavelength-react`: `<WalletDKProvider>` plus hooks. Takes an
+- `@lightninglabs/wavelength-react`: `<WavelengthProvider>` plus hooks. Takes an
   injected engine; it does not depend on the web package.
 - `@lightninglabs/wavelength-core`: the transport-agnostic contract and types.
   Install it directly only when building a custom binding.
@@ -40,7 +40,7 @@ Check the npm registry for current versions; do not rely on memorized ones.
 ## Critical rules
 
 - Create the engine with `createWebWalletEngine()` from walletdk-web and
-  inject it into React via `<WalletDKProvider engine={...}>`. Never import
+  inject it into React via `<WavelengthProvider engine={...}>`. Never import
   walletdk-web inside framework-agnostic or react-only modules; the react
   package deliberately has no dependency on the web transport.
 - The wasm runtime assets are self-hosted by the embedding app. Copy them to

@@ -1,6 +1,6 @@
 ---
 title: React
-description: How to integrate WalletDK into a React application using the provider-injected engine, the available hooks, and the passkey ceremony helpers.
+description: How to integrate Wavelength into a React application using the provider-injected engine, the available hooks, and the passkey ceremony helpers.
 ---
 
 import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
@@ -17,7 +17,7 @@ transport, `createNativeWalletEngine` from
 for React Native).
 
 Build the engine once, typically at module scope outside any component, and
-pass it to `WalletDKProvider`. Set `autoStart: true` (with `config`) to boot
+pass it to `WavelengthProvider`. Set `autoStart: true` (with `config`) to boot
 the runtime as soon as it is ready, instead of wiring a boot `useEffect`
 yourself:
 
@@ -26,7 +26,7 @@ yourself:
 
 ```tsx title="main.tsx"
 import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
   runtimeBaseUrl: 'https://your-host/walletdk/',
@@ -35,7 +35,7 @@ const engine = createWebWalletEngine({
 });
 
 export function App() {
-  return <WalletDKProvider engine={engine}>{/* your app */}</WalletDKProvider>;
+  return <WavelengthProvider engine={engine}>{/* your app */}</WavelengthProvider>;
 }
 ```
 
@@ -44,7 +44,7 @@ export function App() {
 
 ```tsx title="App.tsx"
 import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
   config: defaultConfig('signet'),
@@ -53,9 +53,9 @@ const engine = createNativeWalletEngine({
 
 export default function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       {/* your app */}
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
@@ -63,7 +63,7 @@ export default function App() {
 </div>
 </PlatformTabs>
 
-The engine is built once outside the component tree, so `WalletDKProvider`
+The engine is built once outside the component tree, so `WavelengthProvider`
 owns nothing beyond publishing it to `useSyncExternalStore` subscribers: it
 never disposes the engine on unmount. Every lifecycle behavior (the sync-poll
 while `phase === 'syncing'`, activity-driven balance refresh, the restore

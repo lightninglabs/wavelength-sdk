@@ -1,6 +1,6 @@
 # @lightninglabs/wavelength-react-native
 
-The React Native transport for [WalletDK](../../README.md): embed a
+The React Native transport for [Wavelength](../../README.md): embed a
 self-custodial Lightning wallet directly in your app. Your users send and
 receive Lightning payments with no node to run, no channels to open, and no
 inbound liquidity to manage, while the keys stay on their own device. The
@@ -37,22 +37,22 @@ build.
 ## Quick start
 
 ```tsx
-import { WalletDKProvider, useWallet } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider, useWallet } from '@lightninglabs/wavelength-react';
 import { createNativeWalletEngine } from '@lightninglabs/wavelength-react-native';
 
 const engine = createNativeWalletEngine();
 
 export default function App() {
   return (
-    <WalletDKProvider engine={engine}>
+    <WavelengthProvider engine={engine}>
       <Wallet />
-    </WalletDKProvider>
+    </WavelengthProvider>
   );
 }
 ```
 
 `createNativeWalletEngine()` builds a `WalletEngine` backed by the wallet
-runtime compiled into your app; pass it to `WalletDKProvider` and use the
+runtime compiled into your app; pass it to `WavelengthProvider` and use the
 same hooks (`useWallet`, `useWalletBalance`, `useWalletSend`,
 `useWalletReceive`, `useWalletDeposit`, `useWalletActivity`) documented in
 [`@lightninglabs/wavelength-react`](../react).

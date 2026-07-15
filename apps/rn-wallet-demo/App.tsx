@@ -11,7 +11,7 @@ import {
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { WalletDKProvider } from '@lightninglabs/wavelength-react';
+import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 import { createNativeWalletEngine } from '@lightninglabs/wavelength-react-native';
 import { passkeyCeremony } from './src/lib/passkeyCeremony';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
@@ -56,9 +56,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <WalletDKProvider engine={engine}>
+        <WavelengthProvider engine={engine}>
           <Themed />
-        </WalletDKProvider>
+        </WavelengthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

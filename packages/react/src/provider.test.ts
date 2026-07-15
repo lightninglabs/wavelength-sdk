@@ -6,7 +6,7 @@ import { renderWithEngine } from "./testing/render";
 import { useWalletEngine } from "./provider";
 import { useWallet } from "./hooks";
 
-describe("WalletDKProvider", () => {
+describe("WavelengthProvider", () => {
   it("provides the engine to useWalletEngine", () => {
     const { engine } = createTestEngine();
     const { result } = renderWithEngine(engine, () => useWalletEngine());

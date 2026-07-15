@@ -31,7 +31,7 @@ export type PasskeyCeremony = {
 };
 
 /**
- * The PRF namespace every WalletDK passkey ceremony evaluates. Shared with the
+ * The PRF namespace every Wavelength passkey ceremony evaluates. Shared with the
  * Go SDK (PasskeyPRFNamespace); changing it would orphan every existing
  * passkey wallet.
  */
