@@ -21,8 +21,7 @@ TLS and auth flags, JSON output mode, and exit codes.
 - Each command page names the RPC it invokes; when a command's flags are
   unclear, read the corresponding RPC page from the API slice for the field
   semantics.
-- Commands and flags come from the docs pages, not from memory; the tool is
-  pre-release and its surface moves.
+- Commands and flags come from the docs pages, not from memory.
 - `wavecli mcp serve` runs a local MCP server exposing the daemon's RPCs
   as tools over stdio: https://wavelength.lightning.engineering/cli/mcp.md.
 

@@ -7,9 +7,6 @@ stay on their own device. The wallet runs entirely in the browser as
 WebAssembly: there is no backend to operate and nothing listening on a socket.
 Your app drives it through a small, typed client.
 
-> **Status: pre-release.** APIs may still change before the first published
-> version.
-
 ## Packages
 
 | Package | What it is |

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Wavelength is a TypeScript/React SDK for embedding a self-custodial Lightning wallet in a web app: send and receive Lightning payments with no node to run, no channels to open, and no inbound liquidity to manage. The full Go wallet daemon (sibling repo `../wavelength`) is compiled to WebAssembly and runs in the browser; the SDK is a small, typed client over it. pnpm-workspace monorepo, pre-release.
+Wavelength is a TypeScript/React SDK for embedding a self-custodial Lightning wallet in a web app: send and receive Lightning payments with no node to run, no channels to open, and no inbound liquidity to manage. The full Go wallet daemon (sibling repo `../wavelength`) is compiled to WebAssembly and runs in the browser; the SDK is a small, typed client over it. pnpm-workspace monorepo.
 
 ## Commands
 

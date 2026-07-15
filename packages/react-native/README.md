@@ -8,9 +8,6 @@ wallet runtime is compiled into the app binary, so there is no backend to
 operate and nothing listening on a socket. Your app drives it through the
 same typed client contract as the web transport.
 
-> **Status: pre-release.** Not yet published to npm. The API surface is
-> stable; iOS passkey support is still experimental.
-
 ## Requirements
 
 - React Native 0.76 or newer, with the **New Architecture enabled**. This
