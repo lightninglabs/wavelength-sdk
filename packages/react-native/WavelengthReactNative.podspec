@@ -6,11 +6,11 @@ Pod::Spec.new do |s|
   s.name         = "WavelengthReactNative"
   s.version      = package["version"]
   s.summary      = "React Native transport for the Wavelength SDK."
-  s.homepage     = "https://github.com/lightninglabs/dawallet"
+  s.homepage     = "https://github.com/lightninglabs/wavelength-sdk"
   s.license      = { :type => "MIT" }
   s.authors      = "Lightning Labs"
   s.platforms    = { :ios => "15.1" }
-  s.source       = { :git => "https://github.com/lightninglabs/dawallet.git" }
+  s.source       = { :git => "https://github.com/lightninglabs/wavelength-sdk.git" }
   s.source_files = "ios/**/*.{h,mm,swift}"
   s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
 

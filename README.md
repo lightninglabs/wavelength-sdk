@@ -54,7 +54,7 @@ import { createWebWalletEngine, defaultConfig } from "@lightninglabs/wavelength-
 // assets (see below). config + autoStart boot the embedded wallet as soon as
 // the wasm runtime is ready.
 const engine = createWebWalletEngine({
-  runtimeBaseUrl: "https://your-host/wavelength/",
+  runtimeBaseUrl: "https://your-host/wavewalletdk/",
   config: defaultConfig("signet"),
   autoStart: true,
 });
@@ -98,7 +98,7 @@ import {
   WalletState,
 } from "@lightninglabs/wavelength-web";
 
-const client = createWebClient({ runtimeBaseUrl: "https://your-host/wavelength/" });
+const client = createWebClient({ runtimeBaseUrl: "https://your-host/wavewalletdk/" });
 
 await client.ready();                       // wasm runtime loaded
 await client.start(defaultConfig("signet")); // boot the embedded wallet

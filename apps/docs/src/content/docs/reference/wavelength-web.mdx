@@ -337,7 +337,7 @@ from:
 
 - **Trailing slash:** a base URL is normalized by appending a trailing slash
   if missing before resolving each asset name against it, so
-  `https://cdn.example.com/wavelength` and `https://cdn.example.com/wavewalletdk/`
+  `https://cdn.example.com/wavewalletdk` and `https://cdn.example.com/wavewalletdk/`
   behave the same.
 - **Unset base:** with no `runtimeBaseUrl`, the bare filename is used and
   resolves relative to the document. In worker mode the worker cannot resolve
@@ -463,8 +463,8 @@ above.
 ]} />
 
 **Reproducibility.** Both functions evaluate the PRF extension against a
-fixed salt, `SHA-256("wavewalletdk-passkey:v1")`, the same namespace the Go SDK
-uses (`PasskeyPRFNamespace`). Using the same fixed salt on every
+fixed salt, `SHA-256("wavewalletdk-passkey:v1")`, a fixed namespace chosen
+client-side. Using the same fixed salt on every
 device/platform is what makes the derived wallet reproducible: asserting the
 same passkey anywhere yields the same `prfOutput`, and therefore the same
 derived wallet.
