@@ -74,8 +74,6 @@ Cross-cutting:
 
 **Commit messages.** Bare area prefix, no conventional-commit type wrapper: `core:`, `web:`, `react:`, `demo:` (and `chore:` / `docs:` / `ci:` for non-package work; use `ci:` for CI/workflow-only changes). Descriptive, imperative subjects.
 
-**Public docs.** Consumer-facing docs (the README) pitch the product value: a self-custodial Lightning wallet with no node/channels/liquidity to manage. The underlying protocol (Ark) and the daemon repo are implementation details: keep them out of the README and other public copy. (Internal docs like this file may name them.)
-
 **No em-dashes.** Do not use the em-dash character (U+2014) anywhere in the repo: comments, TSDoc, markdown, UI copy, config, all of it. When the prose wants that pause, reach for a colon, semicolon, comma, parentheses, or two sentences, whichever reads naturally. Generated prose tends to emit em-dashes, so self-check before committing (`git grep` for the character).
 
 **TSDoc.** This is an open-source SDK, so document the public surface with `/** … */` TSDoc (the `WavelengthClient` interface, exported types and their fields, the provider/hooks, the factory and its options). Put the doc on the consumer-facing type, not on internal implementations.
