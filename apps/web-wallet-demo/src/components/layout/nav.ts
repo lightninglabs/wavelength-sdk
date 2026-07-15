@@ -9,7 +9,13 @@ import {
 
 // AppTab is an authenticated (post-ready) destination. The runtime-lifecycle
 // screens are NOT tabs - they are selected by wallet phase.
-export type AppTab = "home" | "receive" | "send" | "activity" | "settings";
+export type AppTab =
+  | "home"
+  | "receive"
+  | "send"
+  | "activity"
+  | "settings"
+  | "exit";
 
 // NAV is the primary navigation, shared by the top navbar and the mobile
 // bottom bar. "Overview" maps to the home dashboard.

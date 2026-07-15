@@ -1,7 +1,9 @@
 import { ReactNode, useState } from "react";
 import {
   ChevronDown,
+  ChevronRight,
   Layers,
+  LogOut,
   type LucideIcon,
   Monitor,
   Power,
@@ -219,6 +221,25 @@ export function SettingsScreen({
           right={
             <>
               <Label>Danger zone</Label>
+              <button
+                type="button"
+                aria-label="Emergency exit"
+                onClick={() => onNavigate("exit")}
+                className="mt-3 flex w-full items-center gap-3 border
+                  border-border bg-surface-alt px-4 py-2.5 text-left
+                  transition-colors hover:border-border-strong"
+              >
+                <LogOut size={16} className="shrink-0 text-muted" />
+                <span className="flex-1">
+                  <span className="block text-sm font-semibold text-fg">
+                    Emergency exit
+                  </span>
+                  <span className="block text-xs text-muted">
+                    Recover your funds on-chain
+                  </span>
+                </span>
+                <ChevronRight size={16} className="shrink-0 text-muted" />
+              </button>
               <div className="mt-3 flex flex-row items-start gap-3">
                 <button
                   type="button"
