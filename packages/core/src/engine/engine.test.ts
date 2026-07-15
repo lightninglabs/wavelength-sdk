@@ -1,5 +1,6 @@
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { FORCE_UNROLL_ACK } from '../requests.ts';
 import type { Entry, ListResult } from '../results.ts';
 import type { WalletInfo } from '../state.ts';
 import { FakeWavelengthClient } from '../testing/fake-client.ts';
@@ -971,6 +972,130 @@ describe('engine ready-phase processes', () => {
     assert.equal(engine.getSnapshot().phase, 'ready');
     engine.dispose();
     mock.timers.reset();
+  });
+});
+
+describe('engine exit verbs', () => {
+  it('exit forwards to the client and kicks a refresh', async () => {
+    const client = new FakeWavelengthClient();
+    client.stub('exit', {
+      path: 'unilateral',
+      cooperative: false,
+      queuedOutpoints: [],
+      created: true,
+      actorID: 'a',
+      cooperativeError: '',
+    });
+    const engine = createWalletEngine({ client });
+    const before = client.countOf('list');
+    await engine.exit({ outpoint: 'a:0', forceUnrollAck: FORCE_UNROLL_ACK });
+    await flush();
+    assert.equal(client.countOf('exit'), 1);
+    // #kickRefresh triggers a background list-based refresh.
+    assert.ok(client.countOf('list') > before);
+    engine.dispose();
+  });
+
+  it('getExitPlan does not kick a refresh', async () => {
+    const client = new FakeWavelengthClient();
+    client.stub('getExitPlan', {
+      plans: [],
+      feeRateSatPerVByte: 1,
+      canStart: true,
+      totalFundingShortfallSat: 0,
+      totalRecommendedFundingSat: 0,
+    });
+    const engine = createWalletEngine({ client });
+    const before = client.countOf('list');
+    await engine.getExitPlan({ outpoints: ['a:0'] });
+    await flush();
+    assert.equal(client.countOf('list'), before);
+    engine.dispose();
+  });
+
+  it('exitBatch injects the client and refreshes once per started exit', async () => {
+    const client = new FakeWavelengthClient();
+    client.impl('getExitPlan', () => ({
+      plans: [],
+      feeRateSatPerVByte: 1,
+      canStart: true,
+      totalFundingShortfallSat: 0,
+      totalRecommendedFundingSat: 0,
+    }));
+    client.impl('exit', () => ({
+      path: 'unilateral',
+      cooperative: false,
+      queuedOutpoints: [],
+      created: true,
+      actorID: 'a',
+      cooperativeError: '',
+    }));
+    const engine = createWalletEngine({ client });
+    const before = client.countOf('list');
+    const result = await engine.exitBatch({
+      mode: 'unilateral',
+      outpoints: ['a:0', 'b:1'],
+    });
+    await flush();
+    assert.equal(result.started.length, 2);
+    assert.ok(client.countOf('list') >= before + 2);
+    engine.dispose();
+  });
+
+  it('list forwards to the client without a refresh', async () => {
+    const client = new FakeWavelengthClient();
+    client.stub('list', { view: 'vtxos', vtxos: { vtxos: [], total: 0 } });
+    const engine = createWalletEngine({ client });
+    const before = client.countOf('list');
+    const res = await engine.list({ view: 'vtxos' });
+    assert.equal(res.view, 'vtxos');
+    // one explicit list call, no extra refresh-driven list.
+    assert.equal(client.countOf('list'), before + 1);
+    engine.dispose();
+  });
+
+  it('sweepWallet previews (broadcast:false) without kicking a refresh', async () => {
+    const client = new FakeWavelengthClient();
+    client.stub('sweepWallet', {
+      inputs: [],
+      totalInputSat: 0,
+      estimatedFeeSat: 0,
+      netAmountSat: 0,
+      feeRateSatPerVByte: 1,
+      canBroadcast: false,
+      txid: '',
+      failureReason: '',
+    });
+    const engine = createWalletEngine({ client });
+    const before = client.countOf('list');
+    await engine.sweepWallet({ destinationAddress: 'addr1', broadcast: false });
+    await flush();
+    assert.equal(client.countOf('sweepWallet'), 1);
+    // A preview moves no money, so nothing to refresh.
+    assert.equal(client.countOf('list'), before);
+    engine.dispose();
+  });
+
+  it('sweepWallet broadcasts (broadcast:true) and kicks a refresh', async () => {
+    const client = new FakeWavelengthClient();
+    client.stub('sweepWallet', {
+      inputs: [],
+      totalInputSat: 0,
+      estimatedFeeSat: 0,
+      netAmountSat: 0,
+      feeRateSatPerVByte: 1,
+      canBroadcast: true,
+      txid: 'txid-1',
+      failureReason: '',
+    });
+    const engine = createWalletEngine({ client });
+    const before = client.countOf('list');
+    await engine.sweepWallet({ destinationAddress: 'addr1', broadcast: true });
+    await flush();
+    assert.equal(client.countOf('sweepWallet'), 1);
+    // #kickRefresh triggers a background list-based refresh.
+    assert.ok(client.countOf('list') > before);
+    engine.dispose();
   });
 });
 

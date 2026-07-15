@@ -2,13 +2,25 @@ import type { WavelengthClient } from '../client.ts';
 import type { RuntimeConfig } from '../config.ts';
 import { toError } from '../errors.ts';
 import type { WavelengthEvent } from '../events.ts';
+import {
+  exitBatch as runExitBatch,
+  type ExitBatchEvent,
+  type ExitBatchOptions,
+  type ExitBatchResult,
+} from '../exit.ts';
 import type {
   CreateWalletRequest,
   DepositRequest,
+  ExitRequest,
+  ExitStatusRequest,
+  ExitSummaryRequest,
+  GetExitPlanRequest,
+  ListRequest,
   OpenWalletFromPasskeyRequest,
   ReceiveRequest,
   RestoreWalletRequest,
   SendRequest,
+  SweepWalletRequest,
   UnlockWalletRequest,
 } from '../requests.ts';
 import type {
@@ -16,10 +28,16 @@ import type {
   CreateWalletResult,
   DepositResult,
   Entry,
+  ExitResult,
+  ExitStatusResult,
+  ExitSummaryResult,
+  GetExitPlanResult,
+  ListResult,
   OpenWalletFromPasskeyResult,
   PrepareSendResult,
   ReceiveResult,
   SendResult,
+  SweepWalletResult,
   UnlockWalletResult,
 } from '../results.ts';
 import { WalletState, type WalletInfo } from '../state.ts';
@@ -128,6 +146,28 @@ export interface WalletEngine {
   sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
   /** Sends a payment and refreshes in the background. */
   send(req: SendRequest): Promise<SendResult>;
+  /** Starts a single exit (cooperative or unilateral) and refreshes wallet state. */
+  exit(req: ExitRequest): Promise<ExitResult>;
+  /** Queries the status of an exit. Read-only; does not refresh. */
+  exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>;
+  /** Summarizes all in-progress exits. Read-only; does not refresh. */
+  exitSummary(req?: ExitSummaryRequest): Promise<ExitSummaryResult>;
+  /** Previews unilateral-exit readiness and funding. Read-only; does not refresh. */
+  getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
+  /** Previews (broadcast:false) or broadcasts (broadcast:true) a backing-wallet sweep. Refreshes only when broadcasting. */
+  sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
+  /**
+   * Starts a batch of exits, refreshing wallet state after each one starts.
+   * Resolves once every exit is started, not completed.
+   */
+  exitBatch(
+    opts: ExitBatchOptions & {
+      signal?: AbortSignal;
+      onEvent?: (event: ExitBatchEvent) => void;
+    },
+  ): Promise<ExitBatchResult>;
+  /** Lists wallet activity, VTXOs, or on-chain outputs. Read-only; does not refresh. */
+  list(req: ListRequest): Promise<ListResult>;
   /** Clears the buffered log tail. */
   clearLogs(): void;
   /** Tears down subscriptions, polls, and streams. The engine is done after this. */
@@ -459,6 +499,64 @@ class WavelengthEngine implements WalletEngine {
     this.#kickRefresh();
 
     return result;
+  }
+
+  async exit(req: ExitRequest): Promise<ExitResult> {
+    this.#assertNotDisposed();
+    const result = await this.client.exit(req);
+    this.#kickRefresh();
+
+    return result;
+  }
+
+  exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult> {
+    this.#assertNotDisposed();
+    // Reading status moves no money, so nothing to refresh.
+    return this.client.exitStatus(req);
+  }
+
+  exitSummary(req: ExitSummaryRequest = {}): Promise<ExitSummaryResult> {
+    this.#assertNotDisposed();
+    return this.client.exitSummary(req);
+  }
+
+  getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult> {
+    this.#assertNotDisposed();
+    // Previewing a plan moves no money, so nothing to refresh.
+    return this.client.getExitPlan(req);
+  }
+
+  async sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult> {
+    this.#assertNotDisposed();
+    const result = await this.client.sweepWallet(req);
+    // A preview moves no money; only a broadcast does.
+    if (req.broadcast) this.#kickRefresh();
+
+    return result;
+  }
+
+  async exitBatch(
+    opts: ExitBatchOptions & {
+      signal?: AbortSignal;
+      onEvent?: (event: ExitBatchEvent) => void;
+    },
+  ): Promise<ExitBatchResult> {
+    this.#assertNotDisposed();
+    return runExitBatch({
+      ...opts,
+      client: this.client,
+      onEvent: (event) => {
+        // Each started exit moves money, so refresh as the batch progresses.
+        if (event.type === 'started') this.#kickRefresh();
+        opts.onEvent?.(event);
+      },
+    });
+  }
+
+  list(req: ListRequest): Promise<ListResult> {
+    this.#assertNotDisposed();
+    // Listing reads state, so nothing to refresh.
+    return this.client.list(req);
   }
 
   clearLogs(): void {
