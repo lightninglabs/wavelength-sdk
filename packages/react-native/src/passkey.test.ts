@@ -8,7 +8,7 @@ import {
 
 // The PRF salt (SHA-256 of the shared namespace) in the two encodings the
 // ceremony round-trips between; pinned in core's passkey test.
-const SALT_B64URL = '8xg7hrwDh8zwVU-yyi1dcEOg_sAslZb_w4UzwI1SBxU';
+const SALT_B64URL = 'mnouD_PF0fLxcs1e3WdSe_OSrjmQSOtuNrnLbDq4nQM';
 
 // A 32-byte PRF output fixture (0xabcd repeated), since the ceremony rejects
 // anything that is not exactly 32 bytes of key material.
