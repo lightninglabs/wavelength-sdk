@@ -9,6 +9,7 @@ import {
   ExitPathUnilateral,
   FACADE_METHODS,
   FORCE_UNROLL_ACK,
+  isExitInfeasibilityFundable,
   ListViewActivity,
   SendQuoteStatusComplete,
   SendRailLightning,
@@ -21,6 +22,11 @@ import type {
   EntryProgress,
   EntryRequest,
   EntryRequestType,
+  ExitBatchEvent,
+  ExitBatchOptions,
+  ExitBatchResult,
+  ExitBatchStop,
+  ExitInfeasibilityReason,
   FacadeMethod,
   OnchainHistory,
   OnchainTx,
@@ -66,3 +72,9 @@ void (null as unknown as OnchainTx);
 void (null as unknown as SendQuoteStatus);
 void (null as unknown as VTXOInventory);
 void (null as unknown as WalletVTXO);
+const _fundable: (reason: ExitInfeasibilityReason) => boolean = isExitInfeasibilityFundable;
+void _fundable;
+void (null as unknown as ExitBatchEvent);
+void (null as unknown as ExitBatchOptions);
+void (null as unknown as ExitBatchResult);
+void (null as unknown as ExitBatchStop);
