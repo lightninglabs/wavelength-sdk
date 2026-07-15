@@ -24,12 +24,15 @@ same typed client contract as the web transport.
 npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
-The native wallet runtime binaries currently ship out of band rather than
-inside the npm package; hosted distribution is coming. Until then, build
-them from a checkout of this repository with `scripts/fetch-bindings.sh`
-(which compiles them from a daemon source checkout named by `WAVELENGTH_DIR`)
-and stage them into this package before running `pod install` / a Gradle
-build.
+The native wallet runtime binaries (`Wavewalletdk.aar` and
+`Wavewalletdk.xcframework`) are not bundled inside the npm package. Get them one
+of two ways, then stage them into this package before running `pod install` or a
+Gradle build:
+
+- Download them from the paired
+  [wavelength release](https://github.com/lightninglabs/wavelength/releases).
+- Build them from a `wavelength` checkout with `scripts/fetch-bindings.sh`, which
+  compiles them from the daemon source named by `WAVELENGTH_DIR`.
 
 ## Quick start
 

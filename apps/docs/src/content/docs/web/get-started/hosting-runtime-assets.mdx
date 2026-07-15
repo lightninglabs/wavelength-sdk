@@ -1,58 +1,54 @@
 ---
 title: Hosting runtime assets
-description: How the Wavelength SDK loads its WebAssembly runtime - using the CDN default or overriding the asset base URL for self-hosted deployments.
+description: How the Wavelength SDK loads its WebAssembly runtime, and how to obtain and host the asset set for your deployment.
 ---
 
-## CDN default
-
-A versioned public CDN that `runtimeBaseUrl` defaults to is on the way. When it
-ships, `createWebClient()` with no options will resolve the daemon binaries from
-that CDN and you will not need to copy or host WASM files yourself.
-
-Until then, self-host the runtime asset set (see below). Point
-`runtimeBaseUrl` at the folder where the files live. If unset, assets resolve
-relative to the page URL in both worker and main-thread mode, so you can also
-just serve the runtime files alongside your app:
+The web transport loads its WebAssembly runtime from a set of files that you
+host yourself and point `runtimeBaseUrl` at. You always provide the assets.
+The worker entry (`wavewalletdk-worker.js`) ships inside
+`@lightninglabs/wavelength-web` and is emitted by your bundler; only the daemon
+binaries below need to be hosted.
 
 ```ts title="client.ts"
 import { createWebClient } from '@lightninglabs/wavelength-web';
 
 const client = createWebClient({
-  runtimeBaseUrl: 'https://cdn.example.com/wavewalletdk/v0.1.0/',
+  runtimeBaseUrl: 'https://your-host/wavewalletdk/<version>/',
 });
 ```
 
-The worker entry (`wavewalletdk-worker.js`) ships inside
-`@lightninglabs/wavelength-web` and is emitted by your bundler. Only the daemon
-binaries listed below need to be hosted at `runtimeBaseUrl`.
+If `runtimeBaseUrl` is unset, assets resolve relative to the page URL in both
+worker and main-thread mode, so you can also serve the runtime files alongside
+your app.
 
-## Self-hosting (override)
+## The asset set
 
-The WASM runtime is a fixed set of files built from
+The runtime is a fixed set of files built from
 [wavelength](https://github.com/lightninglabs/wavelength). Import
-`RUNTIME_ASSET_FILES` from `@lightninglabs/wavelength-web` to see every filename
-that must be served together at one base URL. `RUNTIME_MANIFEST_VERSION`
-identifies the daemon build the SDK is paired with:
+`RUNTIME_ASSET_FILES` to see every filename that must be served together at one
+base URL. `RUNTIME_MANIFEST_VERSION` identifies the daemon build the SDK is
+paired with:
 
 ```ts title="assets.ts"
-import { RUNTIME_ASSET_FILES } from '@lightninglabs/wavelength-web';
+import { RUNTIME_ASSET_FILES, RUNTIME_MANIFEST_VERSION } from '@lightninglabs/wavelength-web';
 
 console.log(RUNTIME_ASSET_FILES);
 // wavewalletdk.wasm, wavewalletdk.wasm.gz, wasm_exec.js, sqlite-bridge.js,
 // sqlite-worker.js, sqlite3.js, sqlite3.wasm, sqlite3-opfs-async-proxy.js
 ```
 
-Host all of them under a single path and set `runtimeBaseUrl` to that
-directory. Prefer a path that includes `RUNTIME_MANIFEST_VERSION` (for example
-`/wavewalletdk/<version>/`): every asset set then gets a unique URL, so browsers
-pick up new assets on an SDK upgrade instead of serving stale cached copies,
-and you can cache the files aggressively. Trailing slashes are optional; the
-client normalizes the base URL. If unset, assets resolve relative to the page
-URL in both worker and main-thread mode, so you can also just serve the
-runtime files alongside your app.
+## Get the asset set
 
-**Build and copy from wavelength.** From a checkout of `wavelength`, build
-the WASM wallet target and copy the output into your app's static folder:
+There are two ways to obtain the files, both producing the set for the pinned
+`RUNTIME_MANIFEST_VERSION`:
+
+**Download from the wavelength release.** The matching asset set is attached to
+the paired
+[wavelength release](https://github.com/lightninglabs/wavelength/releases).
+Download the files for the pinned version.
+
+**Build from a wavelength checkout.** From a checkout of `wavelength`, build the
+WASM wallet target and copy the output into your app's static folder:
 
 ```bash title="Terminal"
 # Build the WASM runtime into wavelength/bin/wasm/
@@ -67,17 +63,27 @@ for f in wavewalletdk.wasm wavewalletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
 done
 ```
 
-The monorepo demo wraps the same steps in `pnpm --filter web-wallet-demo run
-wasm:local`, which builds from a sibling `wavelength` checkout and stages
-files into `apps/web-wallet-demo/public/runtime/<version>/`, the versioned
-path the demo's `runtimeBaseUrl` points at. After `vite build`, those files
-land in `dist/` and are served from the app origin.
+The monorepo demo wraps the same build in `pnpm --filter web-wallet-demo run
+wasm:local`, which builds from a sibling `wavelength` checkout and stages files
+into `apps/web-wallet-demo/public/runtime/<version>/`, the versioned path the
+demo's `runtimeBaseUrl` points at. After `vite build`, those files land in
+`dist/` and are served from the app origin.
 
-**Version lock.** Runtime assets are version-locked to the embedded daemon inside
-`@lightninglabs/wavelength-web`. When you upgrade the SDK, rebuild and redeploy the
-matching WASM bundle. Mismatched versions can fail at load time or produce subtle
-runtime errors.
+## Host the assets
 
-**Compression.** The client prefers `wavewalletdk.wasm.gz` when the browser supports
-`DecompressionStream` and falls back to the uncompressed `wavewalletdk.wasm`. Host
-both files so every supported browser can load the runtime.
+Host all of them under a single path and set `runtimeBaseUrl` to that directory.
+Prefer a path that includes `RUNTIME_MANIFEST_VERSION` (for example
+`/wavewalletdk/<version>/`): every asset set then gets a unique URL, so browsers
+pick up new assets on an SDK upgrade instead of serving stale cached copies, and
+you can cache the files aggressively. Trailing slashes are optional; the client
+normalizes the base URL.
+
+**Version lock.** Runtime assets are version-locked to the embedded daemon
+inside `@lightninglabs/wavelength-web`. When you upgrade the SDK, obtain and
+redeploy the matching WASM bundle. Mismatched versions can fail at load time or
+produce subtle runtime errors.
+
+**Compression.** The client prefers `wavewalletdk.wasm.gz` when the browser
+supports `DecompressionStream` and falls back to the uncompressed
+`wavewalletdk.wasm`. Host both files so every supported browser can load the
+runtime.

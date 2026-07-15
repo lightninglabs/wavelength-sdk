@@ -156,5 +156,8 @@ import { RUNTIME_ASSET_FILES } from "@lightninglabs/wavelength-web";
 // → wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js, …
 ```
 
-> A versioned public CDN that `runtimeBaseUrl` defaults to is on the way; until
-> then, self-host the asset set.
+You host the asset set yourself. Obtain it from the
+[wavelength release assets](https://github.com/lightninglabs/wavelength/releases),
+or build it from a `wavelength` checkout. See
+[Hosting runtime assets](https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets/)
+for the exact steps.
