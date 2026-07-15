@@ -25,11 +25,11 @@ pnpm build
 ```
 
 The demo needs the native wallet runtime binaries staged before it can build.
-Point `DAREPO_DIR` at a daemon source checkout and run the package's
+Point `WAVELENGTH_DIR` at a daemon source checkout and run the package's
 `fetch-bindings` script:
 
 ```sh title="Terminal"
-DAREPO_DIR=/path/to/daemon-checkout \
+WAVELENGTH_DIR=/path/to/daemon-checkout \
   pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
 ```
 

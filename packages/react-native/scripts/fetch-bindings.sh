@@ -6,8 +6,8 @@
 # RUNTIME_MANIFEST_VERSION tracks for the wasm assets).
 #
 # Usage: fetch-bindings.sh [android|ios|all]   (default: all)
-# Env:   DAREPO_DIR  path to the darepo-client checkout
-#                    (default: sibling of the repo root, ../darepo-client)
+# Env:   WAVELENGTH_DIR  path to the darepo-client checkout
+#                    (default: sibling of the repo root, ../wavelength)
 #
 # Android needs the Android SDK + NDK and a JDK (17+); iOS needs macOS with
 # Xcode. Both need Go and gomobile (darepo-client's gen_bindings.sh checks).
@@ -15,11 +15,11 @@ set -euo pipefail
 
 PKG="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="$(cd "$PKG/../.." && pwd)"
-DAREPO="${DAREPO_DIR:-$ROOT/../darepo-client}"
+DAREPO="${WAVELENGTH_DIR:-$ROOT/../wavelength}"
 TARGET="${1:-all}"
 
 if [[ ! -d "$DAREPO" ]]; then
-  echo "darepo-client checkout not found at $DAREPO; set DAREPO_DIR" >&2
+  echo "darepo-client checkout not found at $DAREPO; set WAVELENGTH_DIR" >&2
   exit 1
 fi
 

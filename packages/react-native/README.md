@@ -30,7 +30,7 @@ npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-rea
 The native wallet runtime binaries currently ship out of band rather than
 inside the npm package; hosted distribution is coming. Until then, build
 them from a checkout of this repository with `scripts/fetch-bindings.sh`
-(which compiles them from a daemon source checkout named by `DAREPO_DIR`)
+(which compiles them from a daemon source checkout named by `WAVELENGTH_DIR`)
 and stage them into this package before running `pod install` / a Gradle
 build.
 

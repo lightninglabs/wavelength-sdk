@@ -5,7 +5,7 @@
 # smoke-server.js serves. The version segment is RUNTIME_MANIFEST_VERSION from
 # packages/core, matching where the demo's runtimeBaseUrl points.
 set -euo pipefail
-DAREPO="${DAREPO_DIR:-../../../darepo-client}"
+DAREPO="${WAVELENGTH_DIR:-../../../wavelength}"
 APP="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="$(cd "$APP/../.." && pwd)"
 

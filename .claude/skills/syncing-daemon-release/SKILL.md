@@ -14,19 +14,19 @@ asset set, and the pin itself (`RUNTIME_MANIFEST_VERSION` in
 `packages/core/src/version.ts`). A sync is complete only when all four match
 the same daemon commit and the verification ladder passes.
 
-All generators read the darepo-client checkout at `../darepo-client` or
-`$DAREPO_DIR`. Do not move the shared `../darepo-client` checkout to the target
+All generators read the wavelength checkout at `../wavelength` or
+`$WAVELENGTH_DIR`. Do not move the shared `../wavelength` checkout to the target
 commit: it is often behind `origin` and may have local edits, so a
 fast-forward or stash disturbs someone else's working tree. Instead pin the
-daemon revision in an isolated, throwaway worktree and point `DAREPO_DIR` at
+daemon revision in an isolated, throwaway worktree and point `WAVELENGTH_DIR` at
 it:
 
 ```sh
-cd ../darepo-client && git fetch origin
+cd ../wavelength && git fetch origin
 git worktree add --detach /tmp/darepo-<shorthash> <target-commit>
-export DAREPO_DIR=/tmp/darepo-<shorthash>          # absolute path
+export WAVELENGTH_DIR=/tmp/darepo-<shorthash>          # absolute path
 # ... run the whole sync ...
-cd ../darepo-client && git worktree remove --force /tmp/darepo-<shorthash>
+cd ../wavelength && git worktree remove --force /tmp/darepo-<shorthash>
 ```
 
 ## Quick reference: what changed upstream -> what to touch here
@@ -44,7 +44,7 @@ cd ../darepo-client && git worktree remove --force /tmp/darepo-<shorthash>
 ## Ordered procedure
 
 ```sh
-export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
+export WAVELENGTH_DIR=/absolute/path/to/wavelength   # an isolated worktree at
                                                      # the release (see Overview)
 ```
 
@@ -80,7 +80,7 @@ export DAREPO_DIR=/absolute/path/to/darepo-client   # an isolated worktree at
    headings on doc-layout pages like exit). Verify operational claims in the
    API prose pages against `darepod/config.go` and `gateway_server.go`.
 5. **Runtime assets**: `pnpm --filter web-wallet-demo run wasm:local`
-   (builds from `$DAREPO_DIR`, stages into `public/runtime/<version>/`).
+   (builds from `$WAVELENGTH_DIR`, stages into `public/runtime/<version>/`).
    Hosted asset sets live under `<assets root>/<RUNTIME_MANIFEST_VERSION>/`;
    the deploy workflow fetches by that path.
 6. **Changeset + commits**: `pnpm changeset` for changed packages. Commits
@@ -97,8 +97,8 @@ pnpm --filter @lightninglabs/wavelength-web test
 # it will silently attach to a stale preview from another worktree/session and
 # serve an OLD build (a 404 for a brand-new page is almost always this, not a
 # code bug). Pass a free PORT so it builds and serves THIS worktree fresh:
-PORT=4399 DAREPO_DIR=... pnpm --filter @lightninglabs/wavelength-docs test
-DAREPO_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
+PORT=4399 WAVELENGTH_DIR=... pnpm --filter @lightninglabs/wavelength-docs test
+WAVELENGTH_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
   pnpm --filter web-wallet-demo run build && \
   pnpm --filter web-wallet-demo run test   # Playwright smoke test: the gold standard
 

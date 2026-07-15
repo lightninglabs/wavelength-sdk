@@ -7,9 +7,9 @@
 //
 // SYSTEM REQUIREMENTS (see docs/codegen.md):
 //   - Node >= 24 (the generator is a .mts run with native type stripping)
-//   - Go toolchain (matching darepo-client/go.mod)
+//   - Go toolchain (matching wavelength/go.mod)
 //   - tygo:           go install github.com/gzuidhof/tygo@latest
-//   - darepo-client:  a sibling checkout at ../darepo-client, or set DAREPO_DIR
+//   - wavelength:     a sibling checkout at ../wavelength, or set WAVELENGTH_DIR
 //
 // This is a maintainer command. The generated file is committed, so SDK consumers
 // never need Go or tygo -- only re-run `pnpm gen:types` when the facade changes.
@@ -29,15 +29,15 @@ import { camelKey } from '../packages/core/src/casing.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
-const darepo = process.env.DAREPO_DIR
-  ? resolve(process.env.DAREPO_DIR)
-  : resolve(root, '../darepo-client');
+const darepo = process.env.WAVELENGTH_DIR
+  ? resolve(process.env.WAVELENGTH_DIR)
+  : resolve(root, '../wavelength');
 const goPackage = 'github.com/lightninglabs/wavelength/sdk/wavewalletdk';
 const outFile = resolve(root, 'packages/core/src/generated.ts');
 
 if (!existsSync(darepo)) {
   console.error(
-    `darepo-client not found at ${darepo}. Clone it as a sibling or set DAREPO_DIR.`,
+    `wavelength checkout not found at ${darepo}. Clone it as a sibling or set WAVELENGTH_DIR.`,
   );
   process.exit(1);
 }
@@ -57,7 +57,8 @@ function tygoBin(): string {
 }
 
 // 1. Run tygo against the facade package into a temp file. tygo resolves the Go
-//    import path via the module, so it must run with cwd inside darepo-client.
+//    import path via the module, so it must run with cwd inside the wavelength
+//    checkout.
 const work = mkdtempSync(join(tmpdir(), 'walletdk-tygo-'));
 // Best-effort cleanup of the temp dir on any exit (success or failure) so
 // repeated or failed runs do not leak directories under the OS temp dir.

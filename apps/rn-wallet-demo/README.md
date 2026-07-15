@@ -30,10 +30,10 @@ From the repository root:
 
 ```sh
 # 1. Build and stage the native wallet runtime for both platforms. Point
-#    DAREPO_DIR at your daemon source checkout. The first build compiles the
+#    WAVELENGTH_DIR at your daemon source checkout. The first build compiles the
 #    daemon for every ABI and takes several minutes; rerun it whenever the
 #    paired daemon revision changes.
-DAREPO_DIR=/path/to/daemon-checkout \
+WAVELENGTH_DIR=/path/to/daemon-checkout \
   pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
 
 # 2. Install and build the workspace.

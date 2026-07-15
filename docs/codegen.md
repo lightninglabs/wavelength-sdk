@@ -26,14 +26,14 @@ pnpm gen:types
 | Requirement | Why | Install |
 |---|---|---|
 | **Node ≥ 24** | the generator is `scripts/gen-types.mts`, run with Node's native TypeScript stripping (no extra loader) | https://nodejs.org/ |
-| **Go toolchain** | tygo loads the Go package; matches `darepo-client/go.mod` | https://go.dev/dl/ |
+| **Go toolchain** | tygo loads the Go package; matches `wavelength/go.mod` | https://go.dev/dl/ |
 | **tygo** | generates TS from the Go structs | `go install github.com/gzuidhof/tygo@latest` |
-| **darepo-client checkout** | the generation source | sibling at `../darepo-client`, or set `DAREPO_DIR=/path/to/darepo-client` |
+| **wavelength checkout** | the generation source | sibling at `../wavelength`, or set `WAVELENGTH_DIR=/path/to/wavelength` |
 
 After `go install`, ensure `tygo` is reachable; the script looks in
 `$(go env GOPATH)/bin` and then on `PATH`. Both `go` and `tygo` must be runnable.
 
-This is the same Go + `darepo-client` requirement the demo's `wasm:local` already
+This is the same Go + `wavelength` requirement the demo's `wasm:local` already
 has (it builds the wasm runtime from the same checkout).
 
 ## What it does NOT do

@@ -6,7 +6,7 @@
 //
 // SYSTEM REQUIREMENTS:
 //   - Node >= 24 (this is a .mts run with native type stripping)
-//   - darepo-client: a sibling checkout at ../darepo-client, or set DAREPO_DIR
+//   - wavelength: a sibling checkout at ../wavelength, or set WAVELENGTH_DIR
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -17,13 +17,13 @@ import { API_NAV, flattenNav } from '../apps/docs/src/config/nav.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
-const darepo = process.env.DAREPO_DIR
-  ? resolve(process.env.DAREPO_DIR)
-  : resolve(root, '../darepo-client');
+const darepo = process.env.WAVELENGTH_DIR
+  ? resolve(process.env.WAVELENGTH_DIR)
+  : resolve(root, '../wavelength');
 
 if (!existsSync(darepo)) {
   console.error(
-    `darepo-client not found at ${darepo}. Clone it as a sibling or set DAREPO_DIR.`,
+    `wavelength checkout not found at ${darepo}. Clone it as a sibling or set WAVELENGTH_DIR.`,
   );
   process.exit(1);
 }
