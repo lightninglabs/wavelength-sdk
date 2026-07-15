@@ -476,6 +476,16 @@ export const walletEngineSig = `interface WalletEngine {
   prepareSend(req: SendRequest): Promise<PrepareSendResult>;
   sendPrepared(prepared: PrepareSendResult): Promise<SendResult>;
   send(req: SendRequest): Promise<SendResult>;
+  exit(req: ExitRequest): Promise<ExitResult>;
+  exitStatus(req: ExitStatusRequest): Promise<ExitStatusResult>;
+  exitSummary(req?: ExitSummaryRequest): Promise<ExitSummaryResult>;
+  getExitPlan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
+  sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
+  exitBatch(opts: ExitBatchOptions & {
+    signal?: AbortSignal;
+    onEvent?: (event: ExitBatchEvent) => void;
+  }): Promise<ExitBatchResult>;
+  list(req: ListRequest): Promise<ListResult>;
   clearLogs(): void;
   dispose(): void;
 }`;
@@ -545,6 +555,13 @@ The engine interface. Every method mirrors the matching `WavelengthClient` metho
   { name: 'prepareSend(req)', type: '(req: SendRequest) => Promise<PrepareSendResult>', desc: 'Quotes a payment without dispatching it. No refresh: a quote moves no money.' },
   { name: 'sendPrepared(prepared)', type: '(prepared: PrepareSendResult) => Promise<SendResult>', desc: 'Dispatches a payment quoted by prepareSend and kicks a background refresh.' },
   { name: 'send(req)', type: '(req: SendRequest) => Promise<SendResult>', desc: 'Sends a payment and kicks a background refresh.' },
+  { name: 'exit(req)', type: '(req: ExitRequest) => Promise<ExitResult>', desc: 'Starts a single exit (cooperative or unilateral) for one outpoint and kicks a background refresh. See exit below.' },
+  { name: 'exitStatus(req)', type: '(req: ExitStatusRequest) => Promise<ExitStatusResult>', desc: 'Queries the status of an exit job. Read-only: it moves no money, so it does not refresh. See exitStatus below.' },
+  { name: 'exitSummary(req?)', type: '(req?: ExitSummaryRequest) => Promise<ExitSummaryResult>', desc: 'Summarizes all in-progress exits. Read-only; does not refresh. See exitSummary below.' },
+  { name: 'getExitPlan(req)', type: '(req: GetExitPlanRequest) => Promise<GetExitPlanResult>', desc: 'Previews unilateral-exit readiness and funding without moving funds. Read-only; does not refresh. See getExitPlan below.' },
+  { name: 'sweepWallet(req)', type: '(req: SweepWalletRequest) => Promise<SweepWalletResult>', desc: 'Previews (req.broadcast: false) or broadcasts (req.broadcast: true) a sweep of the backing on-chain wallet. Refreshes only when broadcasting, since a preview moves no money. See sweepWallet below.' },
+  { name: 'exitBatch(opts)', type: '(opts: ExitBatchOptions & { signal?, onEvent? }) => Promise<ExitBatchResult>', desc: 'Starts a batch of exits, kicking a background refresh after each one starts. Resolves once every exit is started, not completed. Takes the same opts as the standalone exitBatch() below, minus client, since the engine already owns one. See exitBatch below.' },
+  { name: 'list(req)', type: '(req: ListRequest) => Promise<ListResult>', desc: 'Lists wallet activity, VTXOs, or on-chain outputs. Read-only; does not refresh. See list below.' },
   { name: 'clearLogs()', type: '() => void', desc: 'Clears the buffered log tail.' },
   { name: 'dispose()', type: '() => void', desc: 'Tears down subscriptions, polls, and streams. The engine is done after this; build a new one to start again.' },
 ]} />
@@ -1889,6 +1906,35 @@ export const exitInfeasibilityReasonSig = `type ExitInfeasibilityReason =
   | 'wallet_underfunded'
   | 'wallet_too_few_inputs';`;
 
+export const exitBatchSig = `function exitBatch(
+  opts: ExitBatchOptions & {
+    client: WavelengthClient;
+    signal?: AbortSignal;
+    onEvent?: (event: ExitBatchEvent) => void;
+  },
+): Promise<ExitBatchResult>`;
+export const exitBatchOptionsSig = `type ExitBatchOptions =
+  | { mode: 'cooperative'; outpoints: string[]; destination?: string }
+  | { mode: 'unilateral'; outpoints: string[]; confTarget?: number };`;
+export const exitBatchEventSig = `type ExitBatchEvent =
+  | { type: 'planned'; plan: GetExitPlanResult }
+  | { type: 'starting'; outpoint: string }
+  | { type: 'started'; outpoint: string; result: ExitResult }
+  | { type: 'stopped'; stoppedBy: ExitBatchStop; remaining: string[] };`;
+export const exitBatchStopSig = `type ExitBatchStop =
+  | { reason: 'infeasible'; plan: GetExitPlanResult }
+  | { reason: 'rejected'; outpoint: string; error: Error };`;
+export const exitBatchResultSig = `type ExitBatchResult = {
+  started: { outpoint: string; result: ExitResult }[];
+  skipped: string[];
+  remaining: string[];
+  stoppedBy?: ExitBatchStop;
+};`;
+
+export const isExitInfeasibilityFundableSig = `function isExitInfeasibilityFundable(
+  reason: ExitInfeasibilityReason,
+): boolean`;
+
 export const sweepWalletSig = `sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>`;
 export const sweepWalletRequestSig = `type SweepWalletRequest = {
   destinationAddress: string;
@@ -2238,6 +2284,118 @@ shortfalls the wallet could cover.
 | `uneconomical` | The total on-chain cost to recover the VTXO exceeds the configured fraction of its value. |
 | `wallet_underfunded` | The confirmed on-chain wallet balance is too small to cover the CPFP fees. Funding the wallet resolves it. |
 | `wallet_too_few_inputs` | The wallet has fewer usable confirmed UTXOs than the VTXO has independent ancestry paths, so it lacks distinct CPFP fee inputs. |
+
+</ApiSymbol>
+
+<Callout type="caution" title="exitBatch starts exits and moves money">
+`exitBatch()` walks the given outpoints and calls [`exit()`](#exit) for each
+one in turn: it moves funds. It resolves once every exit has been
+**started**, not completed. A unilateral exit keeps running for hours or days
+after the promise settles; use [`exitStatus()`](#exitStatus) or
+[`exitSummary()`](#exitSummary) to follow it to completion. Funding is never
+reserved ahead of time, so on the unilateral path `exitBatch()` re-plans with
+[`getExitPlan()`](#getExitPlan) between starts: an earlier start can consume
+the fee inputs a later one needs, and re-planning is the only way to catch
+that before the later exit is attempted instead of after.
+</Callout>
+
+<ApiSymbol name="exitBatch" kind="function">
+
+Starts a batch of exits, one outpoint per [`exit()`](#exit) call, and reports
+which started, which were skipped, and which never started.
+
+<Signature title="wavelength-core.d.ts" code={exitBatchSig} />
+
+On the unilateral path it previews funding with [`getExitPlan()`](#getExitPlan)
+before each start, skips outpoints that already have a running exit job,
+refuses to start anything if the wallet cannot fund the batch, and re-plans
+between starts, as the callout above explains. Because fee inputs are leased
+only at broadcast time, a mid-batch `exit()` rejection is treated as a clean
+stop rather than retried. On the cooperative path it queues each outpoint
+into the next round, one `exit()` call at a time, with no re-planning step.
+
+<ParamsTable rows={[
+  { name: 'opts', type: 'ExitBatchOptions', desc: "The batch mode and outpoints, plus client (the WavelengthClient to drive), an optional AbortSignal, and an optional onEvent progress callback." },
+]} />
+
+<Returns type="Promise<ExitBatchResult>">
+Which outpoints started, which were skipped because they already had a
+running exit, which never started, and why the batch stopped early, if it did.
+</Returns>
+
+<ApiTypeLabel name="ExitBatchOptions" />
+
+A discriminated union on `mode`. A cooperative batch queues each outpoint
+into the next round to an optional on-chain `destination`; a unilateral batch
+forces each outpoint on-chain, funding the recovery from the backing wallet.
+
+<Signature title="wavelength-core.d.ts" code={exitBatchOptionsSig} />
+
+<ParamsTable rows={[
+  { name: "{ mode: 'cooperative', outpoints, destination? }", type: 'variant', desc: "Queues every outpoint into the next cooperative round. destination is optional; when omitted the daemon generates a fresh backing-wallet address per outpoint." },
+  { name: "{ mode: 'unilateral', outpoints, confTarget? }", type: 'variant', desc: "Forces every outpoint on-chain, funding the recovery from the backing wallet. confTarget is an optional confirmation target (in blocks) used to estimate fees for the funding plan." },
+]} />
+
+<ApiTypeLabel name="ExitBatchEvent" />
+
+Progress events delivered to `exitBatch()`'s `onEvent` callback, in order, as
+it works through a batch.
+
+<Signature title="wavelength-core.d.ts" code={exitBatchEventSig} />
+
+<ParamsTable rows={[
+  { name: "{ type: 'planned', plan }", type: 'variant', desc: "The latest unilateral funding plan from a re-plan round. Unilateral batches only." },
+  { name: "{ type: 'starting', outpoint }", type: 'variant', desc: "Fires immediately before the exit() call for this outpoint." },
+  { name: "{ type: 'started', outpoint, result }", type: 'variant', desc: "Fires after exit() succeeds for this outpoint, carrying its ExitResult." },
+  { name: "{ type: 'stopped', stoppedBy, remaining }", type: 'variant', desc: "Fires once, when the batch halts before every outpoint started; see ExitBatchStop." },
+]} />
+
+<ApiTypeLabel name="ExitBatchStop" />
+
+Why an `exitBatch()` run stopped before finishing every outpoint.
+
+<Signature title="wavelength-core.d.ts" code={exitBatchStopSig} />
+
+<ParamsTable rows={[
+  { name: "{ reason: 'infeasible', plan }", type: 'variant', desc: "A re-plan reported the backing wallet can no longer fund the remaining exits. Unilateral batches only; plan is the GetExitPlanResult that triggered the stop." },
+  { name: "{ reason: 'rejected', outpoint, error }", type: 'variant', desc: "An individual exit() call was rejected by the daemon for this outpoint." },
+]} />
+
+<ApiTypeLabel name="ExitBatchResult" />
+
+The outcome of `exitBatch()`.
+
+<Signature title="wavelength-core.d.ts" code={exitBatchResultSig} />
+
+<ParamsTable rows={[
+  { name: 'started', type: '{ outpoint: string, result: ExitResult }[]', desc: "The exits successfully started. Each unilateral entry still runs for hours or days afterward; appearing here means started, not completed." },
+  { name: 'skipped', type: 'string[]', desc: "Outpoints that already had a running exit job and were left alone rather than double-started." },
+  { name: 'remaining', type: 'string[]', desc: "Outpoints never started, because the batch stopped early." },
+  { name: 'stoppedBy', type: 'ExitBatchStop', desc: "Optional. Present when the batch halted before every outpoint started; see ExitBatchStop." },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="isExitInfeasibilityFundable" kind="function">
+
+Distinguishes a fixable exit-infeasibility (the backing wallet needs more
+confirmed funds or inputs) from a structural one (the VTXO cannot be exited
+economically at all). Use it to decide whether to show a "fund your wallet"
+affordance or a terminal "cannot exit this VTXO" message. Mirrors the
+daemon's own infeasibility split.
+
+<Signature title="wavelength-core.d.ts" code={isExitInfeasibilityFundableSig} />
+
+<ParamsTable rows={[
+  { name: 'reason', type: 'ExitInfeasibilityReason', desc: "The infeasibility reason from an ExitPlanEntry, typically read from a getExitPlan() response." },
+]} />
+
+<Returns type="boolean">
+`true` for `wallet_underfunded` and `wallet_too_few_inputs` (funding the
+wallet resolves it); `false` for every other reason, including the
+structural `sweep_below_dust` and `uneconomical` blocks that no amount of
+funding fixes.
+</Returns>
 
 </ApiSymbol>
 

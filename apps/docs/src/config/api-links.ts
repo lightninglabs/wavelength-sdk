@@ -21,7 +21,9 @@ const coreSymbols = [
   'SendResult', 'SendRail', 'classifyDestination', 'Destination', 'InvoiceAmount',
   'list', 'subscribe', 'startActivity', 'stopActivity', 'Entry', 'EntryProgress',
   'EntryRequest', 'EntryKind', 'EntryStatus', 'EntryPhase', 'EntryFailureCode',
-  'EntryRequestType', 'exit', 'exitStatus', 'exitSummary', 'getExitPlan', 'sweepWallet', 'callRaw',
+  'EntryRequestType', 'exit', 'exitStatus', 'exitSummary', 'getExitPlan', 'exitBatch',
+  'isExitInfeasibilityFundable', 'ExitBatchOptions', 'ExitBatchEvent', 'ExitBatchStop',
+  'ExitBatchResult', 'sweepWallet', 'callRaw',
   'camelizeKeys', 'WalletState', 'RuntimePhase', 'phaseFromInfo', 'normalizeInfo',
   'walletStateFromProto', 'WavelengthEvent', 'WavelengthEventType', 'WavelengthListener',
   'WavelengthLogPayload', 'WavelengthLogLevel', 'WavelengthError', 'WavelengthErrorCode',
@@ -45,6 +47,8 @@ const reactSymbols = [
   'useWalletLogs', 'useWalletCreate', 'useWalletRestore', 'useWalletUnlock',
   'useWalletDeposit', 'useWalletReceive', 'useWalletPrepareSend', 'useWalletSend',
   'useWalletRefresh', 'useWalletPasskey', 'PasskeyWalletOutcome',
+  'useWalletExit', 'useWalletExitPlan', 'useWalletExitBatch', 'useWalletExitStatus',
+  'useWalletExits', 'useWalletList', 'useWalletSweep',
 ];
 
 const webSymbols = [

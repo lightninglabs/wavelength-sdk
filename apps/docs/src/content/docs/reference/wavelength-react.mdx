@@ -189,7 +189,7 @@ The eight hooks below drive a wallet operation and carry hook-local, verb-prefix
 <Callout type="note" title="Mutation convention: throw-and-capture">
 Every mutation hook exposes the same shape, with its fields prefixed by the verb it performs: an action function (e.g. `create`), `<verb>Pending: boolean`, `<verb>Error: Error | null`, `<verb>Data` (the last successful result, or `null`), and `reset<Verb>(): void`. Calling the action clears the previous error/data, sets pending to `true`, awaits the underlying engine call, and on completion **both** updates the hook's state **and** settles the returned promise the normal way: it resolves with the result (and sets the data field) or rejects with the failure (and sets the error field to that same `Error` instance). This is throw-and-capture: read the `*Error`/`*Data` fields for a declarative render, or `await`/`try`/`catch` the action's return value for imperative flow, whichever fits the call site. Error fields are always `Error | null`, never a string. `reset<Verb>()` clears the pending/error/data trio back to idle without calling anything.
 
-The verb prefix is deliberate: a component composing several of these hooks (e.g. `create` and `deposit` side by side) never needs destructure aliases to avoid name collisions. [`useWalletPasskey`](#useWalletPasskey)'s `create`/`open` fields follow the same prefixing pattern, but this is one place the prefix does not save you: `useWalletCreate` and `useWalletPasskey` both expose a `create` verb, so destructuring both in the same component collides on all four of `create`, `createPending`, `createError`, and `resetCreate`. Keep one as a namespaced object (e.g. `const passkey = useWalletPasskey(...)`) instead of destructuring both. Each hook's return type is also exported as `UseWallet<Verb>Result` (`UseWalletCreateResult`, `UseWalletRestoreResult`, `UseWalletUnlockResult`, `UseWalletDepositResult`, `UseWalletReceiveResult`, `UseWalletPrepareSendResult`, `UseWalletSendResult`, `UseWalletRefreshResult`), for typing wrapper components around a hook without re-deriving its shape.
+The verb prefix is deliberate: a component composing several of these hooks (e.g. `create` and `deposit` side by side) never needs destructure aliases to avoid name collisions. [`useWalletPasskey`](#useWalletPasskey)'s `create`/`open` fields follow the same prefixing pattern, but this is one place the prefix does not save you: `useWalletCreate` and `useWalletPasskey` both expose a `create` verb, so destructuring both in the same component collides on all four of `create`, `createPending`, `createError`, and `resetCreate`. Keep one as a namespaced object (e.g. `const passkey = useWalletPasskey(...)`) instead of destructuring both. Each hook's return type is also exported as `UseWallet<Verb>Result` (`UseWalletCreateResult`, `UseWalletRestoreResult`, `UseWalletUnlockResult`, `UseWalletDepositResult`, `UseWalletReceiveResult`, `UseWalletPrepareSendResult`, `UseWalletSendResult`, `UseWalletRefreshResult`, and the exit-hook result types documented in [Exiting Ark](#exiting-ark) below), for typing wrapper components around a hook without re-deriving its shape.
 
 A `PasskeyCancelledError` (the user dismissed the OS prompt) is the one exception: it rethrows without being recorded into the error field, since a dismissed prompt is not a failure to display.
 </Callout>
@@ -383,6 +383,194 @@ Re-fetches info, balance, and activity.
 
 <Returns type="{ refresh, refreshPending, refreshError, resetRefresh }">
 The one mutation hook with no data field: `refresh()` resolves `void`, so there is nothing to hold. `refreshPending` tracks only this hook instance's own calls, not the engine's own background refreshes (the sync poll, the activity-driven settle reconcile, or the refresh kicked automatically after another mutation): those never flip it. Use it as what a pull-to-refresh spinner should show.
+</Returns>
+
+</ApiSymbol>
+
+## Exiting Ark
+
+Seven hooks cover the exit surface. `useWalletExit`, `useWalletExitPlan`,
+`useWalletSweep`, and [`useWalletList`](#useWalletList) are 1:1 wrappers
+around one [`WalletEngine`](/reference/wavelength-core/#WalletEngine) verb
+each, following the same mutation convention as the hooks above.
+[`useWalletExitBatch`](#useWalletExitBatch) is the orchestrator: it drives a
+full multi-outpoint exit through the funding-contention guards documented on
+[`exitBatch`](/reference/wavelength-core/#exitBatch) in the wavelength-core
+reference, and additionally exposes the batch's progress events.
+[`useWalletExitStatus`](#useWalletExitStatus) and
+[`useWalletExits`](#useWalletExits) are read hooks instead of mutations: they
+fetch on mount (and on relevant changes) and expose a `refresh*` action
+rather than a `reset*` one, since there is no pending/error/data trio to
+clear back to idle, only a cached read to force fresh.
+
+export const useWalletExitSig = `function useWalletExit(): {
+  exit(req: ExitRequest): Promise<ExitResult>;
+  exitPending: boolean;
+  exitError: Error | null;
+  exitData: ExitResult | null;
+  resetExit(): void;
+};`;
+
+<ApiSymbol name="useWalletExit" kind="function">
+
+Starts a single exit for one outpoint, with hook-local exitPending/exitError/exitData state. A 1:1 wrapper around [`WalletEngine.exit()`](/reference/wavelength-core/#WalletEngine).
+
+<Signature title="wavelength-react.d.ts" code={useWalletExitSig} />
+
+<ParamsTable rows={[
+  { name: 'exit(req)', type: '(req: ExitRequest) => Promise<ExitResult>', desc: 'Starts a single exit, cooperative or unilateral depending on req. Takes the full ExitRequest union; see exit on the wavelength-core reference.' },
+]} />
+
+<Returns type="{ exit, exitPending, exitError, exitData, resetExit }">
+See the mutation convention above.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletExitPlanSig = `function useWalletExitPlan(): {
+  plan(req: GetExitPlanRequest): Promise<GetExitPlanResult>;
+  planPending: boolean;
+  planError: Error | null;
+  planData: GetExitPlanResult | null;
+  resetPlan(): void;
+};`;
+
+<ApiSymbol name="useWalletExitPlan" kind="function">
+
+Previews unilateral-exit readiness and backing-wallet funding for a set of outpoints, with hook-local planPending/planError/planData state. A 1:1 wrapper around [`WalletEngine.getExitPlan()`](/reference/wavelength-core/#WalletEngine). Pair it with [`useWalletExitBatch`](#useWalletExitBatch) to act on a plan: `exitBatch` previews and re-plans internally, so this hook is for a standalone preview screen rather than a required prerequisite step before calling `exitBatch`.
+
+<Signature title="wavelength-react.d.ts" code={useWalletExitPlanSig} />
+
+<ParamsTable rows={[
+  { name: 'plan(req)', type: '(req: GetExitPlanRequest) => Promise<GetExitPlanResult>', desc: 'Previews funding for the given outpoints without moving funds. See getExitPlan on the wavelength-core reference.' },
+]} />
+
+<Returns type="{ plan, planPending, planError, planData, resetPlan }">
+See the mutation convention above.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletSweepSig = `function useWalletSweep(): {
+  sweep(req: SweepWalletRequest): Promise<SweepWalletResult>;
+  sweepPending: boolean;
+  sweepError: Error | null;
+  sweepData: SweepWalletResult | null;
+  resetSweep(): void;
+};`;
+
+<ApiSymbol name="useWalletSweep" kind="function">
+
+Previews (`broadcast: false`) or broadcasts (`broadcast: true`) a sweep of the backing on-chain wallet, with hook-local sweepPending/sweepError/sweepData state. A 1:1 wrapper around [`WalletEngine.sweepWallet()`](/reference/wavelength-core/#WalletEngine). Call it with `broadcast: false` first to preview the fee and net amount, then again with `broadcast: true` once the user confirms; only the broadcasting call moves funds and kicks a background refresh.
+
+<Signature title="wavelength-react.d.ts" code={useWalletSweepSig} />
+
+<ParamsTable rows={[
+  { name: 'sweep(req)', type: '(req: SweepWalletRequest) => Promise<SweepWalletResult>', desc: 'Previews or broadcasts the sweep, depending on req.broadcast. See sweepWallet on the wavelength-core reference.' },
+]} />
+
+<Returns type="{ sweep, sweepPending, sweepError, sweepData, resetSweep }">
+See the mutation convention above.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletExitBatchSig = `function useWalletExitBatch(): {
+  exitBatch(opts: ExitBatchOptions): Promise<ExitBatchResult>;
+  exitBatchPending: boolean;
+  exitBatchError: Error | null;
+  exitBatchData: ExitBatchResult | null;
+  exitBatchEvents: ExitBatchEvent[];
+  resetExitBatch(): void;
+};`;
+
+<ApiSymbol name="useWalletExitBatch" kind="function">
+
+The orchestrator: starts a batch of exits across multiple outpoints, handling the funding-contention guards internally. Unlike the other mutation hooks, it also exposes `exitBatchEvents`, the batch's progress events in order for the current or last run, so a UI can render a live per-outpoint timeline instead of waiting for the whole batch to settle.
+
+<Callout type="caution" title="exitBatch starts exits and moves money">
+Read the hazard callout on [`exitBatch`](/reference/wavelength-core/#exitBatch) in the wavelength-core reference: this hook's `exitBatch` action resolves once every exit is **started**, not completed, and a unilateral exit keeps running for hours or days afterward.
+</Callout>
+
+<Signature title="wavelength-react.d.ts" code={useWalletExitBatchSig} />
+
+<ParamsTable rows={[
+  { name: 'exitBatch(opts)', type: '(opts: ExitBatchOptions) => Promise<ExitBatchResult>', desc: 'Starts the batch. See ExitBatchOptions on the wavelength-core reference for the cooperative/unilateral discriminated union.' },
+]} />
+
+<Returns type="{ exitBatch, exitBatchPending, exitBatchError, exitBatchData, exitBatchEvents, resetExitBatch }">
+The mutation convention above, plus exitBatchEvents: the ExitBatchEvent list for the current or last run, reset to empty each time exitBatch() is called or resetExitBatch() runs.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletExitStatusSig = `function useWalletExitStatus(
+  outpoint: string,
+  opts?: { detailed?: boolean; pollMs?: number },
+): {
+  status: ExitStatusResult | null;
+  statusPending: boolean;
+  statusError: Error | null;
+  refreshStatus(): Promise<ExitStatusResult>;
+};`;
+
+<ApiSymbol name="useWalletExitStatus" kind="function">
+
+Reads one exit's status. Defaults to the cheap, coarse phase-only call; pass `{ detailed: true }` for recovery-tree progress, the CSV maturity countdown, and a fee breakdown, at the cost of a live round-trip. Fetches on mount and whenever `outpoint` or the options change.
+
+<Signature title="wavelength-react.d.ts" code={useWalletExitStatusSig} />
+
+<ParamsTable rows={[
+  { name: 'outpoint', type: 'string', desc: 'The VTXO outpoint whose exit status is read.' },
+  { name: 'opts.detailed', type: 'boolean', desc: 'Optional. Requests the detailed fields; leave it false for a coarse, cheaper status.' },
+  { name: 'opts.pollMs', type: 'number', desc: 'Optional. Polls at this interval, in milliseconds, while the component stays mounted. Polling is opt-in (omit it for a one-shot fetch); it keeps running with no visibility/focus gating (including in a backgrounded tab) and stops only on unmount, so there is no timer left running once the user navigates away.' },
+]} />
+
+<Returns type="{ status, statusPending, statusError, refreshStatus }">
+`status` is null before the first load resolves. Unlike the mutation hooks above, there is no reset action: refetch on demand with refreshStatus(), or change outpoint/opts to refetch automatically.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletExitsSig = `function useWalletExits(): {
+  summary: ExitSummaryResult | null;
+  summaryPending: boolean;
+  summaryError: Error | null;
+  refreshSummary(): Promise<ExitSummaryResult>;
+};`;
+
+<ApiSymbol name="useWalletExits" kind="function">
+
+Reads the wallet-wide in-progress exit portfolio. Fetches on mount and whenever wallet activity changes, so a completed exit clears from the summary without a manual refresh.
+
+<Signature title="wavelength-react.d.ts" code={useWalletExitsSig} />
+
+<Returns type="{ summary, summaryPending, summaryError, refreshSummary }">
+`summary` is null before the first load resolves. Like useWalletExitStatus, there is no reset action; call refreshSummary() to refetch on demand.
+</Returns>
+
+</ApiSymbol>
+
+export const useWalletListSig = `function useWalletList(): {
+  list(req: ListRequest): Promise<ListResult>;
+  listPending: boolean;
+  listError: Error | null;
+  listData: ListResult | null;
+  resetList(): void;
+};`;
+
+<ApiSymbol name="useWalletList" kind="function">
+
+Lists wallet activity, VTXOs, or on-chain outputs on demand, with hook-local listPending/listError/listData state. A 1:1 wrapper around [`WalletEngine.list()`](/reference/wavelength-core/#WalletEngine). Reach for it for an on-demand fetch, such as populating a VTXO picker before an exit; the always-fresh activity feed is already available from [`useWalletActivity()`](#useWalletActivity) without a manual fetch.
+
+<Signature title="wavelength-react.d.ts" code={useWalletListSig} />
+
+<ParamsTable rows={[
+  { name: 'list(req)', type: '(req: ListRequest) => Promise<ListResult>', desc: 'Lists the requested view. See list on the wavelength-core reference.' },
+]} />
+
+<Returns type="{ list, listPending, listError, listData, resetList }">
+See the mutation convention above.
 </Returns>
 
 </ApiSymbol>

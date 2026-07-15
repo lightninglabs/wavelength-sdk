@@ -125,6 +125,33 @@ always an `Error | null`, never a string:
 | `useWalletSend()` | `{ send, sendPrepared, sendPending, sendError, sendData, resetSend }` |
 | `useWalletRefresh()` | `{ refresh, refreshPending, refreshError, resetRefresh }` (no data field: `refresh()` resolves `void`) |
 
+**Exit hooks** cover cooperative and unilateral exits. `useWalletExit`,
+`useWalletExitPlan`, `useWalletSweep`, and `useWalletList` are 1:1 wrappers
+around one daemon verb and follow the same throw-and-capture convention as
+the mutation hooks above. `useWalletExitBatch` is the orchestrator: it drives
+a multi-outpoint exit through funding-contention guards and additionally
+reports progress events. `useWalletExitStatus` and `useWalletExits` are read
+hooks instead of mutations: they fetch on mount (and on relevant changes) and
+expose a `refresh*` action rather than a `reset*` one:
+
+| Hook | Returns |
+|---|---|
+| `useWalletExit()` | `{ exit, exitPending, exitError, exitData, resetExit }` |
+| `useWalletExitPlan()` | `{ plan, planPending, planError, planData, resetPlan }` |
+| `useWalletSweep()` | `{ sweep, sweepPending, sweepError, sweepData, resetSweep }` |
+| `useWalletExitBatch()` | `{ exitBatch, exitBatchPending, exitBatchError, exitBatchData, exitBatchEvents, resetExitBatch }` |
+| `useWalletExitStatus(outpoint, opts?)` | `{ status, statusPending, statusError, refreshStatus }` |
+| `useWalletExits()` | `{ summary, summaryPending, summaryError, refreshSummary }` |
+| `useWalletList()` | `{ list, listPending, listError, listData, resetList }` |
+
+`useWalletExitStatus` defaults to a cheap, coarse phase-only fetch; pass
+`{ detailed: true }` for recovery-tree progress, the CSV countdown, and fees.
+Pass `{ pollMs }` to poll while the hook is mounted: polling is opt-in and
+runs with no visibility/focus gating, stopping only on unmount. See
+[Unilateral exit & status](/guides/unilateral-exit/) for end-to-end usage,
+and the [wavelength-react reference](/reference/wavelength-react/#exiting-ark)
+for the full hazard notes on `exitBatch`.
+
 For example, `useWalletSend()` returns a `send(req)` action alongside its own
 `sendPending`/`sendError` state:
 
