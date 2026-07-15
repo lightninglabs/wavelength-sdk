@@ -93,6 +93,46 @@ export async function exitBatch(
   while (remaining.length > 0) {
     signal?.throwIfAborted();
 
+    if (opts.mode === 'unilateral') {
+      const currentPlan = await client.getExitPlan({
+        outpoints: remaining,
+        confTarget: opts.confTarget,
+      });
+      onEvent?.({ type: 'planned', plan: currentPlan });
+
+      // Drop outpoints the daemon already runs an exit for: it rejects a
+      // second exit for one outpoint, and the plan already flags them.
+      const running = new Set(
+        currentPlan.plans.filter((p) => p.exitJobFound).map((p) => p.outpoint),
+      );
+      if (running.size > 0) {
+        const newlySkipped = remaining.filter(
+          (o) => running.has(o) && !skipped.includes(o),
+        );
+        for (const o of newlySkipped) skipped.push(o);
+        remaining = remaining.filter((o) => !running.has(o));
+        if (remaining.length === 0) break;
+        if (newlySkipped.length > 0) {
+          // Re-plan against the reduced set before gating on canStart: the
+          // plan we just read still counted the now-skipped (already-running)
+          // outpoints, whose leased fee inputs can make the aggregate
+          // canStart false.
+          continue;
+        }
+      }
+
+      // Funding is never reserved, so re-planning each round is the only way
+      // to notice an earlier start consumed the inputs a later one needs.
+      if (!currentPlan.canStart) {
+        const stoppedBy: ExitBatchStop = {
+          reason: 'infeasible',
+          plan: currentPlan,
+        };
+        onEvent?.({ type: 'stopped', stoppedBy, remaining });
+        return { started, skipped, remaining, stoppedBy };
+      }
+    }
+
     const outpoint = remaining[0];
     onEvent?.({ type: 'starting', outpoint });
     try {
