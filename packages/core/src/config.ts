@@ -226,33 +226,36 @@ type NetworkEndpoints = {
 const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
   signet: {
     ark: {
-      rest: 'https://arkd-signet-rest.staging.lightningcluster.com',
-      grpc: 'arkd-signet.staging.lightningcluster.com:443',
+      rest: 'https://signet.wavelength-rest.lightning.finance',
+      grpc: 'signet.wavelength.lightning.finance:443',
     },
     swap: {
-      rest: 'https://swapd-signet-rest.staging.lightningcluster.com',
-      grpc: 'swapd-signet.staging.lightningcluster.com:443',
+      rest: 'https://signet.swapd-rest.lightning.finance',
+      grpc: 'signet.swap.wavelength.lightning.finance:443',
     },
-    esplora: 'https://mempool-signet.testnet.lightningcluster.com/api',
+    esplora: 'https://mempool.space/signet/api',
   },
   testnet: {
     ark: {
-      rest: 'https://arkd-rest.testnet.lightningcluster.com',
-      grpc: 'arkd.testnet.lightningcluster.com:443',
+      rest: 'https://test.wavelength-rest.lightning.finance',
+      grpc: 'test.wavelength.lightning.finance:443',
     },
     swap: {
-      rest: 'https://swapd-rest.testnet.lightningcluster.com',
-      grpc: 'swapd.testnet.lightningcluster.com:443',
+      rest: 'https://test.swapd-rest.lightning.finance',
+      grpc: 'test.swap.wavelength.lightning.finance:443',
     },
     esplora: 'https://mempool.space/testnet/api',
   },
   testnet4: {
     ark: {
-      rest: 'https://arkd-testnet4-rest.testnet.lightningcluster.com',
-      grpc: 'arkd-testnet4.testnet.lightningcluster.com:443',
+      rest: 'https://test4.wavelength-rest.lightning.finance',
+      // testnet4's public gRPC NLB is still disabled, so the daemon keeps
+      // dialing the raw cluster hostname; a friendly-domain CNAME follows
+      // once its certificate work lands.
+      grpc: 'lumosd-testnet4.testnet.lightningcluster.com:443',
     },
     swap: {
-      rest: 'https://swapd-testnet4-rest.testnet.lightningcluster.com',
+      rest: 'https://test4.swapd-rest.lightning.finance',
       grpc: 'swapd-testnet4.testnet.lightningcluster.com:443',
     },
     esplora: 'https://mempool.space/testnet4/api',
