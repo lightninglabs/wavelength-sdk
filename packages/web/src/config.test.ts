@@ -6,9 +6,9 @@ describe('defaultConfig (web)', () => {
   it('returns the REST gateway preset for a hosted network', () => {
     assert.deepEqual(defaultConfig('signet'), {
       network: 'signet',
-      arkServerAddress: 'https://arkd-signet-rest.staging.lightningcluster.com',
-      walletEsploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
-      swapServerAddress: 'https://swapd-signet-rest.staging.lightningcluster.com',
+      arkServerAddress: 'https://signet.wavelength-rest.lightning.finance',
+      walletEsploraUrl: 'https://mempool.space/signet/api',
+      swapServerAddress: 'https://signet.swapd-rest.lightning.finance',
     });
   });
 
@@ -22,7 +22,7 @@ describe('defaultConfig (web)', () => {
     assert.equal(config.walletEsploraUrl, 'https://my-esplora.example/api');
     assert.equal(
       config.arkServerAddress,
-      'https://arkd-testnet4-rest.testnet.lightningcluster.com',
+      'https://test4.wavelength-rest.lightning.finance',
     );
   });
 });

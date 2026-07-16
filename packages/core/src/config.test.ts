@@ -10,40 +10,40 @@ import { WavelengthError } from './errors.ts';
 import type { ServerTransport } from './facade.ts';
 
 describe('networkDefaults', () => {
-  it('returns the signet staging endpoints in each flavor', () => {
+  it('returns the signet endpoints in each flavor', () => {
     assert.deepEqual(networkDefaults('signet', 'rest'), {
-      arkServerAddress: 'https://arkd-signet-rest.staging.lightningcluster.com',
-      walletEsploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
-      swapServerAddress: 'https://swapd-signet-rest.staging.lightningcluster.com',
+      arkServerAddress: 'https://signet.wavelength-rest.lightning.finance',
+      walletEsploraUrl: 'https://mempool.space/signet/api',
+      swapServerAddress: 'https://signet.swapd-rest.lightning.finance',
     });
     assert.deepEqual(networkDefaults('signet', 'grpc'), {
-      arkServerAddress: 'arkd-signet.staging.lightningcluster.com:443',
-      walletEsploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
-      swapServerAddress: 'swapd-signet.staging.lightningcluster.com:443',
+      arkServerAddress: 'signet.wavelength.lightning.finance:443',
+      walletEsploraUrl: 'https://mempool.space/signet/api',
+      swapServerAddress: 'signet.swap.wavelength.lightning.finance:443',
     });
   });
 
   it('returns the testnet (testnet3) endpoints in each flavor', () => {
     assert.deepEqual(networkDefaults('testnet', 'rest'), {
-      arkServerAddress: 'https://arkd-rest.testnet.lightningcluster.com',
+      arkServerAddress: 'https://test.wavelength-rest.lightning.finance',
       walletEsploraUrl: 'https://mempool.space/testnet/api',
-      swapServerAddress: 'https://swapd-rest.testnet.lightningcluster.com',
+      swapServerAddress: 'https://test.swapd-rest.lightning.finance',
     });
     assert.deepEqual(networkDefaults('testnet', 'grpc'), {
-      arkServerAddress: 'arkd.testnet.lightningcluster.com:443',
+      arkServerAddress: 'test.wavelength.lightning.finance:443',
       walletEsploraUrl: 'https://mempool.space/testnet/api',
-      swapServerAddress: 'swapd.testnet.lightningcluster.com:443',
+      swapServerAddress: 'test.swap.wavelength.lightning.finance:443',
     });
   });
 
   it('returns the testnet4 endpoints in each flavor', () => {
     assert.deepEqual(networkDefaults('testnet4', 'rest'), {
-      arkServerAddress: 'https://arkd-testnet4-rest.testnet.lightningcluster.com',
+      arkServerAddress: 'https://test4.wavelength-rest.lightning.finance',
       walletEsploraUrl: 'https://mempool.space/testnet4/api',
-      swapServerAddress: 'https://swapd-testnet4-rest.testnet.lightningcluster.com',
+      swapServerAddress: 'https://test4.swapd-rest.lightning.finance',
     });
     assert.deepEqual(networkDefaults('testnet4', 'grpc'), {
-      arkServerAddress: 'arkd-testnet4.testnet.lightningcluster.com:443',
+      arkServerAddress: 'lumosd-testnet4.testnet.lightningcluster.com:443',
       walletEsploraUrl: 'https://mempool.space/testnet4/api',
       swapServerAddress: 'swapd-testnet4.testnet.lightningcluster.com:443',
     });
