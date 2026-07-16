@@ -7,6 +7,7 @@ import {
 import type { WalletKind } from "@lightninglabs/wavelength-react";
 import { AppShell } from "./components/layout/AppShell";
 import { RecoveryBanner } from "./components/RecoveryBanner";
+import { ExitBanner } from "./components/ExitBanner";
 import { AppTab } from "./components/layout/nav";
 import { balanceSat } from "./lib/balance";
 import {
@@ -38,6 +39,7 @@ import { ReceiveScreen } from "./screens/receive";
 import { SendScreen } from "./screens/send";
 import { ActivityScreen } from "./screens/activity";
 import { SettingsScreen } from "./screens/settings";
+import { ExitScreen } from "./screens/exit";
 
 // App is the wallet orchestrator: it owns cross-screen session state (the
 // connect form, recovery-phrase backup gating, wallet-kind persistence, the
@@ -300,6 +302,7 @@ export function App() {
   return (
     <AppShell tab={tab} onTab={setTab} onStop={stopRuntime} network={network}>
       <RecoveryBanner />
+      <ExitBanner onNavigate={setTab} />
       {tab === "home" ? <HomeScreen onNavigate={setTab} /> : null}
       {tab === "receive" ? <ReceiveScreen onNavigate={setTab} /> : null}
       {tab === "send" ? (
@@ -315,6 +318,7 @@ export function App() {
           onNavigate={setTab}
         />
       ) : null}
+      {tab === "exit" ? <ExitScreen onNavigate={setTab} /> : null}
     </AppShell>
   );
 }

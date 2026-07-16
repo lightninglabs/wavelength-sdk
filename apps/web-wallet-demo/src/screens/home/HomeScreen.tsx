@@ -44,6 +44,7 @@ import { formatBtc, formatSats } from "../../lib/format";
 import { statusLabel } from "../../lib/phase";
 import { usePollWhileWaiting } from "../../lib/usePollWhileWaiting";
 import { Composition } from "./Composition";
+import { OnChainBalance } from "./OnChainBalance";
 
 // HomeScreen is the authenticated overview: the balance hero with composition,
 // recent activity, quick actions and runtime status, laid out as full-bleed
@@ -97,6 +98,7 @@ export function HomeScreen({
             <Label>Balance composition</Label>
             <div className="mt-4">
               <Composition balance={balance} />
+              <OnChainBalance balance={balance} />
             </div>
           </Band>
           <RecentActivityBand activity={activity} onNavigate={onNavigate} />

@@ -1,6 +1,6 @@
 ---
 title: Unilateral exit & status
-description: How to initiate a trustless unilateral exit from Ark using exit, exitStatus, getExitPlan, and sweepWallet to recover funds on-chain.
+description: Choose between a cooperative leave and a unilateral exit, start one with useWalletExit or useWalletExitBatch, and track it with the status and summary hooks.
 pageLayout: guide
 related:
   - guides/send-a-payment
@@ -8,25 +8,61 @@ related:
   - guides/show-balance-and-activity
 ---
 
-Exiting is a client-level operation: there is no dedicated mutation hook for
-it, so reach it through [`useWalletEngine()`](/reference/wavelength-react/#useWalletEngine).client, the escape hatch every
-granular hook is built on.
+Every VTXO leaves Ark one of two ways: a cooperative leave the operator
+settles in the next round, or a unilateral exit you force on-chain yourself.
+[`useWalletExit`](/reference/wavelength-react/#useWalletExit) starts one
+outpoint; [`useWalletExitBatch`](/reference/wavelength-react/#useWalletExitBatch)
+starts several at once. [`useWalletExitPlan`](/reference/wavelength-react/#useWalletExitPlan),
+[`useWalletExitStatus`](/reference/wavelength-react/#useWalletExitStatus), and
+[`useWalletExits`](/reference/wavelength-react/#useWalletExits) preview and
+track them. `sweepWallet` has no dedicated hook yet, so reach it through
+[`useWalletEngine()`](/reference/wavelength-react/#useWalletEngine).client,
+the escape hatch every granular hook is built on.
+
+## Cooperative or unilateral?
+
+Try cooperative first. It settles in roughly one round instead of waiting out
+a CSV timelock, and it costs nothing beyond the round's normal fees. It's
+also the default: calling `exit({ outpoint })` with no `forceUnrollAck` is a
+cooperative leave.
+
+Reach for unilateral only when the operator is unreachable or unresponsive,
+or a cooperative attempt already failed and you need a way out regardless of
+that. It's trustless, since it needs no cooperation from the operator, but it
+is slower and costs real sats: it materializes a recovery transaction tree
+on-chain, then waits out the VTXO's CSV timelock before you can sweep the
+funds. Preview the cost with `getExitPlan` before committing (see below). See
+[Leaving Ark](/concepts/leaving-ark/) for the full decision writeup,
+including what each path looks like in the activity feed.
+
+Unilateral is a separate, explicit branch, not something the SDK falls back
+to on your behalf: a cooperative failure rejects the call and never silently
+starts a unilateral exit underneath you. Starting one requires the exported
+`FORCE_UNROLL_ACK` constant:
+
+```ts
+import { FORCE_UNROLL_ACK } from '@lightninglabs/wavelength-react';
+
+await client.exit({ outpoint, forceUnrollAck: FORCE_UNROLL_ACK });
+```
+
+`FORCE_UNROLL_ACK` exists so the unilateral path is something you opt into on
+purpose, not something a typo or a copy-pasted request can trigger by
+accident. `destination` (cooperative) and `forceUnrollAck` (unilateral) are
+mutually exclusive on `ExitRequest`; you pick the branch up front.
 
 ## Preview with getExitPlan
 
-Before initiating a unilateral exit, call `client.getExitPlan({ outpoints })`
-to preview funding requirements for each VTXO. Show the `plans` summary to the
-user so they can make an informed decision before broadcasting.
+Before starting a unilateral exit, call `client.getExitPlan({ outpoints })`
+(or the equivalent [`useWalletExitPlan`](/reference/wavelength-react/#useWalletExitPlan)
+hook) to preview funding requirements for each VTXO. Show the `plans`
+summary to the user so they can make an informed decision before broadcasting.
 
 Pass `confTarget` (in blocks) to influence the fee rate used for the
 recommended-funding estimate, the same way you would for other fee-sensitive
 calls.
 
-A unilateral exit is trustless but slower and more expensive than a
-cooperative leave. Use it only when the Ark server is unavailable or
-unresponsive.
-
-```tsx title="exit.tsx"
+```tsx title="ExitPlan.tsx"
 import { useState } from 'react';
 import { useWalletEngine } from '@lightninglabs/wavelength-react';
 import type { GetExitPlanResult } from '@lightninglabs/wavelength-react';
@@ -55,25 +91,44 @@ function ExitPlan({ outpoints }: { outpoints: string[] }) {
 }
 ```
 
-## Initiate the exit
+If `canStart` is `false`, check each `ExitPlanEntry.infeasibilityReason`: a
+plain funding shortfall is fixable by sending sats to `fundingAddress`, but
+`sweep_below_dust` and `uneconomical` are structural and no amount of funding
+helps. [`isExitInfeasibilityFundable`](/reference/wavelength-core/#isExitInfeasibilityFundable)
+makes that split for you, so you can show a "fund your wallet" affordance for
+the fixable case and a plain "can't exit this VTXO" message for the rest.
 
-Unilateral exit is an explicit branch. Pass the exported acknowledgement
-constant as `forceUnrollAck` for a single VTXO:
+## Start a single exit
 
-```ts
-await client.exit({
-  outpoint,
-  forceUnrollAck: FORCE_UNROLL_ACK,
-});
+`useWalletExit` follows the same throw-and-capture convention as the other
+mutation hooks: an `exit` action plus `exitPending`/`exitError`/`exitData`.
+Do not call it twice for the same outpoint; check
+[`useWalletExitStatus`](#track-status-and-summary) first if the user may have
+already started an exit in a previous session.
+
+```tsx title="StartExit.tsx"
+import { FORCE_UNROLL_ACK, useWalletExit } from '@lightninglabs/wavelength-react';
+
+function StartExit({ outpoint }: { outpoint: string }) {
+  const { exit, exitPending, exitError } = useWalletExit();
+
+  const startExit = () =>
+    exit({ outpoint, forceUnrollAck: FORCE_UNROLL_ACK });
+
+  return (
+    <>
+      <button disabled={exitPending} onClick={startExit}>
+        Start exit
+      </button>
+      {exitError && <p role="alert">{exitError.message}</p>}
+    </>
+  );
+}
 ```
 
-`destination` and `forceUnrollAck` are mutually exclusive. Supplying a
-`destination` requests a cooperative leave instead. A cooperative error
-rejects the call and never starts unilateral unroll. The unilateral call
-resolves with an [`ExitResult`](/reference/wavelength-core/#ExitResult) whose
-`path` is `'unilateral'`.
-
-Which fields on [`ExitResult`](/reference/wavelength-core/#ExitResult) are populated depends on `path`:
+`exitData` resolves with an [`ExitResult`](/reference/wavelength-core/#ExitResult)
+whose `path` discriminates the outcome. Which fields are populated depends on
+`path`:
 
 | Field | Populated when |
 | --- | --- |
@@ -83,41 +138,114 @@ Which fields on [`ExitResult`](/reference/wavelength-core/#ExitResult) are popul
 | `cooperativeError` | retained for source compatibility; not populated by the current RPC |
 
 `unilateral_fallback` is also retained for source compatibility, but the
-current RPC never returns it. Cooperative failures reject instead of entering
-that legacy branch.
+current RPC never returns it: cooperative failures reject instead of
+silently entering that legacy branch.
 
-Do not call `exit` twice for the same outpoint. Check `client.exitStatus()`
-first if the user may have already started an exit in a previous session.
+## Batch exits with useWalletExitBatch
 
-```tsx title="exit.tsx"
-import {
-  FORCE_UNROLL_ACK,
-  useWalletEngine,
-} from '@lightninglabs/wavelength-react';
+Exiting more than one outpoint by hand means calling `exit()` in a loop and
+handling funding contention yourself, since exit funding is never reserved:
+an earlier start can consume the fee inputs a later one needs.
+`useWalletExitBatch` does that work for you. It resolves once every outpoint
+has **started**, not completed; a unilateral exit keeps running for hours or
+days after that. On the unilateral path it re-plans between starts, so it
+notices a funding conflict before attempting the next exit rather than after,
+and it stops cleanly (rather than retrying) if the daemon rejects a start
+mid-batch.
 
-function StartExit({ outpoint }: { outpoint: string }) {
-  const { client } = useWalletEngine();
+```tsx title="ExitBatch.tsx"
+import { useWalletExitBatch } from '@lightninglabs/wavelength-react';
 
-  const startExit = async () => {
-    await client.exit({
-      outpoint,
-      forceUnrollAck: FORCE_UNROLL_ACK,
-    });
-  };
+function ExitAll({ outpoints }: { outpoints: string[] }) {
+  const { exitBatch, exitBatchPending, exitBatchError, exitBatchEvents } =
+    useWalletExitBatch();
 
-  return <button onClick={startExit}>Start exit</button>;
+  const startAll = () => exitBatch({ mode: 'unilateral', outpoints, confTarget: 6 });
+
+  return (
+    <div>
+      <button disabled={exitBatchPending} onClick={startAll}>
+        Exit all
+      </button>
+      <ul>
+        {exitBatchEvents.map((event, i) => (
+          <li key={i}>
+            {event.type}
+            {'outpoint' in event ? `: ${event.outpoint}` : ''}
+          </li>
+        ))}
+      </ul>
+      {exitBatchError && <p role="alert">{exitBatchError.message}</p>}
+    </div>
+  );
 }
 ```
 
-## Poll status and sweep
+Pass `{ mode: 'cooperative', outpoints, destination? }` instead to queue
+every outpoint into the next cooperative round; the cooperative path has no
+funding-contention re-plan step, since it never touches the backing wallet.
+Once the call settles, read `exitBatchData.started` for what ran,
+`.skipped` for outpoints that already had a job running, `.remaining` for
+what never started, and `.stoppedBy` for why, if the batch stopped early.
 
-`client.exitStatus({ outpoint })` returns the durable unroll job status for
-that VTXO, including `found`, `status`, and `sweepTxid` when available. Poll
-this periodically until the job completes.
+## Track status and summary
 
-[`ExitStatusResult`](/reference/wavelength-core/#ExitStatusResult) also includes `lastError: string`. Surface it whenever
-`status === 'failed'` so the user knows why the job stopped instead of
-leaving them with a bare status label.
+[`useWalletExitStatus(outpoint, opts?)`](/reference/wavelength-react/#useWalletExitStatus)
+fetches on mount and whenever `outpoint` changes, and defaults to the cheap,
+phase-only call. Pass `{ detailed: true }` when you need the recovery-tree
+progress, the CSV maturity countdown, and a fee breakdown; that's a live
+round-trip, so leave it off for a plain status label. Pass `{ pollMs }` to
+poll while the component stays mounted: polling is opt-in and runs with no
+visibility/focus gating, stopping only on unmount, so there's nothing to
+tear down yourself.
+
+```tsx title="ExitStatus.tsx"
+import { useWalletExitStatus } from '@lightninglabs/wavelength-react';
+
+function ExitStatus({ outpoint }: { outpoint: string }) {
+  const { status, statusPending, statusError } = useWalletExitStatus(outpoint, {
+    detailed: true,
+    pollMs: 5000,
+  });
+
+  if (statusPending && !status) return <p>Loading...</p>;
+  if (statusError) return <p role="alert">{statusError.message}</p>;
+  if (!status?.found) return <p>No exit job for this outpoint.</p>;
+  if (status.status === 'failed') return <p role="alert">{status.lastError}</p>;
+
+  return (
+    <p>
+      {status.status}
+      {status.cSV && !status.cSV.mature && ` - ${status.cSV.blocksRemaining} blocks to maturity`}
+    </p>
+  );
+}
+```
+
+[`useWalletExits()`](/reference/wavelength-react/#useWalletExits) reads the
+wallet-wide portfolio instead of one outpoint: every in-progress exit plus
+the combined amount, fees, and net recoverable. It fetches on mount and
+refetches whenever wallet activity changes, so a completed exit drops out of
+the summary without a manual refresh.
+
+```tsx title="ExitSummary.tsx"
+import { useWalletExits } from '@lightninglabs/wavelength-react';
+
+function ExitSummary() {
+  const { summary, summaryPending } = useWalletExits();
+
+  if (summaryPending && !summary) return <p>Loading...</p>;
+  if (!summary || summary.totalExits === 0) return null;
+
+  return (
+    <p>
+      {summary.totalExits} exit(s) in progress, ~{summary.totalEstNetRecoveredSat} sats recoverable.
+    </p>
+  );
+}
+```
+
+## Sweep the backing wallet
 
 Once claimable outputs are ready, call `client.sweepWallet()` with
 `broadcast: false` first to preview, then `broadcast: true` with a
@@ -125,40 +253,26 @@ Once claimable outputs are ready, call `client.sweepWallet()` with
 `false` when omitted, so a call without it is always a preview. `sweepWallet`
 also accepts optional `feeRateSatPerVByte` and `confTarget` overrides for the
 sweep transaction's fee; both have sensible defaults when omitted, so most
-callers can leave them unset. The preview result's
-`estimatedFeeSat` and `netAmountSat` are useful to show the user what a
-broadcast would cost and net before they commit to it. If
-`preview.canBroadcast` is `false`, do not attempt the broadcast call; show
-`preview.failureReason` to explain why instead.
+callers can leave them unset. The preview result's `estimatedFeeSat` and
+`netAmountSat` are useful to show the user what a broadcast would cost and
+net before they commit to it. If `preview.canBroadcast` is `false`, do not
+attempt the broadcast call; show `preview.failureReason` to explain why
+instead.
 
-```tsx title="exit.tsx"
-import { useState } from 'react';
+```tsx title="Sweep.tsx"
 import { useWalletEngine } from '@lightninglabs/wavelength-react';
-import type { ExitStatusResult } from '@lightninglabs/wavelength-react';
 
-function SweepStatus({ outpoint }: { outpoint: string }) {
+function Sweep() {
   const { client } = useWalletEngine();
-  const [status, setStatus] = useState<ExitStatusResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const checkAndSweep = async () => {
-    const s = await client.exitStatus({ outpoint });
-    setStatus(s);
-
-    if (s.status === 'failed') {
-      // Surface the failure reason instead of leaving the user with a bare status.
-      setError(s.lastError);
-      return;
-    }
-
+  const sweep = async () => {
     const preview = await client.sweepWallet({
       destinationAddress: 'bc1q...',
       broadcast: false,
     });
 
     if (!preview.canBroadcast) {
-      // Do not attempt to broadcast; show why the sweep isn't ready instead.
-      setError(preview.failureReason);
+      console.error(preview.failureReason);
       return;
     }
 
@@ -168,12 +282,6 @@ function SweepStatus({ outpoint }: { outpoint: string }) {
     });
   };
 
-  return (
-    <div>
-      <button onClick={checkAndSweep}>Check status</button>
-      {status?.found && <p>Job status: {status.status}</p>}
-      {error && <p>Error: {error}</p>}
-    </div>
-  );
+  return <button onClick={sweep}>Sweep to on-chain wallet</button>;
 }
 ```

@@ -155,6 +155,15 @@ export {
   EntryFailureCodeFailed,
 } from './results.ts';
 
+// Exit-batch orchestration.
+export { exitBatch, isExitInfeasibilityFundable } from './exit.ts';
+export type {
+  ExitBatchEvent,
+  ExitBatchOptions,
+  ExitBatchResult,
+  ExitBatchStop,
+} from './exit.ts';
+
 // The client contract every transport implements.
 export type { WavelengthClient } from './client.ts';
 

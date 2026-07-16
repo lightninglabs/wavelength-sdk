@@ -108,6 +108,14 @@ test("wallet create and address state persist with OPFS SQLite", async ({
     contentType: "image/png",
   });
 
+  // Emergency exit is reached from Settings, not the bottom bar. The wallet
+  // holds no VTXOs yet, so the picker renders its empty state without any
+  // additional daemon calls.
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Emergency exit" }).click();
+  await expect(page.getByText("Emergency exit")).toBeVisible();
+  await expect(page.getByTestId("vtxo-picker")).toBeVisible();
+
   // Reload and reopen the same data directory. Surviving the reload IS the
   // OPFS-persistence assertion: a non-persistent (in-memory) VFS would lose the
   // wallet, so the post-reload screen would offer "Create wallet" instead of
