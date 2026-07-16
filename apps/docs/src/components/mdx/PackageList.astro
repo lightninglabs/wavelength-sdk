@@ -2,6 +2,7 @@
 interface Package {
   name: string;
   role: string;
+  accent: 'teal' | 'sky' | 'lime' | 'violet';
 }
 
 interface Props {
@@ -13,7 +14,7 @@ const { packages } = Astro.props;
 
 <div class="wdk-package-list">
   {packages.map((pkg) => (
-    <section class="wdk-package-list__item" aria-label={`Package ${pkg.name}`}>
+    <section class="wdk-package-list__item" data-accent={pkg.accent} aria-label={`Package ${pkg.name}`}>
       <p class="wdk-package-list__label">Package</p>
       <code class="wdk-package-list__name">{pkg.name}</code>
       <p class="wdk-package-list__label">Role</p>
@@ -35,10 +36,15 @@ const { packages } = Astro.props;
   .wdk-package-list__item {
     padding: 16px 18px;
     border: 1px solid var(--border);
-    border-top: 2px solid color-mix(in srgb, var(--teal) 70%, var(--border));
+    border-top: 2px solid color-mix(in srgb, var(--wdk-package-accent, var(--teal)) 70%, var(--border));
     border-radius: 11px;
     background: var(--surface);
   }
+
+  .wdk-package-list__item[data-accent='teal'] { --wdk-package-accent: var(--teal); }
+  .wdk-package-list__item[data-accent='sky'] { --wdk-package-accent: var(--sky); }
+  .wdk-package-list__item[data-accent='lime'] { --wdk-package-accent: var(--lime); }
+  .wdk-package-list__item[data-accent='violet'] { --wdk-package-accent: var(--violet); }
 
   .wdk-package-list__label {
     margin: 0 0 4px;
@@ -53,8 +59,9 @@ const { packages } = Astro.props;
      replaced by the generic inline-code rules in the docs prose column. */
   .wdk-package-list .wdk-package-list__name {
     display: inline;
-    color: var(--text-code);
-    background: var(--surface-2);
+    color: var(--wdk-package-accent, var(--text-code));
+    background: color-mix(in srgb, var(--wdk-package-accent, var(--teal)) 11%, var(--surface-2));
+    border-color: color-mix(in srgb, var(--wdk-package-accent, var(--teal)) 26%, var(--border));
     white-space: normal;
     overflow-wrap: anywhere;
   }

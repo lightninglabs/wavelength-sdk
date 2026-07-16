@@ -16,6 +16,17 @@ test('SDK package list uses a two-column card grid on desktop', async ({ page })
   expect(columns).toBe(2);
 });
 
+test('SDK package cards use the established accent palette', async ({ page }) => {
+  await page.goto(pagePath);
+
+  const cards = page.locator('.wdk-package-list__item');
+  await expect(cards).toHaveCount(4);
+  await expect(cards.nth(0)).toHaveAttribute('data-accent', 'teal');
+  await expect(cards.nth(1)).toHaveAttribute('data-accent', 'sky');
+  await expect(cards.nth(2)).toHaveAttribute('data-accent', 'lime');
+  await expect(cards.nth(3)).toHaveAttribute('data-accent', 'violet');
+});
+
 test('SDK package list presents labeled, full-width cards on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(pagePath);
