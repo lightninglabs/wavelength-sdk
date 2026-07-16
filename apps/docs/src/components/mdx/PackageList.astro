@@ -59,9 +59,8 @@ const { packages } = Astro.props;
      replaced by the generic inline-code rules in the docs prose column. */
   .wdk-package-list .wdk-package-list__name {
     display: inline;
-    color: var(--wdk-package-accent, var(--text-code));
-    background: color-mix(in srgb, var(--wdk-package-accent, var(--teal)) 11%, var(--surface-2));
-    border-color: color-mix(in srgb, var(--wdk-package-accent, var(--teal)) 26%, var(--border));
+    color: var(--text-code);
+    background: var(--surface-2);
     white-space: normal;
     overflow-wrap: anywhere;
   }

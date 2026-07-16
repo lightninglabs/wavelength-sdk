@@ -27,6 +27,22 @@ test('SDK package cards use the established accent palette', async ({ page }) =>
   await expect(cards.nth(3)).toHaveAttribute('data-accent', 'violet');
 });
 
+test('SDK package names retain the neutral code-chip color', async ({ page }) => {
+  await page.goto(pagePath);
+
+  const colors = await page.locator('.wdk-package-list__name').evaluateAll((names) => names.map((name) => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--text-code)';
+    document.body.append(probe);
+    const neutral = getComputedStyle(probe).color;
+    probe.remove();
+    return { color: getComputedStyle(name).color, neutral };
+  }));
+
+  expect(colors).toHaveLength(4);
+  for (const { color, neutral } of colors) expect(color).toBe(neutral);
+});
+
 test('SDK package list presents labeled, full-width cards on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(pagePath);
