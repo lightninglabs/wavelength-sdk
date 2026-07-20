@@ -57,6 +57,7 @@ export function ActivityScreen({
       <PageHead
         title="Activity"
         subtitle="Complete payment history"
+        accent="violet"
         onBack={() => onNavigate("home")}
         trailing={
           <button

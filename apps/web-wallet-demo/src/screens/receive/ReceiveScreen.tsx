@@ -137,6 +137,7 @@ export function ReceiveScreen({
       <PageHead
         title="Receive"
         subtitle="Share an invoice or boarding address"
+        accent="sky"
         onBack={() => onNavigate("home")}
       />
 

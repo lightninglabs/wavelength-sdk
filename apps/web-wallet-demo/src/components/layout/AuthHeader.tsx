@@ -8,7 +8,7 @@ export function AuthHeader({ title, sub }: { title: string; sub: string }) {
       <div className="mb-5 flex items-center gap-2.5 lg:hidden">
         <BrandMark size="sm" />
       </div>
-      <h1 className="text-xl font-semibold text-fg">{title}</h1>
+      <h1 className="font-display text-xl font-semibold text-fg">{title}</h1>
       <p className="mt-1 text-sm text-muted">{sub}</p>
     </div>
   );

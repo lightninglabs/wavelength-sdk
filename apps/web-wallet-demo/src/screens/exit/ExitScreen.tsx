@@ -98,6 +98,7 @@ export function ExitScreen({
       <PageHead
         title="Emergency exit"
         subtitle="Recover your funds on-chain"
+        accent="orange"
         onBack={() => onNavigate("settings")}
       />
 

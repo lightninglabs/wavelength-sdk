@@ -84,6 +84,7 @@ export function HomeScreen({
       <PageHead
         title="Overview"
         subtitle="Your self-custodial Ark wallet balance and pending flows."
+        accent="teal"
       />
       {funded ? (
         <>
@@ -325,7 +326,7 @@ function EmptyWallet({
           <div className="flex h-14 w-14 items-center justify-center bg-accent-soft">
             <ArrowDownToLine size={26} className="text-accent" />
           </div>
-          <h2 className="mt-5 text-xl font-semibold text-fg">
+          <h2 className="mt-5 font-display text-xl font-semibold text-fg">
             Fund your wallet
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">

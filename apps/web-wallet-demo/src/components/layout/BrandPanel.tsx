@@ -41,7 +41,8 @@ export function BrandPanel({ network }: { network: string }) {
 
       <div className="max-w-md">
         <h1
-          className="text-3xl font-semibold leading-tight tracking-tight text-fg"
+          className="font-display text-3xl font-semibold leading-tight
+            tracking-tight text-fg"
         >
           Self-custody that feels effortless.
         </h1>
