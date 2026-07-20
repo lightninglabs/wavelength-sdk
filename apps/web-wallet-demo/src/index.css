@@ -11,40 +11,86 @@
 :root {
   color-scheme: light;
 
-  --bg: #f6f6f7;
-  --surface: #ffffff;
-  --surface-alt: #f0f0f2;
+  --bg: #ffffff;
+  --surface: #f7f7f8;
+  --surface-alt: #f0f0f3;
   /* `--well` is the recessed input surface: darker than both `--bg` and
      `--surface-alt` so an inset field reads as sunken on any band. */
-  --well: #e7e7eb;
-  --border: rgba(0, 0, 0, 0.1);
-  --border-strong: rgba(0, 0, 0, 0.16);
-  --text: #19191c;
-  --muted: #5d5d67;
-  --faint: #9a9aa4;
-  --accent: #5b6cff;
-  --accent-soft: rgba(91, 108, 255, 0.12);
-  --good: #15935f;
+  --well: #e9e9ec;
+  --border: #e6e6e9;
+  --border-strong: #d4d4d8;
+  --text: #0a0a0b;
+  --muted: #52525b;
+  --faint: #8b8d94;
+
+  /* Brand accents, ported from the docs theme (apps/docs/src/styles/theme.css).
+     Each accent carries two values, mirroring the split the docs theme makes
+     for lime. `--fill-*` is the bright brand hue used for shapes that carry no
+     text: cluster squares, eyebrow squares, title underlines, and meter bars.
+     `--accent-*` is the value used for text and icons, darkened in light mode
+     so every one clears WCAG AA (4.5:1) against `--well`, the darkest surface
+     accent text lands on, and so on every lighter band above it. The bright
+     hues sit at 2.7-3.7:1 on white, which is why they are fills only. */
+  --fill-violet: #5a1fd6;
+  --fill-teal: #0cb09a;
+  --fill-lime: #c9f000;
+  --fill-orange: #d4720a;
+  --fill-sky: #2a8fb8;
+
+  --accent-violet: #5a1fd6;
+  --accent-teal: #087768;
+  --accent-lime: #5a7000;
+  --accent-orange: #a15608;
+  --accent-sky: #217192;
+
+  /* The primary accent is violet. `--accent` is the text/link/icon form and
+     tracks the mode for contrast; `--accent-fill` is the button fill and stays
+     the deep docs violet in both modes, paired with `--on-accent` white text
+     (about 8:1 contrast on the fill). */
+  --accent: var(--accent-violet);
+  --accent-soft: rgba(90, 31, 214, 0.1);
+  --accent-fill: #5a1fd6;
+  --on-accent: #ffffff;
+
+  --good: #0f8a5f;
   --warn: #b7791f;
   --bad: #d14343;
 }
 
-/* Dark palette. These are the original Onyx values. */
+/* Dark palette. */
 .dark {
   color-scheme: dark;
 
-  --bg: #0a0a0b;
-  --surface: #111113;
-  --surface-alt: #161619;
+  --bg: #141417;
+  --surface: #1c1c21;
+  --surface-alt: #24242a;
   /* Sunk below the page in dark too. See the light-palette note above. */
-  --well: #050506;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --text: #ededef;
-  --muted: #8a8a93;
-  --faint: #5a5a63;
-  --accent: #5b6cff;
-  --accent-soft: rgba(91, 108, 255, 0.14);
+  --well: #0e0e10;
+  --border: #303037;
+  --border-strong: #44444d;
+  --text: #f5f5f7;
+  --muted: #b6b6c0;
+  --faint: #8c8c96;
+
+  /* Dark needs no text/fill split: every bright hue already clears AA on the
+     dark ground, so both roles resolve to the same value. */
+  --fill-violet: #a78bfa;
+  --fill-teal: #15e0c2;
+  --fill-lime: #c9f000;
+  --fill-orange: #ffa733;
+  --fill-sky: #56c7f2;
+
+  --accent-violet: var(--fill-violet);
+  --accent-teal: var(--fill-teal);
+  --accent-lime: var(--fill-lime);
+  --accent-orange: var(--fill-orange);
+  --accent-sky: var(--fill-sky);
+
+  --accent: var(--accent-violet);
+  --accent-soft: rgba(167, 139, 250, 0.14);
+  --accent-fill: #5a1fd6;
+  --on-accent: #ffffff;
+
   --good: #46c08a;
   --warn: #e0b54d;
   --bad: #e0686b;
@@ -69,8 +115,25 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
 
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-accent-fill: var(--accent-fill);
+  --color-on-accent: var(--on-accent);
+  --color-violet: var(--accent-violet);
+  --color-teal: var(--accent-teal);
+  --color-lime: var(--accent-lime);
+  --color-orange: var(--accent-orange);
+  --color-sky: var(--accent-sky);
+
+  /* The `-fill` utilities paint shapes that carry no text. Reach for them for
+     squares, bars, and underlines; use the plain names for text and icons. */
+  --color-violet-fill: var(--fill-violet);
+  --color-teal-fill: var(--fill-teal);
+  --color-lime-fill: var(--fill-lime);
+  --color-orange-fill: var(--fill-orange);
+  --color-sky-fill: var(--fill-sky);
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Work Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 /* Modal entrance animations. `modal-backdrop-in` fades the dimmed overlay;

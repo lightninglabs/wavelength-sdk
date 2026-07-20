@@ -12,8 +12,9 @@
     "wasm:fetch": "bash scripts/fetch-runtime-assets.sh"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-mono": "^5.1.0",
-    "@fontsource/ibm-plex-sans": "^5.1.0",
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.0",
+    "@fontsource/work-sans": "^5.1.0",
     "@lightninglabs/wavelength-react": "workspace:*",
     "@lightninglabs/wavelength-web": "workspace:*",
     "lucide-react": "^0.468.0",
