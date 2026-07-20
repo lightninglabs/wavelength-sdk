@@ -11,6 +11,18 @@ test('reference page has data-accent="teal"', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
 });
 
+test('wavelength-core opens with a concise contract overview', async ({ page }) => {
+  await page.goto('/reference/wavelength-core/');
+
+  const overview = page.locator('[data-core-overview]');
+  await expect(overview).toBeVisible();
+  await expect(overview.locator('[data-core-overview-card]')).toHaveCount(3);
+  await expect(overview).toContainText('Typed contract');
+  await expect(overview).toContainText('Cross-platform core');
+  await expect(overview).toContainText('Predictable responses');
+  await expect(page.getByRole('heading', { name: 'Named result exports' })).toHaveCount(0);
+});
+
 test('reference page renders [data-symbol] sections', async ({ page }) => {
   await page.goto('/reference/wavelength-core/');
   const symbols = page.locator('[data-symbol]');

@@ -1,0 +1,75 @@
+---
+interface OverviewItem {
+  title: string;
+  detail: string;
+  accent: 'teal' | 'sky' | 'lime';
+}
+
+interface Props {
+  items: OverviewItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="wdk-reference-overview" data-core-overview>
+  {items.map((item) => (
+    <article class="wdk-reference-overview__card" data-core-overview-card data-accent={item.accent}>
+      <p class="wdk-reference-overview__label">At a glance</p>
+      <h2 class="wdk-reference-overview__title">{item.title}</h2>
+      <p class="wdk-reference-overview__detail">{item.detail}</p>
+    </article>
+  ))}
+</div>
+
+<style>
+  .wdk-reference-overview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 1.5rem 0 2rem;
+  }
+
+  .wdk-reference-overview__card {
+    padding: 15px 16px 16px;
+    border: 1px solid var(--border);
+    border-top: 2px solid color-mix(in srgb, var(--wdk-overview-accent, var(--teal)) 72%, var(--border));
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .wdk-reference-overview__card[data-accent='teal'] { --wdk-overview-accent: var(--teal); }
+  .wdk-reference-overview__card[data-accent='sky'] { --wdk-overview-accent: var(--sky); }
+  .wdk-reference-overview__card[data-accent='lime'] { --wdk-overview-accent: var(--lime); }
+
+  .wdk-reference-overview__label {
+    margin: 0 0 6px;
+    color: var(--text-dim);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .wdk-reference-overview__title {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .wdk-reference-overview__detail {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 760px) {
+    .wdk-reference-overview {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
