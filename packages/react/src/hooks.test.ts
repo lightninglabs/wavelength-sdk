@@ -6,8 +6,8 @@ import {
   type Entry,
   type WalletInfo,
 } from "@lightninglabs/wavelength-core";
-import { createTestEngine } from "./testing/engine";
-import { flushMicrotasks, renderWithEngine } from "./testing/render";
+import { createTestEngine } from "./testing/engine.ts";
+import { flushMicrotasks, renderWithEngine } from "./testing/render.ts";
 import {
   useWallet,
   useWalletActivity,
@@ -21,7 +21,7 @@ import {
   useWalletExitStatus,
   useWalletList,
   useWalletSweep,
-} from "./hooks";
+} from "./hooks.ts";
 
 const readyInfo = { walletState: "ready", walletReady: true } as WalletInfo;
 

@@ -1,10 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { renderHook } from "@testing-library/react";
-import { createTestEngine } from "./testing/engine";
-import { renderWithEngine } from "./testing/render";
-import { useWalletEngine } from "./provider";
-import { useWallet } from "./hooks";
+import { createTestEngine } from "./testing/engine.ts";
+import { renderWithEngine } from "./testing/render.ts";
+import { useWalletEngine } from "./provider.tsx";
+import { useWallet } from "./hooks.ts";
 
 describe("WavelengthProvider", () => {
   it("provides the engine to useWalletEngine", () => {

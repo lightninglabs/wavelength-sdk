@@ -10,9 +10,9 @@ import {
   assertPasskeyPrf,
   registerPasskeyWallet,
   supportsPasskeyPrf,
-} from './passkey';
-import { MainThreadWavelengthClient } from './clients/main';
-import { WorkerWavelengthClient } from './clients/worker';
+} from './passkey.ts';
+import { MainThreadWavelengthClient } from './clients/main.ts';
+import { WorkerWavelengthClient } from './clients/worker.ts';
 
 /**
  * Selects which thread the wasm runtime runs on: 'worker' (default) in a
@@ -107,11 +107,11 @@ export const webPasskeyCeremony: PasskeyCeremony = {
   assertPasskeyPrf,
 };
 
-export { defaultConfig } from './config';
+export { defaultConfig } from './config.ts';
 
-export { MainThreadWavelengthClient } from './clients/main';
+export { MainThreadWavelengthClient } from './clients/main.ts';
 
-export { RUNTIME_ASSETS, RUNTIME_ASSET_FILES } from './runtime-manifest';
+export { RUNTIME_ASSETS, RUNTIME_ASSET_FILES } from './runtime-manifest.ts';
 
 // Re-export the core contract so a non-React consumer can import the client and
 // every type/enum from this one package, the way wavelength-react already does.

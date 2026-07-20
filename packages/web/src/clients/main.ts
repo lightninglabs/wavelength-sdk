@@ -6,16 +6,16 @@ import type {
   ActivityStreamOptions,
   FacadeMethod,
 } from '@lightninglabs/wavelength-core';
-import { RUNTIME_ASSETS } from '../runtime-manifest';
-import type { WebClientOptions } from '../index';
+import { RUNTIME_ASSETS } from '../runtime-manifest.ts';
+import type { WebClientOptions } from '../index.ts';
 import {
   instantiateWasm,
   loadScript,
   resolveRuntimeAsset,
   waitForReadyEvent,
   wavewalletdkCall,
-} from '../runtime';
-import { ActivityHandle, debugTs, errorMessage } from '../util';
+} from '../runtime.ts';
+import { ActivityHandle, debugTs, errorMessage } from '../util.ts';
 
 type ActivityOpen = {
   generation: number;

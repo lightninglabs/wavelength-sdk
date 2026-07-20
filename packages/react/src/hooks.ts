@@ -33,9 +33,9 @@ import type {
   WalletInfo,
 } from "@lightninglabs/wavelength-core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWalletEngine } from "./provider";
-import { useWalletMutationState } from "./useWalletMutation";
-import { useWalletSelector } from "./useWalletSelector";
+import { useWalletEngine } from "./provider.tsx";
+import { useWalletMutationState } from "./useWalletMutation.ts";
+import { useWalletSelector } from "./useWalletSelector.ts";
 
 /**
  * The application-shell hook: the lifecycle phase to route on, the last fatal
