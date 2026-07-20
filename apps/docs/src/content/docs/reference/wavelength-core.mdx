@@ -823,6 +823,11 @@ export const walletInfoSig = `type WalletInfo = {
   identityPubKey: string;
   walletState: WalletState;
   walletReady: boolean;
+  serverInfo?: ServerInfo;
+};`;
+
+export const serverInfoSig = `type ServerInfo = {
+  freeRefreshWindowBlocks: number;
 };`;
 
 export const walletStatusSig = `type WalletStatus = {
@@ -927,6 +932,21 @@ Wallet and daemon info returned by [`getInfo()`](#getInfo) and
   { name: 'identityPubKey', type: 'string', desc: "The wallet's identity public key." },
   { name: 'walletState', type: 'WalletState', desc: 'The wallet lifecycle state, normalized to the SDK string union.' },
   { name: 'walletReady', type: 'boolean', desc: "True iff the wallet is unlocked and ready (mirrors the daemon's Info.WalletReady() method); backfilled by normalizeInfo() since the daemon JSON does not carry it directly." },
+  { name: 'serverInfo', type: 'ServerInfo', desc: 'Operator policy hints, when the daemon has learned them from the Ark server; see ServerInfo below. Optional: absent until the daemon has cached the operator terms.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="ServerInfo" kind="type">
+
+Operator policy hints surfaced on [`WalletInfo.serverInfo`](#WalletInfo). The
+daemon learns these from its cached operator terms at bootstrap and on later
+terms refreshes.
+
+<Signature title="wavelength-core.d.ts" code={serverInfoSig} />
+
+<ParamsTable rows={[
+  { name: 'freeRefreshWindowBlocks', type: 'number', desc: 'The late-lifetime window, in blocks before VTXO expiry, in which a pure refresh receives an operator fee waiver. 0 means the operator advertises no waiver window.' },
 ]} />
 
 </ApiSymbol>

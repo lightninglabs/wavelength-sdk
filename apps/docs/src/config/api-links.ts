@@ -16,7 +16,7 @@ const coreSymbols = [
   'RuntimeConfig', 'Network', 'WavelengthClient', 'ready', 'start', 'stop',
   'dispose', 'createWalletEngine', 'WalletEngine', 'WalletSnapshot', 'RecoveryState',
   'RestoreWalletRequest', 'createWallet', 'unlockWallet', 'openWalletFromPasskey',
-  'getInfo', 'status', 'balance', 'WalletInfo', 'WalletStatus', 'Balance', 'deposit',
+  'getInfo', 'status', 'balance', 'WalletInfo', 'WalletStatus', 'Balance', 'ServerInfo', 'deposit',
   'receive', 'prepareSend', 'sendPrepared', 'send', 'SendRequest', 'PrepareSendResult',
   'SendResult', 'SendRail', 'classifyDestination', 'Destination', 'InvoiceAmount',
   'list', 'subscribe', 'startActivity', 'stopActivity', 'Entry', 'EntryProgress',

@@ -20,9 +20,19 @@ is an invoice; the daemon performs the authoritative parse.
 wavecli send <invoice-or-onchain-address>
 ```
 
-By default `send` prepares, dispatches, and then waits until the payment
-reaches a terminal state, printing each lifecycle phase to stderr. A completed
-Lightning send prints the payment preimage as proof of payment.
+By default a Lightning `send` prepares, dispatches, and then waits until the
+payment reaches a terminal state, printing each lifecycle phase to stderr. A
+completed Lightning send prints the payment preimage as proof of payment.
+
+Onchain sends never block. An onchain send settles by forfeiting its source
+VTXO into a cooperative-leave round and waiting for that round to confirm on
+chain, which can take many minutes, and the funds are committed the moment the
+dispatch returns. So the onchain rail always prints a pending receipt and
+returns immediately, regardless of `--no-wait`. The entry stays `PENDING` until
+its round confirms, and the residual comes back as a fresh change VTXO when the
+round seals; a mid-flight balance that looks drained by the whole source VTXO
+is expected, not a loss. Track a dispatched onchain send with
+`wavecli activity inspect <id>`.
 
 ## Flags
 
@@ -37,7 +47,7 @@ Lightning send prints the payment preimage as proof of payment.
 | `--dry-run` | `false` | Prepare and print the preview without dispatching funds. |
 | `--force` | `false` | Skip the interactive confirmation after prepare. |
 | `--yes` | `false` | Alias for `--force`. |
-| `--no-wait` | `false` | Return as soon as the send is dispatched instead of blocking until a terminal state. |
+| `--no-wait` | `false` | Return as soon as the send is dispatched instead of blocking until a terminal state. Onchain sends never block and return a pending receipt regardless of this flag. |
 | `--wait-timeout` | `5m` | While waiting, give up after this long and return the last observed status. `0` waits indefinitely. |
 | `--wait-poll-interval` | `200ms` | While waiting, how often to poll the daemon for status updates. |
 
