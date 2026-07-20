@@ -41,6 +41,7 @@ export const NAV: NavGroup[] = [
       { slug: 'concepts/balances-and-vtxos', label: 'Balances and VTXOs', section: 'concepts' },
       { slug: 'concepts/activity-and-events', label: 'Activity and events', section: 'concepts' },
       { slug: 'concepts/wallet-lifecycle-and-auth', label: 'Wallet lifecycle and auth', section: 'concepts' },
+      { slug: 'concepts/keys-backup-and-recovery', label: 'Keys, backup, and recovery', section: 'concepts' },
       { slug: 'concepts/lightning-payments-are-swaps', label: 'Lightning payments are swaps', section: 'concepts' },
       { slug: 'concepts/networks-and-config', label: 'Networks and config', section: 'concepts' },
       { slug: 'concepts/leaving-ark', label: 'Leaving Ark', section: 'concepts' },
