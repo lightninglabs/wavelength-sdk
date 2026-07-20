@@ -413,8 +413,8 @@ export function SendScreen({
               <button
                 type="submit"
                 disabled={!canContinue}
-                className="inline-flex items-center gap-2 bg-accent px-4 py-2.5
-                  text-sm font-semibold text-white transition-opacity
+                className="inline-flex items-center gap-2 bg-accent-fill px-4 py-2.5
+                  text-sm font-semibold text-on-accent transition-opacity
                   hover:opacity-90 disabled:opacity-50"
               >
                 {quoting ? "Quoting…" : "Continue"} <ArrowRight size={16} />

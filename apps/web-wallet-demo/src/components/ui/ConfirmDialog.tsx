@@ -47,9 +47,9 @@ export function ConfirmDialog({
           disabled={busy}
           className={cn(
             `inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm
-            font-semibold text-white transition-opacity hover:opacity-90
+            font-semibold transition-opacity hover:opacity-90
             disabled:opacity-50`,
-            destructive ? "bg-bad" : "bg-accent",
+            destructive ? "bg-bad text-white" : "bg-accent-fill text-on-accent",
           )}
         >
           {confirmLabel}

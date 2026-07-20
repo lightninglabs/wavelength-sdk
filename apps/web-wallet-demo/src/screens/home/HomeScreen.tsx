@@ -199,8 +199,8 @@ function BalanceBand({
           <button
             type="button"
             onClick={() => onNavigate("send")}
-            className="inline-flex items-center gap-2 bg-accent px-4 py-2.5
-              text-sm font-semibold text-white transition-opacity
+            className="inline-flex items-center gap-2 bg-accent-fill px-4 py-2.5
+              text-sm font-semibold text-on-accent transition-opacity
               hover:opacity-90"
           >
             <ArrowUpRight size={16} /> Send

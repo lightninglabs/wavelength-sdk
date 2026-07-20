@@ -44,8 +44,8 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled || busy}
       className={cn(
-        `inline-flex items-center justify-center gap-2 bg-accent px-4 py-2.5
-        text-sm font-semibold text-white transition-opacity hover:opacity-90
+        `inline-flex items-center justify-center gap-2 bg-accent-fill px-4 py-2.5
+        text-sm font-semibold text-on-accent transition-opacity hover:opacity-90
         disabled:opacity-50`,
         block && "w-full",
         className,
