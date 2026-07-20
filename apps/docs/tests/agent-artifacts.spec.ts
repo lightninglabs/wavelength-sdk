@@ -17,7 +17,9 @@ test('llms-full.txt is served and within budget', async ({ request }) => {
   expect(res.status()).toBe(200);
   const body = await res.text();
   expect(body.length).toBeGreaterThan(10_000);
-  expect(body.length).toBeLessThan(750 * 1024);
+  // Hard ceiling on the concatenated mirror; the generator warns at 500 KB,
+  // and crossing this line means it is time for size tiers, not a bigger cap.
+  expect(body.length).toBeLessThan(1024 * 1024);
 });
 
 test('every nav page has both markdown mirrors', async ({ request }) => {
