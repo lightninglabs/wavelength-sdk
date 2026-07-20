@@ -1,6 +1,6 @@
 import { WavelengthError } from '@lightninglabs/wavelength-core';
-import { RUNTIME_ASSETS } from './runtime-manifest';
-import { errorMessage } from './util';
+import { RUNTIME_ASSETS } from './runtime-manifest.ts';
+import { errorMessage } from './util.ts';
 
 /**
  * Resolves a runtime asset name against an optional base URL. With no base the

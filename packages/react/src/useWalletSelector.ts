@@ -1,6 +1,6 @@
 import type { WalletSnapshot } from "@lightninglabs/wavelength-core";
 import { useSyncExternalStore } from "react";
-import { useWalletEngine } from "./provider";
+import { useWalletEngine } from "./provider.tsx";
 
 // Subscribes a component to one slice of the engine snapshot. The engine
 // keeps slices referentially stable, so useSyncExternalStore's Object.is

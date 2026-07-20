@@ -7,12 +7,12 @@ import {
   type WalletEngine,
   type WalletEngineOptions,
 } from '@lightninglabs/wavelength-core';
-import NativeWavelength from './NativeWavelength';
-import { NativeWavelengthClient } from './client';
+import NativeWavelength from './NativeWavelength.ts';
+import { NativeWavelengthClient } from './client.ts';
 import {
   nativePasskeyCeremony,
   type NativePasskeyCeremonyOptions,
-} from './passkey';
+} from './passkey.ts';
 
 /**
  * Creates a {@link WavelengthClient} backed by the React Native transport: the
@@ -87,15 +87,15 @@ export function getDefaultDataDir(): Promise<string> {
 export type {
   NativePasskeyCeremonyOptions,
   WavelengthPasskeyNativeModule,
-} from './passkey';
+} from './passkey.ts';
 
-export { defaultConfig } from './config';
-export { NativeWavelengthClient } from './client';
+export { defaultConfig } from './config.ts';
+export { NativeWavelengthClient } from './client.ts';
 export type {
   NativeActivityEvent,
   SubscribeToNativeEvents,
   WavelengthNativeModule,
-} from './client';
+} from './client.ts';
 
 // Re-export the core contract so an RN consumer can import the client and
 // every type/enum from this one package, the way wavelength-web already does.

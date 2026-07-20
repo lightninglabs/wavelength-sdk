@@ -6,11 +6,11 @@
 export * from "@lightninglabs/wavelength-core";
 
 // The provider and the engine escape hatch.
-export { WavelengthProvider, useWalletEngine } from "./provider";
+export { WavelengthProvider, useWalletEngine } from "./provider.tsx";
 
 // The granular state and mutation hooks.
-export * from "./hooks";
+export * from "./hooks.ts";
 
 // The passkey hook and its outcome type.
-export { useWalletPasskey } from "./useWalletPasskey";
-export type { PasskeyWalletOutcome } from "./useWalletPasskey";
+export { useWalletPasskey } from "./useWalletPasskey.ts";
+export type { PasskeyWalletOutcome } from "./useWalletPasskey.ts";

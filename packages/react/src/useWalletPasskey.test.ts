@@ -5,9 +5,9 @@ import {
   PasskeyCancelledError,
   type PasskeyCeremony,
 } from "@lightninglabs/wavelength-core";
-import { createTestEngine } from "./testing/engine";
-import { flushMicrotasks, renderWithEngine } from "./testing/render";
-import { useWalletPasskey } from "./useWalletPasskey";
+import { createTestEngine } from "./testing/engine.ts";
+import { flushMicrotasks, renderWithEngine } from "./testing/render.ts";
+import { useWalletPasskey } from "./useWalletPasskey.ts";
 
 function stubCeremony(overrides: Partial<PasskeyCeremony> = {}): PasskeyCeremony {
   return {

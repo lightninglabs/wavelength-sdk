@@ -1,5 +1,5 @@
 import { createWalletEngine, type WalletEngine } from "@lightninglabs/wavelength-core";
-import { FakeWavelengthClient } from "./fake-client";
+import { FakeWavelengthClient } from "./fake-client.ts";
 
 /**
  * A WalletEngine over a FakeWavelengthClient, the standard setup for hook tests.

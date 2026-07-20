@@ -7,9 +7,9 @@ import type {
   ActivityStreamOptions,
   FacadeMethod,
 } from '@lightninglabs/wavelength-core';
-import type { WebClientOptions } from '../index';
-import { defaultWorkerRuntimeBaseUrl } from '../runtime';
-import { PendingCall, errorMessage, toWavelengthEvent } from '../util';
+import type { WebClientOptions } from '../index.ts';
+import { defaultWorkerRuntimeBaseUrl } from '../runtime.ts';
+import { PendingCall, errorMessage, toWavelengthEvent } from '../util.ts';
 
 type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
 

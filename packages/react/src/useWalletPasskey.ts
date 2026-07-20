@@ -3,8 +3,8 @@ import type {
   PasskeyCeremony,
 } from "@lightninglabs/wavelength-core";
 import { useCallback, useEffect, useState } from "react";
-import { useWalletEngine } from "./provider";
-import { useWalletMutationState } from "./useWalletMutation";
+import { useWalletEngine } from "./provider.tsx";
+import { useWalletMutationState } from "./useWalletMutation.ts";
 
 /**
  * Pairs the daemon-side open result with the credential id that was used, so
