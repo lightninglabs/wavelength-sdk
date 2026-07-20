@@ -101,21 +101,21 @@ export function SettingsScreen({
       />
 
       <Band>
-        <Label>Runtime</Label>
+        <Label rule>Runtime</Label>
         <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
           {runtime.map((r) => (
             <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
               <div className="flex items-center gap-1.5 text-xs text-muted">
                 <r.icon
                   size={13}
-                  className={r.good ? "text-good" : "text-muted"}
+                  className={r.good ? "text-lime" : "text-muted"}
                 />
                 {r.label}
               </div>
               <div
                 className={cn(
                   "mt-1 font-mono text-sm tabular-nums",
-                  r.good ? "text-good" : "text-fg",
+                  r.good ? "text-lime" : "text-fg",
                 )}
               >
                 {r.value}
@@ -129,7 +129,7 @@ export function SettingsScreen({
         <TwoCol
           left={
             <>
-              <Label>Identity</Label>
+              <Label rule>Identity</Label>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="break-all font-mono text-sm text-fg">
                   {identity ? shortKey(identity, 10, 8) : "-"}
@@ -140,7 +140,7 @@ export function SettingsScreen({
           }
           right={
             <>
-              <Label>About</Label>
+              <Label rule>About</Label>
               <div className="mt-3 space-y-2.5 text-sm">
                 <SummaryRow label="Version" value={info?.version || "-"} mono />
                 <SummaryRow label="Commit" value={info?.commit || "-"} mono />
@@ -154,7 +154,7 @@ export function SettingsScreen({
         <TwoCol
           left={
             <>
-              <Label>Security</Label>
+              <Label rule>Security</Label>
               <div className="mt-3 space-y-2.5 text-sm">
                 <SummaryRow
                   label="Wallet type"
@@ -171,7 +171,7 @@ export function SettingsScreen({
           }
           right={
             <>
-              <Label>Appearance</Label>
+              <Label rule>Appearance</Label>
               <div className="mt-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
                   <Monitor size={16} className="text-muted" />
@@ -196,7 +196,7 @@ export function SettingsScreen({
         <TwoCol
           left={
             <>
-              <Label>Advanced</Label>
+              <Label rule>Advanced</Label>
               <button
                 type="button"
                 onClick={() => setAdvanced((v) => !v)}
@@ -220,7 +220,7 @@ export function SettingsScreen({
           }
           right={
             <>
-              <Label>Danger zone</Label>
+              <Label rule>Danger zone</Label>
               <button
                 type="button"
                 aria-label="Emergency exit"

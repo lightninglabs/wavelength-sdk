@@ -142,7 +142,7 @@ export function ReceiveScreen({
       />
 
       <Band>
-        <Label>Method</Label>
+        <Label rule>Method</Label>
         <div className="mt-3">
           <Segmented
             value={tab}

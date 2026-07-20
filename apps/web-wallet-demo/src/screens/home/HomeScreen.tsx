@@ -96,7 +96,7 @@ export function HomeScreen({
             refreshError={refreshErrorMessage}
           />
           <Band>
-            <Label>Balance composition</Label>
+            <Label accent="violet" rule>Balance composition</Label>
             <div className="mt-4">
               <Composition balance={balance} />
               <OnChainBalance balance={balance} />
@@ -168,7 +168,7 @@ function BalanceBand({
             {incoming > 0 ? (
               <>
                 <span className="text-faint">·</span>
-                <span className="font-mono tabular-nums text-good">
+                <span className="font-mono tabular-nums text-sky">
                   +{formatSats(incoming)} incoming
                 </span>
               </>
@@ -176,7 +176,7 @@ function BalanceBand({
             {outgoing > 0 ? (
               <>
                 <span className="text-faint">·</span>
-                <span className="font-mono tabular-nums text-warn">
+                <span className="font-mono tabular-nums text-orange">
                   -{formatSats(outgoing)} outgoing
                 </span>
               </>
@@ -254,18 +254,18 @@ function RuntimeBand({
 
   return (
     <Band>
-      <Label>Runtime &amp; security</Label>
+      <Label rule>Runtime &amp; security</Label>
       <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
         {rows.map((r) => (
           <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
             <div className="flex items-center gap-1.5 text-xs text-muted">
-              <r.icon size={13} className={r.good ? "text-good" : "text-muted"} />
+              <r.icon size={13} className={r.good ? "text-lime" : "text-muted"} />
               {r.label}
             </div>
             <div
               className={cn(
                 "mt-1 font-mono text-sm tabular-nums",
-                r.good ? "text-good" : "text-fg",
+                r.good ? "text-lime" : "text-fg",
               )}
             >
               {r.value}
@@ -380,7 +380,7 @@ function EmptyWallet({
       </Band>
 
       <Band>
-        <Label>How boarding works</Label>
+        <Label rule>How boarding works</Label>
         <ol className="mt-4 grid gap-4 sm:grid-cols-3">
           {steps.map((step, i) => (
             <li key={step} className="flex gap-3">

@@ -267,7 +267,7 @@ export function SendScreen({
           onBack={() => onNavigate("home")}
         />
         <Band>
-          <Label>Payment details</Label>
+          <Label rule>Payment details</Label>
           <div className="mt-4 flex items-center justify-between gap-4">
             <div className="min-w-0 truncate font-mono text-xs text-muted">
               {dest.trim()}

@@ -87,7 +87,7 @@ export function ActivityScreen({
       ) : (
         groups.map((group, gi) => (
           <Band key={`${group.day}-${gi}`} tinted={gi % 2 === 0}>
-            <Label>{group.day}</Label>
+            <Label rule>{group.day}</Label>
             <div className="mt-2 divide-y divide-border border-t border-border">
               {group.items.map((entry) => (
                 <ActivityRow key={entry.id} entry={entry} />

@@ -28,12 +28,13 @@ export type CompositionBucket = {
 // BUCKET_TONE maps each bucket to a CSS colour variable so the meter renders
 // correctly under both light and dark palettes (the values are set in
 // index.css). These are raw CSS colours because the widths are inline-styled.
-// Spendable buckets share the accent family; in-flight ones are tinted apart.
+// Spendable VTXO is violet (the Ark identity color), incoming is sky, outgoing
+// is orange, and the credit rails derive from violet and muted.
 export const BUCKET_TONE: Record<BucketKey, string> = {
-  vtxo: "var(--accent)",
-  creditAvailable: "var(--accent-soft)",
-  incoming: "var(--good)",
-  outgoing: "var(--warn)",
+  vtxo: "var(--accent-violet)",
+  creditAvailable: "color-mix(in srgb, var(--accent-violet) 35%, transparent)",
+  incoming: "var(--accent-sky)",
+  outgoing: "var(--accent-orange)",
   creditReserved: "var(--muted)",
 };
 
