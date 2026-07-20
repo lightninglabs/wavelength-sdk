@@ -12,6 +12,7 @@
     "test:unit": "node --test src/config/api-links.test.ts scripts/agent-artifacts/convert.test.ts scripts/agent-artifacts/paths.test.ts scripts/agent-artifacts/llms.test.ts scripts/agent-artifacts/skills.test.ts"
   },
   "dependencies": {
+    "@astrojs/markdown-satteri": "^0.3.2",
     "@astrojs/mdx": "^7.0.0",
     "@astrojs/react": "^6.0.0",
     "@astrojs/sitemap": "^3.7.3",
@@ -39,6 +40,7 @@
     "rehype-remark": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-stringify": "^11.0.0",
+    "satteri": "^0.9.3",
     "sharp": "^0.35.2",
     "typescript": "^6.0.3",
     "unified": "^11.0.5",
