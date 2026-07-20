@@ -293,6 +293,17 @@ export interface Info {
   walletType: string;
   walletState: WalletState;
   identityPubKey: string;
+  serverInfo?: ServerInfo;
+}
+/**
+ * ServerInfo contains the operator policy hints needed by wallet hosts.
+ */
+export interface ServerInfo {
+  /**
+   * FreeRefreshWindowBlocks is the late-lifetime window in which a
+   * pure refresh receives a fee waiver.
+   */
+  freeRefreshWindowBlocks: number /* uint32 */;
 }
 /**
  * CreateWalletRequest creates or imports a daemon wallet.

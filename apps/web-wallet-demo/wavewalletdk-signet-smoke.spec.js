@@ -2,7 +2,7 @@ const { expect, test } = require("@playwright/test");
 
 const arkGatewayURL = "https://signet.wavelength-rest.lightning.finance";
 const swapGatewayURL = "https://signet.swapd-rest.lightning.finance";
-const esploraURL = "https://mempool.space/signet/api";
+const esploraURL = "https://mempool-signet.testnet.lightningcluster.com/api";
 
 test("wavelength demo starts with live signet defaults", async ({
   page,
