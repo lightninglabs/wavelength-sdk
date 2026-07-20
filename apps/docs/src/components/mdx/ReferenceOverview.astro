@@ -16,7 +16,7 @@ const { items } = Astro.props;
   {items.map((item) => (
     <article class="wdk-reference-overview__card" data-core-overview-card data-accent={item.accent}>
       <p class="wdk-reference-overview__label">At a glance</p>
-      <h2 class="wdk-reference-overview__title">{item.title}</h2>
+      <p class="wdk-reference-overview__title">{item.title}</p>
       <p class="wdk-reference-overview__detail">{item.detail}</p>
     </article>
   ))}
