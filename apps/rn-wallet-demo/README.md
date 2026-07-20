@@ -58,12 +58,12 @@ The first `expo run:*` generates the native `android/` and `ios/` projects
 
 ## Networks
 
-The start screen offers four presets (defined in `src/lib/runtime-config.ts`):
+The start screen offers three presets (defined in `src/lib/runtime-config.ts`):
 
 - **regtest** targets the local stack. Host addressing is automatic per
   platform: the Android emulator reaches your machine as `10.0.2.2`, the iOS
   simulator as `127.0.0.1`.
-- **testnet**, **testnet4**, and **signet** target the public test network
+- **testnet** and **signet** target the public test network
   deployments over TLS and also work on physical devices.
 
 Every endpoint is editable under "Advanced endpoints" before starting, so a
