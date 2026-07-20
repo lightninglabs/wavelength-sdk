@@ -1,6 +1,6 @@
 {
   "name": "@lightninglabs/wavelength-core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "Transport- and framework-agnostic contract for the Wavelength self-custodial Lightning wallet SDK.",
   "license": "MIT",
