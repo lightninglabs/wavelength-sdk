@@ -32,6 +32,7 @@ export type {
 export { WalletState, normalizeInfo, phaseFromInfo, walletStateFromProto } from './state.ts';
 export type {
   RuntimePhase,
+  ServerInfo,
   WalletInfo,
   WalletPhase,
   WalletStatus,

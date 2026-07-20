@@ -63,6 +63,10 @@ export function walletStateFromProto(
 // docs/codegen.md). Most are re-exported verbatim; a few keep the SDK's existing
 // public name.
 
+// ServerInfo is the operator-policy shape nested on Info/WalletInfo
+// (`info.serverInfo`), re-exported so consumers can name it directly.
+export type { ServerInfo } from './generated.ts';
+
 /**
  * The daemon's Info with walletState normalized to the string union and the
  * walletReady predicate backfilled (the facade exposes it as a Go method, so it
