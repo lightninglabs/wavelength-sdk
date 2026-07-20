@@ -6,7 +6,9 @@ import expressiveCode from 'astro-expressive-code';
 import mermaid from 'astro-mermaid';
 import pagefind from 'astro-pagefind';
 import sitemap from '@astrojs/sitemap';
+import { satteri } from '@astrojs/markdown-satteri';
 import { mermaidThemeVariables } from './src/config/mermaid.ts';
+import { mermaidFencePlugin } from './src/plugins/mermaid-fence.ts';
 
 export default defineConfig({
   site: 'https://wavelength.lightning.engineering',
@@ -14,6 +16,10 @@ export default defineConfig({
     syntaxHighlight: {
       excludeLangs: ['mermaid', 'math'],
     },
+    // Registered before the astro-mermaid integration appends its own
+    // plugin, so mermaid fences in .mdx files are claimed here first;
+    // astro-mermaid's raw-HTML transform only ever works for plain .md.
+    processor: satteri({ mdastPlugins: [mermaidFencePlugin] }),
   },
   integrations: [
     // Must run before expressive-code so ```mermaid fences become diagrams,
