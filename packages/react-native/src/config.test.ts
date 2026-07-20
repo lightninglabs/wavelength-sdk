@@ -7,8 +7,8 @@ describe('defaultConfig (react-native)', () => {
     assert.deepEqual(defaultConfig('signet'), {
       network: 'signet',
       arkServerAddress: 'signet.wavelength.lightning.finance:443',
-      walletEsploraUrl: 'https://mempool.space/signet/api',
-      swapServerAddress: 'signet.swap.wavelength.lightning.finance:443',
+      walletEsploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
+      swapServerAddress: 'swap.signet.wavelength.lightning.finance:443',
     });
   });
 

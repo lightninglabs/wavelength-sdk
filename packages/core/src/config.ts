@@ -231,9 +231,9 @@ const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
     },
     swap: {
       rest: 'https://signet.swapd-rest.lightning.finance',
-      grpc: 'signet.swap.wavelength.lightning.finance:443',
+      grpc: 'swap.signet.wavelength.lightning.finance:443',
     },
-    esplora: 'https://mempool.space/signet/api',
+    esplora: 'https://mempool-signet.testnet.lightningcluster.com/api',
   },
   testnet: {
     ark: {
@@ -242,9 +242,9 @@ const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
     },
     swap: {
       rest: 'https://test.swapd-rest.lightning.finance',
-      grpc: 'test.swap.wavelength.lightning.finance:443',
+      grpc: 'swap.test.wavelength.lightning.finance:443',
     },
-    esplora: 'https://mempool.space/testnet/api',
+    esplora: 'https://mempool-testnet3.testnet.lightningcluster.com/api',
   },
   testnet4: {
     ark: {
@@ -258,7 +258,7 @@ const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
       rest: 'https://test4.swapd-rest.lightning.finance',
       grpc: 'swapd-testnet4.testnet.lightningcluster.com:443',
     },
-    esplora: 'https://mempool.space/testnet4/api',
+    esplora: 'https://mempool-testnet4.testnet.lightningcluster.com/api',
   },
 };
 

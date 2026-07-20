@@ -7,7 +7,7 @@ describe('defaultConfig (web)', () => {
     assert.deepEqual(defaultConfig('signet'), {
       network: 'signet',
       arkServerAddress: 'https://signet.wavelength-rest.lightning.finance',
-      walletEsploraUrl: 'https://mempool.space/signet/api',
+      walletEsploraUrl: 'https://mempool-signet.testnet.lightningcluster.com/api',
       swapServerAddress: 'https://signet.swapd-rest.lightning.finance',
     });
   });
