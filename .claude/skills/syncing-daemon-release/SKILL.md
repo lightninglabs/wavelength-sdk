@@ -15,19 +15,34 @@ asset set, and the pin itself (`RUNTIME_MANIFEST_VERSION` in
 the same daemon commit and the verification ladder passes.
 
 All generators read the wavelength checkout at `../wavelength` or
-`$WAVELENGTH_DIR`. Do not move the shared `../wavelength` checkout to the target
-commit: it is often behind `origin` and may have local edits, so a
-fast-forward or stash disturbs someone else's working tree. Instead pin the
-daemon revision in an isolated, throwaway worktree and point `WAVELENGTH_DIR` at
-it:
+`$WAVELENGTH_DIR`. There may be no directory literally named `wavelength`:
+the checkout can keep a pre-rename directory name, so find it by remote, not
+by name (look for `github.com/lightninglabs/wavelength` in `git remote -v`
+across the candidate repo directories; the matching remote may have a name
+other than `origin`). Do not move the shared
+checkout to the target commit: it is often behind the remote and may have
+local edits, so a fast-forward or stash disturbs someone else's working
+tree. Instead pin the daemon revision in an isolated, throwaway worktree and
+point `WAVELENGTH_DIR` at it:
 
 ```sh
-cd ../wavelength && git fetch origin
-git worktree add --detach /tmp/wavelength-<shorthash> <target-commit>
-export WAVELENGTH_DIR=/tmp/wavelength-<shorthash>          # absolute path
+cd <daemon checkout> && git fetch <remote> --tags
+# Resolve a release tag to its commit: rev-parse on an annotated tag returns
+# the tag OBJECT hash, so always dereference with ^{commit}.
+git rev-parse --short 'v<X.Y.Z>^{commit}'
+git worktree add --detach /tmp/wavelength-<version> '<target>^{commit}'
+export WAVELENGTH_DIR=/tmp/wavelength-<version>            # absolute path
 # ... run the whole sync ...
-cd ../wavelength && git worktree remove --force /tmp/wavelength-<shorthash>
+cd <daemon checkout> && git worktree remove --force /tmp/wavelength-<version>
 ```
+
+Survey the upstream range before regenerating anything, and do not trust a
+plain `git diff --stat` when the range crosses an upstream tree or package
+rename: every file shows as a whole-file insertion and the real changes
+drown. Use rename detection (`git diff -M <pin>..<target>`), then find the
+substantive diffs by filtering out the rename vocabulary, e.g. count
+non-rename lines per file with a `grep -vE '<old-name>|<new-name>|...'` over
+the `-M` diff. A file whose filtered count is zero changed in name only.
 
 ## Quick reference: what changed upstream -> what to touch here
 
@@ -139,8 +154,15 @@ them on approval. Look specifically for:
   table (add a row or a Common-mistakes line).
 - **Friction that cost time**: anything you had to discover by trial and error
   that a one-line warning would have prevented.
-- **Newly touched files**: a hand-update spot the table missed for the change
-  class you hit.
+
+Propose ONLY changes that will pay off on future runs. The test for a
+candidate edit: would it have helped on a typical sync, or only on the exact
+change this release happened to carry? A lesson tied to one specific upstream
+change (one field, one file, one command's quirk) is a one-off; leave it out,
+it is easy to rediscover if it ever recurs. Durable environment facts (where
+the checkout lives, how a tool misbehaves on every run) and recurring change
+CLASSES (a new kind of upstream change the table should route) generalize;
+those belong here.
 
 Keep additions terse and specific (name the file, the symptom, the fix); prune
 anything the run proved obsolete. Propose the diff to the user rather than
