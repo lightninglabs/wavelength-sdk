@@ -1,11 +1,11 @@
 import {
   ArrowLeftRight,
-  Bitcoin,
   Lock,
   type LucideIcon,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+import { BrandMark } from "../ui/BrandMark";
 
 const BULLETS: Array<{ icon: LucideIcon; title: string; sub: string }> = [
   {
@@ -32,15 +32,10 @@ export function BrandPanel({ network }: { network: string }) {
       className="relative hidden flex-col justify-between border-r border-border
         [background:var(--surface-alt)] p-12 lg:flex"
     >
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-9 w-9 items-center justify-center bg-accent">
-          <Bitcoin size={18} className="text-white" />
-        </span>
-        <div>
-          <div className="text-sm font-semibold text-fg">Wavelength Demo</div>
-          <div className="font-mono text-[11px] tabular-nums text-faint">
-            {network} · self-custody
-          </div>
+      <div className="flex items-center gap-3">
+        <BrandMark />
+        <div className="font-mono text-[11px] tabular-nums text-faint">
+          {network} · self-custody
         </div>
       </div>
 
