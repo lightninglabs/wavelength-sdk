@@ -11,6 +11,15 @@ test('reference page has data-accent="teal"', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
 });
 
+test('reference prose uses the shared inline-code chip treatment', async ({ page }) => {
+  await page.goto('/reference/wavelength-core/');
+
+  const packageName = page.locator('.wdk-ref__content > p code').first();
+  await expect(packageName).toHaveText('@lightninglabs/wavelength-core');
+  await expect(packageName).toHaveCSS('border-top-style', 'solid');
+  expect(await packageName.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+});
+
 test('wavelength-core opens with a concise contract overview', async ({ page }) => {
   await page.goto('/reference/wavelength-core/');
 

@@ -352,7 +352,7 @@ code, pre, kbd {
 }
 
 /* Inline code - from r4-final :not(pre) > code. */
-:is(.wdk-doc__content, .wdk-guide__content) :not(pre) > code {
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content) :not(pre) > code {
   font-family: var(--font-mono);
   font-size: 0.85em;
   background: var(--surface-2);
