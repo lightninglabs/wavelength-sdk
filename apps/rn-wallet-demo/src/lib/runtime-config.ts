@@ -8,7 +8,7 @@ const HOST = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
 // excluded: this build targets test networks only.
-export const NETWORKS = ['signet', 'testnet', 'testnet4', 'regtest'] as const;
+export const NETWORKS = ['signet', 'testnet', 'regtest'] as const;
 
 // RuntimeNetwork is the demo's selectable network union. RuntimeConfig.network
 // is optional and includes 'mainnet', so RuntimeForm narrows it to this
@@ -59,9 +59,7 @@ const demoFieldDefaults = {
 // hostedDefaults builds the form for a hosted test network from the SDK's own
 // gRPC preset, so the demo never hand-copies server addresses. The hosted
 // deployments speak TLS and also work on physical devices.
-function hostedDefaults(
-  network: 'signet' | 'testnet' | 'testnet4',
-): RuntimeForm {
+function hostedDefaults(network: 'signet' | 'testnet'): RuntimeForm {
   const preset = defaultConfig(network);
 
   return {
@@ -78,9 +76,6 @@ export const signetDefaults: RuntimeForm = hostedDefaults('signet');
 
 // testnetDefaults are the default runtime servers for Bitcoin testnet3.
 export const testnetDefaults: RuntimeForm = hostedDefaults('testnet');
-
-// testnet4Defaults are the default runtime servers for Bitcoin testnet4.
-export const testnet4Defaults: RuntimeForm = hostedDefaults('testnet4');
 
 // regtestDefaults target the local frontend-regtest stack over plaintext gRPC.
 // The SDK ships no regtest preset (local ports vary per machine), so this
@@ -103,8 +98,6 @@ export function defaultsForNetwork(network: RuntimeNetwork): RuntimeForm {
       return regtestDefaults;
     case 'testnet':
       return testnetDefaults;
-    case 'testnet4':
-      return testnet4Defaults;
     default:
       return signetDefaults;
   }
