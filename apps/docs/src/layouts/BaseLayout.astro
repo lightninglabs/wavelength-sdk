@@ -28,6 +28,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 
 // The page title string as it appears in <title>, reused for og:title.
 const pageTitle = title === 'Wavelength' ? title : `${title} | Wavelength`;
+
+// Social share card. One branded 1200x630 image for every docs page: the
+// per-page title and description already carry the page-specific detail in
+// the preview, so the image only has to establish the brand.
+const shareCard = new URL('/og/share-card.png', Astro.site);
+const shareCardAlt =
+  'Wavelength: embed a self-custodial Lightning wallet in your web or mobile app.';
 ---
 <!doctype html>
 <html lang="en" data-accent={accent}>
@@ -40,10 +47,17 @@ const pageTitle = title === 'Wavelength' ? title : `${title} | Wavelength`;
     <!-- Open Graph meta tags for social sharing. -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="Wavelength" />
     <meta property="og:title" content={pageTitle} />
     {description && <meta property="og:description" content={description} />}
+    <meta property="og:image" content={shareCard} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={shareCardAlt} />
     <!-- Twitter card meta tags. -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={shareCard} />
+    <meta name="twitter:image:alt" content={shareCardAlt} />
     <!-- No-flash theme: apply before paint, and re-apply after each client-side
          (view transition) swap, which resets the <html> element's attributes. -->
     <script is:inline>
