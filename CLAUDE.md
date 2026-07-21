@@ -80,4 +80,6 @@ Cross-cutting:
 
 **Code organization.** Split large files into per-concern modules, but don't over-organize: a flat `src/` of well-named files is fine until a package grows, and subdirectories are only worth it for genuine clusters (e.g. `web/src/clients/`). Drop redundant filename suffixes when the directory already supplies the context.
 
+**Internal skills.** Consumer-facing skills live in `skills/` at the repo root; they are what `npx skills add lightninglabs/wavelength-sdk`, the docs-site skills catalog, and the Claude Code plugin marketplace all publish. Maintainer-only skills live in `.claude/skills/` and must carry `metadata.internal: true` in their SKILL.md frontmatter: the skills CLI scans `.claude/skills/` by design, and that flag is its only mechanism for keeping a skill out of consumer installs. Claude Code ignores the field, so local auto-discovery is unaffected.
+
 **Verification.** Treat the Playwright smoke test as the gold-standard check: it exercises the whole stack (create wallet → boarding address → Lightning invoice → activity → reload/unlock for OPFS persistence) in a real browser.
