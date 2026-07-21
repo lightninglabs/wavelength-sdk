@@ -474,8 +474,15 @@ code, pre, kbd {
   ry: 6;
 }
 
-.wdk-mermaid pre.mermaid svg .edgeLabel text {
+/* Edge labels sit on a theme-aware box (--surface-2 above), so their text has
+   to follow the theme too. The broad `.label tspan` rule further up forces the
+   dark-diagram near-white on every label; without tspan and span here, edge
+   labels render near-white on a near-white box in light mode. */
+.wdk-mermaid pre.mermaid svg .edgeLabel text,
+.wdk-mermaid pre.mermaid svg .edgeLabel tspan,
+.wdk-mermaid pre.mermaid svg .edgeLabel span {
   fill: var(--text-muted) !important;
+  color: var(--text-muted) !important;
 }
 
 .wdk-mermaid pre.mermaid svg .cluster rect {
