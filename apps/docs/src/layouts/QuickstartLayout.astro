@@ -256,6 +256,14 @@ const accent = accentForSlug(entry.id);
     margin-top: 48px;
   }
 
+  /* Lead-in paragraphs sit directly in the content column, outside any step
+     body, so they inherit no paragraph spacing and a multi-paragraph lead-in
+     runs together as one block. Step bodies scope their own rule (Step.astro),
+     so this only reaches page-level prose. */
+  .wdk-qs__content > :global(p) {
+    margin: 0 0 16px;
+  }
+
   /* Stepper rail: fixed full-height column pinned to the right screen edge,
      mirroring TableOfContents.astro and ReferenceLayout's symbol rail. */
   .wdk-qs__stepper {
