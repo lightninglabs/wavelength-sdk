@@ -17,8 +17,8 @@ Without isolation, `SharedArrayBuffer` is unavailable, OPFS persistence fails,
 and the worker transport cannot start.
 
 Cross-origin isolation is a web-only concern. It applies to every route in your
-app that loads the Wavelength SDK, including embedded demo or playground pages on the
-docs site.
+app that loads the Wavelength SDK. (The hosted demo app is served from its own
+origin with these headers for exactly this reason.)
 
 ## COOP/COEP headers
 
@@ -40,13 +40,13 @@ holding a reference to your page's global object.
 opt in with `Cross-Origin-Resource-Policy: cross-origin` (or be loaded with
 `crossorigin` where applicable). Same-origin assets need no extra attribute.
 
-**Scope headers to embed routes.** If only part of your site runs the wallet
-(for example `/web/playground/*` on the docs site), apply COOP/COEP on those
-paths rather than the entire domain. Hosts like Netlify and Cloudflare Pages read
-a `_headers` file:
+**Scope headers to wallet routes.** If only part of your site runs the wallet
+(for example a `/wallet/*` section), apply COOP/COEP on those paths rather
+than the entire domain. Hosts like Netlify and Cloudflare Pages read a
+`_headers` file:
 
 ```text title="public/_headers"
-/web/playground/*
+/wallet/*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
 ```
@@ -91,7 +91,7 @@ on cross-origin requests instead of requiring the target origin to opt in with
 **Verify with curl.** After deploying, confirm the headers are present:
 
 ```bash title="Terminal"
-curl -sI https://your-app.example/web/playground/ | grep -i cross-origin
+curl -sI https://your-app.example/wallet/ | grep -i cross-origin
 ```
 
 You should see both `Cross-Origin-Opener-Policy: same-origin` and

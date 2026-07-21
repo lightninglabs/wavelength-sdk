@@ -15,7 +15,8 @@ The embedded daemon persists two kinds of browser-local data:
    OPFS-backed VFS when available). Set **`swapDatabaseFileName`** in
    `RuntimeConfig` to name this SQLite file explicitly; set **`disableSwaps`**
    to turn off the Lightning swap subsystem (and its storage) entirely. When
-   swaps are disabled, Wavelength suppresses preset and override swap fields.
+   swaps are disabled, swap endpoint settings (from the network preset or your
+   overrides) are omitted from the daemon config.
 
 **OPFS (Origin Private File System)** is the production path. Files live under
 the page origin in a private directory the page cannot enumerate from outside

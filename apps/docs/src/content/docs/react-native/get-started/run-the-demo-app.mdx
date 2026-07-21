@@ -10,7 +10,7 @@ The reference integration lives in the Wavelength monorepo at
 `apps/rn-wallet-demo`. Clone the repository, install dependencies with pnpm,
 and build the workspace packages:
 
-```sh title="Terminal"
+```bash title="Terminal"
 git clone https://github.com/lightninglabs/wavelength-sdk.git
 cd wavelength-sdk
 pnpm install
@@ -21,7 +21,7 @@ The demo needs the native wallet runtime binaries staged before it can build.
 Point `WAVELENGTH_DIR` at a daemon source checkout and run the package's
 `fetch-bindings` script:
 
-```sh title="Terminal"
+```bash title="Terminal"
 WAVELENGTH_DIR=/path/to/daemon-checkout \
   pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
 ```
@@ -33,7 +33,7 @@ binaries ship this way and what the script stages.
 
 Start Metro in its own terminal, then build and launch per platform:
 
-```sh title="Terminal"
+```bash title="Terminal"
 cd apps/rn-wallet-demo
 npx expo start --dev-client --clear
 ```
@@ -41,7 +41,7 @@ npx expo start --dev-client --clear
 This starts Metro, the dev server that serves the JS bundle to the app. Keep
 it running in its own terminal; `--clear` drops a possibly stale cache.
 
-```sh title="Terminal"
+```bash title="Terminal"
 npx expo run:android
 ```
 
@@ -49,7 +49,7 @@ This generates the native `android` project if needed, compiles the dev
 build, installs it on the running emulator or a connected device, and
 launches it.
 
-```sh title="Terminal"
+```bash title="Terminal"
 LANG=en_US.UTF-8 npx expo run:ios
 ```
 
@@ -62,7 +62,7 @@ The first `expo run:*` generates the native `android/` and `ios/` projects
 
 ## Networks
 
-The start screen offers four presets:
+The start screen offers three presets:
 
 - **regtest** targets a local stack. Host addressing is automatic per
   platform: the Android emulator reaches your machine as `10.0.2.2`, the iOS

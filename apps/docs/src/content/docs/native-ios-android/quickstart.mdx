@@ -20,7 +20,7 @@ handling) is covered there.
 
 The wrappers are not published as artifacts yet, so you work from a checkout of
 the wavelength-mobile repository rather than adding a dependency. Step 1 clones
-it; the last step covers wiring it into an app of your own.
+it; the last step ends with wiring it into an app of your own.
 
 <Step title="Get the repo and stage the bindings">
 
@@ -28,7 +28,7 @@ The Kotlin and Swift wrappers, the sample apps, and the fetch scripts all live
 in [wavelength-mobile](https://github.com/lightninglabs/wavelength-mobile), and
 the scripts run from its root. Start by cloning it:
 
-```sh
+```bash title="Terminal"
 git clone https://github.com/lightninglabs/wavelength-mobile.git
 cd wavelength-mobile
 ```
@@ -37,7 +37,7 @@ The wrappers link the `Wavewalletdk` native bindings, which are not checked in.
 The fetch scripts download them from the wavelength GitHub release and stage
 them where the build expects:
 
-```sh
+```bash title="Terminal"
 # Android: stages Wavewalletdk.aar under android/walletkit/libs
 ./scripts/fetch-aar.sh
 
