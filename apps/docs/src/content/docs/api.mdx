@@ -3,9 +3,14 @@ title: API
 description: Remote gRPC and REST access to the wallet daemon for server-side integrations.
 ---
 
+import { apiDoc } from '~/data/api';
+
+export const walletMethodCount = apiDoc.methods.filter((m) => m.service === 'WalletService').length;
+export const totalMethodCount = apiDoc.methods.length;
+
 ## What this is
 
-The wallet daemon (`waved`) exposes a compact wallet API, `WalletService`, over both gRPC and REST. It is 14 methods covering the full wallet lifecycle: create and unlock a wallet, send and receive Lightning and on-chain payments, read balance and activity, and exit to a fully self-custodial on-chain position. A companion service, `WalletInspectionService`, adds one read-only method for inspecting activity entries in detail, for 15 methods total.
+The wallet daemon (`waved`) exposes a compact wallet API, `WalletService`, over both gRPC and REST. It is {walletMethodCount} methods covering the full wallet lifecycle: create and unlock a wallet, send and receive Lightning and on-chain payments, read balance and activity, and exit to a fully self-custodial on-chain position. A companion service, `WalletInspectionService`, adds one read-only method for inspecting activity entries in detail, for {totalMethodCount} methods total.
 
 This slice is for **remote integrations**: a backend service that manages a wallet on behalf of your product, an internal dashboard, a monitoring script, or any process that talks to a `waved` instance you run yourself, rather than embedding a wallet in a browser tab.
 
@@ -26,7 +31,7 @@ Every RPC gets its own page, grouped into five sidebar sections by what it does 
 - **Sending**: [PrepareSend](/api/wallet/prepare-send/), [Send](/api/wallet/send/)
 - **Receiving**: [Recv](/api/wallet/recv/), [Deposit](/api/wallet/deposit/)
 - **Balance and activity**: [Balance](/api/wallet/balance/), [List](/api/wallet/list/), [SubscribeWallet](/api/wallet/subscribe-wallet/), [InspectActivity](/api/wallet/inspect-activity/)
-- **Exit and sweep**: [GetExitPlan](/api/wallet/get-exit-plan/), [Exit](/api/wallet/exit/), [ExitStatus](/api/wallet/exit-status/), [SweepWallet](/api/wallet/sweep-wallet/)
+- **Exit and sweep**: [GetExitPlan](/api/wallet/get-exit-plan/), [Exit](/api/wallet/exit/), [ExitStatus](/api/wallet/exit-status/), [ExitSummary](/api/wallet/exit-summary/), [SweepWallet](/api/wallet/sweep-wallet/)
 
 Start with [Get started](/api/get-started/) to build `waved` with the wallet API enabled and make your first call, then [REST conventions](/api/rest/) for the shared request, error, and streaming shape across every method.
 

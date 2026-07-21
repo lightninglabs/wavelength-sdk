@@ -107,16 +107,31 @@ function requestFieldType(method: MethodDoc, fieldName: string): string | undefi
 }
 
 /**
+ * Decodes a base64 curated sample into the raw string it encodes. Curated
+ * samples store bytes-typed values in their JSON wire form (base64); the
+ * native gRPC tabs must pass the decoded raw bytes instead, or the sample
+ * would teach double-encoding.
+ */
+function decodeBase64Sample(value: string): string {
+  return Buffer.from(value, 'base64').toString('utf8');
+}
+
+/**
  * Renders a curated sample value as a Go literal for a request struct field.
  * Enum-typed fields render as the generated Go identifier (Type_VALUE)
  * instead of their JSON string form, since a proto enum field cannot be
- * assigned a string literal. Covers the value shapes that appear in
- * API_SAMPLES: strings, enum strings, numbers, booleans, and string arrays.
+ * assigned a string literal, and bytes fields render as a []byte conversion
+ * of the decoded sample. Covers the value shapes that appear in
+ * API_SAMPLES: strings, enum strings, bytes strings, numbers, booleans, and
+ * string arrays.
  */
 function goValue(value: unknown, protoType?: string): string {
   if (typeof value === 'string') {
     if (protoType && apiDoc.enums[protoType]) {
       return `wavewalletrpc.${protoType}_${value}`;
+    }
+    if (protoType === 'bytes') {
+      return `[]byte(${JSON.stringify(decodeBase64Sample(value))})`;
     }
     return JSON.stringify(value);
   }
@@ -133,12 +148,16 @@ function goValue(value: unknown, protoType?: string): string {
  * Renders a curated sample value as a Python literal for a request kwarg.
  * Enum-typed fields render as the generated module-level constant (proto3
  * top-level enum values compile to wallet_pb2.VALUE) instead of their JSON
- * string form.
+ * string form, and bytes fields render as a bytes literal of the decoded
+ * sample.
  */
 function pythonValue(value: unknown, protoType?: string): string {
   if (typeof value === 'string') {
     if (protoType && apiDoc.enums[protoType]) {
       return `wallet_pb2.${value}`;
+    }
+    if (protoType === 'bytes') {
+      return `b${JSON.stringify(decodeBase64Sample(value))}`;
     }
     return JSON.stringify(value);
   }

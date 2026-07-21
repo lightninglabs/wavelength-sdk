@@ -21,7 +21,7 @@ POST /v1/wallet/inspect/activity
 
 Request bodies are JSON objects whose field names match the proto field names exactly, in `snake_case` (not the `camelCase` you would see in a hand-written REST API). Methods whose request message has no fields, such as `Status`, still take a request body: an empty JSON object.
 
-```sh
+```bash title="Terminal"
 curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
 ```
 
@@ -46,7 +46,7 @@ This is the grpc-gateway default error handler: the daemon does not install a cu
 ## Streaming
 
 `SubscribeWallet` is the one server-streaming method (`POST /v1/wallet/subscribe`).
-Unlike the other 14 routes, the response is not a
+Unlike every other route, the response is not a
 single JSON object. The gateway keeps the HTTP connection open and emits one
 newline-delimited envelope per streamed message, with the entry under a
 `result` field:
