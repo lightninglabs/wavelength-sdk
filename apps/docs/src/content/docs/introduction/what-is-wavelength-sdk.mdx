@@ -10,9 +10,9 @@ import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
 
 ## What it is
 
-The Wavelength SDK is a TypeScript library for embedding a **self-custodial Bitcoin, Lightning, and Ark wallet** directly in your web or mobile app. Your users hold their own keys. You do not run a wallet server on their behalf.
+The Wavelength SDK is a TypeScript library for embedding a **self-custodial Bitcoin, Lightning, and Ark wallet** directly in your web or mobile app. Your users hold their own keys. You do not run a wallet server on their behalf. (Building a pure-native Kotlin or Swift app? The same embedded wallet ships as a [native mobile SDK](/native-ios-android/overview/) too.)
 
-The full wallet daemon ([wavelength](https://github.com/lightninglabs/wavelength)) is compiled to run **inside your app**: to WebAssembly in the browser on web, and into the app binary on React Native. There is no separate process, no local socket, and no backend you must operate to host the wallet logic. Your app boots the daemon and talks to it through a typed client.
+The full wallet daemon ([wavelength](https://github.com/lightninglabs/wavelength)) is compiled to run **inside your app**: to WebAssembly in the browser on web, and into the app binary on mobile. There is no separate process, no local socket, and no backend you must operate to host the wallet logic. Your app boots the daemon and talks to it through a typed client.
 
 The Wavelength SDK ships as these packages:
 
@@ -24,6 +24,8 @@ The Wavelength SDK ships as these packages:
 ]} />
 
 **React is the primary developer experience**, but React is not required. On web, if you are not using React, install `@lightninglabs/wavelength-web`, call `createWebClient()`, and use the `WavelengthClient` methods directly. The React package is a thin binding over the same interface.
+
+Native iOS and Android apps are covered as well: the [wavelength-mobile](https://github.com/lightninglabs/wavelength-mobile) wrappers embed the same daemon behind idiomatic Kotlin and Swift APIs, documented in the [Native iOS & Android](/native-ios-android/overview/) section.
 
 ## Mental model
 

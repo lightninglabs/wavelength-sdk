@@ -1,0 +1,223 @@
+---
+title: Quickstart (native iOS & Android)
+description: Run the embedded Wavelength wallet from the wavelength-mobile checkout - stage the bindings, boot the daemon, create a wallet, and read the balance from Kotlin or Swift.
+pageLayout: quickstart
+---
+
+import Step from '~/components/mdx/Step.astro';
+import PlatformTabs from '~/components/mdx/PlatformTabs.astro';
+import Card from '~/components/mdx/Card.astro';
+import CardGrid from '~/components/mdx/CardGrid.astro';
+
+{/* Sync note: condensed from wavelength-mobile docs/api-guide.md (steps 1-6).
+    During the sync mini-pass, diff the snippets against that file. */}
+
+This quickstart goes from nothing to a created, syncing wallet. It condenses the
+first-run portion of the upstream
+[API guide](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/api-guide.md);
+everything past first-run (activity streaming, sending, receiving, exit, error
+handling) is covered there.
+
+The wrappers are not published as artifacts yet, so you work from a checkout of
+the wavelength-mobile repository rather than adding a dependency. Step 1 clones
+it; the last step covers wiring it into an app of your own.
+
+<Step title="Get the repo and stage the bindings">
+
+The Kotlin and Swift wrappers, the sample apps, and the fetch scripts all live
+in [wavelength-mobile](https://github.com/lightninglabs/wavelength-mobile), and
+the scripts run from its root. Start by cloning it:
+
+```sh
+git clone https://github.com/lightninglabs/wavelength-mobile.git
+cd wavelength-mobile
+```
+
+The wrappers link the `Wavewalletdk` native bindings, which are not checked in.
+The fetch scripts download them from the wavelength GitHub release and stage
+them where the build expects:
+
+```sh
+# Android: stages Wavewalletdk.aar under android/walletkit/libs
+./scripts/fetch-aar.sh
+
+# iOS: stages Wavewalletdk.xcframework
+./scripts/fetch-xcframework.sh
+```
+
+Both scripts pull the release with the [`gh` CLI](https://cli.github.com/), so
+sign in with `gh auth login` first. Toolchain requirements and pinned versions
+live in the upstream
+[Android workflow](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/android.md)
+doc.
+
+</Step>
+
+<Step title="Create a client">
+
+Hold one `WalletClient` for the app's lifetime (an Android `ViewModel` field, a
+Swift `@State` value or a stored property). One daemon runs per process, so a
+single client serves the whole app. `WalletClient` is a Swift `actor` and does
+not conform to `ObservableObject`, so `@StateObject` does not apply; the
+upstream sample holds it in `@State`.
+
+<PlatformTabs>
+<div data-label="Kotlin">
+
+```kotlin
+val client = WalletClient()
+```
+
+</div>
+<div data-label="Swift">
+
+```swift
+let client = WalletClient()
+```
+
+</div>
+</PlatformTabs>
+
+</Step>
+
+<Step title="Boot the wallet">
+
+`start` boots the embedded daemon and returns once it is serving. It blocks
+while booting, so both wrappers run it off the main thread for you.
+`WalletConfig.signet(...)` fills in public signet endpoints; override
+`dataDir` per install. Endpoint details are in the upstream
+[signet doc](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/signet.md).
+
+<PlatformTabs>
+<div data-label="Kotlin">
+
+```kotlin
+// Inside a coroutine.
+client.start(WalletConfig.signet(dataDir = "${context.filesDir}/wavewalletdk"))
+```
+
+</div>
+<div data-label="Swift">
+
+```swift
+// Inside a Task.
+let dir = FileManager.default
+    .urls(for: .documentDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("wavewalletdk").path
+try await client.start(.signet(dataDir: dir))
+```
+
+</div>
+</PlatformTabs>
+
+Starting twice before `stop` throws rather than booting a second daemon.
+
+</Step>
+
+<Step title="Create or unlock a wallet">
+
+`createWallet` with an empty mnemonic generates a fresh seed and returns the
+words to back up; pass an existing mnemonic to restore. The password encrypts the seed
+on disk. On later launches, `unlockWallet` with the same password.
+
+<PlatformTabs>
+<div data-label="Kotlin">
+
+```kotlin
+// First launch: new wallet.
+val res = client.createWallet(walletPassword = "my-password".toByteArray())
+saveMnemonic(res.mnemonic)
+
+// Later launches.
+client.unlockWallet("my-password".toByteArray())
+```
+
+</div>
+<div data-label="Swift">
+
+```swift
+// First launch: new wallet.
+let res = try await client.createWallet(
+    walletPassword: Data("my-password".utf8)
+)
+saveMnemonic(res.mnemonic)
+
+// Later launches.
+_ = try await client.unlockWallet(
+    walletPassword: Data("my-password".utf8)
+)
+```
+
+</div>
+</PlatformTabs>
+
+</Step>
+
+<Step title="Watch sync and read the balance">
+
+`getInfo` returns a snapshot: the synced block height, operator connectivity,
+and whether the wallet is ready for signing. Poll it to show sync progress,
+then read the balance in satoshis.
+
+<PlatformTabs>
+<div data-label="Kotlin">
+
+```kotlin
+val info = client.getInfo()
+if (info.walletReady) {
+    val b = client.balance()
+    println("synced to ${info.blockHeight}: ${b.confirmedSat} sat confirmed")
+}
+```
+
+</div>
+<div data-label="Swift">
+
+```swift
+let info = try await client.getInfo()
+if info.walletReady {
+    let b = try await client.balance()
+    print("synced to \(info.blockHeight): \(b.confirmedSat) sat confirmed")
+}
+```
+
+</div>
+</PlatformTabs>
+
+### Wiring it into your own app
+
+The steps above run against the checkout, which is where the sample apps live
+and the fastest way to see the wallet working. There is no published Maven
+artifact or remote Swift package yet, so an app of your own consumes the
+wrapper as a local module:
+
+- **Android**: include `android/walletkit` as a Gradle module and depend on it
+  with `implementation(project(":walletkit"))`, the way `android/app` does.
+- **iOS**: add `ios/WalletKit` as a local Swift package. Its `Package.swift`
+  declares a binary target at `Frameworks/Wavewalletdk.xcframework`, which is
+  not committed, so the fetch script above has to have staged it first.
+
+Either way the bindings are large native artifacts fetched per checkout rather
+than resolved by a package manager, so treat staging them as part of your build
+setup. The upstream
+[Android workflow](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/android.md)
+doc covers the toolchain in full.
+
+That is the whole first-run path. Explore these to go further.
+
+<CardGrid>
+  <Card title="Full API guide" href="https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/api-guide.md" cta="Read the guide →">
+    Activity streaming, receiving, sending, exit to chain, and error handling.
+  </Card>
+  <Card title="Sample apps" href="https://github.com/lightninglabs/wavelength-mobile" cta="Browse the repo →">
+    A Jetpack Compose app and a SwiftUI app driving the wrappers end to end.
+  </Card>
+  <Card title="How it works" href="/native-ios-android/architecture/">
+    The in-process daemon, the JSON boundary, and the callback-free API.
+  </Card>
+  <Card title="Balances and VTXOs" href="/concepts/balances-and-vtxos/">
+    The wallet model this SDK exposes, the same on every platform.
+  </Card>
+</CardGrid>
+
+</Step>

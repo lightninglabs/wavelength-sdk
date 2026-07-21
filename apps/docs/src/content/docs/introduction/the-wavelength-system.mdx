@@ -41,11 +41,11 @@ Every payment you send and receive is a BOLT 11 invoice, the standard Lightning 
 
 Wavelength meets you where you build:
 
-- **Embedded SDK** - pull the SDK into your app to put a wallet directly inside it. It runs on web (compiled to WebAssembly, in a browser tab) and on React Native (compiled into the app binary). Start with the [Web quickstart](/web/get-started/quickstart/) or the [React Native quickstart](/react-native/get-started/quickstart/).
+- **Embedded SDK** - pull the SDK into your app to put a wallet directly inside it. It runs on web (compiled to WebAssembly, in a browser tab) and on mobile (compiled into the app binary), on React Native or on native Kotlin and Swift. Start with the [Web quickstart](/web/get-started/quickstart/), the [React Native quickstart](/react-native/get-started/quickstart/), or the [Native iOS & Android quickstart](/native-ios-android/quickstart/).
 - **As a standalone client** - a single self-contained process driven over a gRPC and REST API.
 - **For agents** - run the MCP server so an AI agent can drive the wallet as typed tool calls. Wallet creation and unlock stay off the agent channel, so seeds and passwords are never exposed to a model.
 
-These docs focus on the SDK (web and React Native). The other surfaces share the same wallet commands and are documented separately.
+These docs focus on the SDK (web, React Native, and native iOS and Android). The other surfaces share the same wallet commands and are documented separately.
 
 ## Networks
 
@@ -54,5 +54,5 @@ Wavelength runs on signet and testnet by default, and both are open to everyone.
 ## Where to go next
 
 - [What is Wavelength?](/introduction/what-is-wavelength-sdk/) - the client you run, and the packages it ships as.
-- [Web quickstart](/web/get-started/quickstart/) or [React Native quickstart](/react-native/get-started/quickstart/) - a running wallet in a few minutes.
+- [Web quickstart](/web/get-started/quickstart/), [React Native quickstart](/react-native/get-started/quickstart/), or [Native iOS & Android quickstart](/native-ios-android/quickstart/) - a running wallet in a few minutes.
 - [System architecture](/introduction/system-architecture/) - how the embedded daemon connects to the backend gateways.

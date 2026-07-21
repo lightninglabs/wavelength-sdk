@@ -77,6 +77,16 @@ export const NAV: NavGroup[] = [
       { slug: 'react-native/troubleshooting', label: 'Troubleshooting', section: 'react-native' },
     ],
   },
+  // -- NATIVE IOS & ANDROID PLATFORM (BUILD) --
+  {
+    label: 'Native iOS & Android',
+    section: 'native-ios-android',
+    items: [
+      { slug: 'native-ios-android/overview', label: 'Overview', section: 'native-ios-android' },
+      { slug: 'native-ios-android/architecture', label: 'Architecture', section: 'native-ios-android' },
+      { slug: 'native-ios-android/quickstart', label: 'Quickstart', section: 'native-ios-android' },
+    ],
+  },
   {
     label: 'Integrations',
     section: 'integrations',
@@ -273,6 +283,7 @@ export interface Surface {
 export const SURFACES: Surface[] = [
   { label: 'Web SDK', href: '/web/get-started/quickstart/' },
   { label: 'React Native SDK', href: '/react-native/get-started/quickstart/' },
+  { label: 'Native iOS & Android', href: '/native-ios-android/overview/' },
   { label: 'API', href: '/api/' },
   { label: 'CLI', href: '/cli/' },
   { label: 'Agents', href: '/agents/' },

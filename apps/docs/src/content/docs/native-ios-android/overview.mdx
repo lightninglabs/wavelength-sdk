@@ -1,0 +1,76 @@
+---
+title: Native iOS & Android overview
+description: The Wavelength native mobile SDK - idiomatic Kotlin and Swift wrappers over the embedded wallet daemon, for apps built without React Native.
+---
+
+{/* Sync note: link hub for the native SDK. New prose with no single upstream
+    source file. During the sync mini-pass, verify the outbound links and the
+    wrapper/repo names against the wavelength-mobile checkout. */}
+
+## Who this section is for
+
+This section is for apps written directly in Kotlin or Swift, with no React
+Native layer. If your app is built with React Native, you want the
+[React Native section](/react-native/get-started/quickstart/) instead: it ships
+the same embedded wallet as an npm package with TypeScript types, and pairs
+with the [`wavelength-react`](/reference/wavelength-react/) hooks.
+
+## What the native SDK is
+
+The native SDK lives in the
+[wavelength-mobile](https://github.com/lightninglabs/wavelength-mobile)
+repository. It provides idiomatic wrappers over the same gomobile-compiled
+wallet daemon that powers the React Native package:
+
+- **`android/walletkit`**: a Kotlin library exposing `suspend` functions,
+  a `Flow` for wallet activity, and typed models.
+- **`ios/WalletKit`**: a Swift library built as an `actor` with `async`
+  functions, an `AsyncThrowingStream` for activity, and `Codable` models.
+
+Both wrap the `Wavewalletdk` bindings (`Wavewalletdk.aar` on Android,
+`Wavewalletdk.xcframework` on iOS) that the
+[wavelength](https://github.com/lightninglabs/wavelength) repo builds and
+publishes with each release. The whole wallet daemon runs inside your app's
+process: no separate daemon, no open network port, and your users keep sole
+custody of their keys. See [Architecture](/native-ios-android/architecture/)
+for how that works.
+
+The repo also contains a sample app per platform (Jetpack Compose on Android,
+SwiftUI on iOS) that drives the wrappers end to end.
+
+## Native or React Native?
+
+Choose the **native SDK** when:
+
+- You have an existing Kotlin or Swift app and do not want to introduce a
+  React Native dependency.
+- You want platform-native concurrency idioms: Kotlin coroutines and `Flow`,
+  Swift `async`/`await` and `AsyncThrowingStream`.
+
+Choose **React Native** when:
+
+- You share a TypeScript codebase across platforms, or your team lives in the
+  React ecosystem.
+- You want the [`wavelength-react`](/reference/wavelength-react/) hooks and the
+  shared `WalletEngine` state layer.
+
+Both paths embed the same daemon and speak the same
+[wallet API](/api/), so the concepts, guides, and API documentation on this
+site apply to either.
+
+## What lives where
+
+This site owns the stable material: this overview, the
+[architecture](/native-ios-android/architecture/) of the embedded daemon, and a
+[quickstart](/native-ios-android/quickstart/) that gets a wallet created and
+synced. Everything that moves with upstream releases stays canonical in the
+wavelength-mobile repo:
+
+- [API guide](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/api-guide.md):
+  every wallet operation with Kotlin and Swift side by side.
+- [Android workflow](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/android.md):
+  toolchain setup, building the bindings, running the sample app.
+- [Signet setup](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/signet.md):
+  endpoints and network notes for running against signet.
+- [Full method list](https://github.com/lightninglabs/wavelength/blob/main/docs/wavewalletdk_mobile.md):
+  the complete gomobile facade surface, documented in the wavelength repo.

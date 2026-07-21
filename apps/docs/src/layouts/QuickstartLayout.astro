@@ -241,6 +241,21 @@ const accent = accentForSlug(entry.id);
     margin: 0 auto;
   }
 
+  /* A page may open with lead-in prose before the first step. Steps space
+     themselves only against each other (.wdk-step + .wdk-step), so the first
+     one would otherwise butt straight up against that paragraph. No divider
+     here: the rule between steps marks a boundary between peers, and the
+     lead-in belongs to the page, not to step one.
+
+     The layout's own chrome must be excluded. .wdk-qs__head is always the
+     first step's previous sibling, so a bare :not(.wdk-step) would match on
+     every quickstart and add this gap on top of the header's own margin, even
+     on pages that have no lead-in at all. */
+  .wdk-qs__content
+    :global(:not(.wdk-step):not(.wdk-qs__head):not(.wdk-qs__accent) + .wdk-step) {
+    margin-top: 48px;
+  }
+
   /* Stepper rail: fixed full-height column pinned to the right screen edge,
      mirroring TableOfContents.astro and ReferenceLayout's symbol rail. */
   .wdk-qs__stepper {

@@ -17,17 +17,16 @@ test('per-section accent updates across a client-side navigation', async ({ page
   expect(await page.evaluate(() => document.documentElement.dataset.accent)).toBe('teal');
   await page.evaluate(() => { window.__wdkNoReload = true; });
 
-  // Guides is a different section (and a different accent, violet) than
-  // Concepts (teal) - wavelength-core's Reference section also happens to be
-  // teal under the position-derived accent cycle (see SECTION_ACCENT in
-  // config/nav.ts), which would make this assertion pass even if the accent
-  // never actually updated.
-  await page.locator('.wdk-sidebar').getByRole('link', { name: 'Create a wallet' }).click();
+  // Reference is a different section (and a different accent, lime) than
+  // Concepts (teal) - Guides also lands on teal under the position-derived
+  // accent cycle (see SECTION_ACCENT in config/nav.ts), which would make this
+  // assertion pass even if the accent never actually updated.
+  await page.locator('.wdk-sidebar').getByRole('link', { name: 'wavelength-core' }).click();
 
-  await expect(page).toHaveURL(/\/guides\/create-a-wallet\/$/);
+  await expect(page).toHaveURL(/\/reference\/wavelength-core\/$/);
   // Confirm it was a client-side swap, not a reload, and the accent followed.
   expect(await page.evaluate(() => window.__wdkNoReload === true)).toBe(true);
-  expect(await page.evaluate(() => document.documentElement.dataset.accent)).toBe('violet');
+  expect(await page.evaluate(() => document.documentElement.dataset.accent)).toBe('lime');
 });
 
 test('theme choice persists across a client-side navigation', async ({ page }) => {

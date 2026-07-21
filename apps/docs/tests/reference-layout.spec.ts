@@ -4,11 +4,11 @@ import { test, expect } from '@playwright/test';
 // Asserts that /reference/wavelength-core/ renders:
 //   1. [data-symbol] sections - one per exported symbol.
 //   2. A sticky symbol-list rail with one link per symbol.
-//   3. data-accent="teal" on <html>.
+//   3. data-accent="lime" on <html>.
 
-test('reference page has data-accent="teal"', async ({ page }) => {
+test('reference page has data-accent="lime"', async ({ page }) => {
   await page.goto('/reference/wavelength-core/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'lime');
 });
 
 test('reference prose uses the shared inline-code chip treatment', async ({ page }) => {
@@ -152,27 +152,27 @@ test('public nested and lifecycle types have reference sections', async ({ page 
 
 // Smoke checks for the sibling reference pages.
 
-test('wavelength-web reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
+test('wavelength-web reference page renders symbol sections, rail, and lime accent', async ({ page }) => {
   await page.goto('/reference/wavelength-web/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'lime');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   expect(await symbols.count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
-test('wavelength-react reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
+test('wavelength-react reference page renders symbol sections, rail, and lime accent', async ({ page }) => {
   await page.goto('/reference/wavelength-react/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'lime');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   expect(await symbols.count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('[data-symbol-list]')).toBeVisible();
 });
 
-test('wavelength-react-native reference page renders symbol sections, rail, and teal accent', async ({ page }) => {
+test('wavelength-react-native reference page renders symbol sections, rail, and lime accent', async ({ page }) => {
   await page.goto('/reference/wavelength-react-native/');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'lime');
   const symbols = page.locator('[data-symbol]');
   await expect(symbols.first()).toBeVisible();
   expect(await symbols.count()).toBeGreaterThanOrEqual(2);
