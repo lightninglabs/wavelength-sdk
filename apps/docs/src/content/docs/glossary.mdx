@@ -3,74 +3,74 @@ title: Glossary
 description: Definitions of key Wavelength, Ark, and Lightning Network terms used throughout the documentation.
 ---
 
-### Ark
+## Ark
 
-Ark is the shared off-chain protocol layer Wavelength builds on. Users hold VTXOs (virtual UTXOs) that settle on-chain in batched rounds, so payments are instant and cheap while remaining self-custodial, and users can always exit to on-chain Bitcoin unilaterally. This underpins boarding, rounds, VTXOs, and leaving Ark, which have their own entries.
+Ark is the shared off-chain protocol layer Wavelength builds on. Users hold VTXOs (virtual UTXOs) that settle on-chain in batched rounds, so payments are instant and cheap while remaining self-custodial, and users can always exit to on-chain Bitcoin unilaterally. This underpins boarding, rounds, and VTXOs, each of which has its own entry below. Leaving Ark is covered by the Cooperative leave and Unilateral exit entries, and in [Leaving Ark](/concepts/leaving-ark/).
 
-### Batch swap
+## Batch swap
 
 A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. Wavelength may perform batch swaps automatically as part of routine wallet maintenance. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for how VTXO expiry fits into the lifecycle.
 
-### Boarding
+## Boarding
 
 Boarding is how you enter Ark from the Bitcoin base layer. You spend an on-chain UTXO as an input to the operator's next batch transaction and receive one or more VTXOs in return. Once boarding completes, your funds live off-chain and can be sent, swapped, or withdrawn through Ark operations. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for the full boarding-to-VTXO flow.
 
-### Boarding address
+## Boarding address
 
 A boarding address is an on-chain Bitcoin address your wallet derives for deposits that will board into Ark. Send base-layer bitcoin to this address; Wavelength tracks the deposit and boards it at the next round tick (typically on the order of ~90 seconds). Use `wallet.deposit()` as described in [Get a deposit address](/guides/get-a-deposit-address/).
 
-### BOLT 11
+## BOLT 11
 
 BOLT 11 is the standard Lightning invoice format. Every Lightning payment Wavelength sends or receives is a BOLT 11 invoice, so the wallet interoperates with any Lightning wallet, exchange, or app. See the [Lightning receive](#lightning-receive) and [Lightning send](#lightning-send) entries for how Lightning sends and receives are handled as swaps.
 
-### Cooperative leave
+## Cooperative leave
 
 Cooperative leave is the normal way to withdraw Ark funds to a standard on-chain Bitcoin address. You forfeit your VTXOs in an upcoming round and the operator includes a direct on-chain output paying your chosen destination in the batch transaction. It is faster and cheaper than unilateral exit because both you and the operator sign cooperatively. See [Leaving Ark](/concepts/leaving-ark/).
 
-### Esplora
+## Esplora
 
 Esplora is a REST API for querying Bitcoin chain data and UTXOs. Wavelength's `lwwallet` backend uses an Esplora-compatible HTTP endpoint (configured as `walletEsploraUrl`) to watch boarding deposits, fee estimates, and on-chain activity. The endpoint must implement the Esplora `/address/:addr/utxo` API (electrs or Blockstream-compatible) and is set via the `walletEsploraUrl` field on `RuntimeConfig`. See [Networks & config](/concepts/networks-and-config/) and [System architecture](/introduction/system-architecture/).
 
-### Lightning receive
+## Lightning receive
 
 A Lightning receive brings value into your Ark wallet over Lightning through an atomic swap. When you create a Lightning invoice, the swap server and operator set up a vHTLC; once a payer settles the invoice, you claim the locked funds as Ark balance. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Receive a Lightning payment](/guides/receive-a-lightning-payment/).
 
-### Lightning send
+## Lightning send
 
 A Lightning send moves value out of your Ark wallet over Lightning through an atomic swap. You fund a vHTLC from your Ark balance; the swap server pays the destination invoice and claims the vHTLC once Lightning settlement reveals the preimage. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) and [Send a payment](/guides/send-a-payment/).
 
-### Mailbox
+## Mailbox
 
 The mailbox is the operator's asynchronous message channel for events that the wallet cannot pull synchronously over a simple RPC. Swap notifications, round updates, and similar push-style events arrive through the mailbox edge, which shares the Ark operator address (`arkServerAddress`). Wavelength polls and acknowledges mailbox messages as part of its background sync. See [Activity & events](/concepts/activity-and-events/) and [System architecture](/introduction/system-architecture/).
 
-### OOR (out-of-round)
+## OOR (out-of-round)
 
 OOR (out-of-round) transfers move VTXOs between owners without waiting for the next batch round. They are the mechanism behind instant off-chain Ark payments and vHTLC funding or claiming. OOR is an advanced topic; Wavelength handles OOR transfers internally and detailed protocol coverage is deferred to a later docs pass. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/) for how OOR funds and claims a vHTLC.
 
-### Operator (ASP)
+## Operator (ASP)
 
 The operator, also called the Ark Service Provider (ASP), runs the Ark coordinator that constructs batch transactions, co-signs off-chain spends, and maintains the VTXO index. You trust the operator for availability and honest signing, but not for custody: you can always reclaim funds on-chain via unilateral exit if the operator stops cooperating. Configure the operator endpoint as `arkServerAddress`. See [System architecture](/introduction/system-architecture/).
 
-### Passkey
+## Passkey
 
 A passkey is a phishing-resistant credential (WebAuthn on web, the platform authenticator on mobile) that can protect a Wavelength wallet instead of a password. Wavelength derives the wallet's encryption from the passkey's PRF (pseudo-random function) output, so the same passkey deterministically unlocks the same wallet. Passkey support requires platform support; see the requirements pages.
 
-### Round
+## Round
 
 A round is one cycle in which the operator collects participant requests, constructs a batch transaction, co-signs it with clients, and broadcasts it on-chain. Rounds run on a fixed periodic cadence, aggregating boarding inputs, leave requests, batch swaps, and new VTXO allocations into a single on-chain transaction. Your boarded deposit becomes spendable Ark balance once the round that includes it confirms.
 
-### Transport
+## Transport
 
 A transport is the layer that runs the embedded wallet daemon for a given platform. The Wavelength SDK ships two: the web transport (`wavelength-web`, daemon compiled to WebAssembly, reaches gateways over REST) and the React Native transport (`wavelength-react-native`, daemon compiled into the app binary, uses gRPC). Both implement the same `WavelengthClient` contract, so app code is transport-agnostic.
 
-### Unilateral exit
+## Unilateral exit
 
 Unilateral exit is the emergency fallback for withdrawing Ark funds without operator cooperation. You broadcast the pre-signed virtual transaction tree path for your VTXO on-chain and claim it after a CSV timelock, without needing the operator's signature. It works even if the operator goes offline, but it is slower and more expensive than cooperative leave. See [Leaving Ark](/concepts/leaving-ark/).
 
-### vHTLC
+## vHTLC
 
 A vHTLC (virtual HTLC) is an Ark output whose taproot script encodes hashlock-and-timelock logic similar to a Lightning HTLC, but settled inside Ark rather than on the Bitcoin base layer. Lightning receives and sends both pivot on a vHTLC: the payer and receiver keys, operator key, payment hash, and timelocks determine who can claim or refund the output cooperatively off-chain or, as a last resort, unilaterally on-chain. See [Lightning payments = swaps](/concepts/lightning-payments-are-swaps/).
 
-### VTXO
+## VTXO
 
 A VTXO (Virtual Transaction Output) is an off-chain output that represents spendable bitcoin inside Ark. You hold VTXOs after boarding or receiving a payment; you spend them through cooperative off-chain transfers, batch swaps, cooperative leave, or unilateral exit. Each VTXO is backed by an on-chain batch output and carries a CSV-based expiry, after which you must refresh or exit. See [Balances & VTXOs](/concepts/balances-and-vtxos/).

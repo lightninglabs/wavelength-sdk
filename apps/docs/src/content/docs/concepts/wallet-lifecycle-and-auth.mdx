@@ -32,7 +32,7 @@ After `createWallet()` or a successful unlock, the daemon often lands in the syn
 Treat `'none'` and `'locked'` as non-spendable. Do not infer readiness from a successful unlock alone; wait for `'ready'` (or `walletReady === true`) before exposing payment actions.
 </Callout>
 
-Use `getInfo()` / `useWalletInfo()` for the current wallet state, and `phaseFromInfo()` when you want a single enum for gating UI across web and future native transports. See the [wavelength-core reference](/reference/wavelength-core/) for **WalletEngine**, **WalletState**, and **RuntimePhase** definitions.
+Use `getInfo()` / `useWalletInfo()` for the current wallet state, and `phaseFromInfo()` when you want a single enum for gating UI across the web and React Native transports. See the [wavelength-core reference](/reference/wavelength-core/) for **WalletEngine**, **WalletState**, and **RuntimePhase** definitions.
 
 ## Password vs passkey
 

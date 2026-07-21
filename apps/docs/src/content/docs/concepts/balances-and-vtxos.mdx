@@ -5,9 +5,9 @@ description: How Wavelength represents spendable funds as Virtual Transaction Ou
 
 import Callout from '~/components/mdx/Callout.astro';
 
-## VTXOs
+The sections below walk through how Wavelength represents spendable funds, how boarding turns into live balance, and why confirmed and pending numbers can differ.
 
-Wavelength tracks spendable funds the way Ark does: as off-chain outputs bundled into the operator's periodic batch transactions, not as a single on-chain UTXO in your app. The sections below walk through that model, how boarding turns into live balance, and why confirmed and pending numbers can differ.
+## VTXOs
 
 In Ark, your spendable balance is not a single on-chain UTXO in your wallet. It is a set of **Virtual Transaction Outputs (VTXOs)**: off-chain outputs created inside the operator's periodic **batch transactions**. Each batch builds a Virtual Transaction Tree (VTXT) whose leaves are individual VTXOs assigned to participants.
 

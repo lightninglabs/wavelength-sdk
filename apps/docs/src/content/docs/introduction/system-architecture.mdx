@@ -54,7 +54,7 @@ await client.start(defaultConfig('signet'));
 | `swapServerAddress` | Swap server | **Lightning↔Ark atomic swaps** (Lightning receive and send). A REST URL on web; a `host:port` gRPC address on React Native. |
 | `walletEsploraUrl` | Esplora-compatible indexer | **Chain and UTXO queries**; an HTTP endpoint on both platforms that implements the Esplora `/address/:addr/utxo` API |
 
-**Mailbox and operator share one edge.** VTXO mailbox traffic goes through the same Ark server URL. There is no separate `mailboxUrl` in `RuntimeConfig`; the redundant mailbox fields were removed so you configure a single Ark gateway.
+**Mailbox and operator share one edge.** VTXO mailbox traffic goes through the same Ark server URL. There is no separate mailbox field in `RuntimeConfig`: you configure a single Ark gateway and mailbox traffic rides the same edge.
 
 Lightning is not a fourth gateway. Lightning send and receive are **swap operations** routed through `swapServerAddress`. On-chain visibility (boarding deposits, cooperative leaves, unilateral exits) goes through Esplora and the Ark operator as appropriate.
 
