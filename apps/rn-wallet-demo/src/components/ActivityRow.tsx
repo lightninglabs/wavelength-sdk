@@ -146,7 +146,7 @@ export function ActivityRow({ entry }: { entry: Entry }) {
   return (
     <View style={styles.row}>
       <View style={styles.iconBox}>
-        <Icon size={15} color={incoming ? palette.good : palette.text} />
+        <Icon size={15} color={incoming ? palette.sky : palette.orange} />
       </View>
       <View style={styles.main}>
         <Text style={styles.title} numberOfLines={1}>

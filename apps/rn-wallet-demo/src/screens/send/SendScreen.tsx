@@ -428,7 +428,9 @@ export function SendScreen({
           onBack={() => onNavigate('home')}
         />
         <Band>
-          <Label>Payment details</Label>
+          <Label accent="orange" rule>
+            Payment details
+          </Label>
           <View style={styles.recap}>
             <Text style={styles.recapText} numberOfLines={1}>
               {dest.trim()}
@@ -509,7 +511,7 @@ export function SendScreen({
 
           {isInvoice && destination.amount.status === 'known' ? (
             <View style={styles.hint}>
-              <Info size={14} color={palette.accent} style={{ marginTop: 2 }} />
+              <Info size={14} color={palette.orange} style={{ marginTop: 2 }} />
               <Text style={styles.hintText}>
                 Amount is set by the invoice:{' '}
                 <Text style={styles.hintValue}>
@@ -521,7 +523,7 @@ export function SendScreen({
 
           {isInvoice && destination.amount.status === 'unrepresentable' ? (
             <View style={styles.hint}>
-              <Info size={14} color={palette.accent} style={{ marginTop: 2 }} />
+              <Info size={14} color={palette.orange} style={{ marginTop: 2 }} />
               <Text style={styles.hintText}>Amount is set by the invoice.</Text>
             </View>
           ) : null}

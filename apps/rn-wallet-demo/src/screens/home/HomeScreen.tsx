@@ -106,12 +106,12 @@ const makeStyles = (p: Palette) => ({
     fontSize: 13,
   },
   subIn: {
-    color: p.good,
+    color: p.sky,
     fontFamily: fonts.mono,
     fontSize: 13,
   },
   subOut: {
-    color: p.warn,
+    color: p.orange,
     fontFamily: fonts.mono,
     fontSize: 13,
   },
@@ -186,14 +186,14 @@ const makeStyles = (p: Palette) => ({
     marginTop: 4,
   },
   statValueGood: {
-    color: p.good,
+    color: p.lime,
   },
   emptyWrap: {
     alignItems: 'center' as const,
   },
   emptyIcon: {
     alignItems: 'center' as const,
-    backgroundColor: p.accentSoft,
+    backgroundColor: p.skySoft,
     height: 56,
     justifyContent: 'center' as const,
     width: 56,
@@ -238,13 +238,11 @@ const makeStyles = (p: Palette) => ({
   },
   stepBadge: {
     alignItems: 'center' as const,
-    backgroundColor: p.accentSoft,
     height: 24,
     justifyContent: 'center' as const,
     width: 24,
   },
   stepBadgeText: {
-    color: p.accent,
     fontFamily: fonts.sansBold,
     fontSize: 11,
   },
@@ -311,7 +309,9 @@ export function HomeScreen({
             refreshError={refreshError?.message ?? ''}
           />
           <Band>
-            <Label>Balance composition</Label>
+            <Label accent="teal" rule>
+              Balance composition
+            </Label>
             <View style={{ marginTop: 16 }}>
               <Composition balance={balance} />
               <OnChainBalance balance={balance} />
@@ -439,31 +439,46 @@ function RuntimeBand({
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  // A row's `tone` colors its stat icon with the accent matching the stat's
+  // domain (sky network, orange chain height, teal wallet identity); `good`
+  // rows read fully in lime instead.
   const rows: Array<{
     icon: LucideIcon;
     label: string;
     value: string;
     good?: boolean;
+    tone?: string;
   }> = [
     { icon: ShieldCheck, label: 'Runtime', value: phaseLabel, good: true },
-    { icon: Zap, label: 'Network', value: info?.network || '-' },
+    { icon: Zap, label: 'Network', value: info?.network || '-', tone: palette.sky },
     {
       icon: Layers,
       label: 'Block height',
       value: info?.blockHeight ? formatSats(info.blockHeight) : '-',
+      tone: palette.orange,
     },
-    { icon: Wallet, label: 'Wallet', value: info?.walletType || '-' },
+    {
+      icon: Wallet,
+      label: 'Wallet',
+      value: info?.walletType || '-',
+      tone: palette.teal,
+    },
     { icon: Lock, label: 'Keys', value: 'On this device', good: true },
   ];
 
   return (
     <Band>
-      <Label>Runtime & security</Label>
+      <Label accent="violet" rule>
+        Runtime & security
+      </Label>
       <View style={styles.statGrid}>
         {rows.map((r) => (
           <View key={r.label} style={styles.stat}>
             <View style={styles.statHead}>
-              <r.icon size={13} color={r.good ? palette.good : palette.muted} />
+              <r.icon
+                size={13}
+                color={r.good ? palette.lime : (r.tone ?? palette.muted)}
+              />
               <Text style={styles.statLabel}>{r.label}</Text>
             </View>
             <Text style={[styles.statValue, r.good && styles.statValueGood]}>
@@ -512,10 +527,25 @@ function EmptyWallet({
     }
   }, [onDeposit]);
 
-  const steps = [
-    'Send on-chain Bitcoin to your boarding address.',
-    'After 1 confirmation it becomes spendable in your wallet.',
-    'Spend instantly over Lightning.',
+  // Each step's number chip walks the brand accents in flow order: incoming
+  // on-chain funds are sky, the spendable wallet balance is teal, and
+  // spending over Lightning is the primary violet.
+  const steps: Array<{ text: string; bg: string; fg: string }> = [
+    {
+      text: 'Send on-chain Bitcoin to your boarding address.',
+      bg: palette.skySoft,
+      fg: palette.sky,
+    },
+    {
+      text: 'After 1 confirmation it becomes spendable in your wallet.',
+      bg: palette.tealSoft,
+      fg: palette.teal,
+    },
+    {
+      text: 'Spend instantly over Lightning.',
+      bg: palette.violetSoft,
+      fg: palette.violet,
+    },
   ];
   const error = localError || depositError;
 
@@ -524,7 +554,7 @@ function EmptyWallet({
       <Band tinted>
         <View style={styles.emptyWrap}>
           <View style={styles.emptyIcon}>
-            <ArrowDownToLine size={26} color={palette.accent} />
+            <ArrowDownToLine size={26} color={palette.sky} />
           </View>
           <Text style={styles.emptyTitle}>Fund your wallet</Text>
           <Text style={styles.emptyCopy}>
@@ -561,14 +591,18 @@ function EmptyWallet({
       </Band>
 
       <Band>
-        <Label>How boarding works</Label>
+        <Label accent="sky" rule>
+          How boarding works
+        </Label>
         <View style={styles.steps}>
           {steps.map((step, i) => (
-            <View key={step} style={styles.step}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>{i + 1}</Text>
+            <View key={step.text} style={styles.step}>
+              <View style={[styles.stepBadge, { backgroundColor: step.bg }]}>
+                <Text style={[styles.stepBadgeText, { color: step.fg }]}>
+                  {i + 1}
+                </Text>
               </View>
-              <Text style={styles.stepText}>{step}</Text>
+              <Text style={styles.stepText}>{step.text}</Text>
             </View>
           ))}
         </View>
@@ -593,7 +627,7 @@ function RecentActivityBand({
   return (
     <Band tinted>
       <View style={styles.bandHead}>
-        <Label>Recent activity</Label>
+        <Label accent="teal">Recent activity</Label>
         <Pressable
           onPress={() => onNavigate('activity')}
           style={styles.viewAll}

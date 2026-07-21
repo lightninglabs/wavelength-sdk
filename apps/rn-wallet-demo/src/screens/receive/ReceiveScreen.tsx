@@ -206,7 +206,9 @@ export function ReceiveScreen({
       />
 
       <Band>
-        <Label>Method</Label>
+        <Label accent="sky" rule>
+          Method
+        </Label>
         <View style={{ marginTop: 12 }}>
           <Segmented
             value={tab}
@@ -231,7 +233,7 @@ export function ReceiveScreen({
           </View>
         ) : (
           <View style={styles.note}>
-            <Layers size={14} color={palette.accent} style={{ marginTop: 2 }} />
+            <Layers size={14} color={palette.sky} style={{ marginTop: 2 }} />
             <Text style={styles.noteText}>
               Funds become spendable after 1 confirmation.
             </Text>

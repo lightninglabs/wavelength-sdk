@@ -68,7 +68,7 @@ export function ExitBanner({
       style={styles.row}
       accessibilityRole="button"
     >
-      <LogOut size={16} color={palette.accent} />
+      <LogOut size={16} color={palette.orange} />
       <Text style={styles.body}>
         <Text style={styles.count}>
           {summary.totalExits} exit{plural} in progress

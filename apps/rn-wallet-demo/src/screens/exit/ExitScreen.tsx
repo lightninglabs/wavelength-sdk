@@ -196,7 +196,9 @@ export function ExitScreen({
 
       {summary && summary.exits.length > 0 ? (
         <Band tinted>
-          <Label>In progress</Label>
+          <Label accent="orange" rule>
+            In progress
+          </Label>
           <View style={styles.progressList}>
             {summary.exits.map((e) => (
               <View key={e.outpoint} style={styles.progressRow} testID="exit-summary-row">
@@ -214,7 +216,9 @@ export function ExitScreen({
       ) : null}
 
       <Band>
-        <Label>Choose VTXOs</Label>
+        <Label accent="orange" rule>
+          Choose VTXOs
+        </Label>
         <Text style={styles.intro}>
           Select the outputs to exit. Leave the rest in place to keep spending
           normally.
@@ -230,7 +234,9 @@ export function ExitScreen({
       </Band>
 
       <Band tinted>
-        <Label>Exit path</Label>
+        <Label accent="orange" rule>
+          Exit path
+        </Label>
         <View style={styles.segmentWrap}>
           <Segmented
             value={mode}
