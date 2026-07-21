@@ -1,6 +1,8 @@
 ---
 name: syncing-daemon-release
 description: Use when wavelength publishes a new release or revision and this repo must be updated to pair with it, when generated.ts / wallet.json / RUNTIME_MANIFEST_VERSION are stale, when gen:types or gen:api-docs fails or drifts, or when daemon-side RPC, facade type, CLI flag, or wasm asset changes need to land here.
+metadata:
+  internal: true
 ---
 
 # Syncing to a New wavelength Release
