@@ -5,23 +5,35 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+import { cn } from "../../lib/cn";
 import { BrandMark } from "../ui/BrandMark";
 
-const BULLETS: Array<{ icon: LucideIcon; title: string; sub: string }> = [
+// Each bullet carries its own brand accent (keys are the wallet's violet
+// identity, Ark spending is teal, on-chain flows are orange), echoing the
+// docs site's multi-accent language.
+const BULLETS: Array<{
+  icon: LucideIcon;
+  title: string;
+  sub: string;
+  tone: string;
+}> = [
   {
     icon: ShieldCheck,
     title: "Keys on this device",
     sub: "They are generated and stored locally, and never uploaded.",
+    tone: "bg-violet-fill/10 text-violet",
   },
   {
     icon: ArrowLeftRight,
     title: "Ark + Lightning, instant",
     sub: "Spend off-chain VTXO and settle over Lightning in seconds.",
+    tone: "bg-teal-fill/10 text-teal",
   },
   {
     icon: Wallet,
     title: "On-chain when you need it",
     sub: "Board funds in and exit to the chain whenever you choose.",
+    tone: "bg-orange-fill/10 text-orange",
   },
 ];
 
@@ -50,8 +62,10 @@ export function BrandPanel({ network }: { network: string }) {
           {BULLETS.map((b) => (
             <div key={b.title} className="flex items-start gap-4">
               <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center
-                  bg-accent-soft text-accent"
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center",
+                  b.tone,
+                )}
               >
                 <b.icon size={18} />
               </span>

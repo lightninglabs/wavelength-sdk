@@ -267,7 +267,7 @@ export function SendScreen({
           onBack={() => onNavigate("home")}
         />
         <Band>
-          <Label rule>Payment details</Label>
+          <Label accent="orange" rule>Payment details</Label>
           <div className="mt-4 flex items-center justify-between gap-4">
             <div className="min-w-0 truncate font-mono text-xs text-muted">
               {dest.trim()}
@@ -353,7 +353,7 @@ export function SendScreen({
 
             {isInvoice && destination.amount.status === "known" ? (
               <div className="flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-                <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+                <Info size={14} className="mt-0.5 shrink-0 text-orange" />
                 Amount is set by the invoice:{" "}
                 <span className="font-mono text-fg">
                   {formatSats(destination.amount.sat)} sats
@@ -363,7 +363,7 @@ export function SendScreen({
 
             {isInvoice && destination.amount.status === "unrepresentable" ? (
               <div className="flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-                <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+                <Info size={14} className="mt-0.5 shrink-0 text-orange" />
                 Amount is set by the invoice.
               </div>
             ) : null}

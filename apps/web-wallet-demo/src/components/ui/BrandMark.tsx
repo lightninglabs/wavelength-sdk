@@ -2,7 +2,13 @@ import { cn } from "../../lib/cn";
 
 // The five accent squares are the docs site's brand cluster; the order matches
 // the docs header (violet, teal, lime, orange, sky).
-const CLUSTER = ["bg-violet", "bg-teal", "bg-lime", "bg-orange", "bg-sky"];
+const CLUSTER = [
+  "bg-violet-fill",
+  "bg-teal-fill",
+  "bg-lime-fill",
+  "bg-orange-fill",
+  "bg-sky-fill",
+];
 
 // BrandMark renders the stacked Wavelength lockup: the docs-style two-tone
 // wordmark over the five-square cluster, with a small lowercase demo tag

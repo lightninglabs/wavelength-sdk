@@ -70,15 +70,24 @@ export function SettingsScreen({
   const [confirmWipe, setConfirmWipe] = useState(false);
   const identity = info?.identityPubKey || "";
 
+  // A row's `tone` colors its stat icon with the accent matching the stat's
+  // domain (sky network, teal wallet identity, orange chain height), mirroring
+  // the Overview runtime strip; `good` rows read fully in lime instead.
   const runtime: Array<{
     icon: LucideIcon;
     label: string;
     value: string;
     good?: boolean;
+    tone?: string;
   }> = [
     { icon: ShieldCheck, label: "Phase", value: phaseLabel, good: true },
-    { icon: Zap, label: "Network", value: info?.network || "-" },
-    { icon: Wallet, label: "Wallet", value: info?.walletType || "-" },
+    { icon: Zap, label: "Network", value: info?.network || "-", tone: "text-sky" },
+    {
+      icon: Wallet,
+      label: "Wallet",
+      value: info?.walletType || "-",
+      tone: "text-teal",
+    },
     {
       icon: Server,
       label: "Server",
@@ -89,6 +98,7 @@ export function SettingsScreen({
       icon: Layers,
       label: "Block height",
       value: info?.blockHeight ? formatSats(info.blockHeight) : "-",
+      tone: "text-orange",
     },
   ];
 
@@ -101,14 +111,14 @@ export function SettingsScreen({
       />
 
       <Band>
-        <Label rule>Runtime</Label>
+        <Label accent="violet" rule>Runtime</Label>
         <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
           {runtime.map((r) => (
             <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
               <div className="flex items-center gap-1.5 text-xs text-muted">
                 <r.icon
                   size={13}
-                  className={r.good ? "text-lime" : "text-muted"}
+                  className={r.good ? "text-lime" : (r.tone ?? "text-muted")}
                 />
                 {r.label}
               </div>
@@ -129,7 +139,7 @@ export function SettingsScreen({
         <TwoCol
           left={
             <>
-              <Label rule>Identity</Label>
+              <Label accent="teal" rule>Identity</Label>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="break-all font-mono text-sm text-fg">
                   {identity ? shortKey(identity, 10, 8) : "-"}
@@ -154,7 +164,7 @@ export function SettingsScreen({
         <TwoCol
           left={
             <>
-              <Label rule>Security</Label>
+              <Label accent="lime" rule>Security</Label>
               <div className="mt-3 space-y-2.5 text-sm">
                 <SummaryRow
                   label="Wallet type"
@@ -171,7 +181,7 @@ export function SettingsScreen({
           }
           right={
             <>
-              <Label rule>Appearance</Label>
+              <Label accent="sky" rule>Appearance</Label>
               <div className="mt-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
                   <Monitor size={16} className="text-muted" />

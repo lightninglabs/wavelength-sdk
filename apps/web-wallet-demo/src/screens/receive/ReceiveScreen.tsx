@@ -142,7 +142,7 @@ export function ReceiveScreen({
       />
 
       <Band>
-        <Label rule>Method</Label>
+        <Label accent="sky" rule>Method</Label>
         <div className="mt-3">
           <Segmented
             value={tab}
@@ -167,7 +167,7 @@ export function ReceiveScreen({
           </div>
         ) : (
           <div className="mt-5 flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-            <Layers size={14} className="mt-0.5 shrink-0 text-accent" />
+            <Layers size={14} className="mt-0.5 shrink-0 text-sky" />
             Funds board into Ark after 1 confirmation.
           </div>
         )}

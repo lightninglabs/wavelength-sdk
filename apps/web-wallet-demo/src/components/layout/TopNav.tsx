@@ -65,7 +65,7 @@ export function TopNav({
                     : "text-muted hover:text-fg",
                 )}
               >
-                <n.icon size={16} />
+                <n.icon size={16} className={n.iconClass} />
                 {n.label}
               </button>
             );

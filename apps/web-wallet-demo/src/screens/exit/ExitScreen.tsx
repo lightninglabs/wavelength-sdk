@@ -104,7 +104,7 @@ export function ExitScreen({
 
       {summary && summary.exits.length > 0 ? (
         <Band tinted>
-          <Label rule>In progress</Label>
+          <Label accent="orange" rule>In progress</Label>
           <div className="mt-4 space-y-3">
             {summary.exits.map((e) => (
               <div
@@ -126,7 +126,7 @@ export function ExitScreen({
       ) : null}
 
       <Band>
-        <Label rule>Choose VTXOs</Label>
+        <Label accent="orange" rule>Choose VTXOs</Label>
         <p className="mt-2 max-w-prose text-sm text-muted">
           Select the outputs to exit. Leave the rest in place to keep spending
           normally.
@@ -142,7 +142,7 @@ export function ExitScreen({
       </Band>
 
       <Band tinted>
-        <Label rule>Exit path</Label>
+        <Label accent="orange" rule>Exit path</Label>
         <div className="mt-4">
           <Segmented
             value={mode}

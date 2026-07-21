@@ -3,11 +3,11 @@ import { cn } from "../../lib/cn";
 
 // SQUARE maps the accent prop to the small leading brand square.
 const SQUARE: Record<string, string> = {
-  teal: "bg-teal",
-  violet: "bg-violet",
-  sky: "bg-sky",
-  orange: "bg-orange",
-  lime: "bg-lime",
+  teal: "bg-teal-fill",
+  violet: "bg-violet-fill",
+  sky: "bg-sky-fill",
+  orange: "bg-orange-fill",
+  lime: "bg-lime-fill",
 };
 
 // Label is the uppercase eyebrow shown above sections and figures, in the docs

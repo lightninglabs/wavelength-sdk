@@ -25,7 +25,7 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  complete: "border-border text-lime",
+  complete: "border-border text-good",
   pending: "border-warn/40 bg-warn/10 text-warn",
   failed: "border-bad/40 bg-bad/10 text-bad",
 };
@@ -85,7 +85,7 @@ export function ActivityRow({ entry }: { entry: Entry }) {
         className="flex h-9 w-9 shrink-0 items-center justify-center border
           border-border"
       >
-        <Icon size={15} className={incoming ? "text-sky" : "text-fg"} />
+        <Icon size={15} className={incoming ? "text-sky" : "text-orange"} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-fg">{title}</div>

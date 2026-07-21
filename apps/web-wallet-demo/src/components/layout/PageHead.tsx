@@ -6,10 +6,10 @@ import { cn } from "../../lib/cn";
 // per-screen accent lives here and nowhere else: controls keep their stable
 // semantic colors regardless of screen.
 const UNDERLINE: Record<string, string> = {
-  teal: "bg-teal",
-  violet: "bg-violet",
-  sky: "bg-sky",
-  orange: "bg-orange",
+  teal: "bg-teal-fill",
+  violet: "bg-violet-fill",
+  sky: "bg-sky-fill",
+  orange: "bg-orange-fill",
 };
 
 // PageHead is the full-bleed header bar atop authenticated sub-pages: a square

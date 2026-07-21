@@ -122,7 +122,7 @@ export function QuoteReview({
         </div>
       ) : !quote.feeKnown ? (
         <div className="mt-4 flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-          <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+          <Info size={14} className="mt-0.5 shrink-0 text-orange" />
           The fee shown is an estimate. The final amount is returned once the
           payment settles.
         </div>
