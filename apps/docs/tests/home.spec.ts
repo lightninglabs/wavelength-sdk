@@ -13,6 +13,7 @@ test('home surfaces band links every integration surface', async ({ page }) => {
   await expect(band).toBeVisible();
   await expect(band.locator('a[href="/web/get-started/quickstart/"]')).toBeVisible();
   await expect(band.locator('a[href="/react-native/get-started/quickstart/"]')).toBeVisible();
+  await expect(band.locator('a[href="/native-ios-android/overview/"]')).toBeVisible();
   await expect(band.locator('a[href="/api/"]')).toBeVisible();
   await expect(band.locator('a[href="/cli/"]')).toBeVisible();
   await expect(band.locator('a[href="/agents/"]')).toBeVisible();

@@ -13,6 +13,9 @@ const URLS = [
   '/react-native/get-started/passkey-setup/',
   '/react-native/get-started/run-the-demo-app/',
   '/react-native/troubleshooting/',
+  '/native-ios-android/overview/',
+  '/native-ios-android/architecture/',
+  '/native-ios-android/quickstart/',
   '/reference/wavelength-web/', '/web/support/troubleshooting/',
 ];
 

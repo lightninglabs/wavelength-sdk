@@ -4,7 +4,7 @@
  * A switchboard treatment: the five-square brand mark heads a vertical spine
  * (the one wallet), and each integration surface taps off that spine as a
  * full-width ledger row with a mono index, display-font name, square-dash
- * dot leaders, pitch, and arrow. The agents line is a fifth, dashed tap.
+ * dot leaders, pitch, and arrow. The agents line is a final, dashed tap.
  * Deliberately not the eyebrow + card-grid idiom used by the other bands:
  * an asymmetric split layout (heading left, switchboard rail right), no
  * bordered cards, no eyebrow header.
@@ -18,7 +18,7 @@
   <div class="wdk-surfaces__inner">
     <div class="wdk-surfaces__head">
       <h2 id="wdk-surfaces-heading" class="wdk-surfaces__heading">Choose how you integrate.</h2>
-      <p class="wdk-surfaces__lede">The same self-custodial wallet, four ways in.</p>
+      <p class="wdk-surfaces__lede">The same self-custodial wallet, five ways in.</p>
     </div>
 
     <div class="wdk-surfaces__rail">
@@ -62,8 +62,21 @@
           </a>
         </li>
         <li>
-          <a href="/api/" class="wdk-surface wdk-surface--sky">
+          <a href="/native-ios-android/overview/" class="wdk-surface wdk-surface--lime">
             <span class="wdk-surface__index" aria-hidden="true">03</span>
+            <span class="wdk-surface__name">Native iOS &amp; Android</span>
+            <span class="wdk-surface__leader" aria-hidden="true"></span>
+            <span class="wdk-surface__pitch">Kotlin and Swift, no React Native.</span>
+            <span class="wdk-surface__arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/api/" class="wdk-surface wdk-surface--sky">
+            <span class="wdk-surface__index" aria-hidden="true">04</span>
             <span class="wdk-surface__name">API</span>
             <span class="wdk-surface__leader" aria-hidden="true"></span>
             <span class="wdk-surface__pitch">Integrate remotely over gRPC and REST.</span>
@@ -76,7 +89,7 @@
         </li>
         <li>
           <a href="/cli/" class="wdk-surface wdk-surface--orange">
-            <span class="wdk-surface__index" aria-hidden="true">04</span>
+            <span class="wdk-surface__index" aria-hidden="true">05</span>
             <span class="wdk-surface__name">CLI</span>
             <span class="wdk-surface__leader" aria-hidden="true"></span>
             <span class="wdk-surface__pitch">Automate the wallet from the command line.</span>
@@ -89,7 +102,7 @@
         </li>
       </ul>
 
-      <!-- The compact fifth tap: a dashed branch for agent builders. -->
+      <!-- The compact final tap: a dashed branch for agent builders. -->
       <p class="wdk-surfaces__agents">
         Building with an AI agent?
         <a href="/agents/" class="wdk-surfaces__agents-link">
@@ -214,6 +227,7 @@
   }
   .wdk-surface--violet { --sf: var(--violet); }
   .wdk-surface--teal   { --sf: var(--teal); }
+  .wdk-surface--lime   { --sf: var(--lime); }
   .wdk-surface--sky    { --sf: var(--sky); }
   .wdk-surface--orange { --sf: var(--orange); }
 
