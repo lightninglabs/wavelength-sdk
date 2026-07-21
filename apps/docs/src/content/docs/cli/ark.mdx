@@ -66,7 +66,7 @@ pass either `--yes` to consent up front or `--dry_run` to preview.
 
 | Flag | Default | Description |
 |---|---|---|
-| `--outpoint` | (none) | VTXO outpoint(s) to refresh (txid:index); repeatable. Required unless --all is set, and mutually exclusive with it. |
+| `--outpoint` | (none) | VTXO outpoint(s) to refresh (txid:index); repeatable. Required unless `--all` is set, and mutually exclusive with it. |
 | `--all` | `false` | Refresh all live VTXOs. |
 | `--dry_run` | `false` | Validate without queuing and preview the estimated operator fee. |
 | `--yes` | `false` | Skip the interactive fee confirmation. Required on non-interactive stdin. |
@@ -114,13 +114,13 @@ like `vtxos refresh` unless `--no_join` is set.
 
 | Flag | Default | Description |
 |---|---|---|
-| `--outpoint` | (none) | VTXO outpoint(s) to leave (txid:index); repeatable. Required unless --all is set. |
+| `--outpoint` | (none) | VTXO outpoint(s) to leave (txid:index); repeatable. Required unless `--all` is set. |
 | `--all` | `false` | Leave all live VTXOs. |
-| `--address` | (none) | Default on-chain destination address. Mutually exclusive with --pk_script. |
-| `--pk_script` | (none) | Default destination pk_script, hex-encoded. Mutually exclusive with --address. |
-| `--destination` | (none) | Per-outpoint destination override: `outpoint=address` or `outpoint=script:<hex>`. Not supported with --all. |
+| `--address` | (none) | Default on-chain destination address. Mutually exclusive with `--pk_script`. |
+| `--pk_script` | (none) | Default destination pk_script, hex-encoded. Mutually exclusive with `--address`. |
+| `--destination` | (none) | Per-outpoint destination override: `outpoint=address` or `outpoint=script:<hex>`. Not supported with `--all`. |
 | `--dry_run` | `false` | Validate without queuing. |
-| `--yes` | `false` | Skip the interactive confirmation required for --all. |
+| `--yes` | `false` | Skip the interactive confirmation required for `--all`. |
 | `--no_join` | `false` | Skip the implicit `ark rounds join` follow-up so this leave can batch with other queued intents. |
 
 Calls the daemon `LeaveVTXOs` RPC.
@@ -319,7 +319,7 @@ differ from this estimate.
 |---|---|---|
 | `--amount` | (none) | VTXO amount in satoshis to estimate fees for. Required and must be positive. |
 | `--boarding` | `true` | Estimate for boarding (true) or refresh (false). |
-| `--remaining-blocks` | `0` | Remaining VTXO lifetime in blocks. Refresh only; required when --boarding=false. |
+| `--remaining-blocks` | `0` | Remaining VTXO lifetime in blocks. Refresh only; required when `--boarding=false`. |
 
 Calls the daemon `EstimateFee` RPC.
 
@@ -387,8 +387,8 @@ raw daemon RPC directly.
 | Flag | Default | Description |
 |---|---|---|
 | `--to` | (none) | Recipient bech32m taproot address(es); repeatable. |
-| `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex; repeatable, paired after any --to entries. |
-| `--amount` | (none) | Amount(s) in sats, one per recipient, in --to then --pubkey order. |
+| `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex; repeatable, paired after any `--to` entries. |
+| `--amount` | (none) | Amount(s) in sats, one per recipient, in `--to` then `--pubkey` order. |
 | `--dry_run` | `false` | Validate without submitting. |
 
 Calls the daemon `SendVTXO` RPC.
@@ -404,8 +404,8 @@ without waiting for a round.
 
 | Flag | Default | Description |
 |---|---|---|
-| `--to` | (none) | Recipient address. Mutually exclusive with --pubkey. |
-| `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex. Mutually exclusive with --to. |
+| `--to` | (none) | Recipient address. Mutually exclusive with `--pubkey`. |
+| `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex. Mutually exclusive with `--to`. |
 | `--amount` | (none) | Amount in sats. |
 | `--dry_run` | `false` | Validate without initiating. |
 | `--idempotency_key` | (none) | Caller-provided key for retrying the same OOR send intent. |

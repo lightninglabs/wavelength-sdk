@@ -31,8 +31,7 @@ wavecli mcp serve
 Starts an MCP server on stdio that exposes each daemon RPC as a typed tool call.
 The server runs until the client disconnects. It registers the everyday
 wallet-verb tools first (so an agent listing tools sees the day-to-day surface
-first), then the legacy daemon tools, then the swap tools when the daemon was
-built with the matching build tag.
+first), then the legacy daemon tools.
 
 `mcp serve` takes no bespoke flags beyond the global connection flags; it reuses
 the same TLS, `--no-tls`, and `--tlscertpath` handling as every other command
@@ -52,7 +51,7 @@ APIs. Use the CLI directly for wallet setup.
 Registered tools include the everyday `balance`, `getinfo`, and send surfaces
 plus the advanced `ark.*` namespace (for example `ark.vtxos.list`,
 `ark.vtxos.refresh`, `ark.vtxos.leave`, `ark.oor.receive`, `ark.send.inround`,
-`ark.send.oor`) and, in swapruntime builds, the `swap.*` tools.
+`ark.send.oor`).
 
 `ark.vtxos.refresh` carries the same fee-consent contract as the CLI. Since
 there's no interactive prompt to fall back to, a real refresh requires
