@@ -1,0 +1,59 @@
+---
+title: Native SDK architecture
+description: How the embedded wallet daemon runs inside a native iOS or Android app - the in-process daemon, the gomobile facade, the JSON boundary, and the callback-free API.
+---
+
+{/* Sync note: condensed from wavelength-mobile docs/architecture.md. During
+    the sync mini-pass, diff this page against that file. */}
+
+This page explains what runs where when a native app uses the `Wavewalletdk`
+bindings, and why the API looks the way it does. It condenses the
+[upstream architecture doc](https://github.com/lightninglabs/wavelength-mobile/blob/main/docs/architecture.md),
+which remains the canonical version.
+
+## The wallet runs inside your app
+
+A normal `waved` deployment is a daemon process that clients reach over a gRPC
+socket. On mobile that model is awkward: an app cannot reliably keep a sidecar
+process alive, and an open port is an attack surface.
+
+Instead, the binding compiles the whole daemon into a native library and starts
+it inside the app's own process. The Go SDK boots the daemon on a background
+goroutine and connects to it over an in-memory gRPC channel backed by a memory
+buffer rather than a TCP socket. The app's calls travel that buffer. Nothing
+listens on the network, and there is no second process to manage.
+
+This is the same embedding the [React Native transport](/react-native/get-started/quickstart/)
+uses; the native SDK simply removes the JavaScript layer above it.
+
+## A thin facade and the JSON boundary
+
+`gomobile bind` carries only a narrow set of types between Go and
+Kotlin/Swift. The facade therefore presents a flat, gomobile-safe surface: RPC
+verbs pass JSON bytes in and JSON bytes out, and each wrapper decodes results
+with the platform's own tools (`kotlinx.serialization` on Android, `Codable`
+on iOS). Neither platform needs a protobuf runtime. A few hot paths skip JSON
+and return a plain scalar, such as a `Long` confirmed balance.
+
+## No callbacks
+
+The bindings are callback-free. `start(config)` blocks until the daemon's gRPC
+channel is serving, then returns; the wrappers run it off the main thread for
+you. Unary verbs are ordinary throwing calls: a Go error becomes a Kotlin
+exception or a Swift `throws`. Streaming uses a pull handle that the wrappers
+turn into a Kotlin `Flow` or a Swift `AsyncThrowingStream`, so the threading
+lives where the platform's concurrency tools already are, and the host
+implements no interfaces.
+
+## Lifecycle
+
+One daemon runs per process. Calling `start` a second time before `stop`
+throws rather than booting a second daemon. `stop` tears the daemon down,
+unblocks any in-flight stream reads, and resets the guard so the app can start
+again after the operating system suspends and resumes it.
+
+Panics do not cross the language boundary, so an unrecovered one takes the whole
+app down. The facade installs recovery at two entry points: `start` and the
+subscription's `next`. A panic there becomes an ordinary error you can catch. A
+panic anywhere else is not recovered, so treat that guarantee as covering
+startup and stream reads rather than every call.
