@@ -35,6 +35,47 @@ test('in-content h2 carries the accent underline motif', async ({ page }) => {
   expect(afterStyles!.background).not.toBe('transparent');
 });
 
+test('quickstart prose link styling spares chrome that draws its own border', async ({ page }) => {
+  // The prose link rules cover .wdk-qs__content, so components that are links
+  // but not prose have to be excluded by class or their own borders lose to
+  // this selector's specificity. Both live on the native quickstart: linked
+  // Cards in the closing grid, and the page-actions menu.
+  await page.goto('/native-ios-android/quickstart/');
+
+  const card = page.locator('.wdk-qs__content a.wdk-card').first();
+  await expect(card).toBeVisible();
+  const cardBorders = await card.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return (['Top', 'Right', 'Bottom', 'Left'] as const).map(
+      (side) => `${cs[`border${side}Width`]} ${cs[`border${side}Style`]}`,
+    );
+  });
+  // A dashed prose underline would make the bottom edge differ from the rest.
+  expect(new Set(cardBorders).size).toBe(1);
+  expect(cardBorders[0]).toBe('1px solid');
+
+  const actionRow = page.locator('.wdk-qs__content a.wdk-page-actions__row').first();
+  if (await actionRow.count()) {
+    const style = await actionRow.evaluate((el) => getComputedStyle(el).borderBottomStyle);
+    expect(style).not.toBe('dashed');
+  }
+});
+
+test('quickstart lead-in spacing applies only to authored lead-in content', async ({ page }) => {
+  // The rule targets content the page author put before the first step. The
+  // layout's own header is always the first step's previous sibling, so an
+  // unscoped selector would silently pad every quickstart.
+  await page.goto('/web/get-started/quickstart/');
+  const webFirstStep = page.locator('.wdk-qs__content .wdk-step').first();
+  // This page opens directly with a Step: no lead-in, so no extra margin.
+  expect(await webFirstStep.evaluate((el) => getComputedStyle(el).marginTop)).toBe('0px');
+
+  await page.goto('/native-ios-android/quickstart/');
+  const nativeFirstStep = page.locator('.wdk-qs__content .wdk-step').first();
+  // This page opens with lead-in prose, so the gap is applied.
+  expect(await nativeFirstStep.evaluate((el) => getComputedStyle(el).marginTop)).toBe('48px');
+});
+
 test('in-content h2 uses display font and correct size', async ({ page }) => {
   // Use a standard DocLayout page (quickstart now uses QuickstartLayout).
   await page.goto('/introduction/what-is-wavelength-sdk/');
