@@ -53,6 +53,19 @@ function paragraph(value: string): Element {
 
 const HEADING_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
 
+// Containers whose element children are a label and its value, rendered with a
+// CSS gap the markdown serializer cannot see. Each entry maps the container's
+// class to the separator that stands in for that gap.
+const SEPARATED_ROWS: ReadonlyArray<readonly [string, string]> = [
+  ['wdk-returns', ': '],
+  ['wdk-api__chips', ' · '],
+  ['wdk-api__cli-chip', ': '],
+  ['wdk-endpoint__row', ': '],
+  ['wdk-endpoint__code', ' '],
+  ['wdk-api__h2', ' '],
+  ['wdk-fields__name', ' '],
+];
+
 // Rewrites site-specific markup into plain HTML that rehype-remark
 // understands: code frames, mermaid sources, callouts, and islands.
 function normalize(body: Element): void {
@@ -100,6 +113,39 @@ function normalize(body: Element): void {
       return SKIP;
     }
 
+    // Hand-built diagram figures carry an aria-label describing the whole
+    // flow. Flattening their nodes yields a structureless list of labels with
+    // every edge and grouping lost, so emit the authored summary instead.
+    if (cls.includes('wdk-dg')) {
+      const label = String(node.properties?.ariaLabel ?? '').trim();
+      parent.children[index] = paragraph(
+        label || 'Diagram omitted; open this page in a browser to view it.',
+      );
+      return SKIP;
+    }
+
+    // Label/value rows put their parts in sibling elements with no
+    // whitespace between them, which the layout supplies with CSS. Stringified
+    // to markdown they fuse ("ReturnsPromise<boolean>", "gRPCrpc Unlock(...)"),
+    // so insert the separator the visual gap stands for.
+    const separator = SEPARATED_ROWS.find(([token]) => cls.includes(token))?.[1];
+    if (separator !== undefined) {
+      node.children = node.children.flatMap((child, i) =>
+        i === 0 || child.type !== 'element'
+          ? [child]
+          : [{ type: 'text', value: separator } as ElementContent, child],
+      );
+      return undefined;
+    }
+
+    // Symbol entries render their name as an h2, the same level as the
+    // section headings they sit under, which flattens the outline in the
+    // markdown mirror. Demote them so the hierarchy survives.
+    if (node.tagName === 'h2' && cls.includes('wdk-symbol__name')) {
+      node.tagName = 'h3';
+      return undefined;
+    }
+
     if (node.tagName === 'aside' && cls.includes('wdk-callout')) {
       const label = text(select('.wdk-callout__title', node) ?? undefined);
       const bodyEl = select('.wdk-callout__body', node);
@@ -123,6 +169,13 @@ function normalize(body: Element): void {
         'Interactive example omitted; open this page in a browser to use it.',
       );
       return SKIP;
+    }
+
+    // Tab strips are pure chrome: only the active panel's content follows them
+    // in the export, so their labels serialize as a run-on word ("CLIGoPython").
+    if (node.properties?.role === 'tablist') {
+      parent.children.splice(index, 1);
+      return index;
     }
 
     if (node.properties && 'dataPagefindIgnore' in node.properties) {

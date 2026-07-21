@@ -8,6 +8,7 @@
  * "optional" badge, and repeated fields render their type as "repeated X".
  */
 import type { FieldDoc } from '~/data/api/schema';
+import ProtoText from './ProtoText.astro';
 
 interface Props {
   fields: FieldDoc[];
@@ -66,7 +67,7 @@ const paragraphs = (comment: string): string[] =>
             </td>
             <td class="wdk-fields__desc">
               {paragraphs(f.comment).map((p) => (
-                <p>{p}</p>
+                <p><ProtoText text={p} /></p>
               ))}
             </td>
           </tr>
