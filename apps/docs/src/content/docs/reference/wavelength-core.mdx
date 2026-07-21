@@ -200,9 +200,9 @@ suppresses every swap field. `lwwallet` fields are `walletEsploraUrl`, `walletPa
 `walletPollIntervalSeconds`. `btcwallet` fields are `walletFeeUrl`,
 `walletBlockHeadersSource`, and `walletFilterHeadersSource`.
 
-LND and eager-round-join disable are intentionally unavailable through this
-mobile start contract. Most apps should use `defaultConfig()` from their
-transport package and override only the fields they need.
+Some daemon-only options (such as the LND wallet backend) are deliberately not
+exposed through `RuntimeConfig`. Most apps should use `defaultConfig()` from
+their transport package and override only the fields they need.
 
 </ApiSymbol>
 
@@ -213,6 +213,8 @@ Selects the Bitcoin network the embedded daemon runs against.
 endpoint preset (the domain of `networkDefaults` and the transports'
 `defaultConfig`). mainnet and regtest are excluded: mainnet has no public
 deployment yet, and regtest's local ports vary per development environment.
+`testnet4` is part of the union and carries a preset, but its deployment is
+not supported yet, so its endpoints are not listed below.
 
 <Signature title="wavelength-core.d.ts" code={networkSig} />
 
@@ -2537,7 +2539,7 @@ export const walletPhaseSig = `type WalletPhase = 'needsWallet' | 'locked' | 'sy
 export const phaseFromInfoSig = `function phaseFromInfo(info: {
   walletState?: WalletState;
   walletReady?: boolean;
-}): RuntimePhase`;
+}): WalletPhase`;
 
 export const normalizeInfoSig = `function normalizeInfo(raw: unknown): WalletInfo`;
 
@@ -2614,7 +2616,7 @@ phases are not represented here; the caller owns those.
   { name: 'info.walletReady', type: 'boolean', desc: 'Optional. When true, short-circuits directly to \'ready\' regardless of walletState.' },
 ]} />
 
-<Returns type="RuntimePhase">
+<Returns type="WalletPhase">
 `'ready'` when `walletReady` is true or `walletState === 'ready'`; otherwise
 `'locked'` or `'syncing'` matching `walletState`; otherwise `'needsWallet'`
 (the fallback for `'none'` or any unrecognized value).
@@ -2789,6 +2791,9 @@ export const errorCodeSig = `type WavelengthErrorCode =
   | 'runtime_not_ready'
   | 'asset_load_failed'
   | 'worker_error'
+  | 'unsupported_facade_method'
+  | 'invalid_cursor'
+  | 'invalid_config'
   | (string & {});`;
 
 <ApiSymbol name="WavelengthError" kind="class">
@@ -2818,9 +2823,12 @@ compatibility while still offering autocomplete on the known codes.
 | Code | Thrown when |
 |---|---|
 | `wavelength_error` | The generic default: any SDK error without a more specific code, and all daemon-originated failures today. |
-| `runtime_not_ready` | A method is called before `ready()` has resolved, or after `dispose()`. |
+| `runtime_not_ready` | The wasm runtime is not callable: it exited before signaling ready, or its call entry point is missing once loading has finished. |
 | `asset_load_failed` | `ready()` fails to load the runtime assets (wasm binary or its supporting files). |
 | `worker_error` | The worker transport's underlying Worker fails or crashes. |
+| `unsupported_facade_method` | A call names a method the daemon facade does not expose. |
+| `invalid_cursor` | `startActivity()` is given a cursor that is not a nonnegative safe integer. |
+| `invalid_config` | `RuntimeConfig` validation fails before the daemon starts. |
 
 </ApiSymbol>
 

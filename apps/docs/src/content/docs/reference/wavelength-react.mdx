@@ -35,7 +35,7 @@ export const wavelengthProviderPropsSig = `type WavelengthProviderProps = {
   engine: WalletEngine;
 };`;
 
-<ApiSymbol name="WavelengthProvider" kind="class">
+<ApiSymbol name="WavelengthProvider" kind="function">
 
 Context provider that hands a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) down to descendants. Wrap your application root (or any subtree) with this component so child hooks can access wallet state and operations.
 
@@ -76,7 +76,7 @@ The provider's engine instance.
 
 </ApiSymbol>
 
-## useWallet
+## Runtime lifecycle
 
 export const useWalletSig = `function useWallet(): {
   phase: RuntimePhase;
@@ -92,7 +92,7 @@ The application-shell hook: the lifecycle phase to route your top-level UI on, t
 <Signature title="wavelength-react.d.ts" code={useWalletSig} />
 
 <ParamsTable rows={[
-  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase. See RuntimePhase on the wavelength-core reference; note it now includes \'restoring\'.' },
+  { name: 'phase', type: 'RuntimePhase', desc: 'Current runtime/wallet lifecycle phase. See RuntimePhase on the wavelength-core reference; it includes \'restoring\' while a background restore is bringing the wallet up.' },
   { name: 'error', type: 'Error | null', desc: 'The last fatal runtime-level error, or null. Set when the initial runtime load fails, when start()/stop() fails, or after the engine\'s background processes exhaust their failure budget (e.g. repeated sync-poll or background-refresh failures).' },
   { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: 'Starts the runtime. Falls back to the engine\'s configured config (the one passed to createWebWalletEngine/createNativeWalletEngine) when called with no argument; throws if neither exists. Resolves with the WalletInfo from startup.' },
   { name: 'stop()', type: '() => Promise<void>', desc: 'Stops the runtime and clears the in-memory snapshot (info/balance/activity reset to null/null/[]); persisted wallet data is untouched.' },
@@ -570,7 +570,9 @@ Lists wallet activity, VTXOs, or on-chain outputs on demand, with hook-local lis
 ]} />
 
 <Returns type="{ list, listPending, listError, listData, resetList }">
-See the mutation convention above.
+See the mutation convention above, with one exception: `listData` keeps the
+previous successful result while a new `list()` call is pending and after a
+failed call (last-good semantics), instead of clearing.
 </Returns>
 
 </ApiSymbol>

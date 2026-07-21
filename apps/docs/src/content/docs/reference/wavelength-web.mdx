@@ -72,7 +72,11 @@ export const runtimeAssetsSig = `const RUNTIME_ASSETS: {
 
 export const runtimeManifestVersionSig = `const RUNTIME_MANIFEST_VERSION: string;`;
 
-export const passkeyCeremonySig = `const webPasskeyCeremony: PasskeyCeremony;`;
+export const passkeyCeremonySig = `const webPasskeyCeremony: PasskeyCeremony = {
+  supportsPasskeyPrf,
+  registerPasskeyWallet,
+  assertPasskeyPrf,
+};`;
 
 export const supportsPasskeyPrfSig = `function supportsPasskeyPrf(): Promise<boolean>;`;
 
@@ -186,7 +190,7 @@ Browser-specific options for `createWebClient`. The config passed to
 <Signature title="wavelength-web.d.ts" code={webClientOptionsSig} />
 
 <ParamsTable rows={[
-  { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("./wavewalletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
+  { name: 'workerURL', type: 'string', desc: 'Overrides the worker entry point. By default the worker client spawns the worker its bundler emits from new URL("../wavewalletdk-worker.js", import.meta.url); pass this to point at a custom-hosted copy instead. runtimeBaseUrl is still forwarded to the worker even when this is set. Default: bundler-emitted worker URL.' },
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWavelengthClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
   { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs facade calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
@@ -386,14 +390,6 @@ literally the three standalone functions below grouped into one object; pass
 it to `useWalletPasskey` from wavelength-react, or call the functions directly.
 
 <Signature title="wavelength-web.d.ts" code={passkeyCeremonySig} />
-
-```ts
-const webPasskeyCeremony: PasskeyCeremony = {
-  supportsPasskeyPrf,
-  registerPasskeyWallet,
-  assertPasskeyPrf,
-};
-```
 
 </ApiSymbol>
 
