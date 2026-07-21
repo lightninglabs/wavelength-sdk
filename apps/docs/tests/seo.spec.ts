@@ -54,4 +54,34 @@ for (const { path, label } of pages) {
     const content = await twitterCard.getAttribute('content');
     expect(content).toBeTruthy();
   });
+
+  test(`${label}: og:image and twitter:image are the absolute share card URL`, async ({
+    page,
+  }) => {
+    await page.goto(path);
+
+    const expected = `${BASE_URL}/og/share-card.png`;
+    for (const selector of ['meta[property="og:image"]', 'meta[name="twitter:image"]']) {
+      const tag = page.locator(selector);
+      await expect(tag).toHaveCount(1);
+      // Scrapers do not resolve relative paths, so the URL must be absolute.
+      expect(await tag.getAttribute('content')).toBe(expected);
+    }
+  });
 }
+
+test('the share card asset is served at the URL the meta tags advertise', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  const url = await page
+    .locator('meta[property="og:image"]')
+    .getAttribute('content');
+
+  // Re-request against the local preview: the meta tag carries the production
+  // origin, but the asset has to exist in this build for the card to render.
+  const response = await request.get(new URL(url ?? '').pathname);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('image/png');
+});

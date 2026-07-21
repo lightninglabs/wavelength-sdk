@@ -4,6 +4,60 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Wavelength: web wallet demo</title>
+    <!-- Favicon, home-screen icons, and web app manifest, matching the docs
+         site. Paths are relative so they resolve under the deploy's /demo/
+         base as well as at the root in local dev. -->
+    <link rel="icon" href="./icons/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="48x48" href="./icons/icon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="./icons/icon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="96x96" href="./icons/icon-96x96.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="./icons/icon-144x144.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="./icons/icon-256x256.png" />
+    <link rel="apple-touch-icon" sizes="384x384" href="./icons/icon-384x384.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512x512.png" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#141417" />
+    <meta
+      name="description"
+      content="Try a self-custodial Lightning wallet running entirely in your browser."
+    />
+    <!-- Open Graph and Twitter card meta tags for social sharing. Both the URL
+         and the image are absolute, as social scrapers require: the demo is
+         deployed to /demo/ on the docs host, and the share card is served from
+         that host's root (apps/docs/public/ is the only committed public
+         directory; this app's public/ is an ephemeral runtime-asset staging
+         area). -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://wavelength.lightning.engineering/demo/"
+    />
+    <meta property="og:site_name" content="Wavelength" />
+    <meta property="og:title" content="Wavelength: web wallet demo" />
+    <meta
+      property="og:description"
+      content="Try a self-custodial Lightning wallet running entirely in your browser."
+    />
+    <meta
+      property="og:image"
+      content="https://wavelength.lightning.engineering/og/share-card-demo.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Wavelength live demo: try a self-custodial Lightning wallet running entirely in your browser."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:image"
+      content="https://wavelength.lightning.engineering/og/share-card-demo.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Wavelength live demo: try a self-custodial Lightning wallet running entirely in your browser."
+    />
   </head>
   <body>
     <div id="root"></div>
