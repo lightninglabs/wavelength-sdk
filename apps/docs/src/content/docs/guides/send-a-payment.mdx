@@ -96,8 +96,9 @@ function SendOnChain() {
 ```
 
 To drain the wallet to an address, set `sweepAll` instead of `amountSat`. The
-daemon snapshots the live VTXO set at prepare time and spends exactly that set,
-so quote and dispatch cannot disagree about what "all" means.
+daemon selects the VTXO set at dispatch time, so any amount quoted beforehand
+is an estimate. `SendResult.actualAmountSat` reports the amount actually
+swept; show the user that value rather than the estimate.
 
 ```tsx title="sweep.tsx"
 await send({ onchainAddress: address, sweepAll: true });

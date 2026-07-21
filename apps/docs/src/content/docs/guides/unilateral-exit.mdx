@@ -15,9 +15,8 @@ outpoint; [`useWalletExitBatch`](/reference/wavelength-react/#useWalletExitBatch
 starts several at once. [`useWalletExitPlan`](/reference/wavelength-react/#useWalletExitPlan),
 [`useWalletExitStatus`](/reference/wavelength-react/#useWalletExitStatus), and
 [`useWalletExits`](/reference/wavelength-react/#useWalletExits) preview and
-track them. `sweepWallet` has no dedicated hook yet, so reach it through
-[`useWalletEngine()`](/reference/wavelength-react/#useWalletEngine).client,
-the escape hatch every granular hook is built on.
+track them. [`useWalletSweep`](/reference/wavelength-react/#useWalletSweep)
+sweeps the backing wallet once exits are claimable.
 
 ## Cooperative or unilateral?
 
@@ -247,7 +246,8 @@ function ExitSummary() {
 
 ## Sweep the backing wallet
 
-Once claimable outputs are ready, call `client.sweepWallet()` with
+Once claimable outputs are ready, call `sweep()` from
+[`useWalletSweep()`](/reference/wavelength-react/#useWalletSweep) with
 `broadcast: false` first to preview, then `broadcast: true` with a
 `destinationAddress` to consolidate funds on-chain. `broadcast` defaults to
 `false` when omitted, so a call without it is always a preview. `sweepWallet`
@@ -260,13 +260,13 @@ attempt the broadcast call; show `preview.failureReason` to explain why
 instead.
 
 ```tsx title="Sweep.tsx"
-import { useWalletEngine } from '@lightninglabs/wavelength-react';
+import { useWalletSweep } from '@lightninglabs/wavelength-react';
 
 function Sweep() {
-  const { client } = useWalletEngine();
+  const { sweep, sweepPending } = useWalletSweep();
 
-  const sweep = async () => {
-    const preview = await client.sweepWallet({
+  const handleSweep = async () => {
+    const preview = await sweep({
       destinationAddress: 'bc1q...',
       broadcast: false,
     });
@@ -276,12 +276,16 @@ function Sweep() {
       return;
     }
 
-    await client.sweepWallet({
+    await sweep({
       destinationAddress: 'bc1q...',
       broadcast: true,
     });
   };
 
-  return <button onClick={sweep}>Sweep to on-chain wallet</button>;
+  return (
+    <button onClick={handleSweep} disabled={sweepPending}>
+      Sweep to on-chain wallet
+    </button>
+  );
 }
 ```
