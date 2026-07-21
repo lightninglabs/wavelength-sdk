@@ -26,6 +26,9 @@ const {
 // Canonical URL: absolute URL of this page without query or hash.
 const canonical = new URL(Astro.url.pathname, Astro.site);
 
+// Home-screen icon sizes, matching the files in public/icons/.
+const APPLE_TOUCH_ICON_SIZES = [48, 72, 96, 144, 192, 256, 384, 512];
+
 // The page title string as it appears in <title>, reused for og:title.
 const pageTitle = title === 'Wavelength' ? title : `${title} | Wavelength`;
 
@@ -44,6 +47,19 @@ const shareCardAlt =
     <title>{pageTitle}</title>
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={canonical} />
+    <!-- Favicon, home-screen icons, and web app manifest. The Lightning Labs
+         bolt is a two-tone mark (dark strokes paired with light ones), so it
+         carries its own contrast on both light and dark surfaces. -->
+    <link rel="icon" href="/icons/favicon-32x32.png" />
+    {APPLE_TOUCH_ICON_SIZES.map((size) => (
+      <link
+        rel="apple-touch-icon"
+        sizes={`${size}x${size}`}
+        href={`/icons/icon-${size}x${size}.png`}
+      />
+    ))}
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#141417" />
     <!-- Open Graph meta tags for social sharing. -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />

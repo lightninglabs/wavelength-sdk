@@ -8,6 +8,15 @@ apps/*/public/
 # _headers is a static host config file (Netlify/Cloudflare Pages), not a runtime asset.
 !apps/docs/public/
 !apps/docs/public/_headers
+# The demo's icons and manifest are committed static assets rather than staged
+# runtime output. Git cannot re-include a path whose parent directory is
+# excluded, so un-ignore the directory, re-exclude its contents, then allow the
+# two static entries back in. wasm-local.sh only clears public/runtime and the
+# named legacy files, so staging the runtime leaves them alone.
+!apps/web-wallet-demo/public/
+apps/web-wallet-demo/public/*
+!apps/web-wallet-demo/public/icons/
+!apps/web-wallet-demo/public/manifest.json
 
 # Superpowers SDD scratch (briefs, reports, ledger, review diffs).
 .superpowers/
