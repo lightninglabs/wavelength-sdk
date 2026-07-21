@@ -110,7 +110,7 @@ export function VTXOPicker({
                 className={cn(
                   "flex h-4 w-4 shrink-0 items-center justify-center border",
                   on
-                    ? "border-accent bg-accent text-white"
+                    ? "border-accent-fill bg-accent-fill text-on-accent"
                     : "border-border-strong text-transparent",
                 )}
               >

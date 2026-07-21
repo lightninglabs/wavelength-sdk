@@ -226,6 +226,7 @@ export function SendScreen({
         <PageHead
           title="Payment sent"
           subtitle="Submitted to the network"
+          accent="orange"
           onBack={() => onNavigate("home")}
         />
         <Band tinted>
@@ -262,10 +263,11 @@ export function SendScreen({
         <PageHead
           title="Send"
           subtitle="Review and confirm"
+          accent="orange"
           onBack={() => onNavigate("home")}
         />
         <Band>
-          <Label>Payment details</Label>
+          <Label accent="orange" rule>Payment details</Label>
           <div className="mt-4 flex items-center justify-between gap-4">
             <div className="min-w-0 truncate font-mono text-xs text-muted">
               {dest.trim()}
@@ -305,6 +307,7 @@ export function SendScreen({
       <PageHead
         title="Send"
         subtitle="Pay an invoice or on-chain address"
+        accent="orange"
         onBack={() => onNavigate("home")}
       />
       <form
@@ -350,7 +353,7 @@ export function SendScreen({
 
             {isInvoice && destination.amount.status === "known" ? (
               <div className="flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-                <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+                <Info size={14} className="mt-0.5 shrink-0 text-orange" />
                 Amount is set by the invoice:{" "}
                 <span className="font-mono text-fg">
                   {formatSats(destination.amount.sat)} sats
@@ -360,7 +363,7 @@ export function SendScreen({
 
             {isInvoice && destination.amount.status === "unrepresentable" ? (
               <div className="flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-                <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+                <Info size={14} className="mt-0.5 shrink-0 text-orange" />
                 Amount is set by the invoice.
               </div>
             ) : null}
@@ -413,8 +416,8 @@ export function SendScreen({
               <button
                 type="submit"
                 disabled={!canContinue}
-                className="inline-flex items-center gap-2 bg-accent px-4 py-2.5
-                  text-sm font-semibold text-white transition-opacity
+                className="inline-flex items-center gap-2 bg-accent-fill px-4 py-2.5
+                  text-sm font-semibold text-on-accent transition-opacity
                   hover:opacity-90 disabled:opacity-50"
               >
                 {quoting ? "Quoting…" : "Continue"} <ArrowRight size={16} />

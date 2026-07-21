@@ -29,7 +29,7 @@ export function ExitBanner({
         hover:[background:color-mix(in_srgb,var(--accent)_20%,transparent)]
         lg:px-8"
     >
-      <LogOut size={16} className="shrink-0 text-accent" />
+      <LogOut size={16} className="shrink-0 text-orange" />
       <span className="flex-1">
         <span className="font-medium">
           {summary.totalExits} exit{plural} in progress

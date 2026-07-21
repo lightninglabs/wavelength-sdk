@@ -30,7 +30,7 @@ const makeStyles = (p: Palette) => ({
     paddingVertical: 12,
   },
   primary: {
-    backgroundColor: p.accent,
+    backgroundColor: p.accentFill,
   },
   ghost: {
     backgroundColor: p.surfaceAlt,
@@ -38,7 +38,7 @@ const makeStyles = (p: Palette) => ({
     borderWidth: 1,
   },
   primaryText: {
-    color: '#ffffff',
+    color: p.onAccent,
     fontFamily: fonts.sansSemiBold,
     fontSize: 14,
   },
@@ -92,6 +92,7 @@ export function PrimaryButton({
   block = true,
   iconRight = false,
 }: ButtonProps) {
+  const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const off = disabled || busy;
 
@@ -108,9 +109,13 @@ export function PrimaryButton({
         off && styles.disabled,
       ]}
     >
-      {iconRight ? null : <ButtonIcon icon={icon} busy={busy} color="#ffffff" />}
+      {iconRight ? null : (
+        <ButtonIcon icon={icon} busy={busy} color={palette.onAccent} />
+      )}
       <Text style={styles.primaryText}>{children}</Text>
-      {iconRight ? <ButtonIcon icon={icon} busy={busy} color="#ffffff" /> : null}
+      {iconRight ? (
+        <ButtonIcon icon={icon} busy={busy} color={palette.onAccent} />
+      ) : null}
     </Pressable>
   );
 }

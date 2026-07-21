@@ -134,7 +134,9 @@ export function ExitRunProgress({
   return (
     <Band tinted>
       <View testID="exit-run-progress">
-        <Label>Exit progress</Label>
+        <Label accent="orange" rule>
+          Exit progress
+        </Label>
         <View style={styles.rows}>
           {started.map((e) => {
             const outpoint = (e as { outpoint: string }).outpoint;

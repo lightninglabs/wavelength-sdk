@@ -64,7 +64,7 @@ const makeStyles = (p: Palette) => ({
     marginTop: 4,
   },
   statValueGood: {
-    color: p.good,
+    color: p.lime,
   },
   identityRow: {
     alignItems: 'center' as const,
@@ -202,15 +202,25 @@ export function SettingsScreen({
   const identity = info?.identityPubKey || '';
   const Chevron = advanced ? ChevronUp : ChevronDown;
 
+  // A row's `tone` colors its stat icon with the accent matching the stat's
+  // domain (sky network, teal wallet identity, orange chain height),
+  // mirroring the Overview runtime strip; `good` rows read fully in lime
+  // instead.
   const runtime: Array<{
     icon: LucideIcon;
     label: string;
     value: string;
     good?: boolean;
+    tone?: string;
   }> = [
     { icon: ShieldCheck, label: 'Phase', value: phaseLabel, good: true },
-    { icon: Zap, label: 'Network', value: info?.network || '-' },
-    { icon: Wallet, label: 'Wallet', value: info?.walletType || '-' },
+    { icon: Zap, label: 'Network', value: info?.network || '-', tone: palette.sky },
+    {
+      icon: Wallet,
+      label: 'Wallet',
+      value: info?.walletType || '-',
+      tone: palette.teal,
+    },
     {
       icon: Server,
       label: 'Server',
@@ -221,6 +231,7 @@ export function SettingsScreen({
       icon: Layers,
       label: 'Block height',
       value: info?.blockHeight ? formatSats(info.blockHeight) : '-',
+      tone: palette.orange,
     },
   ];
 
@@ -233,12 +244,17 @@ export function SettingsScreen({
       />
 
       <Band>
-        <Label>Runtime</Label>
+        <Label accent="violet" rule>
+          Runtime
+        </Label>
         <View style={styles.statGrid}>
           {runtime.map((r) => (
             <View key={r.label} style={styles.stat}>
               <View style={styles.statHead}>
-                <r.icon size={13} color={r.good ? palette.good : palette.muted} />
+                <r.icon
+                  size={13}
+                  color={r.good ? palette.lime : (r.tone ?? palette.muted)}
+                />
                 <Text style={styles.statLabel}>{r.label}</Text>
               </View>
               <Text style={[styles.statValue, r.good && styles.statValueGood]}>
@@ -250,7 +266,9 @@ export function SettingsScreen({
       </Band>
 
       <Band tinted>
-        <Label>Identity</Label>
+        <Label accent="teal" rule>
+          Identity
+        </Label>
         <View style={styles.identityRow}>
           <Text style={styles.identity}>
             {identity ? shortKey(identity, 10, 8) : '-'}
@@ -260,7 +278,7 @@ export function SettingsScreen({
       </Band>
 
       <Band>
-        <Label>About</Label>
+        <Label rule>About</Label>
         <View style={styles.rows}>
           <SummaryRow label="Version" value={info?.version || '-'} mono />
           <SummaryRow label="Commit" value={info?.commit || '-'} mono />
@@ -268,7 +286,9 @@ export function SettingsScreen({
       </Band>
 
       <Band tinted>
-        <Label>Security</Label>
+        <Label accent="lime" rule>
+          Security
+        </Label>
         <View style={styles.rows}>
           <SummaryRow
             label="Wallet type"
@@ -284,7 +304,9 @@ export function SettingsScreen({
       </Band>
 
       <Band>
-        <Label>Appearance</Label>
+        <Label accent="sky" rule>
+          Appearance
+        </Label>
         <View style={styles.appearanceRow}>
           <View style={styles.appearanceLabel}>
             <Monitor size={16} color={palette.muted} />
@@ -303,7 +325,7 @@ export function SettingsScreen({
       </Band>
 
       <Band tinted>
-        <Label>Advanced</Label>
+        <Label rule>Advanced</Label>
         <Pressable onPress={() => setAdvanced((v) => !v)} style={styles.advancedHead}>
           <View style={styles.advancedLabel}>
             <SettingsIcon size={15} color={palette.muted} />
@@ -323,7 +345,7 @@ export function SettingsScreen({
       </Band>
 
       <Band>
-        <Label>Danger zone</Label>
+        <Label rule>Danger zone</Label>
         <Pressable
           accessibilityLabel="Emergency exit"
           accessibilityRole="button"

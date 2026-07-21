@@ -61,12 +61,13 @@ export function Composition({ balance }: { balance: Balance | null }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
   // Bucket tones map to the palette (the web uses CSS variables for this).
-  // Spendable buckets share the accent family; in-flight ones are tinted apart.
+  // Spendable VTXO is teal (the Ark identity color), incoming is sky, outgoing
+  // is orange, and the credit rails derive from teal and muted.
   const tone: Record<BucketKey, string> = {
-    vtxo: palette.accent,
-    creditAvailable: palette.accentSoft,
-    incoming: palette.good,
-    outgoing: palette.warn,
+    vtxo: palette.fillTeal,
+    creditAvailable: palette.tealSoft,
+    incoming: palette.fillSky,
+    outgoing: palette.fillOrange,
     creditReserved: palette.muted,
   };
   const buckets = compositionBuckets(balance);

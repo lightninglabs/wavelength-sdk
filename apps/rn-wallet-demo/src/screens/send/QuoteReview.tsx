@@ -197,7 +197,7 @@ export function QuoteReview({
         </View>
       ) : !quote.feeKnown ? (
         <View style={[styles.callout, styles.calloutInfo]}>
-          <Info size={14} color={palette.accent} style={{ marginTop: 2 }} />
+          <Info size={14} color={palette.orange} style={{ marginTop: 2 }} />
           <Text style={[styles.calloutText, { color: palette.muted }]}>
             The fee shown is an estimate. The final amount is returned once the
             payment settles.

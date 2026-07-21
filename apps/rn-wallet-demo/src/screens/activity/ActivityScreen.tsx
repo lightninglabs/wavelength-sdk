@@ -88,6 +88,7 @@ export function ActivityScreen({
       <PageHead
         title="Activity"
         subtitle="Complete payment history"
+        accent="teal"
         onBack={() => onNavigate('home')}
       />
       {refreshError ? (
@@ -102,7 +103,9 @@ export function ActivityScreen({
       ) : (
         groups.map((group, gi) => (
           <Band key={`${group.day}-${gi}`} tinted={gi % 2 === 0}>
-            <Label>{group.day}</Label>
+            <Label accent="teal" rule>
+              {group.day}
+            </Label>
             <View style={styles.list}>
               {group.items.map((entry, i) => (
                 <View key={entry.id} style={i > 0 && styles.divider}>

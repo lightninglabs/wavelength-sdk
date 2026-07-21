@@ -98,12 +98,13 @@ export function ExitScreen({
       <PageHead
         title="Emergency exit"
         subtitle="Recover your funds on-chain"
+        accent="orange"
         onBack={() => onNavigate("settings")}
       />
 
       {summary && summary.exits.length > 0 ? (
         <Band tinted>
-          <Label>In progress</Label>
+          <Label accent="orange" rule>In progress</Label>
           <div className="mt-4 space-y-3">
             {summary.exits.map((e) => (
               <div
@@ -125,7 +126,7 @@ export function ExitScreen({
       ) : null}
 
       <Band>
-        <Label>Choose VTXOs</Label>
+        <Label accent="orange" rule>Choose VTXOs</Label>
         <p className="mt-2 max-w-prose text-sm text-muted">
           Select the outputs to exit. Leave the rest in place to keep spending
           normally.
@@ -141,7 +142,7 @@ export function ExitScreen({
       </Band>
 
       <Band tinted>
-        <Label>Exit path</Label>
+        <Label accent="orange" rule>Exit path</Label>
         <div className="mt-4">
           <Segmented
             value={mode}
@@ -191,8 +192,8 @@ export function ExitScreen({
               data-testid="start-cooperative"
               disabled={selected.length === 0 || exitBatchPending}
               onClick={() => void start().catch(() => {})}
-              className="inline-flex items-center justify-center gap-2 bg-accent
-                px-4 py-2.5 text-sm font-semibold text-white transition-opacity
+              className="inline-flex items-center justify-center gap-2 bg-accent-fill
+                px-4 py-2.5 text-sm font-semibold text-on-accent transition-opacity
                 hover:opacity-90 disabled:opacity-50"
             >
               <LogOut size={16} />

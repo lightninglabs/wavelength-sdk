@@ -122,7 +122,7 @@ export function QuoteReview({
         </div>
       ) : !quote.feeKnown ? (
         <div className="mt-4 flex items-start gap-2 border border-border bg-well p-3 text-xs text-muted">
-          <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+          <Info size={14} className="mt-0.5 shrink-0 text-orange" />
           The fee shown is an estimate. The final amount is returned once the
           payment settles.
         </div>
@@ -144,8 +144,8 @@ export function QuoteReview({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="inline-flex items-center gap-2 bg-accent px-4 py-2.5
-              text-sm font-semibold text-white transition-opacity
+            className="inline-flex items-center gap-2 bg-accent-fill px-4 py-2.5
+              text-sm font-semibold text-on-accent transition-opacity
               hover:opacity-90 disabled:opacity-50"
           >
             <Icon size={16} /> {busy ? "Paying…" : "Confirm & pay"}

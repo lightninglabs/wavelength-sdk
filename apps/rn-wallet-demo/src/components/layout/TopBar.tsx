@@ -1,11 +1,11 @@
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bitcoin } from 'lucide-react-native';
 import { useWallet, useWalletInfo } from '@lightninglabs/wavelength-react';
 import { phaseConnected, statusLabel } from '../../lib/phase';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { BrandMark } from '../ui/BrandMark';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
 const makeStyles = (p: Palette) => ({
@@ -25,18 +25,6 @@ const makeStyles = (p: Palette) => ({
     alignItems: 'center' as const,
     flexDirection: 'row' as const,
     gap: 10,
-  },
-  brandTile: {
-    alignItems: 'center' as const,
-    backgroundColor: p.accent,
-    height: 30,
-    justifyContent: 'center' as const,
-    width: 30,
-  },
-  brandName: {
-    color: p.text,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 14,
   },
   status: {
     alignItems: 'center' as const,
@@ -82,10 +70,7 @@ export function TopBar({ network }: { network: string }) {
     <View style={[styles.bar, { paddingTop: insets.top }]}>
       <View style={styles.inner}>
         <View style={styles.brand}>
-          <View style={styles.brandTile}>
-            <Bitcoin size={16} color="#ffffff" />
-          </View>
-          <Text style={styles.brandName}>Wavelength Demo</Text>
+          <BrandMark />
         </View>
         <View style={styles.status}>
           <View

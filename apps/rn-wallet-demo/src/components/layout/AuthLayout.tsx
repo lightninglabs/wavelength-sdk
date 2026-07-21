@@ -7,9 +7,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bitcoin } from 'lucide-react-native';
 import { Palette, fonts } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { BrandMark } from '../ui/BrandMark';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
 const makeStyles = (p: Palette) => ({
@@ -30,19 +30,7 @@ const makeStyles = (p: Palette) => ({
   brand: {
     alignItems: 'center' as const,
     flexDirection: 'row' as const,
-    gap: 10,
-  },
-  brandTile: {
-    alignItems: 'center' as const,
-    backgroundColor: p.accent,
-    height: 32,
-    justifyContent: 'center' as const,
-    width: 32,
-  },
-  brandName: {
-    color: p.text,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 14,
+    gap: 12,
   },
   brandSub: {
     color: p.faint,
@@ -76,13 +64,8 @@ export function AuthLayout({
         >
           <View style={styles.header}>
             <View style={styles.brand}>
-              <View style={styles.brandTile}>
-                <Bitcoin size={17} color="#ffffff" />
-              </View>
-              <View>
-                <Text style={styles.brandName}>Wavelength Demo</Text>
-                <Text style={styles.brandSub}>{network} · self-custody</Text>
-              </View>
+              <BrandMark size="sm" />
+              <Text style={styles.brandSub}>{network} · self-custody</Text>
             </View>
             <ThemeToggle />
           </View>

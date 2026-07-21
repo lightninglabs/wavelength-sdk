@@ -84,6 +84,7 @@ export function HomeScreen({
       <PageHead
         title="Overview"
         subtitle="Your self-custodial Ark wallet balance and pending flows."
+        accent="violet"
       />
       {funded ? (
         <>
@@ -95,7 +96,7 @@ export function HomeScreen({
             refreshError={refreshErrorMessage}
           />
           <Band>
-            <Label>Balance composition</Label>
+            <Label accent="teal" rule>Balance composition</Label>
             <div className="mt-4">
               <Composition balance={balance} />
               <OnChainBalance balance={balance} />
@@ -167,7 +168,7 @@ function BalanceBand({
             {incoming > 0 ? (
               <>
                 <span className="text-faint">·</span>
-                <span className="font-mono tabular-nums text-good">
+                <span className="font-mono tabular-nums text-sky">
                   +{formatSats(incoming)} incoming
                 </span>
               </>
@@ -175,7 +176,7 @@ function BalanceBand({
             {outgoing > 0 ? (
               <>
                 <span className="text-faint">·</span>
-                <span className="font-mono tabular-nums text-warn">
+                <span className="font-mono tabular-nums text-orange">
                   -{formatSats(outgoing)} outgoing
                 </span>
               </>
@@ -199,8 +200,8 @@ function BalanceBand({
           <button
             type="button"
             onClick={() => onNavigate("send")}
-            className="inline-flex items-center gap-2 bg-accent px-4 py-2.5
-              text-sm font-semibold text-white transition-opacity
+            className="inline-flex items-center gap-2 bg-accent-fill px-4 py-2.5
+              text-sm font-semibold text-on-accent transition-opacity
               hover:opacity-90"
           >
             <ArrowUpRight size={16} /> Send
@@ -234,37 +235,50 @@ function RuntimeBand({
   info: WalletInfo | null;
   phaseLabel: string;
 }) {
+  // A row's `tone` colors its stat icon with the accent matching the stat's
+  // domain (sky network, orange chain height, teal wallet identity); `good`
+  // rows read fully in lime instead.
   const rows: Array<{
     icon: LucideIcon;
     label: string;
     value: string;
     good?: boolean;
+    tone?: string;
   }> = [
     { icon: ShieldCheck, label: "Runtime", value: phaseLabel, good: true },
-    { icon: Zap, label: "Network", value: info?.network || "-" },
+    { icon: Zap, label: "Network", value: info?.network || "-", tone: "text-sky" },
     {
       icon: Layers,
       label: "Block height",
       value: info?.blockHeight ? formatSats(info.blockHeight) : "-",
+      tone: "text-orange",
     },
-    { icon: Wallet, label: "Wallet", value: info?.walletType || "-" },
+    {
+      icon: Wallet,
+      label: "Wallet",
+      value: info?.walletType || "-",
+      tone: "text-teal",
+    },
     { icon: Lock, label: "Keys", value: "On this device", good: true },
   ];
 
   return (
     <Band>
-      <Label>Runtime &amp; security</Label>
+      <Label accent="violet" rule>Runtime &amp; security</Label>
       <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
         {rows.map((r) => (
           <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
             <div className="flex items-center gap-1.5 text-xs text-muted">
-              <r.icon size={13} className={r.good ? "text-good" : "text-muted"} />
+              <r.icon
+                size={13}
+                className={r.good ? "text-lime" : (r.tone ?? "text-muted")}
+              />
               {r.label}
             </div>
             <div
               className={cn(
                 "mt-1 font-mono text-sm tabular-nums",
-                r.good ? "text-good" : "text-fg",
+                r.good ? "text-lime" : "text-fg",
               )}
             >
               {r.value}
@@ -311,10 +325,22 @@ function EmptyWallet({
     }
   }, [onDeposit]);
 
-  const steps = [
-    "Send on-chain Bitcoin to your boarding address.",
-    "After 1 confirmation it boards into Ark as VTXO.",
-    "Spend instantly over Ark and Lightning.",
+  // Each step's number chip walks the brand accents in flow order: incoming
+  // on-chain funds are sky, the Ark VTXO they become is teal, and spending is
+  // the primary violet.
+  const steps: Array<{ text: string; tone: string }> = [
+    {
+      text: "Send on-chain Bitcoin to your boarding address.",
+      tone: "bg-sky-fill/10 text-sky",
+    },
+    {
+      text: "After 1 confirmation it boards into Ark as VTXO.",
+      tone: "bg-teal-fill/10 text-teal",
+    },
+    {
+      text: "Spend instantly over Ark and Lightning.",
+      tone: "bg-violet-fill/10 text-violet",
+    },
   ];
   const error = localError || depositError;
 
@@ -322,10 +348,10 @@ function EmptyWallet({
     <>
       <Band tinted>
         <div className="mx-auto flex max-w-md flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center bg-accent-soft">
-            <ArrowDownToLine size={26} className="text-accent" />
+          <div className="flex h-14 w-14 items-center justify-center bg-sky-fill/10">
+            <ArrowDownToLine size={26} className="text-sky" />
           </div>
-          <h2 className="mt-5 text-xl font-semibold text-fg">
+          <h2 className="mt-5 font-display text-xl font-semibold text-fg">
             Fund your wallet
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -379,17 +405,20 @@ function EmptyWallet({
       </Band>
 
       <Band>
-        <Label>How boarding works</Label>
+        <Label accent="sky" rule>How boarding works</Label>
         <ol className="mt-4 grid gap-4 sm:grid-cols-3">
           {steps.map((step, i) => (
-            <li key={step} className="flex gap-3">
+            <li key={step.text} className="flex gap-3">
               <span
-                className="flex h-6 w-6 shrink-0 items-center justify-center
-                  bg-accent-soft text-[11px] font-bold text-accent"
+                className={cn(
+                  `flex h-6 w-6 shrink-0 items-center justify-center
+                  text-[11px] font-bold`,
+                  step.tone,
+                )}
               >
                 {i + 1}
               </span>
-              <span className="text-sm text-muted">{step}</span>
+              <span className="text-sm text-muted">{step.text}</span>
             </li>
           ))}
         </ol>
@@ -412,7 +441,7 @@ function RecentActivityBand({
   return (
     <Band tinted>
       <div className="flex items-center justify-between">
-        <Label>Recent activity</Label>
+        <Label accent="teal">Recent activity</Label>
         <button
           type="button"
           onClick={() => onNavigate("activity")}

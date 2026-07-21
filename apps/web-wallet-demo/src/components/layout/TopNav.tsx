@@ -1,8 +1,9 @@
-import { Bitcoin, Power, Settings } from "lucide-react";
+import { Power, Settings } from "lucide-react";
 import { useWallet, useWalletInfo } from "@lightninglabs/wavelength-react";
 import { cn } from "../../lib/cn";
 import { shortKey } from "../../lib/format";
 import { phaseConnected, statusLabel } from "../../lib/phase";
+import { BrandMark } from "../ui/BrandMark";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { AppTab, CENTER_NAV } from "./nav";
 
@@ -44,10 +45,7 @@ export function TopNav({
           onClick={() => onTab("home")}
           className="flex shrink-0 items-center gap-2.5"
         >
-          <span className="flex h-8 w-8 items-center justify-center bg-accent">
-            <Bitcoin size={17} className="text-white" />
-          </span>
-          <span className="text-sm font-semibold text-fg">Wavelength Demo</span>
+          <BrandMark />
         </button>
 
         <nav className="ml-3 hidden items-center lg:flex">
@@ -67,7 +65,7 @@ export function TopNav({
                     : "text-muted hover:text-fg",
                 )}
               >
-                <n.icon size={16} />
+                <n.icon size={16} className={n.iconClass} />
                 {n.label}
               </button>
             );

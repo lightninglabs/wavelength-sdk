@@ -57,6 +57,7 @@ export function ActivityScreen({
       <PageHead
         title="Activity"
         subtitle="Complete payment history"
+        accent="teal"
         onBack={() => onNavigate("home")}
         trailing={
           <button
@@ -86,7 +87,7 @@ export function ActivityScreen({
       ) : (
         groups.map((group, gi) => (
           <Band key={`${group.day}-${gi}`} tinted={gi % 2 === 0}>
-            <Label>{group.day}</Label>
+            <Label accent="teal" rule>{group.day}</Label>
             <div className="mt-2 divide-y divide-border border-t border-border">
               {group.items.map((entry) => (
                 <ActivityRow key={entry.id} entry={entry} />

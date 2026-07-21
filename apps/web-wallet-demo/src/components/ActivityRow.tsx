@@ -85,7 +85,7 @@ export function ActivityRow({ entry }: { entry: Entry }) {
         className="flex h-9 w-9 shrink-0 items-center justify-center border
           border-border"
       >
-        <Icon size={15} className={incoming ? "text-good" : "text-fg"} />
+        <Icon size={15} className={incoming ? "text-sky" : "text-orange"} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-fg">{title}</div>

@@ -10,17 +10,20 @@ import { App } from "./App";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { consumePendingWipe } from "./lib/wipeLocalData";
 import { requestPersistentStorage } from "./lib/persistStorage";
-// Self-host IBM Plex (the weights used by index.css) so the fonts load
-// same-origin; cross-origin Google Fonts are blocked under COEP require-corp.
-// Import the latin subset only; the UI is English, so the cyrillic, greek,
-// vietnamese, and latin-ext subsets would just be dead weight in the bundle.
-import "@fontsource/ibm-plex-sans/latin-400.css";
-import "@fontsource/ibm-plex-sans/latin-500.css";
-import "@fontsource/ibm-plex-sans/latin-600.css";
-import "@fontsource/ibm-plex-sans/latin-700.css";
-import "@fontsource/ibm-plex-mono/latin-400.css";
-import "@fontsource/ibm-plex-mono/latin-500.css";
-import "@fontsource/ibm-plex-mono/latin-600.css";
+// Self-host Inter, Work Sans and JetBrains Mono (the weights used by
+// index.css) so the fonts load same-origin; cross-origin Google Fonts are
+// blocked under COEP require-corp. Import the latin subset only; the UI is
+// English, so the cyrillic, greek, vietnamese, and latin-ext subsets would
+// just be dead weight in the bundle.
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
+import "@fontsource/work-sans/latin-600.css";
+import "@fontsource/work-sans/latin-700.css";
+import "@fontsource/jetbrains-mono/latin-400.css";
+import "@fontsource/jetbrains-mono/latin-500.css";
+import "@fontsource/jetbrains-mono/latin-600.css";
 import "./index.css";
 
 // boot clears any pending wipe before mounting, so a reset starts the app from

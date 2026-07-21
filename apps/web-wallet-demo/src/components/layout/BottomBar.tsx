@@ -30,7 +30,7 @@ export function BottomBar({
                 : "text-muted",
             )}
           >
-            <n.icon size={18} />
+            <n.icon size={18} className={n.iconClass} />
             {n.label}
           </button>
         );

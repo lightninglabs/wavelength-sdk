@@ -57,7 +57,7 @@ export function ExitRunProgress({
   return (
     <Band tinted>
       <div data-testid="exit-run-progress">
-        <Label>Exit progress</Label>
+        <Label accent="orange" rule>Exit progress</Label>
         <div className="mt-4 space-y-2">
           {started.map((e) => {
             const outpoint = (e as { outpoint: string }).outpoint;
