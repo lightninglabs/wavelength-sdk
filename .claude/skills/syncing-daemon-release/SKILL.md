@@ -56,6 +56,7 @@ the `-M` diff. A file whose filtered count is zero changed in name only.
 | Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes |
 | Wasm runtime build | `wasm:local` (below) | Bump `RUNTIME_MANIFEST_VERSION` first |
 | Runtime asset FILE LIST | Nothing | Four places in lockstep: `packages/web/src/runtime-manifest.ts` (`RUNTIME_ASSET_FILES`), `apps/web-wallet-demo/scripts/wasm-local.sh`, `apps/web-wallet-demo/scripts/fetch-runtime-assets.sh`, `apps/docs/scripts/copy-runtime-assets.mjs` |
+| Gomobile facade (`sdk/wavewalletdk/mobile`) | Nothing | Native SDK docs checkpoint (section below) |
 
 ## Ordered procedure
 
@@ -101,7 +102,10 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # an isolated worktree at
    (builds from `$WAVELENGTH_DIR`, stages into `public/runtime/<version>/`).
    Hosted asset sets live under `<assets root>/<RUNTIME_MANIFEST_VERSION>/`;
    the deploy workflow fetches by that path.
-6. **Changeset + commits**: `pnpm changeset` for changed packages. Commits
+6. **Native SDK docs**: run the Native SDK docs checkpoint (its own section
+   below). It is cheap and usually a no-op, but it is the only step that
+   catches native-page drift, and nothing else in this procedure covers it.
+7. **Changeset + commits**: `pnpm changeset` for changed packages. Commits
    use bare area prefixes (`core:`, `web:`, `docs:`, `demo:`), one logical
    change each, every commit building on its own.
 
@@ -132,6 +136,46 @@ run, a just-created invoice began surfacing as a pending "Received" activity
 row (it previously stayed hidden until settlement), so the assertion moved
 rather than the code. Update the assertion to the new behavior; do not skip
 the test.
+
+## Native SDK docs checkpoint (wavelength-mobile)
+
+The docs site's Native iOS & Android pages
+(`apps/docs/src/content/docs/native-ios-android/`) condense material from the
+wavelength-mobile repo. Find that checkout at `repos/wavelength-mobile`
+alongside the daemon checkout; if the directory is missing or renamed, match a
+remote of `lightninglabs/wavelength-mobile`. Older clones may still carry the
+pre-rename `lightninglabs/damobile` URL, which GitHub redirects, so accept
+either. Note `lightninglabs/wavelength-mobile` CONTAINS the daemon's
+`lightninglabs/wavelength`, so match the full path, not a prefix, or you will
+land on the daemon repo. Those pages track wavelength-mobile's published state,
+not the daemon tag, so they never block a daemon sync. After the main sync, run
+this checkpoint:
+
+1. Run the mini-pass, every time. It is three pages and costs minutes. Do NOT
+   gate it on the daemon facade having changed: these pages track
+   wavelength-mobile, which can rename `WalletClient`, reshape its models, or
+   rewrite its docs with no daemon release at all, so an unchanged
+   `sdk/wavewalletdk/mobile` is not evidence the pages are still accurate.
+2. Then decide whether a daemon-driven follow-up is also needed. Did
+   `sdk/wavewalletdk/mobile` change in the release range?
+   (`git -C $WAVELENGTH_DIR diff --stat <pin>..<target> -- sdk/wavewalletdk/mobile`)
+   - Unchanged: nothing further; the mini-pass in step 1 was the whole job.
+   - Changed, and wavelength-mobile has adopted the new bindings (its fetch
+     scripts default to the latest wavelength release; check its recent commits
+     or its README against the new facade): the step 1 mini-pass already
+     covered it.
+   - Changed, but wavelength-mobile has not adopted it yet: file a `.tasks/`
+     follow-up titled "native docs mini-pass once wavelength-mobile adopts
+     <version>" and finish the sync. The pages remain truthful in the meantime
+     (they describe the published wrapper and link out to wavelength-mobile at
+     `main` for volatile detail).
+
+**The mini-pass** (verification, not a rewrite): each native page opens with
+an MDX comment naming its upstream basis (a wavelength-mobile source file, or
+an explicit note that the page has none). For each page, diff its claims and
+snippets against that basis in the wavelength-mobile checkout, and confirm its
+outbound links still resolve. Scope is three pages; the quickstart's snippets
+are the only code to verify.
 
 ## Common mistakes
 
