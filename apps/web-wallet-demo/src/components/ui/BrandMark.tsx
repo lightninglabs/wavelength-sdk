@@ -13,9 +13,10 @@ const CLUSTER = [
 // BrandMark renders the stacked Wavelength lockup: the docs-style two-tone
 // wordmark over the five-square cluster, with a small lowercase demo tag
 // right-aligned on the cluster's line. Stacking keeps the top bar narrow
-// while carrying the full brand. The wordmark takes the bright brand teal
-// rather than the darkened text value: WCAG exempts brand names from the
-// contrast minimum, and matching the docs header exactly is the point.
+// while carrying the full brand. The teal falls on "Wave", matching the docs
+// header and the social share cards. It is the bright brand teal rather than
+// the darkened text value: WCAG exempts brand names from the contrast
+// minimum, and matching the docs header exactly is the point.
 export function BrandMark({ size = "md" }: { size?: "sm" | "md" }) {
   return (
     <span className="inline-flex flex-col gap-1 self-start">
@@ -25,7 +26,7 @@ export function BrandMark({ size = "md" }: { size?: "sm" | "md" }) {
           size === "sm" ? "text-sm" : "text-[15px]",
         )}
       >
-        Wave<span className="text-teal-fill">length</span>
+        <span className="text-teal-fill">Wave</span>length
       </span>
       <span className="flex items-baseline justify-between">
         <span className="flex items-center gap-[3px]" aria-hidden="true">

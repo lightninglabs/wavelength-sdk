@@ -47,9 +47,10 @@ const makeStyles = (p: Palette) => ({
 // BrandMark renders the stacked Wavelength lockup: the docs-style two-tone
 // wordmark over the five-square cluster, with a small lowercase demo tag
 // right-aligned on the cluster's line. Stacking keeps the top bar narrow
-// while carrying the full brand. The wordmark takes the bright brand teal
-// rather than the darkened text value: WCAG exempts brand names from the
-// contrast minimum, and matching the docs header exactly is the point.
+// while carrying the full brand. The teal falls on "Wave", matching the docs
+// header and the social share cards. It is the bright brand teal rather than
+// the darkened text value: WCAG exempts brand names from the contrast
+// minimum, and matching the docs header exactly is the point.
 export function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -58,8 +59,8 @@ export function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   return (
     <View style={styles.root}>
       <Text style={[styles.word, { fontSize: size === 'sm' ? 14 : 15 }]}>
-        Wave
-        <Text style={styles.wordAccent}>length</Text>
+        <Text style={styles.wordAccent}>Wave</Text>
+        length
       </Text>
       <View style={styles.under}>
         <View style={styles.row}>
