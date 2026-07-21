@@ -1,6 +1,6 @@
 {
   "name": "@lightninglabs/wavelength-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "React provider and hooks for the Wavelength self-custodial Lightning wallet SDK.",
   "license": "MIT",
