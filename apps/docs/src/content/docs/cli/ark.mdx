@@ -58,18 +58,52 @@ join` on the caller's behalf, so refresh is a one-shot operation; pass
 `--no_join` to batch multiple refresh or leave intents into the same round and
 join explicitly afterward.
 
+A refresh is charged an operator fee, so the command asks before it queues
+anything. On an interactive terminal it fetches a fee preview, prints the
+summary to stderr, and waits for a y/N confirmation. On non-interactive stdin
+it refuses to prompt and exits `INVALID_ARGS`, so scripts and agents have to
+pass either `--yes` to consent up front or `--dry_run` to preview.
+
 | Flag | Default | Description |
 |---|---|---|
-| `--outpoint` | (none) | VTXO outpoint(s) to refresh (txid:index); repeatable. Required unless --all is set. |
+| `--outpoint` | (none) | VTXO outpoint(s) to refresh (txid:index); repeatable. Required unless --all is set, and mutually exclusive with it. |
 | `--all` | `false` | Refresh all live VTXOs. |
-| `--dry_run` | `false` | Validate without queuing. |
+| `--dry_run` | `false` | Validate without queuing and preview the estimated operator fee. |
+| `--yes` | `false` | Skip the interactive fee confirmation. Required on non-interactive stdin. |
 | `--no_join` | `false` | Skip the implicit `ark rounds join` follow-up so this refresh can batch with other queued intents. |
 
 Calls the daemon `RefreshVTXOs` RPC.
 
 ```bash title="Terminal"
-wavecli ark vtxos refresh --all
+wavecli ark vtxos refresh --all --yes
 ```
+
+#### Fee preview
+
+`--dry_run` returns an itemized advisory estimate alongside the usual
+validation. The per-outpoint rows land in the JSON body on stdout and carry
+the amount, remaining lifetime, and the fee components (liquidity fee,
+on-chain share, and margin) that sum to each row's total. A human-readable
+summary goes to stderr so piping stdout into `jq` doesn't pull prose with it.
+
+```bash title="Terminal"
+wavecli ark vtxos refresh --all --dry_run
+```
+
+Every number here is advisory. The binding fee comes from the server-issued
+quote when the round seals, so it can differ from the estimate. When the
+operator quotes can't be fetched the preview still returns as a validity
+probe, with an `estimate_error` set and the per-outpoint fee components absent
+rather than zero.
+
+If every selected VTXO sits inside the operator's advertised free-refresh
+window, the estimate reports the selection as free. That waiver is
+all-or-nothing per round: batching the selection with boarding, leave, or
+out-of-window inputs forfeits it. The per-outpoint rows still show the
+ordinary paid price, so they read as what the waiver saves. Rows can also
+carry a below-dust warning, meaning the VTXO amount is under the minimum
+economically viable amount at current rates and refreshing it pays fees on a
+coin that already costs more to exit than it holds.
 
 ### `vtxos leave`
 
@@ -292,6 +326,11 @@ Calls the daemon `EstimateFee` RPC.
 ```bash title="Terminal"
 wavecli ark fees estimate --amount 50000
 ```
+
+To price a refresh of VTXOs you already hold, reach for
+[`ark vtxos refresh --dry_run`](#fee-preview) instead. It resolves each
+selected VTXO's amount and remaining lifetime from the daemon, so you don't
+have to look either up and pass them by hand.
 
 ### `fees history`
 
