@@ -51,6 +51,7 @@ the `-M` diff. A file whose filtered count is zero changed in name only.
 | Facade type fields (`sdk/wavewalletdk`) | `pnpm gen:types` | Consumers of renamed fields: `git grep <old_field>` across `packages/`, `apps/`. Every RPC verb is mapped once in `packages/core/src/base-client.ts` (the transports in `packages/web/src/clients/` and `packages/react-native/` only supply `callRaw`, no per-verb mappers). `requests.ts`/`results.ts` stay hand-authored (see `docs/codegen.md`) |
 | WalletService RPC added/removed | `pnpm gen:api-docs` | `API_NAV` (it IS in `apps/docs/src/config/nav.ts`, below the SDK `NAV` array); `API_CLI`, `API_CLI_INVOCATION`, `API_SAMPLES` in `apps/docs/src/config/api.ts`; the whole client surface, all in `packages/core`: interface in `client.ts`, request/result types in `requests.ts`/`results.ts`, impl in `base-client.ts` (one place; the transports pipe `callRaw` and need no edit), the public barrel `index.ts`, and `testing/fake-client.ts` (it `implements WavelengthClient`, so a new method fails typecheck until added); the client is documented only on `apps/docs/src/content/docs/reference/wavelength-core.mdx` (the web/RN reference pages re-export core and carry no method list), and any new inline reference type must be registered in `apps/docs/src/config/api-links.ts` (`coreSymbols` + `inlineTypeOwners`) for its deep link to resolve; docs Playwright tests that hardcode the method count must move (see the CLI/docs test note below) |
 | RPC/field doc comments only | `pnpm gen:api-docs` | Nothing (pages render from wallet.json) |
+| DaemonService RPCs/messages (`waverpc/daemon.proto`) | Nothing | wallet.json covers `WalletService` ONLY, so an empty wallet.json diff after a large daemon.proto change is expected, not a generator failure. This lands as CLI/prose docs work (step 4): `wavecli` is the DaemonService client, so check `cmd_*.go` for the surfaced flags |
 | wavecli flags/commands | Nothing | The command's page in `apps/docs/src/content/docs/cli/` (see CLI docs rules below); a new top-level command also needs `CLI_NAV` + a new page. A REMOVED top-level command must be deleted in lockstep: its `cli/<cmd>.mdx` page, its `CLI_NAV` entry, its row in the `cli.mdx` command table, and its slug in `apps/docs/tests/cli.spec.ts`'s hardcoded advanced-command list (`git grep -n <cmd> apps/docs` to find stragglers) |
 | Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes |
 | Wasm runtime build | `wasm:local` (below) | Bump `RUNTIME_MANIFEST_VERSION` first |
@@ -64,7 +65,9 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # an isolated worktree at
 ```
 
 1. **Pin**: set `RUNTIME_MANIFEST_VERSION` in `packages/core/src/version.ts`
-   to the daemon short commit hash. Keep the exact single-quoted literal form;
+   to the release tag name when syncing to a tag (`v0.1.0`), or the daemon
+   short commit hash when syncing to an untagged revision. Keep the exact
+   single-quoted literal form;
    `scripts/runtime-version.mjs` parses the source text.
 2. **Types**: `pnpm gen:types` (needs Go + tygo). Review the generated.ts
    diff, then grep-and-fix hand-authored consumers per the table. Two upstream
@@ -136,7 +139,7 @@ the test.
 - Rebuilding wasm before bumping the pin: `wasm-local.sh` stages into a directory named by the OLD version.
 - Editing `apps/docs/src/data/api/wallet.json` or `packages/core/src/generated.ts` by hand; both are generated and committed. A `tsc` failure on generated.ts usually means tygo emitted a new cross-package const as `= any` (fix in `gen-types.mts`, item in step 2).
 - Documenting CLI flags from `--help` or memory instead of `cmd_*.go`.
-- Adding/removing an RPC without bumping the docs tests that hardcode the method count: `apps/docs/tests/nav.spec.ts` and `api-data.spec.ts` assert a literal count ("fifteen"/`15`), and `api-method.spec.ts` + `agent-artifacts.spec.ts` iterate every method (so the new page must actually build and be reachable).
+- Adding/removing a WalletService RPC without bumping the docs tests that hardcode the method count: `apps/docs/tests/nav.spec.ts` and `api-data.spec.ts` assert a literal count (as both a numeral and an English word, so grep for both), and `api-method.spec.ts` + `agent-artifacts.spec.ts` iterate every method (so the new page must actually build and be reachable).
 - Forgetting that a new interface method breaks `packages/core/src/testing/fake-client.ts` (it `implements WavelengthClient`) and must be added to `packages/core/src/index.ts`.
 - Changing the runtime asset file list in fewer than all four places.
 - Guessed package filters: the docs app is `@lightninglabs/wavelength-docs`, the web package is `@lightninglabs/wavelength-web`, the demo is `web-wallet-demo`.

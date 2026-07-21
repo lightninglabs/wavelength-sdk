@@ -53,3 +53,9 @@ Registered tools include the everyday `balance`, `getinfo`, and send surfaces
 plus the advanced `ark.*` namespace (for example `ark.vtxos.list`,
 `ark.vtxos.refresh`, `ark.vtxos.leave`, `ark.oor.receive`, `ark.send.inround`,
 `ark.send.oor`) and, in swapruntime builds, the `swap.*` tools.
+
+`ark.vtxos.refresh` carries the same fee-consent contract as the CLI. Since
+there's no interactive prompt to fall back to, a real refresh requires
+`yes: true`; without it the tool returns an error telling the agent to call
+`dry_run: true` first for the itemized advisory estimate, then re-call with
+`yes: true` to acknowledge the fee and queue.
