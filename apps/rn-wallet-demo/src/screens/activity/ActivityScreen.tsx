@@ -88,6 +88,7 @@ export function ActivityScreen({
       <PageHead
         title="Activity"
         subtitle="Complete payment history"
+        accent="teal"
         onBack={() => onNavigate('home')}
       />
       {refreshError ? (

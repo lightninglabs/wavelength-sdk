@@ -4,6 +4,7 @@ import { Check } from 'lucide-react-native';
 import type { WalletVTXO } from '@lightninglabs/wavelength-react';
 import { formatSats, shortKey } from '../../lib/format';
 import { Palette, fonts } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { InlineError } from '../ui/InlineError';
 import { Spinner } from '../ui/Spinner';
@@ -69,8 +70,8 @@ const makeStyles = (p: Palette) => ({
     width: 16,
   },
   markerOn: {
-    backgroundColor: p.accent,
-    borderColor: p.accent,
+    backgroundColor: p.accentFill,
+    borderColor: p.accentFill,
   },
   outpoint: {
     color: p.muted,
@@ -130,6 +131,7 @@ export function VTXOPicker({
   onChange: (next: string[]) => void;
   excludeOutpoints?: string[];
 }) {
+  const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
 
   const vtxos: WalletVTXO[] = inventory.filter(
@@ -203,7 +205,9 @@ export function VTXOPicker({
               {/* Selection marker: a filled accent box when chosen, a hairline
                   outline when not, so the whole row reads as a checkbox. */}
               <View style={[styles.marker, on && styles.markerOn]}>
-                {on ? <Check size={12} strokeWidth={3} color="#ffffff" /> : null}
+                {on ? (
+                  <Check size={12} strokeWidth={3} color={palette.onAccent} />
+                ) : null}
               </View>
               <Text
                 style={[styles.outpoint, on && styles.outpointOn]}

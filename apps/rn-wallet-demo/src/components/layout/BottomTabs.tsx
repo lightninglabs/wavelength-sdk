@@ -58,7 +58,12 @@ export function BottomTabs({
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
           >
-            <n.icon size={18} color={on ? palette.text : palette.muted} />
+            <n.icon
+              size={18}
+              color={
+                n.accent ? palette[n.accent] : on ? palette.text : palette.muted
+              }
+            />
             <Text style={[styles.label, on && styles.labelOn]}>{n.label}</Text>
           </Pressable>
         );

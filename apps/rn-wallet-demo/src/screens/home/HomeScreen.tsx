@@ -297,6 +297,7 @@ export function HomeScreen({
       <PageHead
         title="Overview"
         subtitle="Your self-custodial wallet balance and pending flows."
+        accent="violet"
       />
       {loading ? (
         <LoadingBalance />

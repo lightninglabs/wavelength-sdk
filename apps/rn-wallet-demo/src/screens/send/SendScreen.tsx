@@ -383,6 +383,7 @@ export function SendScreen({
         <PageHead
           title="Payment sent"
           subtitle="Submitted to the network"
+          accent="orange"
           onBack={() => onNavigate('home')}
         />
         <Band tinted>
@@ -423,6 +424,7 @@ export function SendScreen({
         <PageHead
           title="Send"
           subtitle="Review and confirm"
+          accent="orange"
           onBack={() => onNavigate('home')}
         />
         <Band>
@@ -464,6 +466,7 @@ export function SendScreen({
       <PageHead
         title="Send"
         subtitle="Pay an invoice or on-chain address"
+        accent="orange"
         onBack={() => onNavigate('home')}
       />
       <Band>

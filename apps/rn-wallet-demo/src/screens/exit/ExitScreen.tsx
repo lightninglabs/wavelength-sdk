@@ -84,7 +84,7 @@ const makeStyles = (p: Palette) => ({
   cooperative: {
     alignItems: 'center' as const,
     alignSelf: 'flex-start' as const,
-    backgroundColor: p.accent,
+    backgroundColor: p.accentFill,
     flexDirection: 'row' as const,
     gap: 8,
     justifyContent: 'center' as const,
@@ -92,7 +92,7 @@ const makeStyles = (p: Palette) => ({
     paddingVertical: 12,
   },
   cooperativeText: {
-    color: '#ffffff',
+    color: p.onAccent,
     fontFamily: fonts.sansSemiBold,
     fontSize: 14,
   },
@@ -190,6 +190,7 @@ export function ExitScreen({
       <PageHead
         title="Emergency exit"
         subtitle="Recover your funds on-chain"
+        accent="orange"
         onBack={() => onNavigate('settings')}
       />
 
@@ -282,12 +283,12 @@ export function ExitScreen({
               accessibilityState={{ disabled: cooperativeOff }}
               style={[styles.cooperative, cooperativeOff && styles.disabled]}
             >
-              <LogOut size={16} color="#ffffff" />
+              <LogOut size={16} color={palette.onAccent} />
               <Text style={styles.cooperativeText}>
                 {exitBatchPending ? 'Starting…' : 'Exit cooperatively'}
               </Text>
               {!exitBatchPending ? (
-                <ArrowRight size={16} color="#ffffff" />
+                <ArrowRight size={16} color={palette.onAccent} />
               ) : null}
             </Pressable>
           )}

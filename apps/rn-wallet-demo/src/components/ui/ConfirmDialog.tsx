@@ -54,13 +54,13 @@ const makeStyles = (p: Palette) => ({
     paddingVertical: 12,
   },
   confirmAccent: {
-    backgroundColor: p.accent,
+    backgroundColor: p.accentFill,
   },
   confirmDanger: {
     backgroundColor: p.bad,
   },
   confirmText: {
-    color: '#ffffff',
+    color: p.onAccent,
     fontFamily: fonts.sansSemiBold,
     fontSize: 14,
   },
