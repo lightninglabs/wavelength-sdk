@@ -35,6 +35,28 @@ test('in-content h2 carries the accent underline motif', async ({ page }) => {
   expect(afterStyles!.background).not.toBe('transparent');
 });
 
+test('quickstart step headings carry the accent underline motif', async ({ page }) => {
+  // QuickstartLayout has its own container and heading class, so it needs its
+  // own assertion: the doc-layout rule above does not reach it.
+  await page.goto('/web/get-started/quickstart/');
+
+  const heading = page.locator('.wdk-qs__content .wdk-step__heading').first();
+  await expect(heading).toBeVisible();
+
+  const afterStyles = await page.evaluate(() => {
+    const el = document.querySelector('.wdk-qs__content .wdk-step__heading');
+    if (!el) return null;
+    const cs = getComputedStyle(el, '::after');
+    return { content: cs.content, height: cs.height, background: cs.backgroundColor };
+  });
+
+  expect(afterStyles).not.toBeNull();
+  expect(afterStyles!.content).not.toBe('none');
+  expect(afterStyles!.height).toBe('3px');
+  expect(afterStyles!.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(afterStyles!.background).not.toBe('transparent');
+});
+
 test('quickstart prose link styling spares chrome that draws its own border', async ({ page }) => {
   // The prose link rules cover .wdk-qs__content, so components that are links
   // but not prose have to be excluded by class or their own borders lose to

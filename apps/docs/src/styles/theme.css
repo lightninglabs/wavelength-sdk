@@ -253,10 +253,15 @@ code, pre, kbd {
 
 /* Signature accent h2 underline motif - ported from custom.css
    (.sl-markdown-content h2::after), color keyed to per-section accent
-   via --sl-accent defined in the per-section block above. Scoped to
-   .wdk-doc__content only: the guide layout uses the numbered step circle
-   below (.wdk-guide__content h2::before) instead of this underline. */
-.wdk-doc__content h2::after {
+   via --sl-accent defined in the per-section block above. The guide layout is
+   excluded: it uses the numbered step circle below
+   (.wdk-guide__content h2::before) instead of this underline.
+
+   The quickstart layout targets .wdk-step__heading rather than a bare h2: its
+   step headings are the only h2s in that layout, and naming the class keeps
+   the motif off any h2 a page body might introduce inside a step. */
+.wdk-doc__content h2::after,
+.wdk-qs__content .wdk-step__heading::after {
   content: '';
   display: block;
   width: 3rem;
