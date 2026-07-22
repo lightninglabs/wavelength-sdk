@@ -127,6 +127,11 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    (without the `v`) so the release workflow's tag check passes. Commits use
    bare area prefixes (`core:`, `web:`, `docs:`, `demo:`), one logical change
    each, every commit building on its own.
+8. **Publish**: after the sync merges, create a GitHub release tagged with
+   the pin (e.g. `v0.2.0`). Publishing that release triggers release.yml,
+   which verifies the tag against the package versions and the pin, then
+   publishes all four packages to npm. Nothing publishes until this release
+   is cut. Full procedure and failure modes: RELEASE.md at the repo root.
 
 ## Verification ladder (run in this order)
 
