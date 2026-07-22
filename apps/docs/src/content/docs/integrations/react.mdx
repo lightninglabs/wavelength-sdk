@@ -75,11 +75,11 @@ from [`useWallet()`](/reference/wavelength-react/#useWallet) yourself once
 
 `phase` is a `RuntimePhase`, one of: `'loading'`, `'runtimeReady'`,
 `'starting'`, `'needsWallet'`, `'locked'`, `'syncing'`, `'restoring'`,
-`'ready'`, `'stopping'`, `'stopped'`, or `'error'`. The
-`loading`/`runtimeReady`/`starting`/`stopping`/`stopped`/`error` phases are owned by the
-start/stop flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from
-wallet info; `restoring` is owned by the engine while a background restore
-(recovery scan) is bringing a freshly restored wallet up. See
+`'ready'`, `'stopping'`, `'stopped'`, or `'error'`. Of these,
+`loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, and `error` are
+owned by the start/stop flow; `needsWallet`, `locked`, `syncing`, and `ready`
+are derived from wallet info; `restoring` is owned by the engine while a
+background restore (recovery scan) is bringing a freshly restored wallet up. See
 [Handle phases and errors](/guides/handle-phases-and-errors/) for the full
 state machine and how to react to each phase.
 

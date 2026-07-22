@@ -65,7 +65,12 @@ const { type } = Astro.props;
     border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 25%, transparent);
     border-radius: 3px;
     padding: 0.1em 0.4em;
-    flex-shrink: 0;
+    /* Object return shapes run long ({ send, sendPrepared, sendPending, ... }).
+       Refusing to shrink or wrap made the pill wider than the viewport on a
+       phone, and since nothing above it clips, it widened the whole document
+       and the page scrolled sideways. It wraps at its own commas first. */
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .wdk-returns__type-link {

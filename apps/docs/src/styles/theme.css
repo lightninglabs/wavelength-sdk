@@ -378,6 +378,12 @@ code, pre, kbd {
   border-radius: 4px;
   padding: 0.1em 0.4em;
   color: var(--text-code);
+  /* Last resort for a token with no break opportunity, such as a full URL in
+     prose: nothing above this clips, so an unbreakable chip wider than the
+     viewport widens the whole document and the page scrolls sideways. Only
+     fires when the token would otherwise overflow, so identifiers that fit
+     are still never broken. */
+  overflow-wrap: break-word;
 }
 
 /* Mermaid diagrams (astro-mermaid) in doc prose. */
