@@ -29,8 +29,7 @@ mkdir -p "$PUB"
 # is upstream go-wasmsqlite's main-thread bridge, version-locked to sqlite-worker.js
 # via their protocol handshake, so it ships from the build like the rest of the stack.
 # Keep the file list in sync with packages/web/src/runtime-manifest.ts
-# (RUNTIME_ASSET_FILES), fetch-runtime-assets.sh, and
-# apps/docs/scripts/copy-runtime-assets.mjs.
+# (RUNTIME_ASSET_FILES) and fetch-runtime-assets.sh.
 for f in wavewalletdk.wasm wavewalletdk.wasm.gz wasm_exec.js sqlite-bridge.js \
          sqlite-worker.js sqlite3.js sqlite3.wasm sqlite3-opfs-async-proxy.js; do
   cp "$WAVELENGTH/bin/wasm/$f" "$PUB/"
