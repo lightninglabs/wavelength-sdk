@@ -1,7 +1,7 @@
 const { expect, test } = require("@playwright/test");
 
-const arkGatewayURL = "https://signet.wavelength-rest.lightning.finance";
-const swapGatewayURL = "https://signet.swapd-rest.lightning.finance";
+const arkServerURL = "https://signet.wavelength-rest.lightning.finance";
+const swapServerURL = "https://signet.swapd-rest.lightning.finance";
 const esploraURL = "https://mempool-signet.testnet.lightningcluster.com/api";
 
 test("wavelength demo starts with live signet defaults", async ({
@@ -32,12 +32,12 @@ test("wavelength demo starts with live signet defaults", async ({
   // Every endpoint field lives under "Advanced endpoints", so expand it before
   // asserting the seeded signet defaults (network defaults to signet). Mailbox
   // traffic shares the Ark and swap edges, so there are no separate mailbox
-  // gateway fields.
+  // server fields.
   await page.getByRole("button", { name: "Advanced endpoints" }).click();
-  await expect(page.getByLabel("Ark gateway URL")).toHaveValue(arkGatewayURL);
+  await expect(page.getByLabel("Ark server address")).toHaveValue(arkServerURL);
   await expect(page.getByLabel("Wallet Esplora URL")).toHaveValue(esploraURL);
-  await expect(page.getByLabel("Swap server gateway URL")).toHaveValue(
-    swapGatewayURL,
+  await expect(page.getByLabel("Swap server address")).toHaveValue(
+    swapServerURL,
   );
 
   await page.getByLabel("Data directory").fill(
@@ -49,7 +49,7 @@ test("wavelength demo starts with live signet defaults", async ({
   await startRuntime.click();
 
   // A fresh wallet on signet lands on the create screen once the runtime has
-  // connected to the live gateways.
+  // connected to the live servers.
   await expect(page.getByRole("button", { name: "Create wallet" })).toBeVisible({
     timeout: 120000,
   });

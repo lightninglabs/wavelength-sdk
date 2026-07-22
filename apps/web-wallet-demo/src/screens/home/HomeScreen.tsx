@@ -83,7 +83,7 @@ export function HomeScreen({
     <div>
       <PageHead
         title="Overview"
-        subtitle="Your self-custodial Ark wallet balance and pending flows."
+        subtitle="Your self-custodial wallet balance and pending flows."
         accent="violet"
       />
       {funded ? (
@@ -339,11 +339,11 @@ function EmptyWallet({
       tone: "bg-sky-fill/10 text-sky",
     },
     {
-      text: "After 1 confirmation it boards into Ark as VTXO.",
+      text: "After 1 confirmation it joins the next round.",
       tone: "bg-teal-fill/10 text-teal",
     },
     {
-      text: "Spend instantly over Ark and Lightning.",
+      text: "Spend instantly over Lightning.",
       tone: "bg-violet-fill/10 text-violet",
     },
   ];
@@ -361,8 +361,8 @@ function EmptyWallet({
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             Your balance is empty. Send Bitcoin to your boarding address to start
-            using Ark and Lightning. Funds become spendable as VTXO after one
-            confirmation.
+            using Ark and Lightning. Funds become spendable once they confirm and
+            join the next round.
           </p>
 
           <div className="mt-6 w-full max-w-sm">

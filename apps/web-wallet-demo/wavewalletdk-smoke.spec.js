@@ -219,14 +219,14 @@ test("send screen shows only the fields the destination needs", async ({
 
 async function configureRuntime(page, baseURL, dataDir, swapDatabaseFileName) {
   await page.getByRole("button", { name: "regtest", exact: true }).click();
-  // Every endpoint field, including Ark gateway URL and Wallet Esplora URL,
-  // lives inside the Advanced section, so expand it before filling any of them.
+  // Every endpoint field, including Ark server address and Wallet Esplora
+  // URL, lives inside the Advanced section, so expand it before filling them.
   await page.getByRole("button", { name: "Advanced endpoints" }).click();
   // Mailbox traffic shares the Ark and swap server edges, so RuntimeConfig no
-  // longer exposes separate mailbox gateway fields.
-  await page.getByLabel("Ark gateway URL").fill(baseURL);
+  // longer exposes separate mailbox server fields.
+  await page.getByLabel("Ark server address").fill(baseURL);
   await page.getByLabel("Wallet Esplora URL").fill(baseURL);
-  await page.getByLabel("Swap server gateway URL").fill(baseURL);
+  await page.getByLabel("Swap server address").fill(baseURL);
   await page.getByLabel("Data directory").fill(dataDir);
   await page.getByLabel("Swap database file").fill(swapDatabaseFileName);
 }
