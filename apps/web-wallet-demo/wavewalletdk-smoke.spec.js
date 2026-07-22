@@ -36,6 +36,84 @@ async function createReadyWallet(
   await page.getByRole("button", { name: "I saved it" }).click();
 }
 
+test("a second tab retries after the owning runtime closes", async ({
+  context,
+  page,
+}, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  const dataDir = `/wavewalletdk-smoke-lock-${Date.now()}`;
+  const swapDatabaseFileName = `/wavewalletdk-swaps-lock-${Date.now()}.db`;
+  const walletEntry = (targetPage) =>
+    targetPage.getByRole("heading", {
+      name: /^(Create wallet|Unlock wallet)$/,
+    });
+
+  await page.goto("/");
+  const firstStart = page.getByRole("button", { name: "Start runtime" });
+  await expect(firstStart).toBeVisible({ timeout: 30000 });
+  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
+  await firstStart.click();
+  await expect(walletEntry(page)).toBeVisible({ timeout: 60000 });
+
+  const secondPage = await context.newPage();
+  const secondPageMessages = [];
+  const recordSecondPageMessage = (line) => {
+    secondPageMessages.push(line);
+    if (process.env.WAVELENGTH_SMOKE_VERBOSE) {
+      console.log(line);
+    }
+  };
+  secondPage.on("console", (message) => {
+    recordSecondPageMessage(`[${message.type()}] ${message.text()}`);
+  });
+  secondPage.on("pageerror", (error) => {
+    recordSecondPageMessage(`[pageerror] ${error.message}`);
+  });
+  const expectNoRuntimeFallback = () => {
+    const output = secondPageMessages.join("\n");
+    for (const marker of [
+      "falling back to :memory:",
+      "OPFS VFS unavailable",
+      "SQLITE_CANTOPEN",
+      "apply sqlite migrations",
+    ]) {
+      expect(output).not.toContain(marker);
+    }
+  };
+
+  await secondPage.goto("/");
+  const secondStart = secondPage.getByRole("button", {
+    name: "Start runtime",
+  });
+  await expect(secondStart).toBeVisible({ timeout: 30000 });
+  await configureRuntime(
+    secondPage,
+    baseURL,
+    dataDir,
+    swapDatabaseFileName,
+  );
+  await secondStart.click();
+
+  await expect(
+    secondPage.getByRole("heading", { name: "Runtime error" }),
+  ).toBeVisible();
+  await expect(
+    secondPage.getByText(
+      "This wallet is already open in another tab. Close the other tab and try again.",
+    ),
+  ).toBeVisible();
+  await expect(secondPage.locator("body")).not.toContainText("SQLITE_CANTOPEN");
+  await expect(secondPage.locator("body")).not.toContainText(
+    "apply sqlite migrations",
+  );
+  expectNoRuntimeFallback();
+
+  await page.close();
+  await secondPage.getByRole("button", { name: "Try again" }).click();
+  await expect(walletEntry(secondPage)).toBeVisible({ timeout: 60000 });
+  expectNoRuntimeFallback();
+});
+
 test("wallet create and address state persist with OPFS SQLite", async ({
   page,
 }, testInfo) => {
