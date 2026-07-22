@@ -125,8 +125,56 @@ function PayButton({ bolt11 }: { bolt11: string }) {
 Every error the Wavelength SDK originates extends [`WavelengthError`](/reference/wavelength-core/#WavelengthError) and carries a `code`
 string that identifies the failure reason at the machine level. Match on
 `err.code` to show a specific message rather than a generic fallback. Named
-SDK codes include `runtime_not_ready`, `asset_load_failed`, and
-`worker_error`; daemon-originated errors currently use `wavelength_error`.
+SDK codes include `runtime_not_ready`, `asset_load_failed`, `worker_error`,
+`wallet_locked`, and `runtime_lock_unavailable` (the browser refused or
+cancelled the runtime lock request itself, which says nothing about another
+tab; offer a plain retry). Daemon-originated errors currently use
+`wavelength_error`.
+
+`wallet_locked` is worth handling on its own, and it belongs on the path that
+starts the runtime rather than on a payment. Despite the name it has nothing to
+do with the `locked` phase: that one means a wallet on this device is waiting
+for its password or passkey, while this means another tab owns the runtime.
+The daemon's browser storage is exclusive to one runtime per origin, so
+starting the wallet while another tab already runs it fails immediately with
+this code. It is an expected condition
+rather than a fault: tell the user to close the other tab, and keep a retry
+affordance so they can continue once they have.
+
+```tsx title="start.tsx"
+import { useState } from 'react';
+import {
+  useWallet,
+  type RuntimeConfig,
+  type WavelengthError,
+} from '@lightninglabs/wavelength-react';
+
+function StartButton({ config }: { config: RuntimeConfig }) {
+  const { start } = useWallet();
+  const [notice, setNotice] = useState('');
+
+  const run = async () => {
+    try {
+      await start(config);
+    } catch (err) {
+      // Branch on the code property rather than instanceof: a duplicate
+      // bundled copy of core fails instanceof across the bundle boundary.
+      if ((err as WavelengthError)?.code === 'wallet_locked') {
+        setNotice('Already open in another tab. Close it, then try again.');
+        return;
+      }
+      setNotice('The wallet runtime could not start.');
+    }
+  };
+
+  return (
+    <>
+      <button onClick={run}>Start wallet</button>
+      {notice && <p role="alert">{notice}</p>}
+    </>
+  );
+}
+```
 
 ```tsx title="errors.tsx"
 import { useWalletSend, WavelengthError } from '@lightninglabs/wavelength-react';

@@ -286,9 +286,10 @@ package.
 
 <Signature title="wavelength-core.d.ts" code={mobileConfigSig} />
 
-Calling `client.callFacade('start', mobileConfig)` sends this lower-level shape
-directly to the daemon and bypasses public `RuntimeConfig` validation. App code
-should call `client.start(config)` instead.
+The daemon's start verb accepts this lower-level shape; the SDK builds it from
+your [`RuntimeConfig`](#RuntimeConfig) when you call `client.start(config)`. The
+lifecycle verbs are not reachable through `callFacade`, which rejects `'start'`
+and `'stop'` so the cross-tab runtime lock is never bypassed.
 
 </ApiSymbol>
 
@@ -368,7 +369,9 @@ Resolves when the client is ready to `start()`. Rejects with a `WavelengthError`
 <ApiSymbol name="start" kind="function">
 
 Starts the embedded daemon with the given config and resolves with its
-initial [`WalletInfo`](#WalletInfo).
+initial [`WalletInfo`](#WalletInfo). Calling `start()` while a session is
+already running coalesces onto it and resolves with the current info; the
+passed config is ignored, so call `stop()` first to start under a different one.
 
 <Signature title="wavelength-core.d.ts" code={startSig} />
 
@@ -509,7 +512,7 @@ The engine interface. Every method mirrors the matching `WavelengthClient` metho
   { name: 'client', type: 'WavelengthClient', desc: 'The underlying transport client, as an escape hatch.' },
   { name: 'getSnapshot()', type: '() => WalletSnapshot', desc: 'The current immutable state snapshot; see WalletSnapshot below.' },
   { name: 'subscribe(listener)', type: '(listener: () => void) => () => void', desc: 'Subscribes to snapshot changes; returns the unsubscribe function. Framework bindings call this via useSyncExternalStore.' },
-  { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: "Starts the runtime. Falls back to the engine's configured config when called without an argument; throws if neither exists. A failure moves phase to 'error' and rejects. On success it best-effort calls refresh() (a locked or empty wallet can fail balance/list until bootstrap; that failure is swallowed)." },
+  { name: 'start(config?)', type: '(config?: RuntimeConfig) => Promise<WalletInfo>', desc: "Starts the runtime. Falls back to the engine's configured config when called without an argument; throws if neither exists. On success it dispatches the info and best-effort calls refresh() (a locked or empty wallet can fail balance/list until bootstrap; that failure is swallowed); a failure moves phase to 'error' and rejects. Either way, a stop() the host issued while the start was in flight takes precedence: that stop governs the phase and the start leaves the snapshot to it (no info dispatch and no refresh on success, no error surfaced on failure), though the promise still resolves with the info or rejects as usual." },
   { name: 'stop()', type: '() => Promise<void>', desc: "Stops the runtime and clears the in-memory snapshot (info/balance/activity reset to null/null/[]); persisted wallet data is untouched. A failure moves phase to 'error'." },
   { name: 'refresh()', type: '() => Promise<void>', desc: 'Re-fetches info, balance, and activity concurrently.' },
   { name: 'createWallet(req)', type: '(req: CreateWalletRequest) => Promise<CreateWalletResult>', desc: 'Creates a new wallet, refetches info, and kicks a background refresh.' },
@@ -544,7 +547,7 @@ reimplement them.
   { name: 'Sync auto-poll', type: "phase: 'syncing'", desc: "Calls refresh() every 2000ms until the phase leaves 'syncing'. After 5 consecutive failures it stops polling and escalates to phase 'error' rather than polling forever." },
   { name: 'Restore readiness poll', type: "phase: 'restoring'", desc: 'Runs while any restoreWallet() is in flight, polling getInfo() every 1500ms until the wallet reports ready, then settles the restoreWallet() promise and kicks a refresh. When the request sets recoverState: true, the recovery scan is tracked separately through snapshot.recovery.' },
   { name: 'Background-refresh failure budget', type: 'all of the above', desc: 'Any refresh kicked after a mutation (create, unlock, restore, deposit, receive, send) or by a poll above shares one consecutive-failure counter. At 5 consecutive failures the engine sets snapshot.error and escalates phase to \'error\', so a dead daemon cannot hide behind a healthy-looking ready wallet.' },
-  { name: 'Unsolicited stopped transition', type: 'on runtimeStopped', desc: "A runtimeStopped client event, whether from a clean stop() or a worker crash surfaced by the transport, moves phase to 'stopped' and wipes info, balance, and activity to null, null, and [], even if the host never called stop() itself." },
+  { name: 'Unsolicited stopped transition', type: 'on runtimeStopped', desc: "A runtimeStopped client event, whether from a clean stop() or a worker crash surfaced by the transport, moves phase to 'stopped' (unless the engine is already in 'error', which is preserved so a failure that caused the stop still surfaces) and wipes info, balance, and activity to null, null, and [] regardless, even if the host never called stop() itself." },
 ]} />
 
 </ApiSymbol>
@@ -2479,9 +2482,12 @@ as `T` (unchecked; the caller asserts the shape).
 <Signature title="wavelength-core.d.ts" code={facadeMethodSig} />
 
 The whitelist excludes the streaming `subscribe` operation and private worker
-control methods such as `$ready` and `$init`. Requests use the raw mobile/wasm
-shapes, while responses use the same camelCase keys and schema-aware nil
-normalization as typed methods. The four scalar verbs
+control methods such as `$ready` and `$init`. The lifecycle verbs `start` and
+`stop` are rejected too: call the typed [`start()`](#start) / [`stop()`](#stop)
+methods, which own the runtime lifecycle (and, on the web transports, the
+cross-tab runtime lock). Requests use the raw mobile/wasm shapes, while
+responses use the same camelCase keys and schema-aware nil normalization as
+typed methods. The four scalar verbs
 `confirmedBalanceSat`, `pendingInboundSat`, `walletReady`, and `isRunning` are
 included for portable bridge callers.
 
@@ -2796,6 +2802,8 @@ export const errorCodeSig = `type WavelengthErrorCode =
   | 'runtime_not_ready'
   | 'asset_load_failed'
   | 'worker_error'
+  | 'wallet_locked'
+  | 'runtime_lock_unavailable'
   | 'unsupported_facade_method'
   | 'invalid_cursor'
   | 'invalid_config'
@@ -2819,18 +2827,22 @@ Base error class thrown by all Wavelength SDK packages. Carries a machine-readab
 <ApiSymbol name="WavelengthErrorCode" kind="type">
 
 Stable, machine-readable error classification on `WavelengthError`. Named SDK
-codes are listed below; daemon-originated errors currently fall back to
-`wavelength_error`. The `(string & {})` arm keeps the union open for forward
-compatibility while still offering autocomplete on the known codes.
+codes are listed below; most daemon-originated errors fall back to
+`wavelength_error`, except recognized storage-contention messages on `start()`,
+which the web transports map to `wallet_locked`. The `(string & {})` arm keeps the union
+open for forward compatibility while still offering autocomplete on the known
+codes.
 
 <Signature title="wavelength-core.d.ts" code={errorCodeSig} />
 
 | Code | Thrown when |
 |---|---|
-| `wavelength_error` | The generic default: any SDK error without a more specific code, and all daemon-originated failures today. |
+| `wavelength_error` | The generic default: any SDK error without a more specific code, and daemon-originated failures today, except recognized storage-contention messages on `start()` that map to `wallet_locked`. |
 | `runtime_not_ready` | The wasm runtime is not callable: it exited before signaling ready, or its call entry point is missing once loading has finished. |
 | `asset_load_failed` | `ready()` fails to load the runtime assets (wasm binary or its supporting files). |
 | `worker_error` | The worker transport's underlying Worker fails or crashes. |
+| `wallet_locked` | The wallet is already running in another tab or window of the same origin. The daemon's browser storage is exclusive to one runtime, so `start()` fails immediately rather than corrupting or losing data. Unrelated to the `locked` phase, which means a wallet on this device is waiting to be unlocked. |
+| `runtime_lock_unavailable` | The browser refused or dropped the runtime lock request itself (for example while the document is shutting down). Unlike `wallet_locked`, this says nothing about another tab holding the wallet. |
 | `unsupported_facade_method` | A call names a method the daemon facade does not expose. |
 | `invalid_cursor` | `startActivity()` is given a cursor that is not a nonnegative safe integer. |
 | `invalid_config` | `RuntimeConfig` validation fails before the daemon starts. |
