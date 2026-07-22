@@ -537,7 +537,7 @@ function EmptyWallet({
       fg: palette.sky,
     },
     {
-      text: 'After 1 confirmation it becomes spendable in your wallet.',
+      text: 'After 1 confirmation it joins the next round.',
       bg: palette.tealSoft,
       fg: palette.teal,
     },
@@ -559,7 +559,8 @@ function EmptyWallet({
           <Text style={styles.emptyTitle}>Fund your wallet</Text>
           <Text style={styles.emptyCopy}>
             Your balance is empty. Send Bitcoin to your boarding address to
-            start. Funds become spendable after one confirmation.
+            start. Funds become spendable once they confirm and join the next
+            round.
           </Text>
           {address ? (
             <View style={styles.emptyQr}>
