@@ -122,7 +122,9 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    is unpublished, not that the pin is wrong.
 6. **Native SDK docs**: run the checkpoint below. It is cheap and usually a
    no-op, but nothing else in this procedure catches native-page drift.
-7. **Changeset + commits**: `pnpm changeset` for changed packages. Commits use
+7. **Versions + commits**: the packages version in lockstep with the daemon
+   pin; set every `packages/*/package.json` version to the pinned release
+   (without the `v`) so the release workflow's tag check passes. Commits use
    bare area prefixes (`core:`, `web:`, `docs:`, `demo:`), one logical change
    each, every commit building on its own.
 

@@ -8,14 +8,10 @@
     "check:packages": "pnpm -r --filter \"./packages/*\" exec publint && pnpm -r --filter \"./packages/*\" exec attw --pack . --profile esm-only",
     "gen:types": "node scripts/gen-types.mts",
     "gen:api-docs": "node scripts/gen-api-docs.mts",
-    "test:api-docs": "node --test scripts/api-docs/extract.test.mts",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "test:api-docs": "node --test scripts/api-docs/extract.test.mts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
-    "@changesets/cli": "^2.27.0",
     "@types/node": "^24.0.0",
     "protobufjs": "^7.4.0",
     "publint": "^0.3.21",
