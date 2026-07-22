@@ -21,7 +21,7 @@ For everyday withdrawals, cooperative leave is what you want. Direct users to a 
 
 ## Unilateral exit
 
-When the operator is unreachable or dishonest, you can broadcast pre-signed tree branches yourself. That path is slower, costs more in fees, and should never be the default "Send" action.
+When the operator is unreachable or dishonest, you can broadcast pre-signed tree branches yourself. That path is slower, costs more in fees, and should never be the default "Send" action. It is also the daemon's automatic last resort when a VTXO nears expiry without a successful refresh; see [Expiry and refresh](/concepts/expiry-and-refresh/).
 
 A **unilateral exit** (also called unilateral unroll) is the **trustless emergency** path. You broadcast the pre-signed Virtual Transaction Tree branch for your VTXO on-chain without operator cooperation, then walk the proof and checkpoint transactions until your funds sit in plain UTXOs you control.
 
