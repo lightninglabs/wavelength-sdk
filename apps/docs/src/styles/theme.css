@@ -198,6 +198,15 @@ code, pre, kbd {
   line-height: 1.7;
 }
 
+/* Code blocks carry their own vertical rhythm. Prose spacing here comes from
+   bottom margins alone (paragraphs, headings, lists), and Expressive Code
+   ships none of its own, so anything following a block sat flush against it:
+   a paragraph read as part of the frame, and two consecutive blocks fused
+   into one malformed frame. */
+:is(.wdk-doc__content, .wdk-guide__content) .expressive-code {
+  margin: 1.25rem 0;
+}
+
 :is(.wdk-doc__content, .wdk-guide__content) ul,
 :is(.wdk-doc__content, .wdk-guide__content) ol {
   color: var(--text-muted);
@@ -240,7 +249,7 @@ code, pre, kbd {
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.015em;
-  margin: 1.75rem 0 0.5rem;
+  margin: 1.75rem 0 0.625rem;
 }
 
 :is(.wdk-doc__content, .wdk-guide__content) h4 {
@@ -250,6 +259,7 @@ code, pre, kbd {
   letter-spacing: -0.015em;
   margin: 1.5rem 0 0.4rem;
 }
+
 
 /* Signature accent h2 underline motif - ported from custom.css
    (.sl-markdown-content h2::after), color keyed to per-section accent
@@ -384,6 +394,23 @@ code, pre, kbd {
      fires when the token would otherwise overflow, so identifiers that fit
      are still never broken. */
   overflow-wrap: break-word;
+}
+
+/* A heading whose text is a code span (the CLI subcommand pages title their
+   sections `ark vtxos list` and similar) is still a heading. Left to the rule
+   above it inherits the inline-code chip and renders at 0.85em of the heading,
+   so a subsection head was indistinguishable from a stray chip in the body.
+   Keep the monospace face and drop the chrome. This must stay below that rule:
+   the two selectors have equal specificity, so order is what settles it. */
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  :is(h1, h2, h3, h4, h5, h6) code {
+  font-family: var(--font-mono);
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 /* Mermaid diagrams (astro-mermaid) in doc prose. */

@@ -73,6 +73,26 @@ const id = title
     color: var(--text-muted);
   }
 
+  /* Subheadings inside a step. The global reset zeroes every margin and the
+     prose heading rules are scoped to the doc and guide layouts, so without
+     these a step's subheading sat flush against the paragraph below it and
+     read as that paragraph's bold first line. */
+  .wdk-step__body :global(:is(h3, h4)) {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin: 28px 0 10px;
+  }
+
+  .wdk-step__body :global(h3) {
+    font-size: 1.125rem;
+  }
+
+  .wdk-step__body :global(h4) {
+    font-size: 1rem;
+  }
+
   /* Inline code within prose. Background uses the surface-2 token, which is
      white in light mode and dark in dark mode - no hardcoded fallback needed. */
   .wdk-step__body :global(:not(.expressive-code) code) {
