@@ -4,7 +4,7 @@ import {
   useWalletActivity,
   useWalletBalance,
 } from "@lightninglabs/wavelength-react";
-import type { WalletKind } from "@lightninglabs/wavelength-react";
+import type { WalletKind, WavelengthError } from "@lightninglabs/wavelength-react";
 import { AppShell } from "./components/layout/AppShell";
 import { RecoveryBanner } from "./components/RecoveryBanner";
 import { ExitBanner } from "./components/ExitBanner";
@@ -273,7 +273,48 @@ export function App() {
       <StoppedScreen network={network} onStart={startRuntime} busy={runtimeBusy} />
     );
 
-  case "error":
+  case "error": {
+    // Duck-typed on `code` rather than instanceof: a duplicate bundled copy
+    // of core (the hazard core's isPasskeyCancelled documents) would fail
+    // instanceof and silently downgrade these expected conditions to the
+    // generic screen, wipe button included.
+    const errorCode = (error as WavelengthError | null)?.code;
+
+    // A wallet_locked failure is an expected multi-tab condition, not a
+    // runtime fault: another tab of this origin holds the wallet's exclusive
+    // OPFS databases. Swap the raw error surface for actionable copy; the
+    // retry succeeds once the other tab stops the runtime or closes.
+    if (errorCode === "wallet_locked") {
+      return (
+        <ErrorScreen
+          network={network}
+          title="Wallet open in another tab"
+          sub="Only one tab can run the wallet at a time."
+          message="This wallet is already running in another tab or window. Close it there (or stop its runtime), then press Try again."
+          onRetry={startRuntime}
+          busy={runtimeBusy}
+          showWipe={false}
+        />
+      );
+    }
+
+    // The browser refused the lock request itself, which says nothing about
+    // the wallet data. Retrying is the whole remedy, so keep the destructive
+    // wipe affordance out of it.
+    if (errorCode === "runtime_lock_unavailable") {
+      return (
+        <ErrorScreen
+          network={network}
+          title="Could not start just now"
+          sub="The browser would not hand over the wallet runtime lock."
+          message="Something interrupted the wallet as it was starting. Press Try again."
+          onRetry={startRuntime}
+          busy={runtimeBusy}
+          showWipe={false}
+        />
+      );
+    }
+
     return (
       <ErrorScreen
         network={network}
@@ -282,6 +323,7 @@ export function App() {
         busy={runtimeBusy}
       />
     );
+  }
 
   case "ready":
   default:
