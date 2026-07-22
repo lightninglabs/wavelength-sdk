@@ -2794,6 +2794,7 @@ export const wavelengthErrorSig = `class WavelengthError extends Error {
 export const errorCodeSig = `type WavelengthErrorCode =
   | 'wavelength_error'
   | 'runtime_not_ready'
+  | 'runtime_locked'
   | 'asset_load_failed'
   | 'worker_error'
   | 'unsupported_facade_method'
@@ -2829,6 +2830,7 @@ compatibility while still offering autocomplete on the known codes.
 |---|---|
 | `wavelength_error` | The generic default: any SDK error without a more specific code, and all daemon-originated failures today. |
 | `runtime_not_ready` | The wasm runtime is not callable: it exited before signaling ready, or its call entry point is missing once loading has finished. |
+| `runtime_locked` | `start()` in the default worker mode cannot acquire the runtime lock because another same-origin tab owns it. |
 | `asset_load_failed` | `ready()` fails to load the runtime assets (wasm binary or its supporting files). |
 | `worker_error` | The worker transport's underlying Worker fails or crashes. |
 | `unsupported_facade_method` | A call names a method the daemon facade does not expose. |

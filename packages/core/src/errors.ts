@@ -9,6 +9,7 @@
 export type WavelengthErrorCode =
   | 'wavelength_error'
   | 'runtime_not_ready'
+  | 'runtime_locked'
   | 'asset_load_failed'
   | 'worker_error'
   | 'unsupported_facade_method'
