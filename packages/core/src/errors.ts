@@ -1,16 +1,24 @@
 /**
  * A stable, machine-readable classification on {@link WavelengthError} so consumers
  * can branch without string-matching the message. The SDK's own failures use the
- * named codes; daemon-originated errors currently fall back to `'wavelength_error'`
- * (a richer daemon-code mapping is planned). The `(string & {})` arm keeps the
- * union open for forward compatibility while still offering autocomplete on the
- * known codes.
+ * named codes; most daemon-originated errors fall back to `'wavelength_error'`
+ * (a richer daemon-code mapping is planned), except storage-contention failures
+ * on `start()`, which the web transports map to `'wallet_locked'`. `'wallet_locked'` means the wallet
+ * runtime is already open in another tab or window of the same origin: the
+ * daemon's OPFS databases are exclusive, so a start attempt fails fast with this
+ * code until the other tab stops the runtime or closes. `'runtime_lock_unavailable'`
+ * means the browser refused or dropped the lock request itself (for example
+ * while the document is shutting down), which says nothing about another tab.
+ * The `(string & {})` arm keeps the union open for forward
+ * compatibility while still offering autocomplete on the known codes.
  */
 export type WavelengthErrorCode =
   | 'wavelength_error'
   | 'runtime_not_ready'
   | 'asset_load_failed'
   | 'worker_error'
+  | 'wallet_locked'
+  | 'runtime_lock_unavailable'
   | 'unsupported_facade_method'
   | 'invalid_cursor'
   | 'invalid_config'
