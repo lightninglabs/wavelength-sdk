@@ -6,8 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      RUNTIME_ASSETS_BASE_URL: ${{ vars.RUNTIME_ASSETS_BASE_URL }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -24,13 +22,6 @@ jobs:
       # Validate the packed packages: publint for packaging mistakes, attw for
       # type/runtime resolution across consumer modes (Node ESM, bundlers).
       - run: pnpm check:packages
-      - name: Fetch runtime assets for docs build
-        run: |
-          if [ -z "${RUNTIME_ASSETS_BASE_URL// }" ]; then
-            echo "::error::Set the RUNTIME_ASSETS_BASE_URL repository variable (Settings → Secrets and variables → Actions → Variables)."
-            exit 1
-          fi
-          pnpm --filter web-wallet-demo run wasm:fetch
       - name: Build docs site
         run: pnpm --filter @lightninglabs/wavelength-docs run build
       - name: Docs smoke test
