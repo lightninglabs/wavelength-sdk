@@ -10,6 +10,7 @@ import type {
 import type { WebClientOptions } from '../index.ts';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime.ts';
 import { PendingCall, errorMessage, toWavelengthEvent } from '../util.ts';
+import { WorkerRuntimeLock } from './runtime-lock.ts';
 
 type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
 
@@ -25,7 +26,10 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private readonly worker: Worker;
   private readonly pending = new Map<number, PendingCall>();
+  private readonly runtimeLock = new WorkerRuntimeLock();
+  private lifecycleTail: Promise<void> = Promise.resolve();
   private nextRequestID = 1;
+  private disposed = false;
 
   constructor(options: WebClientOptions = {}) {
     super();
@@ -63,7 +67,68 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     method: FacadeMethod,
     params: unknown = {},
   ): Promise<T> {
+    if (method === 'start') {
+      return this.startRuntime(params) as Promise<T>;
+    }
+    if (method === 'stop') {
+      return this.stopRuntime(params) as Promise<T>;
+    }
+
     return this.request<T>(method, params);
+  }
+
+  private startRuntime(params: unknown): Promise<unknown> {
+    return this.enqueueLifecycle(() => this.dispatchStart(params));
+  }
+
+  private async dispatchStart(params: unknown): Promise<unknown> {
+    this.assertNotDisposed();
+    const lockAcquiredForStart = await this.runtimeLock.acquire();
+    try {
+      this.assertNotDisposed();
+
+      return await this.request('start', params);
+    } catch (err) {
+      // A rejected start facade request means the daemon never completed
+      // startup. Release only when this call acquired the lock: a repeated
+      // start against an already-running daemon must not unlock its existing
+      // storage ownership. This catch runs before BaseWavelengthClient's
+      // separate post-start getInfo request.
+      if (lockAcquiredForStart) {
+        this.runtimeLock.release();
+      }
+      throw err;
+    }
+  }
+
+  private stopRuntime(params: unknown): Promise<unknown> {
+    return this.enqueueLifecycle(() => this.dispatchStop(params));
+  }
+
+  private async dispatchStop(params: unknown): Promise<unknown> {
+    this.assertNotDisposed();
+    const result = await this.request('stop', params);
+    // A failed stop may leave the daemon's OPFS handles alive, so release only
+    // after the facade confirms the runtime stopped.
+    this.runtimeLock.release();
+
+    return result;
+  }
+
+  private enqueueLifecycle<T>(operation: () => Promise<T>): Promise<T> {
+    const request = this.lifecycleTail.then(operation, operation);
+    this.lifecycleTail = request.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return request;
+  }
+
+  private assertNotDisposed(): void {
+    if (this.disposed) {
+      throw new WavelengthError('Wavelength client disposed', 'worker_error');
+    }
   }
 
   private request<T = unknown>(
@@ -130,6 +195,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
       // not hang, and emit runtimeStopped so subscribers (e.g. the provider)
       // move the lifecycle off 'ready' instead of appearing alive after the
       // engine died.
+      this.runtimeLock.release();
       this.rejectAll(
         new WavelengthError(
           data.fatal.message || 'Wavelength worker stopped',
@@ -184,12 +250,14 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   }
 
   dispose(): void {
+    this.disposed = true;
     super.dispose();
     // Terminating the worker fires neither onerror nor a fatal message, so
     // reject any in-flight calls here so they do not hang past disposal.
     this.rejectAll(
       new WavelengthError('Wavelength client disposed', 'worker_error'),
     );
+    this.runtimeLock.dispose();
     this.worker.terminate();
   }
 }
