@@ -5,8 +5,9 @@
  * daemon, so they ship together and must be hosted side by side at a single base
  * URL.
  *
- * This is the single source of truth for the (future) CDN publish step and the
- * self-host instructions. The standalone worker (wavewalletdk-worker.js) cannot
+ * This is the single source of truth for the self-host instructions, and the
+ * set the release archive is expected to carry. The standalone worker
+ * (wavewalletdk-worker.js) cannot
  * import this module, so it mirrors these names literally; keep the two in sync.
  *
  * The version of the asset set (RUNTIME_MANIFEST_VERSION) lives in core, next

@@ -7,8 +7,8 @@
  * Hosted runtime assets live in a directory named after this value
  * (`<assets root>/<RUNTIME_MANIFEST_VERSION>/<file>`), so every asset set gets
  * a unique URL and a browser can never serve a stale cached runtime. Bump it
- * together with regenerating the daemon types and publishing the matching
- * asset set.
+ * together with regenerating the daemon types, and only to a published
+ * wavelength release: the matching asset set is attached to that release.
  *
  * Build tooling reads this value from the source text via
  * scripts/runtime-version.mjs, so keep the declaration in this exact

@@ -4,10 +4,45 @@ on:
   push:
     branches: [main]
 jobs:
+  # The deploy workflow downloads the runtime asset set from the wavelength
+  # release named by RUNTIME_MANIFEST_VERSION, so a pin that resolves to no
+  # downloadable archive fails every push to main once merged, including
+  # unrelated changes. Probing it here keeps that failure on the PR that causes
+  # it. A sync PR may legitimately sit on a commit-sha pin while the daemon
+  # release is still unpublished: this check is expected to be red for that
+  # stretch, and turns green once the pin is flipped to the published tag.
+  # Deliberately its own job so it stays a fast, standalone required check
+  # rather than waiting on an install and a full build.
+  runtime-pin:
+    name: Pinned runtime is downloadable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 24 }
+      # A HEAD request costs nothing next to the 40MB archive, and covers every
+      # way the pin can be undeployable: no such tag, a release still in draft
+      # (whose assets are not publicly downloadable), or an archive that never
+      # got attached.
+      - name: Probe the pinned runtime archive
+        run: |
+          VERSION="$(node scripts/runtime-version.mjs)"
+          URL="https://github.com/lightninglabs/wavelength/releases/download/$VERSION/Wavewalletdk.wasm.tar.gz"
+          if curl -fsSLI --retry 3 --retry-delay 2 -o /dev/null "$URL"; then
+            echo "::notice::Runtime pin $VERSION resolves to a published release archive."
+            exit 0
+          fi
+          # Tell the two cases apart. Tag-shaped but undownloadable is the
+          # surprising one: it looks like the pin was already flipped.
+          if [[ "$VERSION" == v[0-9]* ]]; then
+            echo "::error::Runtime pin $VERSION looks like a release tag, but $URL is not downloadable. The wavelength release is most likely still a draft, since draft assets are not public. Publish it, then re-run this check."
+          else
+            echo "::error::Runtime pin $VERSION is not a published wavelength release tag, so the Pages deploy would fail on merge. This is expected while a sync is prepared against an unreleased daemon revision. Before merging, flip RUNTIME_MANIFEST_VERSION in packages/core/src/version.ts to the release tag."
+          fi
+          exit 1
+
   build:
     runs-on: ubuntu-latest
-    env:
-      RUNTIME_ASSETS_BASE_URL: ${{ vars.RUNTIME_ASSETS_BASE_URL }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -24,13 +59,6 @@ jobs:
       # Validate the packed packages: publint for packaging mistakes, attw for
       # type/runtime resolution across consumer modes (Node ESM, bundlers).
       - run: pnpm check:packages
-      - name: Fetch runtime assets for docs build
-        run: |
-          if [ -z "${RUNTIME_ASSETS_BASE_URL// }" ]; then
-            echo "::error::Set the RUNTIME_ASSETS_BASE_URL repository variable (Settings → Secrets and variables → Actions → Variables)."
-            exit 1
-          fi
-          pnpm --filter web-wallet-demo run wasm:fetch
       - name: Build docs site
         run: pnpm --filter @lightninglabs/wavelength-docs run build
       - name: Docs smoke test

@@ -9,122 +9,137 @@ metadata:
 
 ## Overview
 
-One pinned daemon revision drives four committed artifacts that must move
+One pinned daemon revision drives three committed artifacts that must move
 together: the generated facade types (`packages/core/src/generated.ts`), the
-API reference data (`apps/docs/src/data/api/wallet.json`), the wasm runtime
-asset set, and the pin itself (`RUNTIME_MANIFEST_VERSION` in
-`packages/core/src/version.ts`). A sync is complete only when all four match
-the same daemon commit and the verification ladder passes.
+API reference data (`apps/docs/src/data/api/wallet.json`), and the pin itself
+(`RUNTIME_MANIFEST_VERSION` in `packages/core/src/version.ts`). The wasm
+runtime asset set is gitignored and staged from the pin, not committed. A sync
+is complete when the three match the same daemon commit and the verification
+ladder passes.
 
 All generators read the wavelength checkout at `../wavelength` or
-`$WAVELENGTH_DIR`. There may be no directory literally named `wavelength`:
-the checkout can keep a pre-rename directory name, so find it by remote, not
-by name (look for `github.com/lightninglabs/wavelength` in `git remote -v`
-across the candidate repo directories; the matching remote may have a name
-other than `origin`). Do not move the shared
-checkout to the target commit: it is often behind the remote and may have
-local edits, so a fast-forward or stash disturbs someone else's working
-tree. Instead pin the daemon revision in an isolated, throwaway worktree and
-point `WAVELENGTH_DIR` at it:
+`$WAVELENGTH_DIR`. There may be no directory literally named `wavelength`, so
+find it by remote (`github.com/lightninglabs/wavelength` in `git remote -v`,
+under any remote name), not by directory name. Do not move the shared checkout
+to the target commit: it is often behind the remote and may have local edits,
+so a fast-forward or stash disturbs someone else's working tree. Use a
+throwaway worktree instead:
 
 ```sh
 cd <daemon checkout> && git fetch <remote> --tags
-# Resolve a release tag to its commit: rev-parse on an annotated tag returns
-# the tag OBJECT hash, so always dereference with ^{commit}.
-git rev-parse --short 'v<X.Y.Z>^{commit}'
+# <target> is the release tag (v<X.Y.Z>) or, when preparing a sync ahead of
+# the tag, the daemon commit SHA. rev-parse on an annotated tag returns the
+# tag OBJECT hash, so always dereference with ^{commit}.
 git worktree add --detach /tmp/wavelength-<version> '<target>^{commit}'
 export WAVELENGTH_DIR=/tmp/wavelength-<version>            # absolute path
 # ... run the whole sync ...
 cd <daemon checkout> && git worktree remove --force /tmp/wavelength-<version>
 ```
 
-Survey the upstream range before regenerating anything, and do not trust a
-plain `git diff --stat` when the range crosses an upstream tree or package
-rename: every file shows as a whole-file insertion and the real changes
-drown. Use rename detection (`git diff -M <pin>..<target>`), then find the
-substantive diffs by filtering out the rename vocabulary, e.g. count
-non-rename lines per file with a `grep -vE '<old-name>|<new-name>|...'` over
-the `-M` diff. A file whose filtered count is zero changed in name only.
-
-## Quick reference: what changed upstream -> what to touch here
+## What changed upstream -> what to touch here
 
 | Upstream change | Regenerate | Hand-update |
 |---|---|---|
-| Facade type fields (`sdk/wavewalletdk`) | `pnpm gen:types` | Consumers of renamed fields: `git grep <old_field>` across `packages/`, `apps/`. Every RPC verb is mapped once in `packages/core/src/base-client.ts` (the transports in `packages/web/src/clients/` and `packages/react-native/` only supply `callRaw`, no per-verb mappers). `requests.ts`/`results.ts` stay hand-authored (see `docs/codegen.md`) |
-| WalletService RPC added/removed | `pnpm gen:api-docs` | `API_NAV` (it IS in `apps/docs/src/config/nav.ts`, below the SDK `NAV` array); `API_CLI`, `API_CLI_INVOCATION`, `API_SAMPLES` in `apps/docs/src/config/api.ts`; the whole client surface, all in `packages/core`: interface in `client.ts`, request/result types in `requests.ts`/`results.ts`, impl in `base-client.ts` (one place; the transports pipe `callRaw` and need no edit), the public barrel `index.ts`, and `testing/fake-client.ts` (it `implements WavelengthClient`, so a new method fails typecheck until added); the client is documented only on `apps/docs/src/content/docs/reference/wavelength-core.mdx` (the web/RN reference pages re-export core and carry no method list), and any new inline reference type must be registered in `apps/docs/src/config/api-links.ts` (`coreSymbols` + `inlineTypeOwners`) for its deep link to resolve; docs Playwright tests that hardcode the method count must move (see the CLI/docs test note below) |
+| Facade type fields (`sdk/wavewalletdk`) | `pnpm gen:types` | Consumers of renamed fields (`git grep <old_field>` across `packages/`, `apps/`). Every RPC verb is mapped once in `packages/core/src/base-client.ts`; transports supply only `callRaw`. `requests.ts`/`results.ts` stay hand-authored (see `docs/codegen.md`) |
+| WalletService RPC added/removed | `pnpm gen:api-docs` | The RPC checklist below |
 | RPC/field doc comments only | `pnpm gen:api-docs` | Nothing (pages render from wallet.json) |
-| DaemonService RPCs/messages (`waverpc/daemon.proto`) | Nothing | wallet.json covers `WalletService` ONLY, so an empty wallet.json diff after a large daemon.proto change is expected, not a generator failure. This lands as CLI/prose docs work (step 4): `wavecli` is the DaemonService client, so check `cmd_*.go` for the surfaced flags |
-| wavecli flags/commands | Nothing | The command's page in `apps/docs/src/content/docs/cli/` (see CLI docs rules below); a new top-level command also needs `CLI_NAV` + a new page. A REMOVED top-level command must be deleted in lockstep: its `cli/<cmd>.mdx` page, its `CLI_NAV` entry, its row in the `cli.mdx` command table, and its slug in `apps/docs/tests/cli.spec.ts`'s hardcoded advanced-command list (`git grep -n <cmd> apps/docs` to find stragglers) |
+| DaemonService RPCs/messages (`waverpc/daemon.proto`) | Nothing | wallet.json covers `WalletService` ONLY, so an empty wallet.json diff after a large daemon.proto change is expected, not a generator failure. It lands as CLI/prose docs work (step 4); `wavecli` is the DaemonService client, so check `cmd_*.go` |
+| wavecli flags/commands | Nothing | The command's page in `apps/docs/src/content/docs/cli/`; a new top-level command also needs a `CLI_NAV` entry. A REMOVED one must be deleted in lockstep: its `cli/<cmd>.mdx`, its `CLI_NAV` entry, its row in the `cli.mdx` table, and its slug in `apps/docs/tests/cli.spec.ts`'s hardcoded slug list (`git grep -n <cmd> apps/docs` finds stragglers) |
 | Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes |
-| Wasm runtime build | `wasm:local` (below) | Bump `RUNTIME_MANIFEST_VERSION` first |
-| Runtime asset FILE LIST | Nothing | Four places in lockstep: `packages/web/src/runtime-manifest.ts` (`RUNTIME_ASSET_FILES`), `apps/web-wallet-demo/scripts/wasm-local.sh`, `apps/web-wallet-demo/scripts/fetch-runtime-assets.sh`, `apps/docs/scripts/copy-runtime-assets.mjs` |
-| Gomobile facade (`sdk/wavewalletdk/mobile`) | Nothing | Native SDK docs checkpoint (section below) |
+| Wasm runtime build | `wasm:local` (step 5) | Bump the pin first |
+| Runtime asset FILE LIST | Nothing | Three places in lockstep: `packages/web/src/runtime-manifest.ts` (`RUNTIME_ASSET_FILES`), `apps/web-wallet-demo/scripts/wasm-local.sh`, `apps/web-wallet-demo/scripts/fetch-runtime-assets.sh`. A fourth lives upstream in wavelength's `mobile-bindings.yml`, which packs the release archive |
+| Gomobile facade (`sdk/wavewalletdk/mobile`) | Nothing | Native SDK docs checkpoint (below) |
+
+## RPC checklist
+
+Adding or removing a WalletService RPC touches more places than any other
+change class:
+
+- **`packages/core`**: interface in `client.ts`, types in `requests.ts` /
+  `results.ts`, impl in `base-client.ts` (one place; transports pipe
+  `callRaw`), the barrel `index.ts`, and `testing/fake-client.ts` (it
+  `implements WavelengthClient`, so a missing method fails typecheck).
+- **Docs config**: `API_NAV` in `apps/docs/src/config/nav.ts` (it is there,
+  below the SDK `NAV` array); `API_CLI`, `API_CLI_INVOCATION`, `API_SAMPLES`
+  in `config/api.ts`; any new inline reference type in `config/api-links.ts`
+  (`coreSymbols` + `inlineTypeOwners`), or its deep link will not resolve.
+- **Reference prose**: only
+  `apps/docs/src/content/docs/reference/wavelength-core.mdx`. The web and RN
+  pages re-export core and carry no method list.
+- **Docs tests hardcoding the method count**: `apps/docs/tests/nav.spec.ts`
+  and `api-data.spec.ts` assert a literal, as both a numeral and an English
+  word, so grep for both. `api-method.spec.ts` and `agent-artifacts.spec.ts`
+  iterate every method, so the new page must build and be reachable.
 
 ## Ordered procedure
 
 ```sh
-export WAVELENGTH_DIR=/absolute/path/to/wavelength   # an isolated worktree at
-                                                     # the release (see Overview)
+export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
+                                                     # release (see Overview)
 ```
 
 1. **Pin**: set `RUNTIME_MANIFEST_VERSION` in `packages/core/src/version.ts`
-   to the release tag name when syncing to a tag (`v0.1.0`), or the daemon
-   short commit hash when syncing to an untagged revision. Keep the exact
-   single-quoted literal form;
-   `scripts/runtime-version.mjs` parses the source text.
+   to the release tag (`v0.1.0`), or to the daemon short commit hash when
+   preparing a sync ahead of the tag. Keep the exact single-quoted literal
+   form; `scripts/runtime-version.mjs` parses the source text. A hash pin is
+   the normal way to get a sync reviewed before the release exists: open the
+   PR on the hash, then flip to the tag before merging. CI's `runtime-pin` job
+   stays red until the pin names a published release, so expect it red for the
+   whole review, and never merge it red.
 2. **Types**: `pnpm gen:types` (needs Go + tygo). Review the generated.ts
    diff, then grep-and-fix hand-authored consumers per the table. Two upstream
-   changes surface here as generator problems, both fixed inside
-   `scripts/gen-types.mts`, never by hand-editing generated.ts:
+   changes surface as generator problems, both fixed in `scripts/gen-types.mts`
+   and never by hand-editing generated.ts:
    - A build failure `'any' only refers to a type` means the facade added an
      exported scalar const assigned from another package (e.g.
      `MaxSigningWorkers = waved.MaxSigningWorkers`); tygo cannot inline the
      value and emits `export const X = any /* ... */;`. gen-types strips such
      unresolved consts; extend that strip if a new shape slips through.
-   - Em-dashes in upstream Go doc comments reach generated.ts verbatim; gen-types
-     sanitizes them to hyphens (mirroring the api-docs extractor). If the
-     em-dash check still trips on generated.ts, the sanitizer regressed.
+   - Em-dashes in upstream Go doc comments reach generated.ts verbatim.
+     gen-types sanitizes them to hyphens, so if the em-dash check trips on
+     generated.ts, the sanitizer regressed.
 3. **API data**: `pnpm gen:api-docs`. Its gates fail loudly by design:
-   - Nav drift: update `API_NAV` (and the curation maps in `config/api.ts`)
-     for added/removed RPCs, then re-run. Never weaken the check.
-   - Missing doc comments: the fix is adding comments upstream in
-     wallet.proto, never tolerating empty descriptions.
+   - Nav drift: update `API_NAV` (and the curation maps in `config/api.ts`),
+     then re-run. Never weaken the check.
+   - Missing doc comments: fix by adding comments upstream in wallet.proto,
+     never by tolerating empty descriptions.
    - Run it twice; the second run must produce a byte-identical wallet.json.
    - Sample keys in `API_SAMPLES` must be real request field names (a spec
-     enforces this); em-dashes are sanitized at extraction automatically.
+     enforces this).
 4. **CLI/prose docs**: author from wavelength source
    (`cmd/wavecli/waveclicommands/cmd_*.go`: `Flags()` registrations with
-   defaults, which RPC the `RunE` calls), NEVER from `--help` output (build
-   tags hide commands and help text omits exit codes/JSON shapes). Every
-   subcommand gets its own section with its own flags table (`ApiSymbol` +
-   `ParamsTable` on reference-layout pages like ark/recovery; `###`
-   headings on doc-layout pages like exit). Verify operational claims in the
-   API prose pages against `waved/config.go` and `gateway_server.go`.
-5. **Runtime assets**: `pnpm --filter web-wallet-demo run wasm:local`
-   (builds from `$WAVELENGTH_DIR`, stages into `public/runtime/<version>/`).
-   Hosted asset sets live under `<assets root>/<RUNTIME_MANIFEST_VERSION>/`;
-   the deploy workflow fetches by that path.
-6. **Native SDK docs**: run the Native SDK docs checkpoint (its own section
-   below). It is cheap and usually a no-op, but it is the only step that
-   catches native-page drift, and nothing else in this procedure covers it.
-7. **Changeset + commits**: `pnpm changeset` for changed packages. Commits
-   use bare area prefixes (`core:`, `web:`, `docs:`, `demo:`), one logical
-   change each, every commit building on its own.
+   defaults, and which RPC the `RunE` calls), NEVER from `--help` output
+   (build tags hide commands, and help text omits exit codes and JSON shapes).
+   Every subcommand gets its own `###` section with its own flags table.
+   Verify operational claims against `waved/config.go` and
+   `gateway_server.go`.
+5. **Runtime assets**: `pnpm --filter web-wallet-demo run wasm:local` (builds
+   from `$WAVELENGTH_DIR` into `public/runtime/<version>/`; bump the pin first
+   or it stages under the OLD version). The deploy instead fetches
+   `Wavewalletdk.wasm.tar.gz` from the release named by the pin. That archive
+   lands on a DRAFT release and draft assets are not publicly downloadable, so
+   a tag-shaped pin that `runtime-pin` still rejects usually means the release
+   is unpublished, not that the pin is wrong.
+6. **Native SDK docs**: run the checkpoint below. It is cheap and usually a
+   no-op, but nothing else in this procedure catches native-page drift.
+7. **Changeset + commits**: `pnpm changeset` for changed packages. Commits use
+   bare area prefixes (`core:`, `web:`, `docs:`, `demo:`), one logical change
+   each, every commit building on its own.
 
 ## Verification ladder (run in this order)
 
 ```sh
 pnpm build && pnpm typecheck        # build FIRST; typecheck resolves dist/*.d.ts
-pnpm test:api-docs                  # extractor unit tests (7+)
+pnpm test:api-docs                  # extractor unit tests
 pnpm --filter @lightninglabs/wavelength-web test
 # Docs Playwright: its webServer has reuseExistingServer:true on port 4321, so
 # it will silently attach to a stale preview from another worktree/session and
 # serve an OLD build (a 404 for a brand-new page is almost always this, not a
 # code bug). Pass a free PORT so it builds and serves THIS worktree fresh:
-PORT=4399 WAVELENGTH_DIR=... pnpm --filter @lightninglabs/wavelength-docs test
+PORT=4399 pnpm --filter @lightninglabs/wavelength-docs test
 WAVELENGTH_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
   pnpm --filter web-wallet-demo run build && \
-  pnpm --filter web-wallet-demo run test   # Playwright smoke test: the gold standard
+  pnpm --filter web-wallet-demo run test   # Playwright smoke test: gold standard
 
 # No em-dash, ever. `git grep -nP '\x{2014}'` fails on git builds without
 # Unicode \x{} PCRE; this perl form is portable:
@@ -132,88 +147,49 @@ perl -CSD -ne 'print "$ARGV:$.\n" if /\x{2014}/' $(git ls-files packages apps sc
 ```
 
 A *deterministic* smoke-test failure is often a legitimate daemon behavior
-change, not a regression: read the trace's page snapshot
-(`test-results/.../error-context.md`) before assuming the wallet broke. This
-run, a just-created invoice began surfacing as a pending "Received" activity
-row (it previously stayed hidden until settlement), so the assertion moved
-rather than the code. Update the assertion to the new behavior; do not skip
-the test.
+change rather than a regression. Read the trace's page snapshot
+(`test-results/.../error-context.md`) before assuming the wallet broke, then
+move the assertion to the new behavior. Do not skip the test.
 
 ## Native SDK docs checkpoint (wavelength-mobile)
 
-The docs site's Native iOS & Android pages
-(`apps/docs/src/content/docs/native-ios-android/`) condense material from the
-wavelength-mobile repo. Find that checkout at `repos/wavelength-mobile`
-alongside the daemon checkout; if the directory is missing or renamed, match a
-remote of `lightninglabs/wavelength-mobile`. Older clones may still carry the
-pre-rename `lightninglabs/damobile` URL, which GitHub redirects, so accept
-either. Note `lightninglabs/wavelength-mobile` CONTAINS the daemon's
-`lightninglabs/wavelength`, so match the full path, not a prefix, or you will
-land on the daemon repo. Those pages track wavelength-mobile's published state,
-not the daemon tag, so they never block a daemon sync. After the main sync, run
-this checkpoint:
+`apps/docs/src/content/docs/native-ios-android/` condenses the
+wavelength-mobile repo. Find that checkout by a remote of
+`lightninglabs/wavelength-mobile`; older clones may carry the pre-rename
+`lightninglabs/damobile` URL, which GitHub redirects. Match the full path, not
+a prefix, or `lightninglabs/wavelength` will match and land you on the daemon.
 
-1. Run the mini-pass, every time. It is three pages and costs minutes. Do NOT
-   gate it on the daemon facade having changed: these pages track
-   wavelength-mobile, which can rename `WalletClient`, reshape its models, or
-   rewrite its docs with no daemon release at all, so an unchanged
-   `sdk/wavewalletdk/mobile` is not evidence the pages are still accurate.
-2. Then decide whether a daemon-driven follow-up is also needed. Did
-   `sdk/wavewalletdk/mobile` change in the release range?
+These pages track wavelength-mobile's published state, not the daemon tag, so
+they never block a sync. After the main sync:
+
+1. **Run the mini-pass every time**, even when `sdk/wavewalletdk/mobile` did
+   not change: wavelength-mobile can rename types or rewrite its docs with no
+   daemon release at all, so an unchanged facade is not evidence the pages are
+   accurate. Each page opens with an MDX comment naming its upstream basis;
+   diff its claims and snippets against that basis and confirm outbound links
+   resolve. Three pages, and the quickstart's snippets are the only code.
+2. If `sdk/wavewalletdk/mobile` changed in the range
    (`git -C $WAVELENGTH_DIR diff --stat <pin>..<target> -- sdk/wavewalletdk/mobile`)
-   - Unchanged: nothing further; the mini-pass in step 1 was the whole job.
-   - Changed, and wavelength-mobile has adopted the new bindings (its fetch
-     scripts default to the latest wavelength release; check its recent commits
-     or its README against the new facade): the step 1 mini-pass already
-     covered it.
-   - Changed, but wavelength-mobile has not adopted it yet: file a `.tasks/`
-     follow-up titled "native docs mini-pass once wavelength-mobile adopts
-     <version>" and finish the sync. The pages remain truthful in the meantime
-     (they describe the published wrapper and link out to wavelength-mobile at
-     `main` for volatile detail).
-
-**The mini-pass** (verification, not a rewrite): each native page opens with
-an MDX comment naming its upstream basis (a wavelength-mobile source file, or
-an explicit note that the page has none). For each page, diff its claims and
-snippets against that basis in the wavelength-mobile checkout, and confirm its
-outbound links still resolve. Scope is three pages; the quickstart's snippets
-are the only code to verify.
+   but wavelength-mobile has not adopted it yet, file a `.tasks/` follow-up and
+   finish the sync. The pages stay truthful meanwhile, since they describe the
+   published wrapper and link out for volatile detail.
 
 ## Common mistakes
 
-- Running `pnpm typecheck` before `pnpm build` on a fresh checkout (cross-package imports resolve through built `dist/*.d.ts`).
-- Rebuilding wasm before bumping the pin: `wasm-local.sh` stages into a directory named by the OLD version.
-- Editing `apps/docs/src/data/api/wallet.json` or `packages/core/src/generated.ts` by hand; both are generated and committed. A `tsc` failure on generated.ts usually means tygo emitted a new cross-package const as `= any` (fix in `gen-types.mts`, item in step 2).
+- Guessed package filters: the docs app is `@lightninglabs/wavelength-docs`,
+  the web package is `@lightninglabs/wavelength-web`, the demo is
+  `web-wallet-demo`.
+- Hand-editing `apps/docs/src/data/api/wallet.json` or
+  `packages/core/src/generated.ts`. Both are generated and committed.
 - Documenting CLI flags from `--help` or memory instead of `cmd_*.go`.
-- Adding/removing a WalletService RPC without bumping the docs tests that hardcode the method count: `apps/docs/tests/nav.spec.ts` and `api-data.spec.ts` assert a literal count (as both a numeral and an English word, so grep for both), and `api-method.spec.ts` + `agent-artifacts.spec.ts` iterate every method (so the new page must actually build and be reachable).
-- Forgetting that a new interface method breaks `packages/core/src/testing/fake-client.ts` (it `implements WavelengthClient`) and must be added to `packages/core/src/index.ts`.
-- Changing the runtime asset file list in fewer than all four places.
-- Guessed package filters: the docs app is `@lightninglabs/wavelength-docs`, the web package is `@lightninglabs/wavelength-web`, the demo is `web-wallet-demo`.
 
 ## After the sync: improve this skill
 
-Every wavelength release differs, so each run teaches something. Before you
-finish, reflect on the run and propose concrete edits to THIS file, then apply
-them on approval. Look specifically for:
-
-- **Stale or wrong instructions**: a path/command/filter that did not exist or
-  did not work as written (correct it, do not just note it).
-- **New gotchas**: a build/test/generator failure whose cause was not obvious
-  from the skill, or an upstream change shape not covered by the quick-reference
-  table (add a row or a Common-mistakes line).
-- **Friction that cost time**: anything you had to discover by trial and error
-  that a one-line warning would have prevented.
-
-Propose ONLY changes that will pay off on future runs. The test for a
-candidate edit: would it have helped on a typical sync, or only on the exact
-change this release happened to carry? A lesson tied to one specific upstream
-change (one field, one file, one command's quirk) is a one-off; leave it out,
-it is easy to rediscover if it ever recurs. Durable environment facts (where
-the checkout lives, how a tool misbehaves on every run) and recurring change
-CLASSES (a new kind of upstream change the table should route) generalize;
-those belong here.
-
-Keep additions terse and specific (name the file, the symptom, the fix); prune
-anything the run proved obsolete. Propose the diff to the user rather than
-committing it silently. Skip only if the run surfaced nothing the skill did not
-already cover.
+Every release differs, so propose concrete edits to THIS file before
+finishing, and apply them on approval. The test for a candidate edit: would it
+help on a typical sync, or only on the exact change this release happened to
+carry? Durable environment facts and recurring change CLASSES belong here; a
+lesson tied to one field, file, or command quirk is a one-off that is easy to
+rediscover, so leave it out. Correct stale instructions rather than noting
+them, prune what the run proved obsolete, keep additions terse (name the file,
+the symptom, the fix), and propose the diff rather than committing it.
