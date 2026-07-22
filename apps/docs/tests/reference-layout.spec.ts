@@ -82,7 +82,7 @@ test('reference type badges link to their documented API symbols', async ({ page
   await page.goto('/reference/wavelength-core/');
 
   const factory = page.locator('[data-symbol]#createWalletEngine');
-  await expect(factory.locator('.param-type-link').first()).toHaveAttribute(
+  await expect(factory.locator('.wdk-params__type-link').first()).toHaveAttribute(
     'href',
     '/reference/wavelength-core/#WalletEngineOptions',
   );
@@ -93,9 +93,9 @@ test('reference type badges link to their documented API symbols', async ({ page
 
   // Literal and compound labels stay plain code rather than becoming noisy
   // links with an imprecise destination.
-  await expect(factory.locator('.param-type-link')).toHaveCount(3);
+  await expect(factory.locator('.wdk-params__type-link')).toHaveCount(3);
   await expect(
-    factory.locator('.param-type').filter({ hasText: 'true | false' }).locator('.param-type-link'),
+    factory.locator('.wdk-params__type').filter({ hasText: 'true | false' }).locator('.wdk-params__type-link'),
   ).toHaveCount(0);
 });
 

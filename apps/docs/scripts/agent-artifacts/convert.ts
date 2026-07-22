@@ -63,7 +63,11 @@ const SEPARATED_ROWS: ReadonlyArray<readonly [string, string]> = [
   ['wdk-endpoint__row', ': '],
   ['wdk-endpoint__code', ' '],
   ['wdk-api__h2', ' '],
-  ['wdk-fields__name', ' '],
+  // The parameter and field lists put the name, its type, and any badge in
+  // sibling elements inside the entry's head row, so the separator belongs on
+  // the head, not on the name (which holds only its own text).
+  ['wdk-params__head', ' '],
+  ['wdk-fields__head', ' '],
 ];
 
 // Rewrites site-specific markup into plain HTML that rehype-remark
@@ -140,9 +144,22 @@ function normalize(body: Element): void {
 
     // Symbol entries render their name as an h2, the same level as the
     // section headings they sit under, which flattens the outline in the
-    // markdown mirror. Demote them so the hierarchy survives.
-    if (node.tagName === 'h2' && cls.includes('wdk-symbol__name')) {
-      node.tagName = 'h3';
+    // markdown mirror. Demote the whole symbol a level: the name, and any
+    // heading authored inside its body. Demoting the name alone would push it
+    // onto the same level as its own subsections, so a subsection would read
+    // as the next sibling symbol.
+    if (cls.includes('wdk-symbol') && !cls.includes('wdk-symbol__')) {
+      const headings = [
+        ...selectAll('h2, h3, h4, h5', node),
+        ...(node.tagName === 'h2' ? [node] : []),
+      ];
+      // Deepest first, so a heading is never demoted twice in one pass.
+      headings
+        .sort((a, b) => Number(b.tagName[1]) - Number(a.tagName[1]))
+        .forEach((h) => {
+          const level = Number(h.tagName[1]);
+          if (level < 6) h.tagName = `h${level + 1}`;
+        });
       return undefined;
     }
 

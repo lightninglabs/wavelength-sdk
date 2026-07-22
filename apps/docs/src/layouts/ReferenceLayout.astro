@@ -192,6 +192,9 @@ const accent = accentForSlug(entry.id);
     margin: 1rem 0;
   }
 
+  /* Keep identifiers in table cells on one line so they never break mid-word.
+     Only plain markdown tables reach this now; parameter lists are not
+     tables (see ParamsTable.astro). */
   .wdk-ref__content :global(td code) {
     white-space: nowrap;
   }

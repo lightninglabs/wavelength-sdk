@@ -319,7 +319,7 @@ code, pre, kbd {
      friends) sits inside the content container but is navigation chrome, and
      this selector's specificity would otherwise beat its own border: none. */
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link) {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link) {
   color: var(--link-prose);
   text-decoration: none;
   border-bottom: 1px dashed color-mix(in srgb, currentColor 55%, transparent);
@@ -327,7 +327,7 @@ code, pre, kbd {
 }
 
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link):hover {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link):hover {
   color: var(--text);
   border-bottom-color: currentColor;
 }
@@ -336,18 +336,18 @@ code, pre, kbd {
    it the same muted color as an unlinked code span. Keep the chip border, but
    remove the prose link underline for this compact API treatment. */
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link) > code {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link) > code {
   color: var(--link-prose);
   border-bottom-color: var(--border);
 }
 
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link):has(> code) {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link):has(> code) {
   border-bottom: none;
 }
 
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link):hover > code {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link):hover > code {
   color: var(--text);
   border-bottom-color: var(--border);
 }
@@ -753,7 +753,7 @@ code, pre, kbd {
   line-height: 1.6;
 }
 
-/* Tables - from r4-final .params-table. Scrolls horizontally instead of
+/* Prose tables (CLI flag grids and similar). Scrolls horizontally instead of
    wrapping cell text, so identifiers like flag names never break mid-word. */
 :is(.wdk-doc__content, .wdk-guide__content) table {
   display: block;

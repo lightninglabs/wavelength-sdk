@@ -108,8 +108,11 @@ const { name, kind } = Astro.props;
   }
 
   /* Inline code within symbol body. Background uses the surface-2 token, which
-     resolves correctly in both light and dark mode without a hardcoded fallback. */
-  .wdk-symbol__body :global(:not(.expressive-code) code) {
+     resolves correctly in both light and dark mode without a hardcoded fallback.
+     The parameter list styles its own name and type (ParamsTable.astro) and is
+     excluded here: this selector would otherwise outrank the component's own
+     rules and flatten that treatment. */
+  .wdk-symbol__body :global(:not(.expressive-code) code:not(.wdk-params__name):not(.wdk-params__type)) {
     font-family: var(--font-code, 'JetBrains Mono', monospace);
     font-size: 0.85em;
     background: var(--surface-2);
