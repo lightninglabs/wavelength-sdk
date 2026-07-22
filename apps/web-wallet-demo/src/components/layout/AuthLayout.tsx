@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { BrandMark } from "../ui/BrandMark";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { BrandPanel } from "./BrandPanel";
 
@@ -21,9 +22,19 @@ export function AuthLayout({
   return (
     <div className="relative grid min-h-screen w-full bg-bg text-fg lg:grid-cols-2">
       <BrandPanel network={network} />
-      <div className="flex items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full" style={{ maxWidth: wide ? 540 : 420 }}>
-          {children}
+      <div className="flex flex-col px-4 sm:px-8">
+        {/* Below lg the brand panel is hidden, so the lockup rides here at the
+            top of the page, on the theme toggle's baseline. Inside the form
+            block it travelled with the vertically centred content and came to
+            rest halfway down the screen, reading as a stray mark rather than
+            the page's identity. */}
+        <div className="pt-4 sm:pt-6 lg:hidden">
+          <BrandMark size="sm" />
+        </div>
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full" style={{ maxWidth: wide ? 540 : 420 }}>
+            {children}
+          </div>
         </div>
       </div>
       <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
