@@ -1,0 +1,83 @@
+name: release
+
+# Publishing is driven by GitHub releases, the same process as lnc-core and
+# lnc-web: creating a release pushes its v* tag and this workflow publishes
+# every package at that tag. The packages version in lockstep with the pinned
+# daemon revision, so a single repo-wide tag names all four versions.
+#
+# The trigger is `published` rather than `created` so that a release saved as
+# a draft (whose tag does not exist yet) does not start a run that fails at
+# checkout; publishing the draft fires the run.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  # Mint the OIDC token that npm trusted publishing exchanges for credentials.
+  id-token: write
+
+jobs:
+  publish:
+    # Only tag-shaped releases are publishes; anything else (a docs milestone,
+    # a mistagged release) should not spin up an install and build just to
+    # fail the version check.
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # Catch a release cut before the sync landed: the tag, every package
+      # version, and the pinned daemon revision must all agree, since the
+      # packages version in lockstep with the daemon pin. The GitHub
+      # release's pre-release checkbox must also agree with the version, so
+      # an RC never presents on the releases page as the latest stable and a
+      # stable release never hides as a pre-release.
+      - name: Check the tag matches the package versions and daemon pin
+        env:
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PIN="$(node scripts/runtime-version.mjs)"
+          if [[ "$PIN" != "$GITHUB_REF_NAME" ]]; then
+            echo "::error::RUNTIME_MANIFEST_VERSION is $PIN but the release tag is $GITHUB_REF_NAME. The packages version in lockstep with the daemon pin; fix the tag or the pin."
+            exit 1
+          fi
+          if [[ "$TAG" == *-* && "$PRERELEASE" != "true" ]]; then
+            echo "::error::$GITHUB_REF_NAME is a prerelease version but the GitHub release is not marked as a pre-release. Recreate the release with the pre-release box checked."
+            exit 1
+          fi
+          if [[ "$TAG" != *-* && "$PRERELEASE" == "true" ]]; then
+            echo "::error::$GITHUB_REF_NAME is a stable version but the GitHub release is marked as a pre-release. Recreate the release without the pre-release box."
+            exit 1
+          fi
+          for pkg in packages/*/package.json; do
+            VERSION="$(node -p "require('./$pkg').version")"
+            if [[ "$VERSION" != "$TAG" ]]; then
+              echo "::error::$pkg is at $VERSION but the release tag is $GITHUB_REF_NAME. Bump the package versions before releasing."
+              exit 1
+            fi
+          done
+      - run: pnpm build
+      # pnpm (not npm) so the workspace:* dependency ranges are rewritten to
+      # the real versions in the published tarballs, filtered to packages/* so
+      # this step publishes exactly the set the version check covered. pnpm
+      # skips versions already on the registry, so re-running a release is
+      # safe. Authentication is npm trusted publishing (OIDC): no NPM_TOKEN
+      # secret, and each package lists this repo + workflow as a trusted
+      # publisher on npmjs.com. --no-git-checks because the release tag
+      # checks out a detached HEAD.
+      #
+      # The dist-tag derives from the version: a stable x.y.z lands on
+      # latest, and a prerelease (any version with a hyphen, e.g. 0.3.0-rc1,
+      # which lockstep forces whenever the daemon ships an RC) lands on next
+      # so a plain `npm install` keeps resolving the last stable release.
+      - name: Publish to npm
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if [[ "$TAG" == *-* ]]; then DIST_TAG=next; else DIST_TAG=latest; fi
+          echo "Publishing $TAG to dist-tag $DIST_TAG"
+          pnpm -r --filter "./packages/*" publish --access public --no-git-checks --tag "$DIST_TAG"
