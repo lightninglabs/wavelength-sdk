@@ -30,7 +30,10 @@ base URL. `RUNTIME_MANIFEST_VERSION` identifies the daemon build the SDK is
 paired with:
 
 ```ts title="assets.ts"
-import { RUNTIME_ASSET_FILES, RUNTIME_MANIFEST_VERSION } from '@lightninglabs/wavelength-web';
+import {
+  RUNTIME_ASSET_FILES,
+  RUNTIME_MANIFEST_VERSION,
+} from '@lightninglabs/wavelength-web';
 
 console.log(RUNTIME_ASSET_FILES);
 // wavewalletdk.wasm, wavewalletdk.wasm.gz, wasm_exec.js, sqlite-bridge.js,

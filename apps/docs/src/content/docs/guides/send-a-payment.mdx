@@ -28,7 +28,10 @@ quote before calling `sendPrepared()`. Check `feeKnown` before displaying
 `warning` may contain additional detail to show the user.
 
 ```tsx title="send.tsx"
-import { useWalletPrepareSend, useWalletSend } from '@lightninglabs/wavelength-react';
+import {
+  useWalletPrepareSend,
+  useWalletSend,
+} from '@lightninglabs/wavelength-react';
 
 function SendLightning() {
   const { prepare, prepareData: quote, resetPrepare } = useWalletPrepareSend();

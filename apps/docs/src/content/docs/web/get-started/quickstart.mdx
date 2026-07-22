@@ -24,7 +24,10 @@ Requires Node 20 or later to run locally. The runtime itself runs in Chrome 100+
 Create a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) with [`createWebWalletEngine()`](/reference/wavelength-web/#createWebWalletEngine), and wrap your app with [`WavelengthProvider`](/reference/wavelength-react/#WavelengthProvider). Pass `config` and `autoStart: true` to boot the embedded daemon as soon as the runtime is ready, no boot effect needed. Every component below the provider gains access to the wallet through hooks.
 
 ```tsx title="App.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import {
+  createWebWalletEngine,
+  defaultConfig,
+} from '@lightninglabs/wavelength-web';
 import { WavelengthProvider, useWallet } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({

@@ -159,7 +159,8 @@ function ExitAll({ outpoints }: { outpoints: string[] }) {
   const { exitBatch, exitBatchPending, exitBatchError, exitBatchEvents } =
     useWalletExitBatch();
 
-  const startAll = () => exitBatch({ mode: 'unilateral', outpoints, confTarget: 6 });
+  const startAll = () =>
+    exitBatch({ mode: 'unilateral', outpoints, confTarget: 6 });
 
   return (
     <div>
@@ -215,7 +216,8 @@ function ExitStatus({ outpoint }: { outpoint: string }) {
   return (
     <p>
       {status.status}
-      {status.cSV && !status.cSV.mature && ` - ${status.cSV.blocksRemaining} blocks to maturity`}
+      {status.cSV && !status.cSV.mature &&
+        ` - ${status.cSV.blocksRemaining} blocks to maturity`}
     </p>
   );
 }
@@ -238,7 +240,8 @@ function ExitSummary() {
 
   return (
     <p>
-      {summary.totalExits} exit(s) in progress, ~{summary.totalEstNetRecoveredSat} sats recoverable.
+      {summary.totalExits} exit(s) in progress,
+      ~{summary.totalEstNetRecoveredSat} sats recoverable.
     </p>
   );
 }

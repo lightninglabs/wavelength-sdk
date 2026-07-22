@@ -37,7 +37,10 @@ await client.start(defaultConfig('signet'));
 <div data-label="React Native">
 
 ```ts
-import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import {
+  createNativeClient,
+  defaultConfig,
+} from '@lightninglabs/wavelength-react-native';
 
 const client = createNativeClient();
 await client.ready();

@@ -303,7 +303,9 @@ export const wavelengthClientSig = `interface WavelengthClient {
   balance(): Promise<Balance>;
   createWallet(req: CreateWalletRequest): Promise<CreateWalletResult>;
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
-  openWalletFromPasskey(req: OpenWalletFromPasskeyRequest): Promise<OpenWalletFromPasskeyResult>;
+  openWalletFromPasskey(
+    req: OpenWalletFromPasskeyRequest,
+  ): Promise<OpenWalletFromPasskeyResult>;
   deposit(req?: DepositRequest): Promise<DepositResult>;
   receive(req: ReceiveRequest): Promise<ReceiveResult>;
   prepareSend(req: SendRequest): Promise<PrepareSendResult>;
@@ -433,7 +435,9 @@ export const walletEngineSig = `interface WalletEngine {
   restoreWallet(req: RestoreWalletRequest): Promise<WalletInfo>;
   acknowledgeRecovery(): void;
   unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult>;
-  openWalletFromPasskey(req: OpenWalletFromPasskeyRequest): Promise<OpenWalletFromPasskeyResult>;
+  openWalletFromPasskey(
+    req: OpenWalletFromPasskeyRequest,
+  ): Promise<OpenWalletFromPasskeyResult>;
   deposit(req?: DepositRequest): Promise<DepositResult>;
   receive(req: ReceiveRequest): Promise<ReceiveResult>;
   prepareSend(req: SendRequest): Promise<PrepareSendResult>;
@@ -2780,7 +2784,11 @@ The severity of a `'log'` event emitted by the runtime.
 
 export const wavelengthErrorSig = `class WavelengthError extends Error {
   readonly code: WavelengthErrorCode;
-  constructor(message: string, code?: WavelengthErrorCode, options?: { cause?: unknown });
+  constructor(
+    message: string,
+    code?: WavelengthErrorCode,
+    options?: { cause?: unknown },
+  );
 }`;
 
 export const errorCodeSig = `type WavelengthErrorCode =

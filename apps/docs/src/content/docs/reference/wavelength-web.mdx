@@ -241,7 +241,10 @@ The browser-specific settings from `WebClientOptions` combined with [`WalletEngi
 ]} />
 
 ```tsx title="main.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import {
+  createWebWalletEngine,
+  defaultConfig,
+} from '@lightninglabs/wavelength-web';
 import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({

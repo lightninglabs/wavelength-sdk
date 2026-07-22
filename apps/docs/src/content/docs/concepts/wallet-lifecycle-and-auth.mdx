@@ -52,7 +52,8 @@ await client.createWallet({ password });
 // On a later session, unlock the existing wallet instead:
 await client.unlockWallet({ password });
 
-// Either call leaves the daemon syncing or ready; read the current phase from getInfo().
+// Either call leaves the daemon syncing or ready; read the
+// current phase from getInfo().
 const info = await client.getInfo();
 const phase = phaseFromInfo(info);
 // Render UI from phase: 'syncing' shows a spinner, 'ready' unlocks send/receive.
