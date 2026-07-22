@@ -47,8 +47,17 @@ There are two ways to obtain the files, both producing the set for the pinned
 
 **Download from the wavelength release.** The matching asset set is attached to
 the paired
-[wavelength release](https://github.com/lightninglabs/wavelength/releases).
-Download the files for the pinned version.
+[wavelength release](https://github.com/lightninglabs/wavelength/releases) as
+`Wavewalletdk.wasm.tar.gz`. It holds every file above, flat with no enclosing
+directory, so it unpacks straight into the directory you serve them from:
+
+```bash title="Terminal"
+BASE=https://github.com/lightninglabs/wavelength/releases/download
+curl -fsSLO "$BASE/<version>/Wavewalletdk.wasm.tar.gz"
+
+mkdir -p "./public/wavewalletdk/<version>"
+tar -xzf Wavewalletdk.wasm.tar.gz -C "./public/wavewalletdk/<version>"
+```
 
 **Build from a wavelength checkout.** From a checkout of `wavelength`, build the
 WASM wallet target and copy the output into your app's static folder:
