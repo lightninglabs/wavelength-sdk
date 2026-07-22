@@ -36,6 +36,14 @@ import { DEMO_APP_URL } from '~/config/site';
     line-height: 1.4;
   }
 
+  /* --lime stays the bright fill value in light mode (squares, dots, diagram
+     strokes), which leaves this title at roughly 1.2:1 on the light callout
+     body. Text takes the darkened --accent-lime instead, the same swap the
+     sidebar's active lime link makes. */
+  :global([data-theme='light']) .wdk-callout__title {
+    color: var(--accent-lime);
+  }
+
   .wdk-callout__body {
     color: var(--text-muted, #b6b6c0);
   }

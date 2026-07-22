@@ -58,8 +58,10 @@ const groups = sliceForSlug(currentSlug).nav;
   // this it snaps back to the top on every click. Capture the offset just
   // before the body swaps out and reapply it to the freshly rendered sidebar.
   // Register once (inline scripts replay on each swap; the window flag keeps the
-  // listeners from stacking). `saved` stays null on a fresh full load, so only
-  // an actual in-app navigation restores, never a first paint.
+  // listeners from stacking). `saved` stays null on a fresh full load, which is
+  // where the active link is scrolled into view instead: a page in a low-placed
+  // group (React Native, Reference) otherwise renders with its highlight below
+  // the fold and no cue to the reader's location.
   if (!window.__wdkSidebarScrollBound) {
     window.__wdkSidebarScrollBound = true;
     let saved: number | null = null;
@@ -68,10 +70,15 @@ const groups = sliceForSlug(currentSlug).nav;
       saved = el ? el.scrollTop : null;
     });
     document.addEventListener('astro:page-load', () => {
-      if (saved === null) return;
       const el = document.querySelector('.wdk-sidebar');
-      if (el) el.scrollTop = saved;
-      saved = null;
+      if (!el) return;
+      if (saved !== null) {
+        el.scrollTop = saved;
+        saved = null;
+        return;
+      }
+      const active = el.querySelector('.wdk-sidebar__link--active');
+      if (active) active.scrollIntoView({ block: 'nearest' });
     });
   }
 </script>

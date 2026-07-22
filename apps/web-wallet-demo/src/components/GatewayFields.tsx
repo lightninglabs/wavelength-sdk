@@ -19,7 +19,7 @@ export function GatewayFields({
   return (
     <div className="space-y-4">
       <Field
-        label="Ark gateway URL"
+        label="Ark server address"
         value={form.arkServerAddress}
         onChange={(v) => onField("arkServerAddress", v)}
         mono
@@ -33,7 +33,7 @@ export function GatewayFields({
         disabled={disabled}
       />
       <Field
-        label="Swap server gateway URL"
+        label="Swap server address"
         value={form.swapServerAddress}
         onChange={(v) => onField("swapServerAddress", v)}
         mono
@@ -64,14 +64,14 @@ export function GatewayFields({
       />
       <ToggleRow
         title="Allow insecure transport"
-        subtitle="Permit non-TLS Ark gateway connections"
+        subtitle="Permit non-TLS Ark server connections"
         on={form.arkServerInsecure}
         onChange={(v) => onField("arkServerInsecure", v)}
         disabled={disabled}
       />
       <ToggleRow
         title="Allow insecure swap transport"
-        subtitle="Permit non-TLS swap gateway connections"
+        subtitle="Permit non-TLS swap server connections"
         on={form.swapServerInsecure}
         onChange={(v) => onField("swapServerInsecure", v)}
         disabled={disabled}

@@ -1,13 +1,19 @@
 ---
 /**
  * FieldTable renders the fields of one request or response message as a
- * three-column table (field, type, description). A message-typed cell deep
- * links to the on-page section for that type when it is rendered here
- * (linkedTypes), so the reader can jump from a field straight to its shape.
- * oneof members carry a small group badge, proto3 `optional` fields carry an
- * "optional" badge, and repeated fields render their type as "repeated X".
+ * definition list: the field name and its type share one line, with the
+ * description underneath at a readable measure. This matches ParamsTable on
+ * the package reference pages; see the note there for why a three-column
+ * table is the wrong shape for this content.
+ *
+ * A message-typed field deep links to the on-page section for that type when
+ * it is rendered here (linkedTypes), so the reader can jump from a field
+ * straight to its shape. oneof members carry a small group badge, proto3
+ * `optional` fields carry an "optional" badge, and repeated fields render
+ * their type as "repeated X".
  */
 import type { FieldDoc } from '~/data/api/schema';
+import ProtoText from './ProtoText.astro';
 
 interface Props {
   fields: FieldDoc[];
@@ -20,7 +26,7 @@ const typeLabel = (f: FieldDoc): string => `${f.repeated ? 'repeated ' : ''}${f.
 
 // Proto comments separate paragraphs with blank lines; within a paragraph the
 // text is hard-wrapped. Collapse wraps to spaces and keep paragraph breaks so
-// a multi-paragraph field comment stays readable inside the cell.
+// a multi-paragraph field comment stays readable.
 const paragraphs = (comment: string): string[] =>
   comment
     .split(/\n\s*\n/)
@@ -30,124 +36,105 @@ const paragraphs = (comment: string): string[] =>
 {fields.length === 0 ? (
   <p class="wdk-fields__empty">This message has no fields.</p>
 ) : (
-  <div class="wdk-fields__wrap">
-    <table class="wdk-fields">
-      <thead>
-        <tr>
-          <th>Field</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        {fields.map((f) => (
-          <tr data-field-row={f.name}>
-            <td class="wdk-fields__name">
-              <code>{f.name}</code>
-              {f.oneof && (
-                <span class="wdk-fields__badge" title={`oneof ${f.oneof}`}>
-                  oneof {f.oneof}
-                </span>
-              )}
-              {f.optional && (
-                <span class="wdk-fields__badge" title="Proto3 optional field">
-                  optional
-                </span>
-              )}
-            </td>
-            <td class="wdk-fields__type">
-              {linkedTypes.has(f.type) ? (
-                <a href={`#${f.type}`} class="wdk-fields__typelink">
-                  <code>{typeLabel(f)}</code>
-                </a>
-              ) : (
-                <code>{typeLabel(f)}</code>
-              )}
-            </td>
-            <td class="wdk-fields__desc">
-              {paragraphs(f.comment).map((p) => (
-                <p>{p}</p>
-              ))}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+  <dl class="wdk-fields">
+    {fields.map((f) => (
+      <div class="wdk-fields__entry" data-field-row={f.name}>
+        <dt class="wdk-fields__head">
+          <code class="wdk-fields__name">{f.name}</code>
+          {linkedTypes.has(f.type) ? (
+            <a href={`#${f.type}`} class="wdk-fields__typelink">
+              <code class="wdk-fields__type">{typeLabel(f)}</code>
+            </a>
+          ) : (
+            <code class="wdk-fields__type">{typeLabel(f)}</code>
+          )}
+          {f.oneof && (
+            <span class="wdk-fields__badge" title={`oneof ${f.oneof}`}>
+              oneof {f.oneof}
+            </span>
+          )}
+          {f.optional && (
+            <span class="wdk-fields__badge" title="Proto3 optional field">
+              optional
+            </span>
+          )}
+        </dt>
+        <dd class="wdk-fields__desc">
+          {paragraphs(f.comment).map((p) => (
+            <p><ProtoText text={p} /></p>
+          ))}
+        </dd>
+      </div>
+    ))}
+  </dl>
 )}
 
 <style>
-  /* Horizontal scroll guard for the widest field/type combinations at small
-     widths, without forcing the whole page to scroll. */
-  .wdk-fields__wrap {
-    overflow-x: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-  }
-
-  .wdk-fields__wrap::-webkit-scrollbar { height: 5px; }
-  .wdk-fields__wrap::-webkit-scrollbar-track { background: transparent; }
-  .wdk-fields__wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
   .wdk-fields {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    min-width: 520px;
+    margin: 16px 0 24px;
   }
 
-  /* Column header: small uppercase eyebrow, matching the site's table motif. */
-  .wdk-fields thead th {
-    text-align: left;
-    font-family: var(--font-body);
-    font-size: 0.625rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    padding: 12px 16px;
-    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  .wdk-fields__entry {
+    padding: 14px 0;
     border-bottom: 1px solid var(--border);
-    white-space: nowrap;
   }
 
-  .wdk-fields tbody td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
+  .wdk-fields__entry:first-child {
+    padding-top: 0;
   }
 
-  .wdk-fields tbody tr:last-child td {
+  .wdk-fields__entry:last-child {
     border-bottom: none;
+    padding-bottom: 0;
   }
 
-  /* Row hover: a faint accent wash tying the tables to the page accent. */
-  .wdk-fields tbody tr {
-    transition: background 0.12s ease;
-  }
-  .wdk-fields tbody tr:hover {
-    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 5%, transparent);
+  /* Name, type, and any badges share a line and wrap together. */
+  .wdk-fields__head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
-  /* Field name column: monospace identifier + an optional badge below. */
+  /* The name carries a neutral chip: enclosure gives it rank without spending
+     colour, which is reserved for the type. */
   .wdk-fields__name {
-    white-space: nowrap;
-  }
-  .wdk-fields__name code {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.14em 0.5em;
   }
 
-  /* oneof/optional badge: small pill under the field name. */
+  /* Type: accent-coloured, no chip, reading as an annotation on the name. */
+  .wdk-fields__type {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--sl-accent, var(--orange));
+    overflow-wrap: anywhere;
+  }
+
+  .wdk-fields__typelink {
+    text-decoration: none;
+  }
+  .wdk-fields__typelink .wdk-fields__type {
+    border-bottom: 1px dashed color-mix(in srgb, var(--sl-accent, var(--orange)) 45%, transparent);
+    transition: border-color 0.12s ease;
+  }
+  .wdk-fields__typelink:hover .wdk-fields__type,
+  .wdk-fields__typelink:focus-visible .wdk-fields__type {
+    border-bottom-color: var(--sl-accent, var(--orange));
+  }
+  .wdk-fields__typelink:focus-visible {
+    outline: 2px solid color-mix(in srgb, currentColor 60%, transparent);
+    outline-offset: 3px;
+  }
+
+  /* oneof/optional badge: a quiet pill trailing the type. */
   .wdk-fields__badge {
-    display: block;
-    margin-top: 6px;
-    width: fit-content;
     padding: 1px 7px;
     font-family: var(--font-mono);
     font-size: 0.625rem;
@@ -159,31 +146,13 @@ const paragraphs = (comment: string): string[] =>
     border-radius: 999px;
   }
 
-  /* Type column: monospace type name; linked types read in the page accent. */
-  .wdk-fields__type code {
-    font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  .wdk-fields__typelink {
-    text-decoration: none;
-  }
-  .wdk-fields__typelink code {
-    color: var(--sl-accent, var(--orange));
-    border-bottom: 1px dashed color-mix(in srgb, var(--sl-accent, var(--orange)) 45%, transparent);
-    transition: border-color 0.12s ease;
-  }
-  .wdk-fields__typelink:hover code {
-    border-bottom-color: var(--sl-accent, var(--orange));
-  }
-
-  /* Description column: muted prose, tight paragraph rhythm. */
+  /* Description. No width cap: the content column's own max-width already
+     holds the line to a readable measure. */
   .wdk-fields__desc {
+    margin: 7px 0 0;
     color: var(--text-muted);
-    line-height: 1.55;
-    min-width: 240px;
+    font-size: 0.875rem;
+    line-height: 1.65;
   }
   .wdk-fields__desc p {
     margin: 0;
@@ -192,7 +161,14 @@ const paragraphs = (comment: string): string[] =>
     margin-top: 8px;
   }
 
-  /* Empty message: a quiet note in place of the table. */
+  /* Light mode: --surface-2 resolves to white, which against the near-white
+     page leaves the name chip reading as a bare outline. Deepen the fill so
+     the chip carries the same weight it does in dark mode. */
+  :global([data-theme='light']) .wdk-fields__name {
+    background: color-mix(in srgb, var(--text) 6%, var(--surface-2));
+  }
+
+  /* Empty message: a quiet note in place of the list. */
   .wdk-fields__empty {
     margin: 0;
     padding: 16px 18px;

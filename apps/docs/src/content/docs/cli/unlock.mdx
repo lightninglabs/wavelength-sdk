@@ -30,8 +30,9 @@ echo -n 'hunter2hunter2' | wavecli --no-tls unlock
 }
 ```
 
-A wrong password exits with code `3` (auth failure) and a `WALLET_LOCKED` error
-envelope on stderr.
+A wrong password exits with code `2` and an `INVALID_ARGUMENT` error envelope
+on stderr. Other wallet commands run against a still-locked wallet return a
+`WALLET_LOCKED` envelope and also exit `2`.
 
 ## Underlying RPC
 

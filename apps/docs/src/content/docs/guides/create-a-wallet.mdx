@@ -20,9 +20,12 @@ full TypeScript declarations.
 <PlatformTabs>
 <div data-label="Web">
 
-The web transport, `@lightninglabs/wavelength-web`, bundles a WASM module for
-cryptography and uses OPFS for storage. There are no native dependencies and
-no server-side component, so a modern browser is all you need at runtime.
+The web transport, `@lightninglabs/wavelength-web`, runs the wallet daemon
+compiled to WebAssembly and uses OPFS for storage. The wasm runtime assets are
+not part of the npm package: you host them yourself and point `runtimeBaseUrl`
+at their location (see [Hosting runtime assets](/web/get-started/hosting-runtime-assets/)).
+There are no native dependencies and no server-side component beyond serving
+those static assets.
 
 ```bash title="Terminal"
 # Install the browser runtime and the React bindings.
@@ -82,6 +85,11 @@ export function App() {
   );
 }
 ```
+
+`runtimeBaseUrl` is the path where you host the wasm runtime asset set; the
+snippet assumes it is served at `/wavewalletdk/`. See
+[Hosting runtime assets](/web/get-started/hosting-runtime-assets/) for what
+lives there and how to stage it.
 
 </div>
 <div data-label="React Native">

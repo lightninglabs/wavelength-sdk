@@ -235,7 +235,7 @@ export function ReceiveScreen({
           <View style={styles.note}>
             <Layers size={14} color={palette.sky} style={{ marginTop: 2 }} />
             <Text style={styles.noteText}>
-              Funds become spendable after 1 confirmation.
+              Funds become spendable after 1 confirmation and the next round.
             </Text>
           </View>
         )}

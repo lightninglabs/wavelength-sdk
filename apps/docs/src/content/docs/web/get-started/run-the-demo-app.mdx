@@ -1,6 +1,6 @@
 ---
 title: Run the demo app
-description: How to clone, install, and run the Wavelength demo app locally against regtest, testnet, or a custom backend.
+description: How to clone, install, and run the Wavelength demo app locally against signet, testnet, or a custom backend.
 ---
 
 import LiveDemoCallout from '~/components/mdx/LiveDemoCallout.astro';
@@ -21,9 +21,9 @@ pnpm build
 ```
 
 The demo depends on the workspace packages `@lightninglabs/wavelength-web` and
-`@lightninglabs/wavelength-react`. The `apps/web-wallet-demo/public/` folder is
-gitignored and ephemeral, so before running the demo you need to populate it
-with the runtime WASM binaries:
+`@lightninglabs/wavelength-react`. The runtime WASM binaries under
+`apps/web-wallet-demo/public/runtime/` are gitignored and ephemeral, so stage
+them before running the demo:
 
 ```bash title="Terminal"
 pnpm --filter web-wallet-demo run wasm:local
@@ -42,8 +42,8 @@ pnpm --filter web-wallet-demo dev
 ```
 
 Open the URL Vite prints (typically `http://localhost:5173`). The demo boots a
-**signet** wallet out of the box: choose signet on the connect screen and the
-app boots with its own signet preset (`signetDefaults` in
+**signet** wallet out of the box: the connect screen preselects signet, using
+the demo's own signet preset (`signetDefaults` in
 `src/lib/runtime-config.ts`), which mirrors the same public gateway URLs
 `defaultConfig('signet')` would produce. No local backend is required.
 
@@ -68,52 +68,18 @@ export default defineConfig({
 Use `pnpm --filter web-wallet-demo preview` to serve the production build with
 the same headers.
 
-## Optional (wasm:local, regtest, testnet)
+## Optional (testnet)
 
-**Rebuild runtime assets locally.** When you are developing against a custom
-wavelength build, stage fresh WASM files into the demo's `public/` folder:
-
-```bash title="Terminal"
-# Expects a sibling wavelength checkout (override with WAVELENGTH_DIR)
-pnpm --filter web-wallet-demo run wasm:local
-```
-
-This runs `make wasm-wallet` in wavelength and copies the full
+**Rebuilding runtime assets.** Re-run `wasm:local` whenever you change the
+daemon: it runs `make wasm-wallet` in wavelength (expecting a sibling
+checkout, overridable with `WAVELENGTH_DIR`) and copies the full
 `RUNTIME_ASSET_FILES` set into `public/runtime/<RUNTIME_MANIFEST_VERSION>/`,
 the versioned path the demo's `runtimeBaseUrl` points at.
-
-**Regtest with arktest.** To exercise deposits, swaps, and exits against a local
-chain, run [arktest](https://github.com/lightninglabs/wavelength) in a
-separate terminal:
-
-```bash title="Terminal"
-# From a wavelength checkout
-make build
-./arktest-debug start --swapserver
-```
-
-Keep arktest running. In another terminal, print the connection URLs:
-
-```bash title="Terminal"
-./arktest-debug env
-```
-
-In the demo connect screen, switch the network to **regtest**. The defaults
-match arktest's usual ports (`7071` for Ark, `8501` for Esplora, `10032` for
-the swap server). Adjust the gateway fields if your arktest instance binds
-different ports.
-
-At a high level the full local workflow is:
-
-1. Terminal 1: `./arktest-debug start --swapserver`
-2. Terminal 2: `pnpm --filter web-wallet-demo dev` (optionally after
-   `wasm:local` if you changed the daemon)
-3. Browser: select regtest, start the runtime, create or unlock a wallet
 
 **Testnet.** Select testnet on the connect screen to boot with its own
 testnet preset (`testnetDefaults` in `src/lib/runtime-config.ts`), which
 mirrors the same public gateway URLs `defaultConfig('testnet')` would
-produce. No arktest instance is needed.
+produce. No local backend is needed.
 
 **Troubleshooting OPFS.** If wallet persistence fails in the browser, confirm
 COOP/COEP headers are present:

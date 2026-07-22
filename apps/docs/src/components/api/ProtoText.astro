@@ -1,0 +1,20 @@
+---
+/**
+ * ProtoText renders one paragraph of a proto comment, turning `backtick`
+ * spans into inline code. Proto authors write backticks for identifiers, and
+ * rendering the comment as plain text would show the backtick characters
+ * literally.
+ *
+ * Props:
+ *   text - a single paragraph of proto comment text (already unwrapped).
+ */
+interface Props {
+  text: string;
+}
+const { text } = Astro.props;
+
+// Split on backtick spans, keeping the delimiters so the odd-indexed parts
+// are the code spans. An unmatched trailing backtick stays literal text.
+const parts = text.split(/`([^`]+)`/);
+---
+{parts.map((part, i) => (i % 2 === 1 ? <code>{part}</code> : part))}

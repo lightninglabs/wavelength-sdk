@@ -2,19 +2,18 @@
 import { resolveApiLink } from '~/config/api-links';
 
 /**
- * ParamsTable.astro - Parameter/option table for a reference symbol.
+ * ParamsTable.astro - Parameter/option list for a reference symbol.
  *
- * Accepts either a `rows` prop (array, avoids JSX in MDX) or a default slot
- * containing <tr> elements so authors can write table rows directly.
- *
- * The `.params-table` styling mirrors the design spec: monospaced name column,
- * tinted type column, and a prose description column. Light and dark both work
- * via CSS variable tokens.
+ * Renders each parameter as a definition-list entry rather than a table row:
+ * the name and its type share one line, and the description sits underneath
+ * at a readable measure. A three-column table gave the description whatever
+ * width the type column left over, which for a full function signature was
+ * almost nothing, and forced long signatures to break mid-identifier. Reading
+ * a parameter list is a sequential act, not a column-scanning one, so nothing
+ * is lost by dropping the column structure.
  *
  * Props:
- *   rows - optional array of { name, type, desc } objects. When provided, the
- *          component renders its own <tbody>. When omitted, the slot content
- *          is used as the <tbody> instead (must contain <tr> elements).
+ *   rows - array of { name, type, desc } objects.
  */
 interface Row {
   name: string;
@@ -30,144 +29,113 @@ const { rows } = Astro.props;
 const hasRows = rows && rows.length > 0;
 ---
 
-<div class="params-table-wrap">
-  <table class="params-table">
-    <thead>
-      <tr>
-        <th>Parameter</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      {hasRows
-        ? rows.map((r) => (
-            <tr>
-              <td class="param-name"><code>{r.name}</code></td>
-              <td class="param-type">
-                {resolveApiLink(r.type) ? (
-                  <a href={resolveApiLink(r.type)?.href} class="param-type-link">
-                    <code>{r.type}</code>
-                  </a>
-                ) : (
-                  <code>{r.type}</code>
-                )}
-              </td>
-              <td class="param-desc">{r.desc}</td>
-            </tr>
-          ))
-        : <slot />
-      }
-    </tbody>
-  </table>
-</div>
+<dl class="wdk-params">
+  {hasRows
+    ? rows.map((r) => (
+        <div class="wdk-params__entry">
+          <dt class="wdk-params__head">
+            <code class="wdk-params__name">{r.name}</code>
+            {resolveApiLink(r.type) ? (
+              <a href={resolveApiLink(r.type)?.href} class="wdk-params__type-link">
+                <code class="wdk-params__type">{r.type}</code>
+              </a>
+            ) : (
+              <code class="wdk-params__type">{r.type}</code>
+            )}
+          </dt>
+          <dd class="wdk-params__desc">{r.desc}</dd>
+        </div>
+      ))
+    : <slot />
+  }
+</dl>
 
 <style>
-  /* Scroll container so the table never overflows on narrow viewports. */
-  .params-table-wrap {
-    overflow-x: auto;
+  .wdk-params {
     margin: 16px 0 24px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
   }
 
-  /* Full-width table, no cell spacing. */
-  .params-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-
-  /* Header row. */
-  .params-table thead tr {
-    background: var(--surface);
+  .wdk-params__entry {
+    padding: 14px 0;
     border-bottom: 1px solid var(--border);
   }
 
-  .params-table th {
-    padding: 10px 16px;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    white-space: nowrap;
+  .wdk-params__entry:first-child {
+    padding-top: 0;
   }
 
-  /* Body rows. */
-  .params-table tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.12s;
-  }
-
-  .params-table tbody tr:last-child {
+  .wdk-params__entry:last-child {
     border-bottom: none;
+    padding-bottom: 0;
   }
 
-  .params-table tbody tr:hover {
-    background: var(--surface);
+  /* Name and type share a line and wrap together when the pair is too wide.
+     Baseline alignment keeps the smaller type sitting on the name's baseline
+     rather than floating against its cap height. */
+  .wdk-params__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  .params-table td {
-    padding: 10px 16px;
-    vertical-align: top;
-    color: var(--text-muted);
-  }
-
-  /* Parameter name column: monospaced, slightly prominent. Nowrap so
-     identifiers never break mid-word; the table-wrap container scrolls
-     horizontally instead. */
-  .param-name code {
+  /* The name carries a neutral chip: enclosure gives it rank without spending
+     colour, which is reserved for the type. Sizing and weight reinforce it, so
+     the hierarchy holds even when a short name sits beside a long signature. */
+  .wdk-params__name {
     font-family: var(--font-code, 'JetBrains Mono', monospace);
-    font-size: 0.85em;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 700;
     color: var(--text);
-    background: none;
-    padding: 0;
-    white-space: nowrap;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.14em 0.5em;
   }
 
-  /* Type column: accent-tinted monospaced text. */
-  .param-type code {
+  /* Type: accent-coloured, no chip. It reads as an annotation on the name. */
+  .wdk-params__type {
     font-family: var(--font-code, 'JetBrains Mono', monospace);
-    font-size: 0.85em;
+    font-size: 0.75rem;
+    font-weight: 400;
     color: var(--sl-accent, var(--orange));
-    background: color-mix(in srgb, var(--sl-accent, var(--orange)) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--sl-accent, var(--orange)) 20%, transparent);
-    border-radius: 3px;
-    padding: 0.05em 0.3em;
-    white-space: nowrap;
+    background: none;
+    border: none;
+    padding: 0;
+    /* A signature reaches its own spaces first; this only catches a single
+       token wider than the line. */
+    overflow-wrap: anywhere;
   }
 
-  .param-type-link {
+  .wdk-params__type-link {
     text-decoration: none;
   }
 
-  .param-type-link code {
+  .wdk-params__type-link .wdk-params__type {
     border-bottom: 1px dashed color-mix(in srgb, currentColor 55%, transparent);
     transition: border-color 0.12s ease;
   }
 
-  .param-type-link:hover code,
-  .param-type-link:focus-visible code {
+  .wdk-params__type-link:hover .wdk-params__type,
+  .wdk-params__type-link:focus-visible .wdk-params__type {
     border-bottom-color: currentColor;
   }
 
-  .param-type-link:focus-visible {
+  .wdk-params__type-link:focus-visible {
     outline: 2px solid color-mix(in srgb, currentColor 60%, transparent);
     outline-offset: 3px;
   }
 
-  /* Description column: lighter prose text. */
-  .param-desc {
+  /* Description. No width cap: the content column's own max-width already
+     holds the line to a readable measure. */
+  .wdk-params__desc {
+    margin: 7px 0 0;
     color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.65;
   }
 
-  /* Inline code in description cells (if any). Background uses the surface-2
-     token, which resolves correctly in both light and dark mode. */
-  .param-desc :global(code) {
+  .wdk-params__desc :global(code) {
     font-family: var(--font-code, 'JetBrains Mono', monospace);
     font-size: 0.85em;
     background: var(--surface-2);
@@ -176,12 +144,10 @@ const hasRows = rows && rows.length > 0;
     padding: 0.05em 0.3em;
   }
 
-  /* Light theme overrides (data-theme="light" set by BaseLayout). */
-  :global([data-theme='light']) .params-table thead tr {
-    background: var(--surface);
-  }
-
-  :global([data-theme='light']) .params-table tbody tr:hover {
-    background: var(--surface);
+  /* Light mode: --surface-2 resolves to white, which against the near-white
+     page leaves the name chip reading as a bare outline. Deepen the fill so
+     the chip carries the same weight it does in dark mode. */
+  :global([data-theme='light']) .wdk-params__name {
+    background: color-mix(in srgb, var(--text) 6%, var(--surface-2));
   }
 </style>

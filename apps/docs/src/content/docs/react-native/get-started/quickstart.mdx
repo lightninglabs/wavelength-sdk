@@ -10,7 +10,7 @@ import Step from '~/components/mdx/Step.astro';
 
 Install the two packages you need: `wavelength-react-native` for the native wallet runtime and `wavelength-react` for the React bindings.
 
-```sh
+```bash title="Terminal"
 npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-react
 ```
 
@@ -26,7 +26,10 @@ Create a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) with [`creat
 
 ```tsx title="App.tsx"
 import { Text } from 'react-native';
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import {
+  createNativeWalletEngine,
+  defaultConfig,
+} from '@lightninglabs/wavelength-react-native';
 import { WavelengthProvider, useWallet } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({

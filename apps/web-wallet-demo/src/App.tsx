@@ -217,7 +217,7 @@ export function App() {
       <LoadingScreen
         network={network}
         title="Starting runtime"
-        sub="Connecting to the gateways."
+        sub="Connecting to the servers."
       />
     );
 

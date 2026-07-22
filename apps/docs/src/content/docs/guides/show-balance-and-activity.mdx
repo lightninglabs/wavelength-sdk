@@ -67,9 +67,8 @@ function ActivityFeed() {
         <li key={entry.id}>
           <span>{entry.kind}</span>
           <span>
-            {entry.kind === 'receive' || entry.kind === 'deposit' ? '+' : ''}
-            {entry.kind === 'send' || entry.kind === 'exit' ? '-' : ''}
-            {entry.amountSat} sats
+            {entry.amountSat >= 0 ? '+' : '-'}
+            {Math.abs(entry.amountSat)} sats
           </span>
           <span>
             {entry.status}
@@ -112,10 +111,11 @@ function RefreshButton() {
 ## Filter and group
 
 Filter `activity` with standard array methods to build tab views or summary
-cards. Use each entry's `kind` to determine direction (`receive` and `deposit`
-are inbound; `send` and `exit` are outbound). `amountSat` is a plain magnitude
-in satoshis. Filter on `status === 'pending'` to surface in-flight payments
-that need user attention.
+cards. `amountSat` is signed: positive for inbound entries (`receive` and
+`deposit`), negative for outbound entries (`send` and `exit`), so render
+`Math.abs(entry.amountSat)` when you show a separate direction indicator.
+Filter on `status === 'pending'` to surface in-flight payments that need user
+attention.
 
 All filtering happens in memory, so you can derive multiple views from the
 same hook call without additional network requests.

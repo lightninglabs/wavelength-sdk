@@ -5,7 +5,7 @@ description: How to add the wavelength-web and wavelength-react packages to your
 
 ## The packages
 
-The Wavelength SDK ships as three npm packages. You install one or two of them depending on
+For web apps, the Wavelength SDK ships as three npm packages. You install one or two of them depending on
 your stack:
 
 | Package | What it is |
@@ -51,8 +51,15 @@ plus `config` and `autoStart` to boot the embedded daemon as soon as the
 runtime is ready, no boot effect needed.
 
 ```tsx title="App.tsx"
-import { WavelengthProvider, useWallet, useWalletBalance } from '@lightninglabs/wavelength-react';
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import {
+  WavelengthProvider,
+  useWallet,
+  useWalletBalance,
+} from '@lightninglabs/wavelength-react';
+import {
+  createWebWalletEngine,
+  defaultConfig,
+} from '@lightninglabs/wavelength-web';
 
 // Configure transport options once. runtimeBaseUrl points at the hosted WASM
 // asset folder.

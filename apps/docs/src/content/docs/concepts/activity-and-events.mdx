@@ -33,11 +33,13 @@ numeric `Entry.cursor` you processed and pass it back to resume after that
 position:
 
 ```ts
+// First launch: replay existing entries, then stream new ones.
 await client.startActivity({
   includeExisting: true,
   kinds: ['send', 'receive'],
 });
 
+// Later: resume after the last cursor you processed.
 await client.startActivity({
   kinds: ['send', 'receive'],
   cursor: lastCursor,
@@ -52,10 +54,12 @@ confirmation height) until they reach `complete` or `failed`.
 `stopActivity()` closes the stream but leaves your `subscribe()` listener registered. You can call `startActivity()` again later without re-subscribing.
 </Callout>
 
-Direct clients also receive a terminal `activityStream` event when a stream
-ends or fails. The client does not retry automatically, so a direct consumer
-chooses its own retry policy. The current bridges do not provide structured gap
-cursor or reason details.
+Clients used without a `WalletEngine` also receive a terminal
+`activityStream` event when a stream ends or fails. The client does not retry
+automatically, so such a consumer chooses its own retry policy. The payload
+carries a `message` when the stream failed, but no cursor marking where the
+gap starts, so a consumer that reconnects decides for itself how far back to
+resume.
 
 `WalletEngine` manages recovery for UI consumers. It reconciles the snapshot
 with `list()`, retries from its last safe numeric stream cursor with bounded
@@ -67,11 +71,7 @@ snapshot, ordered newest-first, and re-renders as reconciliation completes.
 
 ## Event model
 
-Beyond activity rows, the client emits runtime and log events on the same subscription. Narrow on the event type before reading its payload.
-
-**WavelengthEvent** is a discriminated union. Narrow on `type` before reading `payload`:
-
-All five event types arrive through the same `subscribe(listener)` callback registered once.
+Beyond activity rows, the client emits runtime and log events on the same subscription. All five event types arrive through the same `subscribe(listener)` callback registered once. **WavelengthEvent** is a discriminated union, so narrow on `type` before reading `payload`:
 
 | `type` | Payload | Meaning |
 |--------|---------|---------|
@@ -85,7 +85,7 @@ Activity events carry the full entry shape:
 
 - **kind**: high-level category (see below).
 - **status**: collapsed outcome: `pending`, `complete`, or `failed`.
-- **amountSat** / **feeSat**: principal and fees in satoshis (plain int64 magnitudes; use the entry's **kind** to determine direction).
+- **amountSat** / **feeSat**: principal and fees in satoshis. `amountSat` is signed: positive for value coming into the wallet, negative for value going out.
 - **cursor**: the monotonic stream position of this update. It is zero for entries returned outside the subscription path.
 - **progress**: optional lifecycle metadata (phase, payment hash, txid, confirmation height, VTXO outpoint, and Lightning preimage).
 - **request**: optional echo of what the user initiated (Lightning invoice, on-chain address, etc.).

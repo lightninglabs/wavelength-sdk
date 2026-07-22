@@ -20,7 +20,7 @@ The Wavelength SDK ships as these packages:
   { name: '@lightninglabs/wavelength-core', accent: 'teal', role: 'Shared types, the WavelengthClient interface, errors, and enums. No DOM, no transport.' },
   { name: '@lightninglabs/wavelength-web', accent: 'sky', role: 'The browser WASM transport. Framework-agnostic: use it from vanilla JS, Vue, Svelte, or React. Re-exports core.' },
   { name: '@lightninglabs/wavelength-react-native', accent: 'lime', role: 'The React Native transport. The daemon is compiled into the app binary. Re-exports core.' },
-  { name: '@lightninglabs/wavelength-react', accent: 'violet', role: 'React provider and hooks. Depends on core only and takes an injected client, so the same binding can run over the web or React Native transport.' },
+  { name: '@lightninglabs/wavelength-react', accent: 'violet', role: 'React provider and hooks. Depends on core only and takes an injected engine, so the same binding can run over the web or React Native transport.' },
 ]} />
 
 **React is the primary developer experience**, but React is not required. On web, if you are not using React, install `@lightninglabs/wavelength-web`, call `createWebClient()`, and use the `WavelengthClient` methods directly. The React package is a thin binding over the same interface.
@@ -70,20 +70,25 @@ const client = createWebClient({ runtimeBaseUrl: '/wavewalletdk/' });
 
 await client.ready();                        // load WASM runtime
 await client.start(defaultConfig('signet')); // boot daemon, connect gateways
-const { mnemonic } = await client.createWallet({ password: '…' }); // show mnemonic to the user for backup
+// Show the mnemonic to the user for backup.
+const { mnemonic } = await client.createWallet({ password: '…' });
 ```
 
 </div>
 <div data-label="React Native">
 
 ```ts
-import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import {
+  createNativeClient,
+  defaultConfig,
+} from '@lightninglabs/wavelength-react-native';
 
 const client = createNativeClient();
 
 await client.ready();                        // ready the native runtime
 await client.start(defaultConfig('signet')); // boot daemon, connect gateways
-const { mnemonic } = await client.createWallet({ password: '…' }); // show mnemonic to the user for backup
+// Show the mnemonic to the user for backup.
+const { mnemonic } = await client.createWallet({ password: '…' });
 ```
 
 </div>

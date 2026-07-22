@@ -42,7 +42,10 @@ await client.start(config);
 <div data-label="React Native">
 
 ```ts
-import { createNativeClient, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import {
+  createNativeClient,
+  defaultConfig,
+} from '@lightninglabs/wavelength-react-native';
 
 const client = createNativeClient();
 const config = defaultConfig('signet', { dataDir: 'my-app-wallet' });
@@ -86,8 +89,8 @@ Test networks ignore **`allowMainnet`**; it exists only for mainnet runs.
 
 Signet and testnet are open to anyone. Mainnet is different: the mainnet server
 accepts only clients on an approved allowlist, so `allowMainnet` on its own is
-not enough to connect. Access is keyed to your client's identity, which is its
-mailbox ID.
+not enough to connect. Access is keyed to your client's identity, its
+mailbox ID, which `wavecli getinfo` reports as `identity_pubkey`.
 
 To request access, initialize and unlock your wallet, run `wavecli getinfo`, and
 copy the `identity_pubkey` value (a 66-character hex string). Submit that value
@@ -106,8 +109,8 @@ const config: RuntimeConfig = {
   network: 'signet',
   walletType: 'btcwallet',
   walletFeeUrl: 'https://fees.example.com',
-  walletBlockHeadersSource: 'neutrino',
-  walletFilterHeadersSource: 'neutrino',
+  walletBlockHeadersSource: 'https://headers.example.com/block-headers.bin',
+  walletFilterHeadersSource: 'https://headers.example.com/filter-headers.bin',
   walletRecoveryWindow: 250,
   maxOperatorFeeSat: 100,
   signingWorkers: 4,
@@ -141,8 +144,9 @@ const config: RuntimeConfig = {
 - `walletRecoveryWindow` applies to both supported embedded backends.
 
 `lwwallet` is the default backend. The SDK rejects incompatible backend fields
-and invalid numeric values before it starts the daemon. LND and eager-round-join
-disable are intentionally unavailable through this mobile start contract.
+and invalid numeric values before it starts the daemon. Some daemon-only
+options (such as the LND wallet backend) are deliberately not exposed through
+`RuntimeConfig`.
 
 On regtest, set both insecure flags yourself because local web gateways speak
 plain HTTP. On hosted networks, leave them unset so connections stay

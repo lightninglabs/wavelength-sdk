@@ -26,7 +26,7 @@ export function StoppedScreen({
     <AuthLayout network={network}>
       <AuthHeader
         title="Runtime stopped"
-        sub={`The runtime was torn down. Start it again to reconnect to the ${network} gateways.`}
+        sub={`The runtime was torn down. Start it again to reconnect to the ${network} servers.`}
       />
       <Card className="p-6">
         <div className="flex items-center gap-3">

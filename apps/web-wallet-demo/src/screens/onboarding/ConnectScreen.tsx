@@ -19,7 +19,7 @@ import {
 } from "../../lib/runtime-config";
 
 // ConnectScreen is the "Start runtime" screen (phase runtimeReady): pick a
-// network, set the gateway endpoints (basic + advanced) and start. The runtime
+// network, set the server endpoints (basic + advanced) and start. The runtime
 // then decides whether the next step is create, unlock or sync.
 export function ConnectScreen({
   form,
@@ -42,7 +42,7 @@ export function ConnectScreen({
     <AuthLayout network={form.network} wide footer={<WipeDataButton />}>
       <AuthHeader
         title="Start runtime"
-        sub="Choose a network and the gateways the runtime should connect to."
+        sub="Choose a network and the servers the runtime should connect to."
       />
       <form
         className="space-y-4"
@@ -82,7 +82,7 @@ export function ConnectScreen({
           {advanced ? (
             <div className="space-y-4 border-t border-border px-4 pb-4 pt-4">
               <Field
-                label="Ark gateway URL"
+                label="Ark server address"
                 value={form.arkServerAddress}
                 onChange={(v) => onField("arkServerAddress", v)}
                 mono
@@ -94,7 +94,7 @@ export function ConnectScreen({
                 mono
               />
               <Field
-                label="Swap server gateway URL"
+                label="Swap server address"
                 value={form.swapServerAddress}
                 onChange={(v) => onField("swapServerAddress", v)}
                 mono
@@ -123,13 +123,13 @@ export function ConnectScreen({
               />
               <ToggleRow
                 title="Allow insecure transport"
-                subtitle="Permit non-TLS Ark gateway connections"
+                subtitle="Permit non-TLS Ark server connections"
                 on={form.arkServerInsecure}
                 onChange={(v) => onField("arkServerInsecure", v)}
               />
               <ToggleRow
                 title="Allow insecure swap transport"
-                subtitle="Permit non-TLS swap gateway connections"
+                subtitle="Permit non-TLS swap server connections"
                 on={form.swapServerInsecure}
                 onChange={(v) => onField("swapServerInsecure", v)}
               />

@@ -25,7 +25,10 @@ yourself:
 <div data-label="Web">
 
 ```tsx title="main.tsx"
-import { createWebWalletEngine, defaultConfig } from '@lightninglabs/wavelength-web';
+import {
+  createWebWalletEngine,
+  defaultConfig,
+} from '@lightninglabs/wavelength-web';
 import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createWebWalletEngine({
@@ -43,7 +46,10 @@ export function App() {
 <div data-label="React Native">
 
 ```tsx title="App.tsx"
-import { createNativeWalletEngine, defaultConfig } from '@lightninglabs/wavelength-react-native';
+import {
+  createNativeWalletEngine,
+  defaultConfig,
+} from '@lightninglabs/wavelength-react-native';
 import { WavelengthProvider } from '@lightninglabs/wavelength-react';
 
 const engine = createNativeWalletEngine({
@@ -75,11 +81,11 @@ from [`useWallet()`](/reference/wavelength-react/#useWallet) yourself once
 
 `phase` is a `RuntimePhase`, one of: `'loading'`, `'runtimeReady'`,
 `'starting'`, `'needsWallet'`, `'locked'`, `'syncing'`, `'restoring'`,
-`'ready'`, `'stopping'`, `'stopped'`, or `'error'`. The `loading`/
-`runtimeReady`/`starting`/`stopping`/`stopped`/`error` phases are owned by the
-start/stop flow; `needsWallet`/`locked`/`syncing`/`ready` are derived from
-wallet info; `restoring` is owned by the engine while a background restore
-(recovery scan) is bringing a freshly restored wallet up. See
+`'ready'`, `'stopping'`, `'stopped'`, or `'error'`. Of these,
+`loading`, `runtimeReady`, `starting`, `stopping`, `stopped`, and `error` are
+owned by the start/stop flow; `needsWallet`, `locked`, `syncing`, and `ready`
+are derived from wallet info; `restoring` is owned by the engine while a
+background restore (recovery scan) is bringing a freshly restored wallet up. See
 [Handle phases and errors](/guides/handle-phases-and-errors/) for the full
 state machine and how to react to each phase.
 
@@ -247,7 +253,10 @@ function PasskeyUnlock() {
       <button disabled={createPending} onClick={() => create('My App')}>
         Create with passkey
       </button>
-      <button disabled={openPending} onClick={() => open(/* optional credential id */)}>
+      <button
+        disabled={openPending}
+        onClick={() => open(/* optional credential id */)}
+      >
         Unlock with passkey
       </button>
       {createError && <p role="alert">{createError.message}</p>}
@@ -263,7 +272,9 @@ function PasskeyUnlock() {
 ```tsx title="PasskeyUnlock.tsx"
 import { Button, Text } from 'react-native';
 import { useWalletPasskey } from '@lightninglabs/wavelength-react';
-import { createNativePasskeyCeremony } from '@lightninglabs/wavelength-react-native';
+import {
+  createNativePasskeyCeremony,
+} from '@lightninglabs/wavelength-react-native';
 
 const ceremony = createNativePasskeyCeremony({ rpId: 'your-app-domain.example' });
 
@@ -317,8 +328,8 @@ where a failure can be something other than a real error: dismissing the OS
 passkey prompt rejects with a `PasskeyCancelledError`, which `useWalletPasskey`
 rethrows without recording into `createError`/`openError` (a cancelled prompt
 is not a failure worth displaying). Every other rejection behaves like the
-mutation hooks above: `await`/`catch` the call, or read `createError`/
-`openError`.
+mutation hooks above: `await`/`catch` the call, or read
+`createError`/`openError`.
 
 Both `create` and `open` resolve to a `PasskeyWalletOutcome`:
 `{ result, credentialId }`. Capture `credentialId` from a successful result

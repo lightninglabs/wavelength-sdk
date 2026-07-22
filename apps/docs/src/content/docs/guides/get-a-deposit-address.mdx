@@ -26,7 +26,8 @@ import { useState } from 'react';
 import { useWalletDeposit } from '@lightninglabs/wavelength-react';
 
 function DepositAddress() {
-  const { deposit, depositPending, depositError, resetDeposit } = useWalletDeposit();
+  const { deposit, depositPending, depositError, resetDeposit } =
+    useWalletDeposit();
   const [address, setAddress] = useState<string | null>(null);
 
   const getAddress = async () => {

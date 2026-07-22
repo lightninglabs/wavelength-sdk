@@ -177,6 +177,28 @@ const accent = accentForSlug(entry.id);
     border-top: none;
   }
 
+  /* Subheadings within a symbol or section. The prose heading rules live in
+     theme.css scoped to the doc and guide layouts, and the global reset zeroes
+     every margin, so without these an h3 here would render as unstyled bold
+     text flush against the paragraph below it. */
+  .wdk-ref__content :global(h3) {
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin: 28px 0 10px;
+  }
+
+  .wdk-ref__content :global(h4) {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin: 22px 0 8px;
+  }
+
   /* Plain markdown tables (e.g. the SendRail Value/Meaning enum table) - the
      ApiSymbol params table has its own scoped styling, but a raw table
      dropped straight into MDX prose has none, so it renders at full content
@@ -192,6 +214,9 @@ const accent = accentForSlug(entry.id);
     margin: 1rem 0;
   }
 
+  /* Keep identifiers in table cells on one line so they never break mid-word.
+     Only plain markdown tables reach this now; parameter lists are not
+     tables (see ParamsTable.astro). */
   .wdk-ref__content :global(td code) {
     white-space: nowrap;
   }

@@ -215,7 +215,7 @@ export function SettingsScreen({
                 <span className="flex items-center gap-2">
                   <SettingsIcon size={15} className="text-muted" />
                   <span className="text-sm font-medium text-fg">
-                    Network gateways
+                    Network servers
                   </span>
                 </span>
                 <ChevronDown
@@ -277,7 +277,7 @@ export function SettingsScreen({
           <div className="mt-6 border-t border-border pt-6">
             <p className="mb-4 text-xs text-muted">
               Display only. The running configuration cannot be changed. Stop
-              the runtime to reconnect with different gateways.
+              the runtime to reconnect with different servers.
             </p>
             <GatewayFields form={form} onField={onField} disabled />
           </div>

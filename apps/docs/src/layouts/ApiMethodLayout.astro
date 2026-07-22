@@ -23,6 +23,7 @@ import Sidebar from '~/components/Sidebar.astro';
 import PrevNext from '~/components/PrevNext.astro';
 import EndpointBlock from '~/components/api/EndpointBlock.astro';
 import FieldTable from '~/components/api/FieldTable.astro';
+import ProtoText from '~/components/api/ProtoText.astro';
 import CodeTabs from '~/components/api/CodeTabs.astro';
 import { apiDoc } from '~/data/api';
 import type { MethodDoc } from '~/data/api/schema';
@@ -127,7 +128,7 @@ const summarize = (comment: string): string =>
         <h1 class="wdk-api__title">{method.name}</h1>
 
         {paragraphs.map((p) => (
-          <p class="wdk-api__lede">{p}</p>
+          <p class="wdk-api__lede"><ProtoText text={p} /></p>
         ))}
 
         <!-- Endpoints. -->
@@ -149,7 +150,7 @@ const summarize = (comment: string): string =>
             <code class="wdk-api__h2-type">{method.requestType}</code>
           </h2>
           {request?.comment && summarize(request.comment) && (
-            <p class="wdk-api__section-lede">{summarize(request.comment)}</p>
+            <p class="wdk-api__section-lede"><ProtoText text={summarize(request.comment)} /></p>
           )}
           <FieldTable fields={request?.fields ?? []} linkedTypes={linkedTypes} />
         </section>
@@ -163,7 +164,7 @@ const summarize = (comment: string): string =>
             </code>
           </h2>
           {response?.comment && summarize(response.comment) && (
-            <p class="wdk-api__section-lede">{summarize(response.comment)}</p>
+            <p class="wdk-api__section-lede"><ProtoText text={summarize(response.comment)} /></p>
           )}
           <FieldTable fields={response?.fields ?? []} linkedTypes={linkedTypes} />
         </section>
@@ -179,7 +180,7 @@ const summarize = (comment: string): string =>
             {(message?.comment || enumDoc?.comment) &&
               summarize(message?.comment ?? enumDoc?.comment ?? '') && (
                 <p class="wdk-api__section-lede">
-                  {summarize(message?.comment ?? enumDoc?.comment ?? '')}
+                  <ProtoText text={summarize(message?.comment ?? enumDoc?.comment ?? '')} />
                 </p>
               )}
             {message && <FieldTable fields={message.fields} linkedTypes={linkedTypes} />}
@@ -204,7 +205,7 @@ const summarize = (comment: string): string =>
                             .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
                             .filter(Boolean)
                             .map((p) => (
-                              <p>{p}</p>
+                              <p><ProtoText text={p} /></p>
                             ))}
                         </td>
                       </tr>

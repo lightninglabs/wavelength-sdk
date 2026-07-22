@@ -7,11 +7,11 @@ import Callout from '~/components/mdx/Callout.astro';
 
 ## Build waved with the wallet API
 
-`WalletService` and `WalletInspectionService` are compiled into `waved` only when the daemon is built with the `wavewalletrpc` build tag. That tag requires `swapruntime` transitively: building with `wavewalletrpc` but without `swapruntime` is a deliberate compile error, and a default `make build` includes neither, so the wallet API is off unless you opt in.
+`WalletService` and `WalletInspectionService` are compiled into `waved` only when the daemon is built with both the `wavewalletrpc` and `swapruntime` build tags. With `wavewalletrpc` but not `swapruntime`, the build still succeeds but a stub takes over and the wallet API is silently omitted, producing the same `Unimplemented` symptom as a default build. A default `make build` includes neither tag, so the wallet API is off unless you opt in.
 
 Build both `waved` and `wavecli` with the tag using the provided make target:
 
-```sh
+```bash title="Terminal"
 make build-wavewalletrpc
 ```
 
@@ -33,22 +33,34 @@ Without the `wavewalletrpc` tag, `WalletService` and `WalletInspectionService` a
 Every `WalletService` and `WalletInspectionService` method is reachable on both listeners with the same request and response shape, modulo JSON encoding. See [REST conventions](/api/rest/) for the route and body shape used by the gateway.
 
 <Callout type="caution" title="The gRPC listener is secured by default">
-The daemon's gRPC server wires up TLS and macaroon authentication by default: it serves TLS credentials and enforces a macaroon on every call. For loopback development and regtest you can disable both with `--no-tls` and `--no-macaroons`; on a mainnet TCP listener the daemon refuses both by default, so a stray flag can't quietly expose an unauthenticated plaintext RPC surface. A deployment that terminates TLS and enforces authentication at an external proxy can set `allow-insecure-mainnet` to override that refusal, which acknowledges that the daemon's own listener then runs without transport security. The default macaroon is written to `admin.macaroon` under the daemon's network directory. The REST gateway (`localhost:10031`) is a local plaintext HTTP proxy: it forwards the `macaroon` HTTP header to the enforcing gRPC backend, so a call needs that header whenever macaroons are enabled.
+The daemon serves TLS credentials and enforces a macaroon on every call. For
+loopback development and regtest you can disable both with `--rpc.notls` and
+`--rpc.no-macaroons`, but on a mainnet TCP listener the daemon refuses both, so
+a stray flag cannot quietly expose an unauthenticated plaintext RPC surface.
 </Callout>
+
+A deployment that terminates TLS and enforces authentication at an external
+proxy can set `allow-insecure-mainnet` to override that refusal, accepting that
+the daemon's own listener then runs without transport security.
+
+The default macaroon is written to `admin.macaroon` under the daemon's network
+directory. The REST gateway (`localhost:10031`) is a local plaintext HTTP proxy
+that forwards the `macaroon` HTTP header to the enforcing gRPC backend, so a
+call needs that header whenever macaroons are enabled.
 
 ## Your first call
 
 With `waved` running a `wavewalletrpc` build, call `Status` to confirm the daemon and wallet API are up. `StatusRequest` is empty, so an empty JSON object is a complete request body.
 
-Over REST (a local daemon started with `--no-macaroons`; otherwise add a `-H "macaroon: <hex>"` header):
+Over REST (a local daemon started with `--rpc.no-macaroons`; otherwise add a `-H "macaroon: <hex>"` header):
 
-```sh
+```bash title="Terminal"
 curl -X POST http://localhost:10031/v1/wallet/status -d '{}'
 ```
 
 Over the CLI, the equivalent is:
 
-```sh
+```bash title="Terminal"
 wavecli getinfo --no-tls --no-macaroons
 ```
 

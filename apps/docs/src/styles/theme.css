@@ -198,6 +198,15 @@ code, pre, kbd {
   line-height: 1.7;
 }
 
+/* Code blocks carry their own vertical rhythm. Prose spacing here comes from
+   bottom margins alone (paragraphs, headings, lists), and Expressive Code
+   ships none of its own, so anything following a block sat flush against it:
+   a paragraph read as part of the frame, and two consecutive blocks fused
+   into one malformed frame. */
+:is(.wdk-doc__content, .wdk-guide__content) .expressive-code {
+  margin: 1.25rem 0;
+}
+
 :is(.wdk-doc__content, .wdk-guide__content) ul,
 :is(.wdk-doc__content, .wdk-guide__content) ol {
   color: var(--text-muted);
@@ -240,7 +249,7 @@ code, pre, kbd {
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.015em;
-  margin: 1.75rem 0 0.5rem;
+  margin: 1.75rem 0 0.625rem;
 }
 
 :is(.wdk-doc__content, .wdk-guide__content) h4 {
@@ -250,6 +259,7 @@ code, pre, kbd {
   letter-spacing: -0.015em;
   margin: 1.5rem 0 0.4rem;
 }
+
 
 /* Signature accent h2 underline motif - ported from custom.css
    (.sl-markdown-content h2::after), color keyed to per-section accent
@@ -319,7 +329,7 @@ code, pre, kbd {
      friends) sits inside the content container but is navigation chrome, and
      this selector's specificity would otherwise beat its own border: none. */
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link) {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link) {
   color: var(--link-prose);
   text-decoration: none;
   border-bottom: 1px dashed color-mix(in srgb, currentColor 55%, transparent);
@@ -327,7 +337,7 @@ code, pre, kbd {
 }
 
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link):hover {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link):hover {
   color: var(--text);
   border-bottom-color: currentColor;
 }
@@ -336,18 +346,18 @@ code, pre, kbd {
    it the same muted color as an unlinked code span. Keep the chip border, but
    remove the prose link underline for this compact API treatment. */
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link) > code {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link) > code {
   color: var(--link-prose);
   border-bottom-color: var(--border);
 }
 
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link):has(> code) {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link):has(> code) {
   border-bottom: none;
 }
 
 :is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content, .wdk-qs__content)
-  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.param-type-link):not(.wdk-returns__type-link):hover > code {
+  a:not(.wdk-prevnext__link):not(.wdk-related__card):not(.wdk-card):not(.wdk-page-actions__row):not(.wdk-params__type-link):not(.wdk-returns__type-link):hover > code {
   color: var(--text);
   border-bottom-color: var(--border);
 }
@@ -378,6 +388,29 @@ code, pre, kbd {
   border-radius: 4px;
   padding: 0.1em 0.4em;
   color: var(--text-code);
+  /* Last resort for a token with no break opportunity, such as a full URL in
+     prose: nothing above this clips, so an unbreakable chip wider than the
+     viewport widens the whole document and the page scrolls sideways. Only
+     fires when the token would otherwise overflow, so identifiers that fit
+     are still never broken. */
+  overflow-wrap: break-word;
+}
+
+/* A heading whose text is a code span (the CLI subcommand pages title their
+   sections `ark vtxos list` and similar) is still a heading. Left to the rule
+   above it inherits the inline-code chip and renders at 0.85em of the heading,
+   so a subsection head was indistinguishable from a stray chip in the body.
+   Keep the monospace face and drop the chrome. This must stay below that rule:
+   the two selectors have equal specificity, so order is what settles it. */
+:is(.wdk-doc__content, .wdk-guide__content, .wdk-ref__content)
+  :is(h1, h2, h3, h4, h5, h6) code {
+  font-family: var(--font-mono);
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 /* Mermaid diagrams (astro-mermaid) in doc prose. */
@@ -474,8 +507,15 @@ code, pre, kbd {
   ry: 6;
 }
 
-.wdk-mermaid pre.mermaid svg .edgeLabel text {
+/* Edge labels sit on a theme-aware box (--surface-2 above), so their text has
+   to follow the theme too. The broad `.label tspan` rule further up forces the
+   dark-diagram near-white on every label; without tspan and span here, edge
+   labels render near-white on a near-white box in light mode. */
+.wdk-mermaid pre.mermaid svg .edgeLabel text,
+.wdk-mermaid pre.mermaid svg .edgeLabel tspan,
+.wdk-mermaid pre.mermaid svg .edgeLabel span {
   fill: var(--text-muted) !important;
+  color: var(--text-muted) !important;
 }
 
 .wdk-mermaid pre.mermaid svg .cluster rect {
@@ -746,7 +786,7 @@ code, pre, kbd {
   line-height: 1.6;
 }
 
-/* Tables - from r4-final .params-table. Scrolls horizontally instead of
+/* Prose tables (CLI flag grids and similar). Scrolls horizontally instead of
    wrapping cell text, so identifiers like flag names never break mid-word. */
 :is(.wdk-doc__content, .wdk-guide__content) table {
   display: block;

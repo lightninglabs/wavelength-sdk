@@ -54,6 +54,14 @@ const label = title ?? type[0].toUpperCase() + type.slice(1);
     color: var(--lime, #c9f000);
   }
 
+  /* --lime stays the bright fill value in light mode (squares, dots, diagram
+     strokes), which leaves this title at roughly 1.5:1 on the light callout
+     body. Text takes the darkened --accent-lime instead, the same swap the
+     sidebar's active lime link makes. */
+  :global([data-theme='light']) .wdk-callout--tip .wdk-callout__title {
+    color: var(--accent-lime);
+  }
+
   .wdk-callout__body {
     color: var(--text-muted, #b6b6c0);
   }

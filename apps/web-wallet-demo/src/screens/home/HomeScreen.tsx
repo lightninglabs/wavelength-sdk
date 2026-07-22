@@ -83,7 +83,7 @@ export function HomeScreen({
     <div>
       <PageHead
         title="Overview"
-        subtitle="Your self-custodial Ark wallet balance and pending flows."
+        subtitle="Your self-custodial wallet balance and pending flows."
         accent="violet"
       />
       {funded ? (
@@ -265,9 +265,14 @@ function RuntimeBand({
   return (
     <Band>
       <Label accent="violet" rule>Runtime &amp; security</Label>
-      <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
+      {/* Two columns on a phone: five equal flex children leave each stat
+          about 70px, too narrow for "Block height" or "On this device" to sit
+          on one line. Three columns at sm; the divided row returns at md with
+          tighter gutters, since px-5 there would push the widest value onto
+          a second line. */}
+      <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4 divide-border sm:grid-cols-3 md:flex md:flex-wrap md:gap-0 md:divide-x">
         {rows.map((r) => (
-          <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
+          <div key={r.label} className="px-0 md:flex-1 md:px-3 md:first:pl-0 lg:px-5">
             <div className="flex items-center gap-1.5 text-xs text-muted">
               <r.icon
                 size={13}
@@ -334,11 +339,11 @@ function EmptyWallet({
       tone: "bg-sky-fill/10 text-sky",
     },
     {
-      text: "After 1 confirmation it boards into Ark as VTXO.",
+      text: "After 1 confirmation it joins the next round.",
       tone: "bg-teal-fill/10 text-teal",
     },
     {
-      text: "Spend instantly over Ark and Lightning.",
+      text: "Spend instantly over Lightning.",
       tone: "bg-violet-fill/10 text-violet",
     },
   ];
@@ -356,8 +361,8 @@ function EmptyWallet({
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             Your balance is empty. Send Bitcoin to your boarding address to start
-            using Ark and Lightning. Funds become spendable as VTXO after one
-            confirmation.
+            using Ark and Lightning. Funds become spendable once they confirm and
+            join the next round.
           </p>
 
           <div className="mt-6 w-full max-w-sm">

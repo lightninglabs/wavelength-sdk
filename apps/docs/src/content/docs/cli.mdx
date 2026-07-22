@@ -46,10 +46,11 @@ repeat them on every call.
 
 Successful commands print a structured JSON object to **stdout**. Proto-backed
 responses are marshaled with proto field names (snake_case) and unpopulated
-fields emitted, so the shape is stable across calls. Human-oriented views (the
-`activity` table, confirmation prompts, the generated seed on `create`) and
-progress lines go to **stderr**, keeping stdout a clean JSON stream for
-pipelines.
+fields emitted, so the shape is stable across calls. Confirmation prompts, the
+generated seed on `create`, and progress lines go to **stderr**, keeping stdout
+a clean JSON stream for pipelines. The one human-oriented exception is
+`activity`, which prints its table (and next-page hint) to stdout by default;
+pass `--format json` there when scripting.
 
 On failure the command writes a JSON error envelope to **stderr** and exits
 non-zero:
@@ -79,7 +80,7 @@ parsing prose. The codes are semantic:
 | `0` | success | The command completed. Set implicitly when the command returns without error. |
 | `1` | generic error | Catch-all failure not covered by a more specific code. |
 | `2` | invalid arguments | The invocation was rejected before reaching the daemon: a missing required flag, a malformed outpoint, conflicting `--offchain`/`--onchain`, and similar. |
-| `3` | auth failure | Wallet authentication failed: a wrong password, or a locked wallet on a verb that requires it. |
+| `3` | auth failure | The daemon rejected the call as unauthenticated or not permitted (a missing or invalid macaroon). A wrong password and a locked wallet both report `2` instead; see the mapping below. |
 | `4` | not found | A queried resource does not exist on the daemon (an unknown round id, a missing exit job). |
 | `10` | dry-run OK | A `--dry-run` invocation passed all local validation; no RPC was dispatched. |
 

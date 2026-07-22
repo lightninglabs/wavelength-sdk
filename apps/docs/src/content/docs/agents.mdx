@@ -19,7 +19,7 @@ The fastest setup. One command installs four Wavelength skills into every
 agent the [skills CLI](https://skills.sh) supports (Claude Code, Cursor,
 Codex, Copilot, Gemini CLI, and more):
 
-```sh
+```bash title="Terminal"
 npx skills add lightninglabs/wavelength-sdk
 ```
 
@@ -30,7 +30,7 @@ npx skills add lightninglabs/wavelength-sdk
 
 Claude Code users can install through the plugin marketplace instead:
 
-```sh
+```text
 /plugin marketplace add lightninglabs/wavelength-sdk
 ```
 
@@ -114,8 +114,8 @@ embedded self-custodial Lightning wallet.
 3. Stage the native wallet runtime binaries before the first build per
    https://wavelength.lightning.engineering/react-native/get-started/installation.md
 4. Create the engine with createNativeWalletEngine() and mount
-   <WavelengthProvider engine={...}> at the app root. Do not construct the
-   engine outside the provider's module scope.
+   <WavelengthProvider engine={...}> at the app root. Create the engine once,
+   at module scope, in the file where the provider is mounted.
 5. Add a minimal wallet screen: create or unlock, balance, receive invoice,
    send payment.
 6. Verify: the app builds and launches on a device or simulator through a
