@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "note": "Each threshold sits above the p95 observed on a local run against smoke-server.js, with headroom. The wall-clock metrics (pageReady, createUsable, unlockUsable, createTotal, unlockTotal) measure the demo's render and RPC work and move a long way between machines, so treat this as a local regression guard rather than a cross-device SLO, and re-record on a quiet machine rather than nudging individual numbers when it drifts. The runtime metrics are the ones this instrumentation exists to watch: reload.runtime.wasmTotal sits below the cold budget on purpose, so losing the runtime cache breaches it.",
+  "metrics": {
+    "coldLoad.browser.pageReady": {
+      "p95Ms": 1400
+    },
+    "coldLoad.runtime.clientReady": {
+      "p95Ms": 500
+    },
+    "coldLoad.runtime.wasmTotal": {
+      "p95Ms": 300
+    },
+    "create.browser.createUsable": {
+      "p95Ms": 4000
+    },
+    "create.wallet.createTotal": {
+      "p95Ms": 3900
+    },
+    "create.wallet.adoptInfo.create": {
+      "p95Ms": 100
+    },
+    "reload.browser.pageReady": {
+      "p95Ms": 1000
+    },
+    "reload.runtime.clientReady": {
+      "p95Ms": 330
+    },
+    "reload.runtime.wasmTotal": {
+      "p95Ms": 180
+    },
+    "unlock.browser.unlockUsable": {
+      "p95Ms": 2200
+    },
+    "unlock.wallet.unlockTotal": {
+      "p95Ms": 1700
+    },
+    "unlock.wallet.adoptInfo.unlock": {
+      "p95Ms": 100
+    }
+  },
+  "maxAdoptInfoAttempts": 1
+}

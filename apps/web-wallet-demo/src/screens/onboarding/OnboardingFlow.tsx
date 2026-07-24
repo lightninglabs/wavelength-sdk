@@ -7,7 +7,7 @@ import {
   useWalletRestore,
 } from "@lightninglabs/wavelength-react";
 import type { WalletKind } from "@lightninglabs/wavelength-react";
-import { webPasskeyCeremony } from "@lightninglabs/wavelength-web";
+import { instrumentedPasskeyCeremony } from "../../lib/performance";
 import { CreateWalletScreen } from "./CreateWalletScreen";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreWalletScreen } from "./RestoreWalletScreen";
@@ -59,7 +59,7 @@ export function OnboardingFlow({
   const engine = useWalletEngine();
   const { create, createPending, createError } = useWalletCreate();
   const { restore, restorePending, restoreError } = useWalletRestore();
-  const passkey = useWalletPasskey(webPasskeyCeremony);
+  const passkey = useWalletPasskey(instrumentedPasskeyCeremony);
   const { recovery, acknowledge: acknowledgeRecovery } = useWalletRecovery();
 
   // The passkey-restore affordance on the restore screen bypasses
@@ -219,7 +219,7 @@ export function OnboardingFlow({
     setRestorePasskeyError("");
     let assertion;
     try {
-      assertion = await webPasskeyCeremony.assertPasskeyPrf();
+      assertion = await instrumentedPasskeyCeremony.assertPasskeyPrf();
     } catch {
       setRestorePasskeyError("Passkey ceremony was cancelled or failed.");
 
@@ -270,7 +270,7 @@ export function OnboardingFlow({
       <LoadingScreen
         network={network}
         title="Unlocking wallet"
-        sub="Decrypting keys and syncing. This can take a few seconds."
+        sub="Decrypting keys and opening your wallet."
       />
     );
   }

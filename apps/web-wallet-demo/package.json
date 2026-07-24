@@ -6,6 +6,7 @@
     "preview": "vite preview",
     "build": "vite build",
     "test": "playwright test",
+    "perf": "playwright test --config=playwright.perf.config.js",
     "test:signet": "playwright test --config=playwright.signet.config.js",
     "typecheck": "tsc --noEmit",
     "wasm:local": "bash scripts/wasm-local.sh",

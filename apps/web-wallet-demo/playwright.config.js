@@ -34,8 +34,17 @@ module.exports = defineConfig({
       HOST: host,
       PORT: String(port),
       WAVELENGTH_SMOKE_VERBOSE: process.env.WAVELENGTH_SMOKE_VERBOSE || "",
+      // Serve the compressed runtime as gzip bytes rather than declaring the
+      // encoding, so this suite exercises the SDK's own inflate path. The perf
+      // config pins the opposite; see smoke-server.js.
+      WAVELENGTH_SMOKE_RAW_GZ: "1",
     },
-    reuseExistingServer: !process.env.CI,
+    // Never reused. What this suite covers now depends on how the server was
+    // started: a stray one (a leftover perf server, or one started by hand)
+    // declares Content-Encoding instead, and the run would quietly pass without
+    // the SDK inflating anything. Reuse was already a known hazard on this port
+    // because the regtest stack sits next to it.
+    reuseExistingServer: false,
     timeout: 30000,
     url: `${baseURL}/`,
   },

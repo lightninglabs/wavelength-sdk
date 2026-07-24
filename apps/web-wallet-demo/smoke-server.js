@@ -108,7 +108,33 @@ function queueIndexerResponse(envelope) {
   });
 }
 
+// Set by the smoke config so the compressed asset arrives as gzip bytes the SDK
+// has to inflate itself. Declaring Content-Encoding instead lets the transport
+// inflate, which is what the recorded perf budget was measured against, but it
+// means the SDK's own DecompressionStream path never runs in a real browser.
+// The two suites therefore serve the same file differently on purpose: the
+// smoke test covers the inflate path, the benchmark holds one configuration
+// still so its numbers stay comparable. Neither is the "correct" way to host;
+// the loader sniffs the bytes and handles both.
+//
+// Compared against exactly "1" rather than truthiness: Playwright merges the
+// ambient environment into webServer.env, so a stray value inherited from the
+// caller must not be able to flip the benchmark's configuration.
+const rawGz = process.env.WAVELENGTH_SMOKE_RAW_GZ === "1";
+
 function serveFile(res, filePath) {
+  if (filePath.endsWith(".wasm.gz")) {
+    if (rawGz) {
+      setHeaders(res, "application/gzip");
+    } else {
+      setHeaders(res, "application/wasm");
+      res.setHeader("Content-Encoding", "gzip");
+    }
+    fs.createReadStream(filePath).pipe(res);
+
+    return;
+  }
+
   const ext = path.extname(filePath);
   const mimeTypes = {
     ".css": "text/css",

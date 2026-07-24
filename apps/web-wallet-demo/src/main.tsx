@@ -4,12 +4,15 @@ import { WavelengthProvider } from "@lightninglabs/wavelength-react";
 import {
   createWebWalletEngine,
   RUNTIME_MANIFEST_VERSION,
-  webPasskeyCeremony,
 } from "@lightninglabs/wavelength-web";
 import { App } from "./App";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { consumePendingWipe } from "./lib/wipeLocalData";
 import { requestPersistentStorage } from "./lib/persistStorage";
+import {
+  instrumentedPasskeyCeremony,
+  performanceListener,
+} from "./lib/performance";
 // Self-host Inter, Work Sans and JetBrains Mono (the weights used by
 // index.css) so the fonts load same-origin; cross-origin Google Fonts are
 // blocked under COEP require-corp. Import the latin subset only; the UI is
@@ -33,7 +36,7 @@ import "./index.css";
 async function boot() {
   // Warm the memoized passkey support probe now, before onboarding ever
   // mounts, so its result is already resolved by the time a screen reads it.
-  void webPasskeyCeremony.supportsPasskeyPrf();
+  void instrumentedPasskeyCeremony.supportsPasskeyPrf();
 
   await consumePendingWipe();
 
@@ -56,6 +59,7 @@ async function boot() {
       new URL(import.meta.env.BASE_URL, window.location.href),
     ).href,
     debug: true,
+    onPerformance: performanceListener,
   });
 
   createRoot(document.getElementById("root")!).render(
