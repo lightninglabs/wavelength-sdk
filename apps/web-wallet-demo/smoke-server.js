@@ -109,6 +109,14 @@ function queueIndexerResponse(envelope) {
 }
 
 function serveFile(res, filePath) {
+  if (filePath.endsWith(".wasm.gz")) {
+    setHeaders(res, "application/wasm");
+    res.setHeader("Content-Encoding", "gzip");
+    fs.createReadStream(filePath).pipe(res);
+
+    return;
+  }
+
   const ext = path.extname(filePath);
   const mimeTypes = {
     ".css": "text/css",

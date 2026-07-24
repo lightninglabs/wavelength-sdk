@@ -6,7 +6,7 @@ import {
   useWalletRestore,
 } from "@lightninglabs/wavelength-react";
 import type { WalletKind } from "@lightninglabs/wavelength-react";
-import { webPasskeyCeremony } from "@lightninglabs/wavelength-web";
+import { instrumentedPasskeyCeremony } from "../../lib/performance";
 import { CreateWalletScreen } from "./CreateWalletScreen";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreWalletScreen } from "./RestoreWalletScreen";
@@ -58,7 +58,7 @@ export function OnboardingFlow({
   const [step, setStep] = useState<Step>("create");
   const { create, createPending, createError } = useWalletCreate();
   const { restore, restorePending, restoreError } = useWalletRestore();
-  const passkey = useWalletPasskey(webPasskeyCeremony);
+  const passkey = useWalletPasskey(instrumentedPasskeyCeremony);
   const { recovery, acknowledge: acknowledgeRecovery } = useWalletRecovery();
 
   // Passkey support is still probing: hold on a loading screen rather than

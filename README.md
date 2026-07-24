@@ -161,3 +161,39 @@ You host the asset set yourself. Obtain it from the
 or build it from a `wavelength` checkout. See
 [Hosting runtime assets](https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets/)
 for the exact steps.
+
+For the fast startup path, serve `wavewalletdk.wasm.gz` as
+`application/wasm` with `Content-Encoding: gzip`. The SDK then lets the browser
+decompress and compile the module in one streaming pipeline. It retains the
+manual gzip and raw wasm fallbacks for hosts or browsers that cannot use that
+path.
+
+## Browser performance benchmark
+
+The web demo has a repeatable Playwright benchmark for runtime readiness, wallet
+creation, reload, and unlock. It creates a fresh browser context and wallet for
+each run, reports p50/p95 timings, and fails when a metric exceeds
+[`perf-budget.json`](apps/web-wallet-demo/perf-budget.json) or `getInfo`
+adoption needs more than one attempt.
+
+```sh
+# Stage the pinned runtime release, then run five samples.
+pnpm --filter web-wallet-demo run wasm:fetch
+pnpm perf:web
+
+# Or benchmark a local Wavelength checkout.
+WAVELENGTH_DIR=/path/to/wavelength \
+  pnpm --filter web-wallet-demo run wasm:local
+pnpm perf:web
+
+# Increase the sample count or write the JSON report elsewhere.
+WAVELENGTH_PERF_RUNS=20 \
+WAVELENGTH_PERF_REPORT=/tmp/wavelength-perf.json \
+pnpm perf:web
+```
+
+The default report is
+`apps/web-wallet-demo/test-results/wavelength-perf.json`. The checked-in budget
+is a regression guard for the local Chromium profile, not a cross-device
+service-level objective. Record the browser version and host when comparing
+results across machines.

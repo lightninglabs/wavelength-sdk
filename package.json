@@ -9,6 +9,7 @@
     "gen:types": "node scripts/gen-types.mts",
     "gen:api-docs": "node scripts/gen-api-docs.mts",
     "test:api-docs": "node --test scripts/api-docs/extract.test.mts",
+    "perf:web": "pnpm build && pnpm --filter web-wallet-demo run build && pnpm --filter web-wallet-demo run perf",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish"

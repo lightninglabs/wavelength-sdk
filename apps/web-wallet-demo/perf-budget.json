@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "metrics": {
+    "coldLoad.browser.pageReady": {
+      "p95Ms": 500
+    },
+    "coldLoad.runtime.clientReady": {
+      "p95Ms": 330
+    },
+    "coldLoad.runtime.wasmTotal": {
+      "p95Ms": 180
+    },
+    "create.browser.createUsable": {
+      "p95Ms": 3200
+    },
+    "create.wallet.createTotal": {
+      "p95Ms": 3100
+    },
+    "create.wallet.adoptInfo.create": {
+      "p95Ms": 100
+    },
+    "reload.browser.pageReady": {
+      "p95Ms": 1000
+    },
+    "reload.runtime.clientReady": {
+      "p95Ms": 330
+    },
+    "reload.runtime.wasmTotal": {
+      "p95Ms": 180
+    },
+    "unlock.browser.unlockUsable": {
+      "p95Ms": 1500
+    },
+    "unlock.wallet.unlockTotal": {
+      "p95Ms": 1400
+    },
+    "unlock.wallet.adoptInfo.unlock": {
+      "p95Ms": 100
+    }
+  },
+  "maxAdoptInfoAttempts": 1
+}

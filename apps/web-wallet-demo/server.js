@@ -38,9 +38,14 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    res.writeHead(200, {
+    const headers = {
       "Content-Type": mimeTypes[path.extname(filePath)] || "application/octet-stream",
-    });
+    };
+    if (filePath.endsWith(".wasm.gz")) {
+      headers["Content-Type"] = "application/wasm";
+      headers["Content-Encoding"] = "gzip";
+    }
+    res.writeHead(200, headers);
     res.end(content);
   });
 });
