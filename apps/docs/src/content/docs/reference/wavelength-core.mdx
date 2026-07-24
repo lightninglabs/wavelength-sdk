@@ -420,8 +420,10 @@ Nothing; the client is torn down synchronously.
 ## Wallet engine
 
 export const walletEngineOptionsSig = `type WalletEngineOptions =
-  | { client: WavelengthClient; config: RuntimeConfig; autoStart: true }
-  | { client: WavelengthClient; config?: RuntimeConfig; autoStart?: false };`;
+  { onPerformance?: WavelengthPerformanceListener } & (
+    | { client: WavelengthClient; config: RuntimeConfig; autoStart: true }
+    | { client: WavelengthClient; config?: RuntimeConfig; autoStart?: false }
+  );`;
 export const distributiveOmitSig = `type DistributiveOmit<T, K extends PropertyKey> =
   T extends unknown ? Omit<T, K> : never;`;
 
@@ -490,6 +492,7 @@ A discriminated union: the types require a config when autoStart is enabled, so 
   { name: 'client', type: 'WavelengthClient', desc: 'The transport client the engine drives.' },
   { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by start() when called with no argument.' },
   { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config; start() still throws if later called with no argument and no config.' },
+  { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Optional. Receives structured timing samples for runtime readiness, wallet create/open RPCs, post-operation info adoption, and sync polling. Instrumentation stays off unless this is supplied: with it omitted no timing is measured and no samples are delivered. A listener that throws cannot break wallet work. Default: unset (disabled).' },
 ]} />
 
 <ApiTypeLabel name="DistributiveOmit" />
@@ -2783,6 +2786,45 @@ The severity of a `'log'` event emitted by the runtime.
 | `info` | Normal operational messages. |
 | `warn` | Recoverable but noteworthy conditions. |
 | `error` | Failures worth surfacing to a developer. |
+
+</ApiSymbol>
+
+export const wavelengthPerformanceEventSig = `type WavelengthPerformanceEvent = {
+  stage: 'runtime' | 'wallet' | 'passkey';
+  phase: string;
+  durationMs: number;
+  detail?: Record<string, string | number | boolean>;
+};`;
+
+export const wavelengthPerformanceListenerSig = `type WavelengthPerformanceListener = (
+  event: WavelengthPerformanceEvent,
+) => void;`;
+
+<ApiSymbol name="WavelengthPerformanceEvent" kind="type">
+
+A structured timing sample. These are opt-in diagnostics: without an
+`onPerformance` listener no timing is measured and no sample is delivered, so
+leaving it off costs little more than a check per measured boundary.
+
+<Signature title="wavelength-core.d.ts" code={wavelengthPerformanceEventSig} />
+
+<ParamsTable rows={[
+  { name: 'stage', type: "'runtime' | 'wallet' | 'passkey'", desc: 'The broad subsystem being measured: runtime readiness and wasm loading, wallet RPCs and engine bookkeeping, or a passkey ceremony.' },
+  { name: 'phase', type: 'string', desc: 'The measured boundary within the stage, for example wasmTotal, clientReady, createTotal, unlockTotal, adoptInfo or sync. Deliberately a string, so a transport can report boundaries this package does not know about.' },
+  { name: 'durationMs', type: 'number', desc: 'Elapsed wall-clock milliseconds for the boundary.' },
+  { name: 'detail', type: 'Record<string, string | number | boolean>', desc: 'Optional low-cardinality context for interpreting the sample, such as the load path taken, the outcome, or a retry count. Never carries addresses, amounts or passkey output.' },
+]} />
+
+</ApiSymbol>
+
+<ApiSymbol name="WavelengthPerformanceListener" kind="type">
+
+Receives performance samples. Pass one as `onPerformance` to a client factory,
+`createWalletEngine`, or `createWebPasskeyCeremony`. Delivery is isolated from
+wallet behavior: a listener that throws is swallowed rather than failing the
+operation being measured.
+
+<Signature title="wavelength-core.d.ts" code={wavelengthPerformanceListenerSig} />
 
 </ApiSymbol>
 

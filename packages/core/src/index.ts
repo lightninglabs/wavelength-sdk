@@ -13,6 +13,12 @@ export type {
   WavelengthLogPayload,
 } from './events.ts';
 
+// Opt-in structured performance instrumentation.
+export type {
+  WavelengthPerformanceEvent,
+  WavelengthPerformanceListener,
+} from './performance.ts';
+
 // Network selection and runtime configuration. App code normally builds a
 // config through a transport package's defaultConfig helper; networkDefaults
 // is the shared endpoint table those helpers compose over.

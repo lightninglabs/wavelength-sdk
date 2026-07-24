@@ -37,8 +37,10 @@ export const createNativeWalletEngineSig = `function createNativeWalletEngine(
 ): WalletEngine`;
 
 export const nativeWalletEngineOptionsSig = `type NativeWalletEngineOptions =
-  | { config: RuntimeConfig; autoStart: true }
-  | { config?: RuntimeConfig; autoStart?: false };`;
+  { onPerformance?: WavelengthPerformanceListener } & (
+    | { config: RuntimeConfig; autoStart: true }
+    | { config?: RuntimeConfig; autoStart?: false }
+  );`;
 
 export const createNativePasskeyCeremonySig = `function createNativePasskeyCeremony(
   options: NativePasskeyCeremonyOptions,
@@ -134,6 +136,7 @@ A live engine driving a freshly built native client. See [`WalletEngine`](/refer
 <ParamsTable rows={[
   { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by the engine\'s start() when called with no argument.' },
   { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config.' },
+  { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Optional. Receives structured timing samples for runtime readiness, wallet create/open RPCs, post-operation info adoption, and sync polling. On this transport runtime readiness is the only runtime-stage sample, since the native runtime is compiled in rather than loaded. Instrumentation stays off unless this is supplied. Default: unset (disabled).' },
 ]} />
 
 ```tsx title="App.tsx"

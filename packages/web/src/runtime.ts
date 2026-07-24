@@ -1,6 +1,10 @@
-import { WavelengthError } from '@lightninglabs/wavelength-core';
+import {
+  errorMessage,
+  WavelengthError,
+  type WavelengthPerformanceListener,
+} from '@lightninglabs/wavelength-core';
+import { performanceNow, reportPerformance } from './performance.ts';
 import { RUNTIME_ASSETS } from './runtime-manifest.ts';
-import { errorMessage } from './util.ts';
 
 /**
  * Resolves a runtime asset name against an optional base URL. With no base the
@@ -99,77 +103,201 @@ export function wavewalletdkCall() {
   ).wavewalletdkCall;
 }
 
+// The first bytes of a runtime asset say what it is, and headers cannot. A host
+// may mislabel the MIME type, and Content-Encoding is not a CORS-safelisted
+// response header, so cross-origin it is often invisible even when the
+// transport has already decoded the body. Reading the magic number replaces
+// that guess with a fact, which is what removes the recovery paths a wrong
+// guess used to need.
+const GZIP_MAGIC = [0x1f, 0x8b];
+const WASM_MAGIC = [0x00, 0x61, 0x73, 0x6d];
+
+// The wasm magic is the longer of the two, so four bytes settles either.
+const MAGIC_BYTES = 4;
+
+function startsWith(bytes: Uint8Array, magic: readonly number[]): boolean {
+  return magic.every((byte, index) => bytes[index] === byte);
+}
+
+function concatChunks(chunks: Uint8Array<ArrayBuffer>[]): Uint8Array<ArrayBuffer> {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const joined = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, at);
+    at += chunk.byteLength;
+  }
+
+  return joined;
+}
+
 /**
- * Instantiates the wasm module, preferring the gzip-compressed binary when the
- * browser supports DecompressionStream and falling back to the raw binary
- * (logging a warning) if the compressed path fails.
+ * Reads the first `size` bytes of a response without disturbing the body the
+ * caller will actually use.
+ *
+ * The peek runs on a clone and cancels it as soon as it has the magic, which
+ * leaves the original body untouched and, importantly, still native. Wrapping
+ * the original in a JS ReadableStream instead would put every byte of a ~130 MB
+ * module through a JS pull callback, which measurably slowed the cold load.
+ */
+async function peekMagic(
+  response: Response,
+  size: number,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const body = response.clone().body;
+  if (!body) {
+    return new Uint8Array(0);
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  let read = 0;
+  try {
+    while (read < size) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+      read += value.byteLength;
+    }
+  } finally {
+    // Stops the tee holding the rest of the body for a branch nobody reads.
+    void reader.cancel();
+  }
+
+  return concatChunks(chunks);
+}
+
+/**
+ * Fetches one runtime asset and instantiates it, inflating first when its bytes
+ * are gzip.
+ *
+ * The response's own Content-Type is deliberately not consulted.
+ * `instantiateStreaming` requires `application/wasm` and hosts are unreliable
+ * about sending it, so the body is rewrapped in a response this module labels
+ * itself. That is also what keeps the compressed path streaming: inflated bytes
+ * feed compilation as they arrive rather than being buffered whole first.
+ *
+ * `path` only tags the performance samples; it never selects behavior.
+ */
+export async function instantiateRuntimeAsset(
+  url: string,
+  path: string,
+  importObject: WebAssembly.Imports,
+  onPerformance?: WavelengthPerformanceListener,
+) {
+  const fetchStartedAt = onPerformance ? performanceNow() : undefined;
+  const response = await fetch(url);
+  if (fetchStartedAt !== undefined) {
+    reportPerformance(onPerformance, {
+      stage: 'runtime',
+      phase: 'wasmFetchHeaders',
+      durationMs: performanceNow() - fetchStartedAt,
+      detail: { path },
+    });
+  }
+  if (!response.ok) {
+    throw runtimeAssetError(url);
+  }
+  if (!response.body) {
+    throw new WavelengthError(
+      `Wavelength runtime asset at ${url} arrived with no body.`,
+      'asset_load_failed',
+    );
+  }
+
+  const prefix = await peekMagic(response, MAGIC_BYTES);
+  const gzipped = startsWith(prefix, GZIP_MAGIC);
+  if (!gzipped && !startsWith(prefix, WASM_MAGIC)) {
+    // Neither magic number: whatever this is, it is not a runtime binary. Fail
+    // here rather than handing it to the compiler, so the error names the URL.
+    throw runtimeAssetError(url);
+  }
+  if (gzipped && !('DecompressionStream' in globalThis)) {
+    throw new WavelengthError(
+      `Wavelength runtime asset at ${url} is gzip and this browser has no ` +
+        'DecompressionStream to inflate it.',
+      'asset_load_failed',
+    );
+  }
+
+  const body = gzipped
+    ? response.body.pipeThrough(new DecompressionStream('gzip'))
+    : response.body;
+
+  const compileStartedAt = onPerformance ? performanceNow() : undefined;
+  const instantiated = await WebAssembly.instantiateStreaming(
+    new Response(body, { headers: { 'content-type': 'application/wasm' } }),
+    importObject,
+  );
+  // Reported on success only. A failed asset falls through to the next one,
+  // which reports its own compile, so reporting here too would put a timing for
+  // abandoned work into the same distribution.
+  if (compileStartedAt !== undefined) {
+    reportPerformance(onPerformance, {
+      stage: 'runtime',
+      phase: 'wasmCompileInstantiate',
+      durationMs: performanceNow() - compileStartedAt,
+      detail: { path, streaming: true, body: gzipped ? 'gzip' : 'wasm' },
+    });
+  }
+
+  return instantiated;
+}
+
+/**
+ * Instantiates the wasm module, preferring the gzip-compressed binary and
+ * falling back to the uncompressed one (logging a warning) if it cannot be
+ * loaded at all.
+ *
+ * Both assets go through the same loader, which identifies what it actually
+ * received rather than trusting the URL or the headers, so a host that serves
+ * either file pre-inflated, double-labelled, or behind a transport that decodes
+ * for it still lands on one code path.
  */
 export async function instantiateWasm(
   importObject: WebAssembly.Imports,
   base: string | undefined,
+  onPerformance?: WavelengthPerformanceListener,
 ) {
-  if ('DecompressionStream' in globalThis) {
+  const startedAt = onPerformance ? performanceNow() : undefined;
+  let path = 'gzip';
+  // A load that threw still reports, because the time was really spent, but it
+  // is tagged so a consumer can keep abandoned work out of a latency
+  // distribution rather than having to infer the failure from the duration.
+  let outcome = 'success';
+  try {
     try {
-      return await instantiateCompressedWasm(importObject, base);
+      return await instantiateRuntimeAsset(
+        resolveRuntimeAsset(base, RUNTIME_ASSETS.wasmGz),
+        'gzip',
+        importObject,
+        onPerformance,
+      );
     } catch (err) {
       console.warn(`compressed wasm load failed: ${errorMessage(err)}`);
+      path = 'raw';
     }
-  }
 
-  return instantiateRawWasm(importObject, base);
-}
-
-/**
- * Fetches the gzip-compressed wasm binary, inflates it through a
- * DecompressionStream, and instantiates the resulting bytes.
- */
-export async function instantiateCompressedWasm(
-  importObject: WebAssembly.Imports,
-  base: string | undefined,
-) {
-  const url = resolveRuntimeAsset(base, RUNTIME_ASSETS.wasmGz);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw runtimeAssetError(url);
-  }
-
-  const body = response.body;
-  if (!body) {
-    throw new WavelengthError('Wavelength compressed wasm response is empty');
-  }
-
-  const stream = body.pipeThrough(new DecompressionStream('gzip'));
-  const bytes = await new Response(stream).arrayBuffer();
-
-  return WebAssembly.instantiate(bytes, importObject);
-}
-
-/**
- * Fetches the uncompressed wasm binary and instantiates it via streaming
- * compilation.
- */
-export async function instantiateRawWasm(
-  importObject: WebAssembly.Imports,
-  base: string | undefined,
-) {
-  const url = resolveRuntimeAsset(base, RUNTIME_ASSETS.wasm);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw runtimeAssetError(url);
-  }
-
-  try {
-    return await WebAssembly.instantiateStreaming(response, importObject);
-  } catch {
-    // instantiateStreaming requires the host to serve the wasm as
-    // application/wasm; fall back to ArrayBuffer instantiation so a
-    // misconfigured MIME type does not break self-hosted runtimes.
-    const retry = await fetch(url);
-    if (!retry.ok) {
-      throw runtimeAssetError(url);
+    return await instantiateRuntimeAsset(
+      resolveRuntimeAsset(base, RUNTIME_ASSETS.wasm),
+      'raw',
+      importObject,
+      onPerformance,
+    );
+  } catch (err) {
+    outcome = 'error';
+    throw err;
+  } finally {
+    if (startedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmTotal',
+        durationMs: performanceNow() - startedAt,
+        detail: { path, outcome },
+      });
     }
-    const bytes = await retry.arrayBuffer();
-    return WebAssembly.instantiate(bytes, importObject);
   }
 }
 

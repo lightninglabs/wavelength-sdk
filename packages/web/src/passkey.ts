@@ -2,7 +2,12 @@ import {
   PASSKEY_PRF_SALT_HEX,
   PasskeyCancelledError,
 } from "@lightninglabs/wavelength-core";
-import type { PasskeyAssertion } from "@lightninglabs/wavelength-core";
+import type {
+  PasskeyAssertion,
+  PasskeyCeremony,
+  WavelengthPerformanceListener,
+} from "@lightninglabs/wavelength-core";
+import { performanceNow, reportPerformance } from "./performance.ts";
 
 // Whether a WebAuthn rejection means the user dismissed or timed out the OS
 // prompt, as opposed to a real failure. NotAllowedError is the spec-mandated
@@ -90,11 +95,14 @@ function prfFirst(results: unknown): ArrayBuffer {
 // credential to read it reliably without prompting a chooser.
 export async function registerPasskeyWallet(
   appName: string,
+  onPerformance?: WavelengthPerformanceListener,
 ): Promise<PasskeyAssertion> {
   const salt = prfSalt();
   const userId = crypto.getRandomValues(new Uint8Array(16));
 
   let created: PublicKeyCredential | null;
+  const ceremonyStartedAt = onPerformance ? performanceNow() : undefined;
+  let ceremonyOutcome = "success";
   try {
     created = (await navigator.credentials.create({
       publicKey: {
@@ -113,10 +121,23 @@ export async function registerPasskeyWallet(
         extensions: { prf: { eval: { first: salt } } },
       },
     })) as PublicKeyCredential | null;
+    if (!created) {
+      ceremonyOutcome = "cancelled";
+    }
   } catch (err) {
+    ceremonyOutcome = isWebAuthnCancel(err) ? "cancelled" : "error";
     throw isWebAuthnCancel(err)
       ? new PasskeyCancelledError("passkey registration was cancelled")
       : err;
+  } finally {
+    if (ceremonyStartedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: "passkey",
+        phase: "registerCeremony",
+        durationMs: performanceNow() - ceremonyStartedAt,
+        detail: { outcome: ceremonyOutcome },
+      });
+    }
   }
   if (!created) {
     throw new PasskeyCancelledError("passkey registration was cancelled");
@@ -132,7 +153,7 @@ export async function registerPasskeyWallet(
     };
   }
 
-  return assertPasskeyPrf(created.id);
+  return assertPasskeyPrf(created.id, onPerformance);
 }
 
 // assertPasskeyPrf authenticates with a passkey and returns its PRF output (hex)
@@ -143,6 +164,7 @@ export async function registerPasskeyWallet(
 // wallet.
 export async function assertPasskeyPrf(
   allowCredentialId?: string,
+  onPerformance?: WavelengthPerformanceListener,
 ): Promise<PasskeyAssertion> {
   const salt = prfSalt();
   const allowCredentials = allowCredentialId
@@ -150,6 +172,8 @@ export async function assertPasskeyPrf(
     : [];
 
   let assertion: PublicKeyCredential | null;
+  const ceremonyStartedAt = onPerformance ? performanceNow() : undefined;
+  let ceremonyOutcome = "success";
   try {
     assertion = (await navigator.credentials.get({
       publicKey: {
@@ -159,10 +183,23 @@ export async function assertPasskeyPrf(
         extensions: { prf: { eval: { first: salt } } },
       },
     })) as PublicKeyCredential | null;
+    if (!assertion) {
+      ceremonyOutcome = "cancelled";
+    }
   } catch (err) {
+    ceremonyOutcome = isWebAuthnCancel(err) ? "cancelled" : "error";
     throw isWebAuthnCancel(err)
       ? new PasskeyCancelledError("passkey authentication was cancelled")
       : err;
+  } finally {
+    if (ceremonyStartedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: "passkey",
+        phase: "assertCeremony",
+        durationMs: performanceNow() - ceremonyStartedAt,
+        detail: { outcome: ceremonyOutcome },
+      });
+    }
   }
   if (!assertion) {
     throw new PasskeyCancelledError("passkey authentication was cancelled");
@@ -171,6 +208,25 @@ export async function assertPasskeyPrf(
   return {
     prfOutput: prfOutputHex(prfFirst(assertion.getClientExtensionResults())),
     credentialId: assertion.id,
+  };
+}
+
+/**
+ * Builds the browser passkey ceremony with an optional structured performance
+ * reporter. The default exported ceremony omits it, while diagnostics and
+ * benchmarks can opt in without changing wallet behavior.
+ */
+export function createWebPasskeyCeremony(
+  options: {
+    onPerformance?: WavelengthPerformanceListener;
+  } = {},
+): PasskeyCeremony {
+  return {
+    supportsPasskeyPrf,
+    registerPasskeyWallet: (appName) =>
+      registerPasskeyWallet(appName, options.onPerformance),
+    assertPasskeyPrf: (allowCredentialId) =>
+      assertPasskeyPrf(allowCredentialId, options.onPerformance),
   };
 }
 

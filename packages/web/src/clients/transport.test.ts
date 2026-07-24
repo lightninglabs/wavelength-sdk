@@ -1163,6 +1163,7 @@ describe('activity transport requests', () => {
       decompression: (globalThis as { DecompressionStream?: unknown })
         .DecompressionStream,
       instantiate: WebAssembly.instantiate,
+      instantiateStreaming: WebAssembly.instantiateStreaming,
       addEventListener: globalThis.addEventListener,
       removeEventListener: globalThis.removeEventListener,
       call: (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall,
@@ -1186,14 +1187,23 @@ describe('activity transport requests', () => {
         return runPromise;
       }
     });
-    // Force the uncompressed path, then let instantiateStreaming fail so the
-    // ArrayBuffer fallback runs against the stub below.
+    // The loader identifies the asset by its magic number and streams it, so
+    // the stub has to be a real response with a body rather than a bag with an
+    // arrayBuffer(). Raw wasm magic keeps it on the uncompressed path.
     stub('DecompressionStream', undefined);
-    stub('fetch', async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }));
+    stub(
+      'fetch',
+      async () =>
+        new Response(new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0, 0, 0])),
+    );
     stub('addEventListener', () => undefined);
     stub('removeEventListener', () => undefined);
     stub('wavewalletdkCall', undefined);
     Object.defineProperty(WebAssembly, 'instantiate', {
+      configurable: true,
+      value: async () => ({ instance: {} }),
+    });
+    Object.defineProperty(WebAssembly, 'instantiateStreaming', {
       configurable: true,
       value: async () => ({ instance: {} }),
     });
@@ -1232,8 +1242,8 @@ describe('activity transport requests', () => {
       client.dispose();
     } finally {
       for (const [name, value] of Object.entries(saved)) {
-        if (name === 'instantiate') {
-          Object.defineProperty(WebAssembly, 'instantiate', {
+        if (name === 'instantiate' || name === 'instantiateStreaming') {
+          Object.defineProperty(WebAssembly, name, {
             configurable: true,
             value,
           });
