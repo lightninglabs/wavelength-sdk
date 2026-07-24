@@ -44,6 +44,37 @@ await client.ready();
 await client.start(defaultConfig("signet"));
 ```
 
+## Performance diagnostics
+
+`onPerformance` opts a client or engine into structured timing samples. The
+callback covers runtime fetch, gzip decompression, WebAssembly compilation, Go
+startup, wallet create/unlock RPCs, post-RPC `getInfo` adoption, sync polling,
+and passkey ceremonies. When the callback is absent, the transport does not
+collect or send timing samples.
+
+```ts
+import {
+  createWebPasskeyCeremony,
+  createWebWalletEngine,
+  type WavelengthPerformanceEvent,
+} from "@lightninglabs/wavelength-web";
+
+const report = (sample: WavelengthPerformanceEvent) => {
+  console.debug("wavelength timing", sample);
+};
+
+const engine = createWebWalletEngine({
+  runtimeBaseUrl: "https://your-host/wavewalletdk/",
+  onPerformance: report,
+});
+
+const passkeys = createWebPasskeyCeremony({ onPerformance: report });
+```
+
+Reporters are diagnostics. An exception thrown by the callback is swallowed so
+it cannot break wallet work. Samples use low-cardinality metadata and do not
+contain passwords, passkey output, addresses, or amounts.
+
 ## Runtime assets
 
 The wallet runtime ships as a set of files (`RUNTIME_ASSET_FILES`) that you host
@@ -51,3 +82,10 @@ yourself and point `runtimeBaseUrl` at. Obtain the set either from the
 `wavelength` release assets or by building it from a `wavelength` checkout; see
 the [documentation](https://wavelength.lightning.engineering) for the exact
 steps.
+
+Serve `wavewalletdk.wasm.gz` with `Content-Type: application/wasm` and
+`Content-Encoding: gzip`. The browser can then decompress and compile the
+module through one native streaming pipeline. Hosts that serve the file as
+`application/gzip` still work: the SDK falls back to `DecompressionStream` and
+buffered compilation. Keep the raw `wavewalletdk.wasm` asset beside it as the
+fallback for browsers without gzip stream support.

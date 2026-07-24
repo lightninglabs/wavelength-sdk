@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { FORCE_UNROLL_ACK } from '../requests.ts';
 import type { Entry, ListResult } from '../results.ts';
 import type { WalletInfo } from '../state.ts';
+import type { WavelengthPerformanceEvent } from '../performance.ts';
 import { FakeWavelengthClient } from '../testing/fake-client.ts';
 import { createWalletEngine } from './engine.ts';
 
@@ -241,6 +242,57 @@ describe('engine wallet verbs', () => {
     engine.dispose();
   });
 
+  it('reports create RPC, adoption, and total timing when opted in', async () => {
+    const samples: WavelengthPerformanceEvent[] = [];
+    const client = new FakeWavelengthClient();
+    client.info = noneInfo;
+    const engine = createWalletEngine({
+      client,
+      onPerformance: (sample) => samples.push(sample),
+    });
+    client.resolveReady();
+    await flush();
+    await engine.start({} as never);
+    client.info = readyInfo;
+
+    await engine.createWallet({ password: 'pw' });
+
+    assert.deepEqual(
+      samples
+        .filter((sample) => sample.stage === 'wallet')
+        .map((sample) => sample.phase),
+      ['createRpc', 'adoptInfo', 'createTotal'],
+    );
+    const adoption = samples.find((sample) => sample.phase === 'adoptInfo');
+    assert.deepEqual(adoption?.detail, {
+      operation: 'create',
+      attempts: 1,
+      retryWaitMs: 0,
+      outcome: 'success',
+    });
+    engine.dispose();
+  });
+
+  it('does not let a throwing performance reporter break wallet work', async () => {
+    const client = new FakeWavelengthClient();
+    client.info = noneInfo;
+    const engine = createWalletEngine({
+      client,
+      onPerformance: () => {
+        throw new Error('diagnostics failed');
+      },
+    });
+    client.resolveReady();
+    await flush();
+    await engine.start({} as never);
+    client.info = readyInfo;
+
+    await assert.doesNotReject(() =>
+      engine.createWallet({ password: 'pw' }),
+    );
+    engine.dispose();
+  });
+
   it('a failed createWallet leaves the phase unchanged and rejects', async () => {
     const client = new FakeWavelengthClient();
     client.info = noneInfo;
@@ -309,9 +361,13 @@ describe('engine wallet verbs', () => {
 
   it('#adoptInfo retries a transient getInfo failure and still reaches ready', async () => {
     mock.timers.enable({ apis: ['setTimeout'] });
+    const samples: WavelengthPerformanceEvent[] = [];
     const client = new FakeWavelengthClient();
     client.info = noneInfo;
-    const engine = createWalletEngine({ client });
+    const engine = createWalletEngine({
+      client,
+      onPerformance: (sample) => samples.push(sample),
+    });
     client.resolveReady();
     await flush();
     await engine.start({} as never);
@@ -334,6 +390,16 @@ describe('engine wallet verbs', () => {
     const snap = engine.getSnapshot();
     assert.equal(snap.phase, 'ready');
     assert.equal(snap.error, null);
+    const adoption = samples.find((sample) =>
+      sample.phase === 'adoptInfo' &&
+      sample.detail?.operation === 'create'
+    );
+    assert.deepEqual(adoption?.detail, {
+      operation: 'create',
+      attempts: 3,
+      retryWaitMs: 2000,
+      outcome: 'success',
+    });
     engine.dispose();
     mock.timers.reset();
   });

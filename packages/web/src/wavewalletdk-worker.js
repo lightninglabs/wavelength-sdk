@@ -14,8 +14,28 @@ let runtimeBaseUrl = "";
 // every RPC request/response is logged - payloads can include addresses and
 // amounts, so it stays off unless the consumer opts in.
 let debug = false;
+let performanceEnabled = false;
 function debugTs() {
   return new Date().toISOString().split("T").join(" ").slice(0, -1);
+}
+
+function performanceNow() {
+  return self.performance?.now?.() ?? Date.now();
+}
+
+function postPerformance(phase, startedAt, detail) {
+  if (!performanceEnabled || startedAt === undefined) {
+    return;
+  }
+
+  self.postMessage({
+    performance: {
+      stage: "runtime",
+      phase,
+      durationMs: performanceNow() - startedAt,
+      detail,
+    },
+  });
 }
 
 function resolveRuntimeAsset(name) {
@@ -58,6 +78,7 @@ self.onmessage = async (event) => {
   if (data.$init) {
     runtimeBaseUrl = data.$init.runtimeBaseUrl || "";
     debug = !!data.$init.debug;
+    performanceEnabled = !!data.$init.performance;
 
     return;
   }
@@ -165,15 +186,26 @@ async function loadRuntime() {
   self.sqliteBridgeWorkerURL = resolveRuntimeAsset("sqlite-worker.js");
   self.sqliteBridgeSQLiteJSURL = resolveRuntimeAsset("sqlite3.js");
 
+  const sqliteStartedAt = performanceEnabled ? performanceNow() : undefined;
   importScripts(resolveRuntimeAsset("sqlite-bridge.js"));
+  postPerformance("sqliteBridgeScript", sqliteStartedAt, {
+    transport: "worker",
+  });
+
+  const goScriptStartedAt = performanceEnabled ? performanceNow() : undefined;
   importScripts(resolveRuntimeAsset("wasm_exec.js"));
+  postPerformance("wasmExecScript", goScriptStartedAt, {
+    transport: "worker",
+  });
 
   const go = new Go();
   const result = await instantiateWasm(go.importObject);
+  const goReadyStartedAt = performanceEnabled ? performanceNow() : undefined;
   const runPromise = go.run(result.instance);
   runPromise.catch(rejectAllPending);
 
   await waitForWASMReady();
+  postPerformance("goReady", goReadyStartedAt, { transport: "worker" });
 }
 
 function waitForWASMReady() {
@@ -187,43 +219,88 @@ function waitForWASMReady() {
 }
 
 async function instantiateWasm(importObject) {
-  if ("DecompressionStream" in self) {
-    try {
-      return await instantiateCompressedWasm(importObject);
-    } catch (err) {
-      postEvent("log", {
-        level: "warn",
-        message: `compressed wasm load failed: ${String(err?.message || err)}`,
-      });
+  const startedAt = performanceEnabled ? performanceNow() : undefined;
+  let path = "raw";
+  try {
+    if ("DecompressionStream" in self) {
+      try {
+        path = "gzip";
+        return await instantiateCompressedWasm(importObject);
+      } catch (err) {
+        postEvent("log", {
+          level: "warn",
+          message: `compressed wasm load failed: ${String(err?.message || err)}`,
+        });
+        path = "raw";
+      }
     }
-  }
 
-  return instantiateRawWasm(importObject);
+    return await instantiateRawWasm(importObject);
+  } finally {
+    postPerformance("wasmTotal", startedAt, { path });
+  }
 }
 
 async function instantiateCompressedWasm(importObject) {
   const url = resolveRuntimeAsset("wavewalletdk.wasm.gz");
+  const fetchStartedAt = performanceEnabled ? performanceNow() : undefined;
   const response = await fetch(url);
+  postPerformance("wasmFetchHeaders", fetchStartedAt, { path: "gzip" });
   if (!response.ok) {
     throw new Error(
       `Wavelength runtime asset could not be loaded from ${url}. Host the ` +
         "daemon runtime assets and point runtimeBaseUrl at them.",
     );
+  }
+
+  const contentEncoding =
+    response.headers.get("content-encoding")?.toLowerCase() || "";
+  const contentType =
+    response.headers.get("content-type")?.split(";", 1)[0].trim() || "";
+  // Content-Encoding is not exposed by every cross-origin host. The wasm MIME
+  // type is also a signal because a raw .gz asset is normally application/gzip.
+  if (contentEncoding.includes("gzip") || contentType === "application/wasm") {
+    const compileStartedAt = performanceEnabled ? performanceNow() : undefined;
+    try {
+      return await WebAssembly.instantiateStreaming(response, importObject);
+    } finally {
+      postPerformance("wasmCompileInstantiate", compileStartedAt, {
+        path: "gzip",
+        streaming: true,
+        decompression: "http",
+      });
+    }
   }
 
   if (!response.body) {
     throw new Error(`Wavelength compressed wasm response from ${url} is empty.`);
   }
 
+  const decompressStartedAt = performanceEnabled ? performanceNow() : undefined;
   const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
   const bytes = await new Response(stream).arrayBuffer();
+  postPerformance("wasmDecompress", decompressStartedAt, {
+    path: "gzip",
+    bytes: bytes.byteLength,
+    streaming: false,
+  });
 
-  return WebAssembly.instantiate(bytes, importObject);
+  const compileStartedAt = performanceEnabled ? performanceNow() : undefined;
+  try {
+    return await WebAssembly.instantiate(bytes, importObject);
+  } finally {
+    postPerformance("wasmCompileInstantiate", compileStartedAt, {
+      path: "gzip",
+      streaming: false,
+    });
+  }
 }
 
 async function instantiateRawWasm(importObject) {
   const url = resolveRuntimeAsset("wavewalletdk.wasm");
+  const fetchStartedAt = performanceEnabled ? performanceNow() : undefined;
   const response = await fetch(url);
+  postPerformance("wasmFetchHeaders", fetchStartedAt, { path: "raw" });
   if (!response.ok) {
     throw new Error(
       `Wavelength runtime asset could not be loaded from ${url}. Host the ` +
@@ -231,6 +308,7 @@ async function instantiateRawWasm(importObject) {
     );
   }
 
+  const compileStartedAt = performanceEnabled ? performanceNow() : undefined;
   try {
     return await WebAssembly.instantiateStreaming(response, importObject);
   } catch {
@@ -246,6 +324,10 @@ async function instantiateRawWasm(importObject) {
     }
     const bytes = await retry.arrayBuffer();
     return WebAssembly.instantiate(bytes, importObject);
+  } finally {
+    postPerformance("wasmCompileInstantiate", compileStartedAt, {
+      path: "raw",
+    });
   }
 }
 

@@ -1,6 +1,10 @@
-import { WavelengthError } from '@lightninglabs/wavelength-core';
+import {
+  errorMessage,
+  WavelengthError,
+  type WavelengthPerformanceListener,
+} from '@lightninglabs/wavelength-core';
+import { performanceNow, reportPerformance } from './performance.ts';
 import { RUNTIME_ASSETS } from './runtime-manifest.ts';
-import { errorMessage } from './util.ts';
 
 /**
  * Resolves a runtime asset name against an optional base URL. With no base the
@@ -90,16 +94,32 @@ export function wavewalletdkCall() {
 export async function instantiateWasm(
   importObject: WebAssembly.Imports,
   base: string | undefined,
+  onPerformance?: WavelengthPerformanceListener,
 ) {
-  if ('DecompressionStream' in globalThis) {
-    try {
-      return await instantiateCompressedWasm(importObject, base);
-    } catch (err) {
-      console.warn(`compressed wasm load failed: ${errorMessage(err)}`);
+  const startedAt = onPerformance ? performanceNow() : undefined;
+  let path = 'raw';
+  try {
+    if ('DecompressionStream' in globalThis) {
+      try {
+        path = 'gzip';
+        return await instantiateCompressedWasm(importObject, base, onPerformance);
+      } catch (err) {
+        console.warn(`compressed wasm load failed: ${errorMessage(err)}`);
+        path = 'raw';
+      }
+    }
+
+    return await instantiateRawWasm(importObject, base, onPerformance);
+  } finally {
+    if (startedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmTotal',
+        durationMs: performanceNow() - startedAt,
+        detail: { path },
+      });
     }
   }
-
-  return instantiateRawWasm(importObject, base);
 }
 
 /**
@@ -109,11 +129,47 @@ export async function instantiateWasm(
 export async function instantiateCompressedWasm(
   importObject: WebAssembly.Imports,
   base: string | undefined,
+  onPerformance?: WavelengthPerformanceListener,
 ) {
   const url = resolveRuntimeAsset(base, RUNTIME_ASSETS.wasmGz);
+  const fetchStartedAt = onPerformance ? performanceNow() : undefined;
   const response = await fetch(url);
+  if (fetchStartedAt !== undefined) {
+    reportPerformance(onPerformance, {
+      stage: 'runtime',
+      phase: 'wasmFetchHeaders',
+      durationMs: performanceNow() - fetchStartedAt,
+      detail: { path: 'gzip' },
+    });
+  }
   if (!response.ok) {
     throw runtimeAssetError(url);
+  }
+
+  const contentEncoding =
+    response.headers.get('content-encoding')?.toLowerCase() ?? '';
+  const contentType =
+    response.headers.get('content-type')?.split(';', 1)[0].trim() ?? '';
+  // Content-Encoding is not exposed by every cross-origin host. The wasm MIME
+  // type is also a signal because a raw .gz asset is normally application/gzip.
+  if (contentEncoding.includes('gzip') || contentType === 'application/wasm') {
+    const compileStartedAt = onPerformance ? performanceNow() : undefined;
+    try {
+      return await WebAssembly.instantiateStreaming(response, importObject);
+    } finally {
+      if (compileStartedAt !== undefined) {
+        reportPerformance(onPerformance, {
+          stage: 'runtime',
+          phase: 'wasmCompileInstantiate',
+          durationMs: performanceNow() - compileStartedAt,
+          detail: {
+            path: 'gzip',
+            streaming: true,
+            decompression: 'http',
+          },
+        });
+      }
+    }
   }
 
   const body = response.body;
@@ -121,10 +177,35 @@ export async function instantiateCompressedWasm(
     throw new WavelengthError('Wavelength compressed wasm response is empty');
   }
 
+  const decompressStartedAt = onPerformance ? performanceNow() : undefined;
   const stream = body.pipeThrough(new DecompressionStream('gzip'));
   const bytes = await new Response(stream).arrayBuffer();
+  if (decompressStartedAt !== undefined) {
+    reportPerformance(onPerformance, {
+      stage: 'runtime',
+      phase: 'wasmDecompress',
+      durationMs: performanceNow() - decompressStartedAt,
+      detail: {
+        path: 'gzip',
+        bytes: bytes.byteLength,
+        streaming: false,
+      },
+    });
+  }
 
-  return WebAssembly.instantiate(bytes, importObject);
+  const compileStartedAt = onPerformance ? performanceNow() : undefined;
+  try {
+    return await WebAssembly.instantiate(bytes, importObject);
+  } finally {
+    if (compileStartedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmCompileInstantiate',
+        durationMs: performanceNow() - compileStartedAt,
+        detail: { path: 'gzip', streaming: false },
+      });
+    }
+  }
 }
 
 /**
@@ -134,13 +215,24 @@ export async function instantiateCompressedWasm(
 export async function instantiateRawWasm(
   importObject: WebAssembly.Imports,
   base: string | undefined,
+  onPerformance?: WavelengthPerformanceListener,
 ) {
   const url = resolveRuntimeAsset(base, RUNTIME_ASSETS.wasm);
+  const fetchStartedAt = onPerformance ? performanceNow() : undefined;
   const response = await fetch(url);
+  if (fetchStartedAt !== undefined) {
+    reportPerformance(onPerformance, {
+      stage: 'runtime',
+      phase: 'wasmFetchHeaders',
+      durationMs: performanceNow() - fetchStartedAt,
+      detail: { path: 'raw' },
+    });
+  }
   if (!response.ok) {
     throw runtimeAssetError(url);
   }
 
+  const compileStartedAt = onPerformance ? performanceNow() : undefined;
   try {
     return await WebAssembly.instantiateStreaming(response, importObject);
   } catch {
@@ -153,6 +245,15 @@ export async function instantiateRawWasm(
     }
     const bytes = await retry.arrayBuffer();
     return WebAssembly.instantiate(bytes, importObject);
+  } finally {
+    if (compileStartedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmCompileInstantiate',
+        durationMs: performanceNow() - compileStartedAt,
+        detail: { path: 'raw' },
+      });
+    }
   }
 }
 

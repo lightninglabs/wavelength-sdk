@@ -2,6 +2,8 @@ import {
   BaseWavelengthClient,
   WavelengthError,
   WavelengthEventType,
+  type WavelengthPerformanceEvent,
+  type WavelengthPerformanceListener,
 } from '@lightninglabs/wavelength-core';
 import type {
   ActivityStreamOptions,
@@ -9,6 +11,7 @@ import type {
 } from '@lightninglabs/wavelength-core';
 import type { WebClientOptions } from '../index.ts';
 import { defaultWorkerRuntimeBaseUrl } from '../runtime.ts';
+import { performanceNow, reportPerformance } from '../performance.ts';
 import { PendingCall, errorMessage, toWavelengthEvent } from '../util.ts';
 
 type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
@@ -25,10 +28,12 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   protected readonly serverTransport = 'rest' as const;
   private readonly worker: Worker;
   private readonly pending = new Map<number, PendingCall>();
+  private readonly onPerformance: WavelengthPerformanceListener | undefined;
   private nextRequestID = 1;
 
   constructor(options: WebClientOptions = {}) {
     super();
+    this.onPerformance = options.onPerformance;
     const base = options.runtimeBaseUrl || defaultWorkerRuntimeBaseUrl();
     // The worker ships inside the package. new URL(..., import.meta.url) lets the
     // consumer's bundler emit and fingerprint it, so it versions with the SDK and
@@ -51,12 +56,27 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     // the fingerprinted worker URL can't carry them as query params, so they
     // arrive as the first message (see the worker's $init handler).
     this.worker.postMessage({
-      $init: { runtimeBaseUrl: base, debug: options.debug ?? false },
+      $init: {
+        runtimeBaseUrl: base,
+        debug: options.debug ?? false,
+        performance: Boolean(options.onPerformance),
+      },
     });
   }
 
-  ready(): Promise<void> {
-    return this.request('$ready').then(() => undefined);
+  async ready(): Promise<void> {
+    const startedAt = this.onPerformance ? performanceNow() : undefined;
+    try {
+      await this.request('$ready');
+    } finally {
+      if (startedAt !== undefined) {
+        reportPerformance(this.onPerformance, {
+          stage: 'runtime',
+          phase: 'workerReady',
+          durationMs: performanceNow() - startedAt,
+        });
+      }
+    }
   }
 
   protected invokeFacade<T = unknown>(
@@ -123,7 +143,14 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
       error?: string;
       event?: { type: WavelengthEventType; payload?: unknown };
       fatal?: { message?: string };
+      performance?: WavelengthPerformanceEvent;
     };
+
+    if (data.performance) {
+      reportPerformance(this.onPerformance, data.performance);
+
+      return;
+    }
 
     if (data.fatal) {
       // The worker's runtime exited; fail every in-flight call so callers do

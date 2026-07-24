@@ -1,13 +1,15 @@
 import {
   WavelengthClient,
-  PasskeyCeremony,
   createWalletEngine,
   type DistributiveOmit,
+  type PasskeyCeremony,
+  type WavelengthPerformanceListener,
   type WalletEngine,
   type WalletEngineOptions,
 } from '@lightninglabs/wavelength-core';
 import {
   assertPasskeyPrf,
+  createWebPasskeyCeremony,
   registerPasskeyWallet,
   supportsPasskeyPrf,
 } from './passkey.ts';
@@ -54,6 +56,11 @@ export type WebClientOptions = {
    * debugging and never on for a shipped app.
    */
   debug?: boolean;
+  /**
+   * Receives structured runtime timing samples. Omit it to disable
+   * instrumentation and its timing calls.
+   */
+  onPerformance?: WavelengthPerformanceListener;
 };
 
 /**
@@ -86,26 +93,36 @@ export type WebWalletEngineOptions = WebClientOptions &
 export function createWebWalletEngine(
   options: WebWalletEngineOptions = {},
 ): WalletEngine {
-  const { workerURL, runtimeBaseUrl, runtimeThread, debug, ...engineOptions } =
-    options;
+  const {
+    workerURL,
+    runtimeBaseUrl,
+    runtimeThread,
+    debug,
+    onPerformance,
+    ...engineOptions
+  } = options;
 
   return createWalletEngine({
-    client: createWebClient({ workerURL, runtimeBaseUrl, runtimeThread, debug }),
+    client: createWebClient({
+      workerURL,
+      runtimeBaseUrl,
+      runtimeThread,
+      debug,
+      onPerformance,
+    }),
+    onPerformance,
     ...engineOptions,
   });
 }
 
 export { assertPasskeyPrf, registerPasskeyWallet, supportsPasskeyPrf };
+export { createWebPasskeyCeremony };
 
 /**
  * The browser (WebAuthn/PRF) implementation of the {@link PasskeyCeremony}
  * contract; pass it to useWalletPasskey, or drive it directly.
  */
-export const webPasskeyCeremony: PasskeyCeremony = {
-  supportsPasskeyPrf,
-  registerPasskeyWallet,
-  assertPasskeyPrf,
-};
+export const webPasskeyCeremony: PasskeyCeremony = createWebPasskeyCeremony();
 
 export { defaultConfig } from './config.ts';
 
