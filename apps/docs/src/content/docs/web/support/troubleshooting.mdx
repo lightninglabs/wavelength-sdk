@@ -15,6 +15,23 @@ base URL and set **`runtimeBaseUrl`** on `createWebClient()`. Open the failing
 URL in the browser network tab; a 404 almost always means the base path or
 version folder is wrong. See [Hosting runtime assets](/web/get-started/hosting-runtime-assets/).
 
+### Wallet is open in another tab (`wallet_locked`)
+
+The client throws `WavelengthError` with code **`wallet_locked`** when `start()`
+runs while another tab or window of the same origin is already running the
+wallet. The daemon's OPFS storage is exclusive to one runtime, so the second tab
+fails immediately instead of colliding on the database. This is unrelated to the
+`locked` phase, which means a wallet on this device is waiting to be unlocked.
+
+**Fix:** This is expected, not a bug. Tell the user to close the other tab and
+offer a retry (the demo shows "Already open in another tab. Close it, then try
+again." with a retry button, not a wipe hatch). Handle it on the path that starts
+the runtime, matching on `err.code === 'wallet_locked'`; see
+[Handle phases and errors](/guides/handle-phases-and-errors/). A related code,
+**`runtime_lock_unavailable`**, means the browser refused or dropped the lock
+request itself (for example while the document is shutting down) and says nothing
+about another tab; offer a plain retry.
+
 ### Page is not cross-origin isolated
 
 Symptoms: `SharedArrayBuffer` is undefined, worker startup fails, or SQLite/OPFS

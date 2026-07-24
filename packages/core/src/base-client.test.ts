@@ -39,6 +39,11 @@ describe('BaseWavelengthClient', () => {
   it('callFacade accepts every portable method and rejects worker/raw verbs', async () => {
     const client = new FakeClient();
     for (const method of FACADE_METHODS) {
+      // start/stop are guarded (asserted separately below); they run only
+      // through the typed start()/stop().
+      if (method === 'start' || method === 'stop') {
+        continue;
+      }
       await client.callFacade(method);
     }
     await assert.rejects(
@@ -48,6 +53,32 @@ describe('BaseWavelengthClient', () => {
     await assert.rejects(
       () => (client.callFacade as (method: string) => Promise<unknown>)('$ready'),
       (err: WavelengthError) => err.code === 'unsupported_facade_method',
+    );
+  });
+
+  it('callFacade rejects the lifecycle verbs so the runtime lock is not bypassed', async () => {
+    const client = new FakeClient();
+    for (const verb of ['start', 'stop'] as const) {
+      await assert.rejects(
+        () => client.callFacade(verb),
+        (err: unknown) => {
+          assert.ok(err instanceof WavelengthError);
+          assert.match(err.message, new RegExp(`Call ${verb}\\(\\)`));
+
+          return true;
+        },
+      );
+      // The guard rejects before anything reaches the transport.
+      assert.equal(client.calls.some((call) => call.method === verb), false);
+    }
+
+    // The typed methods still dispatch the same verbs through the internal path.
+    client.responses.set('getInfo', { walletState: 2 });
+    await client.start({ network: 'regtest', arkServerAddress: 'h:7070' });
+    await client.stop();
+    assert.deepEqual(
+      client.calls.map((call) => call.method),
+      ['start', 'getInfo', 'stop'],
     );
   });
 
@@ -138,6 +169,44 @@ describe('BaseWavelengthClient', () => {
     client.subscribe((e) => events.push(e));
     await client.stop();
     assert.deepEqual(events, [{ type: 'runtimeStopped' }]);
+  });
+
+  it('runs the afterDaemonStopped hook before announcing the stop', async () => {
+    // A transport releases exclusive resources in this hook, so it has to run
+    // once the daemon is confirmed down but before a subscriber can react to
+    // the stop by starting the runtime again.
+    const order: string[] = [];
+    class HookedClient extends FakeClient {
+      protected afterDaemonStopped(): void {
+        order.push('hook');
+      }
+    }
+
+    const client = new HookedClient();
+    client.subscribe(() => order.push('runtimeStopped'));
+    await client.stop();
+
+    assert.deepEqual(order, ['hook', 'runtimeStopped']);
+  });
+
+  it('does not run afterDaemonStopped when the stop call fails', async () => {
+    let hookRuns = 0;
+    class FailingStopClient extends FakeClient {
+      protected invokeFacade<T = unknown>(method: FacadeMethod): Promise<T> {
+        if (method === 'stop') {
+          return Promise.reject(new Error('daemon did not acknowledge stop'));
+        }
+
+        return Promise.resolve({} as T);
+      }
+      protected afterDaemonStopped(): void {
+        hookRuns += 1;
+      }
+    }
+
+    const client = new FailingStopClient();
+    await assert.rejects(client.stop());
+    assert.equal(hookRuns, 0, 'an unacknowledged stop is not a confirmed stop');
   });
 
   it('dispose clears subscribers', async () => {

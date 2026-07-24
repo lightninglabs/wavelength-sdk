@@ -109,8 +109,13 @@ export interface WalletEngine {
   subscribe(listener: () => void): () => void;
   /**
    * Starts the runtime. Falls back to the engine's configured config when
-   * called without an argument; throws if neither exists. A failure moves the
-   * phase to 'error' and rejects.
+   * called without an argument; throws if neither exists. On success it
+   * dispatches the info and best-effort refreshes; a failure moves the phase to
+   * 'error' and rejects. Either way, a stop() the host issued while the start
+   * was in flight takes precedence: that stop governs the phase, and the start
+   * leaves the snapshot to it (no info dispatch and no refresh on success, no
+   * error surfaced on failure). The promise still settles the ordinary way,
+   * resolving with the info or rejecting.
    */
   start(config?: RuntimeConfig): Promise<WalletInfo>;
   /** Stops the runtime and clears the in-memory snapshot (info, balance, activity, error); persisted wallet data is untouched. A failure moves the phase to 'error'. */
@@ -184,6 +189,9 @@ class WavelengthEngine implements WalletEngine {
   readonly #store = new SnapshotStore();
   readonly #config: RuntimeConfig | undefined;
   #disposed = false;
+  // Counts stops the host asked for, so a start that rejects afterwards can
+  // tell an intentional shutdown from a runtime that died underneath it.
+  #deliberateStops = 0;
   #unsubscribe: (() => void) | undefined;
 
   // Background refreshes are serialized: two concurrent reads would race on
@@ -297,9 +305,20 @@ class WavelengthEngine implements WalletEngine {
       throw new Error('cannot start while the runtime is stopping');
     }
     this.#refreshFailures = 0;
+    const stopsBefore = this.#deliberateStops;
     this.#dispatch({ type: 'startRequested' }, { error: null });
     try {
       const info = await this.client.start(cfg);
+      // A stop the host issued while this start was in flight owns the outcome,
+      // the same precedence the catch below applies to a rejected start. The
+      // phase has already moved to stopping or stopped; dispatching infoReceived
+      // would ignore-transition through the machine but still apply the { info }
+      // patch, repopulating a snapshot the host asked to tear down (the hazard
+      // #fetchAll guards on its sibling path). Hand the caller the info the RPC
+      // returned without touching the snapshot, and skip the refresh with it.
+      if (this.#deliberateStops !== stopsBefore) {
+        return info;
+      }
       this.#dispatch({ type: 'infoReceived', info }, { info });
       try {
         await this.refresh();
@@ -310,6 +329,28 @@ class WavelengthEngine implements WalletEngine {
       return info;
     } catch (err) {
       const error = toError(err);
+      // A stop the host asked for while this start was in flight owns the
+      // outcome. Reporting the abandoned start's failure would drag the
+      // phase back off 'stopped' and show an error the host already moved
+      // past. A runtime that died on its own is different: it reaches
+      // 'stopped' without a stop request, and the failure still has to
+      // surface (see the machine's startFailed transition).
+      if (this.#deliberateStops !== stopsBefore) {
+        // The phase intentionally stays 'stopped', so the cause is dropped
+        // from the snapshot; log it so it is still recoverable. The promise
+        // rejection below carries it too.
+        const logs = [
+          ...this.getSnapshot().logs,
+          {
+            level: 'debug' as const,
+            message:
+              'start failed but a deliberate stop took precedence; error ' +
+              `kept off the phase: ${error.message}`,
+          },
+        ].slice(-MAX_LOGS);
+        this.#store.update({ logs });
+        throw error;
+      }
       this.#dispatch({ type: 'startFailed' }, { error });
       throw error;
     }
@@ -317,6 +358,7 @@ class WavelengthEngine implements WalletEngine {
 
   async stop(): Promise<void> {
     this.#assertNotDisposed();
+    this.#deliberateStops += 1;
     this.#dispatch({ type: 'stopRequested' });
     try {
       await this.client.stop();

@@ -17,6 +17,16 @@ const TABLE: Array<[WalletEngineEvent, RuntimePhase, RuntimePhase]> = [
   [{ type: 'runtimeReady' }, 'loading', 'runtimeReady'],
   [{ type: 'runtimeFailed' }, 'loading', 'error'],
   [{ type: 'startFailed' }, 'starting', 'error'],
+  // A runtime that dies mid-start announces its stop before the start
+  // rejection finishes propagating, so a start failure has to be able to
+  // claim the phase back from 'stopped'; the failure is what the host needs
+  // to show, and 'stopped' would hide it behind a generic screen.
+  [{ type: 'startFailed' }, 'stopped', 'error'],
+  // The loading-phase dual: a runtime that dies before ready() settles
+  // announces its stop (loading -> stopped) before the ready() rejection
+  // dispatches runtimeFailed, so runtimeFailed must reclaim 'stopped' too or the
+  // boot error is hidden behind a stopped screen.
+  [{ type: 'runtimeFailed' }, 'stopped', 'error'],
   [{ type: 'infoReceived', info: readyInfo }, 'starting', 'ready'],
   [{ type: 'infoReceived', info: lockedInfo }, 'starting', 'locked'],
   [{ type: 'infoReceived', info: readyInfo }, 'syncing', 'ready'],
@@ -51,9 +61,15 @@ describe('transition table', () => {
     });
   }
 
-  it('runtimeStopped wins from every phase', () => {
+  it('runtimeStopped wins from every phase except error', () => {
     for (const phase of ALL_PHASES) {
-      assert.equal(transition(phase, { type: 'runtimeStopped' }), 'stopped');
+      // 'error' outranks the stop that caused it: a runtime dying because a
+      // start failed announces both, in an order that depends on transport
+      // timing, and the host must end on the failure either way. Making the
+      // machine preserve 'error' is what frees the transports from ordering
+      // their rejection against their stop event.
+      const expected = phase === 'error' ? 'error' : 'stopped';
+      assert.equal(transition(phase, { type: 'runtimeStopped' }), expected);
     }
   });
 

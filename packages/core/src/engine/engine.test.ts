@@ -26,6 +26,115 @@ describe('engine lifecycle', () => {
     engine.dispose();
   });
 
+  // A runtime that dies mid-start (the wallet database held by another tab,
+  // say) rejects the start and announces its stop, and which lands first
+  // depends on transport timing the engine cannot control: a synchronous emit
+  // beats the rejection, an emit deferred behind an async lock release loses
+  // to it. The failure has to win either way: it is what the host renders,
+  // and a stopped phase would hide it behind a generic screen with no cause.
+  for (const stopTiming of ['before the rejection', 'after the rejection'] as const) {
+    it(`keeps a start failure visible when the runtime stop lands ${stopTiming}`, async () => {
+      const client = new FakeWavelengthClient();
+      const engine = createWalletEngine({ client });
+      client.resolveReady();
+      await flush();
+
+      const locked = Object.assign(new Error('database is locked'), {
+        code: 'wallet_locked',
+      });
+      client.impl('start', () => {
+        if (stopTiming === 'before the rejection') {
+          client.emit({ type: 'runtimeStopped' });
+        } else {
+          setTimeout(() => client.emit({ type: 'runtimeStopped' }), 1);
+        }
+        throw locked;
+      });
+
+      await engine
+        .start({ network: 'regtest', arkServerAddress: 'h:7070' })
+        .catch(() => undefined);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+
+      const snap = engine.getSnapshot();
+      assert.equal(snap.phase, 'error');
+      assert.equal((snap.error as { code?: string } | null)?.code, 'wallet_locked');
+      engine.dispose();
+    });
+  }
+
+  it('lets a deliberate stop outlive the start it interrupted', async () => {
+    // Stopping while a start is still in flight is allowed, and the stop owns
+    // the outcome: the abandoned start's rejection must not reopen it as an
+    // error and put the host back on a failure screen it already left.
+    const client = new FakeWavelengthClient();
+    const engine = createWalletEngine({ client });
+    client.resolveReady();
+    await flush();
+
+    let rejectStart!: (reason?: unknown) => void;
+    client.impl(
+      'start',
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectStart = reject;
+        }),
+    );
+
+    const starting = engine
+      .start({ network: 'regtest', arkServerAddress: 'h:7070' })
+      .catch(() => undefined);
+    await flush();
+    await engine.stop();
+    await flush();
+    assert.equal(engine.getSnapshot().phase, 'stopped');
+
+    rejectStart(new Error('stale start gave up'));
+    await starting;
+    await flush();
+
+    assert.equal(engine.getSnapshot().phase, 'stopped');
+    engine.dispose();
+  });
+
+  it('does not repopulate info when a stop lands mid-start and the start then succeeds', async () => {
+    // The success-path sibling of the deliberate-stop test above. A stop the
+    // host issued while start() was in flight owns the outcome, so a start that
+    // then resolves must not dispatch its info back into a snapshot the host
+    // already asked to tear down.
+    const client = new FakeWavelengthClient();
+    client.info = readyInfo;
+    const engine = createWalletEngine({ client });
+    client.resolveReady();
+    await flush();
+
+    let resolveStart!: (info: WalletInfo) => void;
+    client.impl(
+      'start',
+      () =>
+        new Promise<WalletInfo>((resolve) => {
+          resolveStart = resolve;
+        }),
+    );
+
+    const starting = engine
+      .start({ network: 'regtest', arkServerAddress: 'h:7070' })
+      .catch(() => undefined);
+    await flush();
+    await engine.stop();
+    await flush();
+    assert.equal(engine.getSnapshot().phase, 'stopped');
+
+    resolveStart(readyInfo);
+    await starting;
+    await flush();
+
+    const snap = engine.getSnapshot();
+    assert.equal(snap.phase, 'stopped');
+    assert.equal(snap.info, null);
+    engine.dispose();
+  });
+
   it('surfaces a rejected ready() as the error phase with an Error', async () => {
     const client = new FakeWavelengthClient();
     const engine = createWalletEngine({ client });

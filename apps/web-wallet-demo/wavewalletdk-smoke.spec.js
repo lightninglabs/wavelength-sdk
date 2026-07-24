@@ -145,6 +145,124 @@ test("wallet create and address state persist with OPFS SQLite", async ({
   });
 });
 
+test("a second tab fails fast with a friendly locked message and can take over", async ({
+  page,
+  context,
+}, testInfo) => {
+  const password = "test-password";
+  const baseURL = testInfo.project.use.baseURL;
+  const dataDir = `/wavewalletdk-smoke-lock-${Date.now()}`;
+  const swapDatabaseFileName = `/wavewalletdk-swaps-lock-${Date.now()}.db`;
+
+  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
+
+  // A second tab of the same origin must fail the start fast on the Web Locks
+  // pre-check and show the actionable multi-tab copy, never the raw SQLite
+  // trace the exclusive OPFS handles would otherwise produce.
+  const second = await context.newPage();
+  await second.goto("/");
+  const startRuntime = second.getByRole("button", { name: "Start runtime" });
+  await expect(startRuntime).toBeVisible({ timeout: 30000 });
+  await configureRuntime(second, baseURL, dataDir, swapDatabaseFileName);
+  await startRuntime.click();
+
+  await expect(
+    second.getByRole("heading", { name: "Wallet open in another tab" }),
+  ).toBeVisible({ timeout: 30000 });
+  await expect(
+    second.getByText("This wallet is already running in another tab"),
+  ).toBeVisible();
+  // The wipe escape hatch is hidden for this expected condition.
+  await expect(second.getByText("Clear wallet data")).toBeHidden();
+
+  await testInfo.attach("second-tab-locked", {
+    body: await second.screenshot({ fullPage: true }),
+    contentType: "image/png",
+  });
+
+  // Closing the first tab releases the lock and, with it, the OPFS handles;
+  // Try again in the second tab must then boot the same wallet and land on
+  // the unlock screen (the daemon absorbs any handle-release lag by retrying
+  // the open internally).
+  await page.close();
+  await second.getByRole("button", { name: "Try again" }).click();
+
+  const unlock = second.getByRole("button", { name: "Unlock", exact: true });
+  await expect(unlock).toBeVisible({ timeout: 60000 });
+  await second.getByLabel("Password", { exact: true }).fill(password);
+  await unlock.click();
+  await expect(second.getByTestId("account-pubkey")).toBeVisible({
+    timeout: 60000,
+  });
+});
+
+test("stopping the runtime in one tab hands the wallet to another", async ({
+  page,
+  context,
+}, testInfo) => {
+  const password = "test-password";
+  const baseURL = testInfo.project.use.baseURL;
+  const dataDir = `/wavewalletdk-smoke-handoff-${Date.now()}`;
+  const swapDatabaseFileName = `/wavewalletdk-swaps-handoff-${Date.now()}.db`;
+
+  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
+
+  const second = await context.newPage();
+  await second.goto("/");
+  const startRuntime = second.getByRole("button", { name: "Start runtime" });
+  await expect(startRuntime).toBeVisible({ timeout: 30000 });
+  await configureRuntime(second, baseURL, dataDir, swapDatabaseFileName);
+  await startRuntime.click();
+  await expect(
+    second.getByRole("heading", { name: "Wallet open in another tab" }),
+  ).toBeVisible({ timeout: 30000 });
+
+  // The locked copy tells the user they can stop the runtime in the other tab
+  // instead of closing it. That path releases the lock through the daemon's
+  // acknowledged stop (afterDaemonStopped), a different proof than the
+  // browser reclaiming it on tab close, so it gets its own end-to-end leg.
+  // Stop the runtime from the nav (the only "Stop runtime" control on the
+  // home screen; the Settings screen adds a second, so stay off it here).
+  await page.getByRole("button", { name: "Stop runtime" }).click();
+  await expect(
+    page.getByRole("button", { name: "Start runtime" }),
+  ).toBeVisible({ timeout: 60000 });
+
+  await second.getByRole("button", { name: "Try again" }).click();
+  const unlock = second.getByRole("button", { name: "Unlock", exact: true });
+  await expect(unlock).toBeVisible({ timeout: 60000 });
+});
+
+test("a refused lock request shows a retry, not the wipe hatch", async ({
+  page,
+}, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  const dataDir = `/wavewalletdk-smoke-lockfail-${Date.now()}`;
+  const swapDatabaseFileName = `/wavewalletdk-swaps-lockfail-${Date.now()}.db`;
+
+  // Make the browser refuse the lock outright, which is a different condition
+  // from another tab holding it: nothing is wrong with the wallet data, so the
+  // screen must offer a plain retry and must not invite the user to wipe.
+  await page.addInitScript(() => {
+    navigator.locks.request = () =>
+      Promise.reject(new DOMException("denied", "SecurityError"));
+  });
+
+  await page.goto("/");
+  const startRuntime = page.getByRole("button", { name: "Start runtime" });
+  await expect(startRuntime).toBeVisible({ timeout: 30000 });
+  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
+  await startRuntime.click();
+
+  await expect(
+    page.getByRole("heading", { name: "Could not start just now" }),
+  ).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(page.getByText("Clear wallet data")).toBeHidden();
+});
+
 // An invoice with an amount in its HRP, an amountless invoice, and an address.
 // The screen must ask for an amount only for the address; the amountless
 // invoice is unsendable in v1, so it gets a notice instead.

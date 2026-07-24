@@ -42,7 +42,12 @@ import type {
 export interface WavelengthClient {
   /** Resolves once the runtime assets are loaded and the client is usable. */
   ready(): Promise<void>;
-  /** Starts the embedded daemon with the given config and resolves with its initial info. */
+  /**
+   * Starts the embedded daemon with the given config and resolves with its
+   * initial info. Calling start() while a session is already running coalesces
+   * onto it and resolves with the current info; the passed config is ignored,
+   * so stop() first to start under a different one.
+   */
   start(config: RuntimeConfig): Promise<WalletInfo>;
   /** Stops the embedded daemon. */
   stop(): Promise<void>;
@@ -96,7 +101,17 @@ export interface WavelengthClient {
    * `broadcast: false` first to preview; `broadcast: true` moves funds.
    */
   sweepWallet(req: SweepWalletRequest): Promise<SweepWalletResult>;
-  /** Invokes a portable daemon facade method with a normalized response. */
+  /**
+   * Invokes a portable daemon facade method with a normalized response. A
+   * low-level escape hatch for facade verbs the typed methods do not cover;
+   * prefer the typed methods wherever they exist.
+   *
+   * Rejects the lifecycle verbs `'start'` and `'stop'`: use the typed
+   * {@link start} and {@link stop} instead. On the web transports those verbs
+   * take and release the cross-tab runtime lock, so allowing a raw
+   * `callFacade('start')` or `callFacade('stop')` would bypass it, defeat the
+   * multi-tab guard, and could strand the lock until the page reloads.
+   */
   callFacade<T = unknown>(method: FacadeMethod, params?: unknown): Promise<T>;
   /** Reports whether the embedded daemon is running. */
   isRunning(): Promise<boolean>;

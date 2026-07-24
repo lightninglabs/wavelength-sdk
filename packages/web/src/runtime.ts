@@ -33,6 +33,23 @@ export function runtimeAssetError(url: string): WavelengthError {
 }
 
 /**
+ * Reports whether a failure message came from {@link runtimeAssetError}. The
+ * worker raises it inside its own scope, where the code cannot cross
+ * postMessage, so the client recovers the classification from the text. This
+ * string is the SDK's own, but the worker is plain JS and cannot import
+ * runtimeAssetError: the literal is hand-copied in wavewalletdk-worker.js at the
+ * fetch throws (the response was not ok). Those copies are the wording of
+ * record; keep this regex in sync with them, not only with runtimeAssetError
+ * here. A wasm that fetched but will not instantiate is deliberately left out:
+ * the asset arrived, so the worker throws a distinct "failed to instantiate"
+ * message that stays a generic error, matching the main-thread path, which lets
+ * the raw instantiate failure propagate rather than recode it as asset_load_failed.
+ */
+export function isRuntimeAssetMessage(message: string): boolean {
+  return /runtime asset could not be loaded/i.test(message);
+}
+
+/**
  * Injects a `<script>` tag for the given source and resolves once it loads. A
  * second call for an already-present src resolves immediately, so the same asset
  * is never loaded twice.

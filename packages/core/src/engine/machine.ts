@@ -39,18 +39,47 @@ export function transition(
     return phase === 'loading' ? 'runtimeReady' : phase;
 
   case 'runtimeFailed':
-    return phase === 'loading' ? 'error' : phase;
+    // 'stopped' is accepted alongside 'loading' for the same reason startFailed
+    // accepts it: a runtime that dies before ready() settles announces its stop
+    // (moving loading -> stopped) before the ready() rejection dispatches
+    // runtimeFailed. Without this the boot failure would be swallowed by the
+    // stop it caused, leaving the host on a generic stopped screen. Unlike a
+    // start failure, a runtime that failed to load is a genuine error worth
+    // surfacing even if a stop coincided, so this needs no deliberate-stop
+    // guard: a clean stop during loading never produces a runtimeFailed.
+    return phase === 'loading' || phase === 'stopped' ? 'error' : phase;
 
   case 'runtimeStopped':
     // A clean stop or a runtime crash; either way the engine is gone, so
-    // this always wins.
-    return 'stopped';
+    // this wins over every phase except 'error'. An error outranks the stop
+    // that caused it: a runtime dying because a start failed announces both
+    // the failure and the stop, in an order that depends on transport timing
+    // (a synchronous emit lands before the rejection, one deferred behind an
+    // async lock release lands after), and the host must end on the failure
+    // either way. Preserving 'error' here is what frees transports from
+    // ordering their rejection against their stop event. A clean stop never
+    // passes through 'error', so it is unaffected, and startRequested still
+    // exits 'error', so retry flows are too.
+    //
+    // This preserves 'error' for every error, not only a start failure: a
+    // live-runtime error (a lost activity stream, refresh-budget exhaustion)
+    // followed by a runtime death also stays on 'error' rather than moving to
+    // 'stopped'. That is intentional: an error screen is a safe terminal state
+    // the host recovers from with a retry (startRequested exits it), and
+    // scoping the rule to start failures would mean tracking which error is in
+    // flight for a difference the user does not feel.
+    return phase === 'error' ? phase : 'stopped';
 
   case 'startRequested':
     return phase === 'stopping' ? phase : 'starting';
 
   case 'startFailed':
-    return phase === 'starting' ? 'error' : phase;
+    // 'stopped' is accepted alongside 'starting' because a runtime that dies
+    // mid-start announces the stop before the start rejection has finished
+    // propagating. Without this the failure would be swallowed by the stop
+    // that it caused, leaving the host on a generic stopped screen with no
+    // way to show (for instance) that the wallet is open in another tab.
+    return phase === 'starting' || phase === 'stopped' ? 'error' : phase;
 
   case 'infoReceived':
     switch (phase) {

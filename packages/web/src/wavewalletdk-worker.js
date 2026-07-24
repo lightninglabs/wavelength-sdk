@@ -40,8 +40,9 @@ function postEvent(type, payload) {
 function rejectAllPending(error) {
   const message = String(error?.message || error);
   postEvent("log", { level: "error", message });
-  // go.run() rejecting means the daemon runtime has exited; signal the main
-  // thread so it can reject every in-flight RPC instead of hanging forever.
+  // go.run() settling, whether it resolves (main() returned) or rejects (a
+  // trap), means the daemon runtime has exited; signal the main thread so it
+  // can reject every in-flight RPC instead of hanging forever.
   self.postMessage({ fatal: { message } });
 }
 
@@ -171,7 +172,14 @@ async function loadRuntime() {
   const go = new Go();
   const result = await instantiateWasm(go.importObject);
   const runPromise = go.run(result.instance);
-  runPromise.catch(rejectAllPending);
+  // go.run() resolves if the Go program's main() ever returns and rejects if it
+  // traps. Either way the daemon is gone, so signal a fatal on both: a resolve
+  // that posted nothing would otherwise leave the client believing the runtime
+  // was still alive, holding the cross-tab lock until the tab closed.
+  runPromise.then(
+    () => rejectAllPending(new Error("Wavelength runtime exited")),
+    rejectAllPending,
+  );
 
   await waitForWASMReady();
 }
@@ -233,19 +241,33 @@ async function instantiateRawWasm(importObject) {
 
   try {
     return await WebAssembly.instantiateStreaming(response, importObject);
-  } catch {
+  } catch (streamErr) {
     // instantiateStreaming requires the host to serve the wasm as
     // application/wasm; fall back to ArrayBuffer instantiation so a
-    // misconfigured MIME type does not break self-hosted runtimes.
+    // misconfigured MIME type does not break self-hosted runtimes. Carry the
+    // streaming error as the cause so a genuine instantiate failure is not
+    // masked by the MIME workaround that was only meant to paper over it.
     const retry = await fetch(url);
     if (!retry.ok) {
       throw new Error(
         `Wavelength runtime asset could not be loaded from ${url}. Host the ` +
           "daemon runtime assets and point runtimeBaseUrl at them.",
+        { cause: streamErr },
       );
     }
     const bytes = await retry.arrayBuffer();
-    return WebAssembly.instantiate(bytes, importObject);
+    try {
+      return await WebAssembly.instantiate(bytes, importObject);
+    } catch (instantiateErr) {
+      // The ArrayBuffer retry is the proximate failure, so it is the cause;
+      // its message is embedded above. streamErr was only the MIME-fallback
+      // trigger, not the real instantiation error.
+      throw new Error(
+        `Wavelength runtime wasm failed to instantiate from ${url}: ` +
+          String(instantiateErr?.message || instantiateErr),
+        { cause: instantiateErr },
+      );
+    }
   }
 }
 
