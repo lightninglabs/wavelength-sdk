@@ -52,6 +52,54 @@ Whether the browser grants the request depends on its own engagement
 heuristics (installed as a PWA, bookmarked, frequently visited, and similar
 signals). Do not rely on it being granted; treat it as best-effort.
 
+## The runtime cache
+
+Separately from wallet data, the SDK keeps a copy of the daemon's WASM binary in
+**Cache Storage**, in a bucket named `wavelength-runtime-v1-<version>`, where the
+trailing segment is the `RUNTIME_MANIFEST_VERSION` the binary belongs to. This is
+a performance cache and holds no wallet state.
+
+It exists because the browser will not keep the module in its HTTP cache. The
+binary is around 20 MB compressed, which is large enough that Chrome declines to
+store it even when it is served with `Cache-Control: immutable` and hits a CDN
+edge, so without a cache of our own every single page load re-downloads the whole
+thing. Once the bytes are local, compiling and instantiating the module takes on
+the order of 100 ms, so on a 50 Mbps connection caching takes the runtime load
+from roughly 3.2 s to under 100 ms.
+
+The cache holds one runtime at a time. It is keyed on
+`RUNTIME_MANIFEST_VERSION`, not on the asset URL, so upgrading the SDK to a
+runtime with a new version looks in a bucket that does not exist yet, refetches,
+and drops the previous version's bucket on the first load after the upgrade. That
+holds however you host the files: a versioned asset path is a good idea for
+browser caching, but it is your choice, and the runtime cache does not depend on
+it. A wallet that has been through several upgrades holds one copy, not one per
+release. Budget roughly 130 MB of origin storage for it, since what is stored is
+the decompressed module.
+
+Pass `runtimeCache: false` to `createWebClient` to take every runtime binary
+from the network instead. That is worth knowing about when you are iterating on
+a local daemon build: a rebuild at the same `RUNTIME_MANIFEST_VERSION` produces
+new bytes under a bucket name that has not changed, so the cached copy keeps
+being served, and the browser offers no way out of this on its own. DevTools'
+**Disable cache** governs the HTTP cache and leaves Cache Storage alone; only
+**Application → Storage → Clear site data** removes the entry.
+
+Turning the option off deletes nothing. An existing bucket is left exactly as it
+is and simply not read or written, so turning it back on resumes from it.
+
+Nothing here is load-bearing. Cache Storage is unavailable outside a [secure
+context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
+and rejects writes once an
+origin is over quota, and the browser may evict the entry at any time. Every one
+of those cases falls back to downloading the runtime, which is the behavior you
+had before the cache existed. If the origin is evicted or the entry turns out not
+to be usable, the SDK drops it and refetches, so a bad cached copy cannot wedge
+the wallet.
+
+Requesting persistent storage, as above, also makes the browser less likely to
+evict this cache.
+
 ## Main thread vs worker
 
 `createWebClient()` accepts **`runtimeThread`**: `'worker'` (default) or

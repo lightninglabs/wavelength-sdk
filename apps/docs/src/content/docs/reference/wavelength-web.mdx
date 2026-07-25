@@ -38,6 +38,7 @@ export const webClientOptionsSig = `type WebClientOptions = {
   workerURL?: string;
   runtimeBaseUrl?: string;
   runtimeThread?: RuntimeThread;
+  runtimeCache?: boolean;
   debug?: boolean;
   onPerformance?: WavelengthPerformanceListener;
 };`;
@@ -197,6 +198,7 @@ Browser-specific options for `createWebClient`. The config passed to
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWavelengthClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
   { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs facade calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
+  { name: 'runtimeCache', type: 'boolean', desc: 'Keeps a copy of the daemon runtime in Cache Storage so a returning visitor reads it from disk instead of downloading it again. Set false to take every runtime binary from the network, which is what you want while iterating on a local daemon build: rebuilding at the same RUNTIME_MANIFEST_VERSION produces new bytes under a bucket name that has not changed, and DevTools\' "Disable cache" governs only the HTTP cache, so it will not help. Turning it off deletes nothing: an existing bucket is left as it is and simply not read or written, so turning it back on resumes from it. Default: true.' },
   { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Receives structured timing samples for runtime readiness and wasm loading. Instrumentation stays off unless this is supplied: with it omitted no timing is measured and no samples are delivered. A listener that throws cannot break wallet work. Pass the same callback to createWebWalletEngine to also cover wallet RPCs, info adoption and sync polling. Default: unset (disabled).' },
 ]} />
 
@@ -240,6 +242,7 @@ The browser-specific settings from `WebClientOptions` combined with [`WalletEngi
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Same as WebClientOptions.runtimeBaseUrl.' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Same as WebClientOptions.runtimeThread.' },
   { name: 'debug', type: 'boolean', desc: 'Same as WebClientOptions.debug.' },
+  { name: 'runtimeCache', type: 'boolean', desc: 'Same as WebClientOptions.runtimeCache.' },
   { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Same as WebClientOptions.onPerformance, and forwarded to the engine as well, so one listener covers runtime loading plus wallet RPCs, info adoption and sync polling.' },
   { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by the engine\'s start() when called with no argument.' },
   { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config.' },
