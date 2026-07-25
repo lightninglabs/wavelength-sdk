@@ -1,5 +1,6 @@
 import {
   BaseWavelengthClient,
+  RUNTIME_MANIFEST_VERSION,
   WavelengthError,
   WavelengthEventType,
   validateRuntimeConfig,
@@ -122,6 +123,12 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     worker.postMessage({
       $init: {
         runtimeBaseUrl: base,
+        // Names the worker's runtime cache bucket. It cannot import the
+        // constant, and without it the worker leaves caching off.
+        runtimeVersion: RUNTIME_MANIFEST_VERSION,
+        // Absent means enabled, so an older worker paired with a newer client
+        // keeps caching rather than silently losing it.
+        runtimeCache: options.runtimeCache ?? true,
         debug: options.debug ?? false,
         performance: Boolean(options.onPerformance),
       },
