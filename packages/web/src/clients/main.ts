@@ -62,6 +62,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   private readonly runtimeBaseUrl: string | undefined;
   private readonly debug: boolean;
   private readonly onPerformance: WavelengthPerformanceListener | undefined;
+  private readonly runtimeCache: boolean;
   private readonly onRuntimeReady = () => this.emit({ type: 'runtimeReady' });
 
   constructor(options: WebClientOptions = {}) {
@@ -69,6 +70,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     this.runtimeBaseUrl = options.runtimeBaseUrl;
     this.debug = options.debug ?? false;
     this.onPerformance = options.onPerformance;
+    this.runtimeCache = options.runtimeCache ?? true;
     // The runtime fires 'wavewalletdk-ready' once; keep the handler reference
     // so dispose() can detach it if the client is torn down before it fires.
     globalThis.addEventListener('wavewalletdk-ready', this.onRuntimeReady, {
@@ -462,6 +464,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       go.importObject,
       base,
       this.onPerformance,
+      this.runtimeCache,
     );
     const goReadyStartedAt = this.onPerformance ? performanceNow() : undefined;
     const runPromise = go.run(result.instance);

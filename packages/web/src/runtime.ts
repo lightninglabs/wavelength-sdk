@@ -4,6 +4,12 @@ import {
   type WavelengthPerformanceListener,
 } from '@lightninglabs/wavelength-core';
 import { performanceNow, reportPerformance } from './performance.ts';
+import {
+  evictRuntimeAsset,
+  matchRuntimeAsset,
+  openRuntimeCache,
+  storeRuntimeAsset,
+} from './runtime-cache.ts';
 import { RUNTIME_ASSETS } from './runtime-manifest.ts';
 
 /**
@@ -132,6 +138,64 @@ function concatChunks(chunks: Uint8Array<ArrayBuffer>[]): Uint8Array<ArrayBuffer
 }
 
 /**
+ * Instantiates the module from a copy stored by an earlier visit, or returns
+ * undefined when nothing usable is cached.
+ *
+ * The cache always holds decompressed wasm, so this is a plain read and
+ * instantiate with no sniffing. Bytes that fail to instantiate are evicted and
+ * reported as a miss, which lets the caller fall back to the network: a
+ * truncated or otherwise broken entry must not be able to wedge the wallet on
+ * every subsequent load.
+ */
+async function instantiateCachedWasm(
+  cache: Cache,
+  url: string,
+  path: string,
+  importObject: WebAssembly.Imports,
+  onPerformance?: WavelengthPerformanceListener,
+) {
+  const cached = await matchRuntimeAsset(cache, url);
+  if (!cached) {
+    return undefined;
+  }
+
+  const readStartedAt = onPerformance ? performanceNow() : undefined;
+  try {
+    const bytes = await cached.arrayBuffer();
+    if (readStartedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmCacheRead',
+        durationMs: performanceNow() - readStartedAt,
+        detail: { path, bytes: bytes.byteLength },
+      });
+    }
+
+    const compileStartedAt = onPerformance ? performanceNow() : undefined;
+    const instantiated = await WebAssembly.instantiate(bytes, importObject);
+    // Reported on success only. A miss here is not a load, it is a discarded
+    // entry: the caller goes on to fetch and reports its own compile, so
+    // reporting a failed one too would put a timing for abandoned work into
+    // the same distribution.
+    if (compileStartedAt !== undefined) {
+      reportPerformance(onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmCompileInstantiate',
+        durationMs: performanceNow() - compileStartedAt,
+        detail: { path, streaming: false, source: 'cache' },
+      });
+    }
+
+    return instantiated;
+  } catch (err) {
+    console.warn(`cached wasm load failed: ${errorMessage(err)}`);
+    await evictRuntimeAsset(cache, url);
+
+    return undefined;
+  }
+}
+
+/**
  * Reads the first `size` bytes of a response without disturbing the body the
  * caller will actually use.
  *
@@ -186,7 +250,24 @@ export async function instantiateRuntimeAsset(
   path: string,
   importObject: WebAssembly.Imports,
   onPerformance?: WavelengthPerformanceListener,
+  runtimeCache = true,
 ) {
+  // Opting out skips opening the bucket at all, so nothing is read, written or
+  // pruned, and whatever an earlier session stored is left untouched.
+  const cache = runtimeCache ? await openRuntimeCache() : undefined;
+  if (cache) {
+    const cached = await instantiateCachedWasm(
+      cache,
+      url,
+      path,
+      importObject,
+      onPerformance,
+    );
+    if (cached) {
+      return cached;
+    }
+  }
+
   const fetchStartedAt = onPerformance ? performanceNow() : undefined;
   const response = await fetch(url);
   if (fetchStartedAt !== undefined) {
@@ -226,9 +307,30 @@ export async function instantiateRuntimeAsset(
     ? response.body.pipeThrough(new DecompressionStream('gzip'))
     : response.body;
 
+  // The cache holds decompressed wasm whatever arrived on the wire, and here
+  // that is structural rather than something a flag has to keep true: the split
+  // is downstream of the DecompressionStream, so there is no path on which
+  // compressed bytes reach the cache. tee() is a native split and the copy is
+  // drained concurrently, so it neither crosses JS per chunk nor accumulates
+  // the module behind an unread branch. Only taken when there is a cache to
+  // fill, so a consumer without one pays nothing.
+  let source = body;
+  let collected: Promise<ArrayBuffer> | undefined;
+  if (cache) {
+    const [toCompile, toCache] = body.tee();
+    source = toCompile;
+    collected = new Response(toCache).arrayBuffer();
+    // Handled at creation, not where it is consumed below. A body that errors
+    // mid-download errors both tee branches, so the compile rejects and this
+    // function throws before the store site is ever reached, which would leave
+    // this promise rejected and unhandled on exactly the flaky-network path the
+    // fallback exists to survive. Losing the cache copy is the whole cost.
+    void collected.catch(() => undefined);
+  }
+
   const compileStartedAt = onPerformance ? performanceNow() : undefined;
   const instantiated = await WebAssembly.instantiateStreaming(
-    new Response(body, { headers: { 'content-type': 'application/wasm' } }),
+    new Response(source, { headers: { 'content-type': 'application/wasm' } }),
     importObject,
   );
   // Reported on success only. A failed asset falls through to the next one,
@@ -241,6 +343,16 @@ export async function instantiateRuntimeAsset(
       durationMs: performanceNow() - compileStartedAt,
       detail: { path, streaming: true, body: gzipped ? 'gzip' : 'wasm' },
     });
+  }
+
+  // Stored only now that the module has compiled, so bytes that turn out not to
+  // instantiate can never become the entry every later load reads. Not awaited:
+  // filling the cache must not slow down the load that fills it.
+  if (cache && collected) {
+    void collected.then(
+      (bytes) => storeRuntimeAsset(cache, url, new Response(bytes)),
+      () => undefined,
+    );
   }
 
   return instantiated;
@@ -260,6 +372,7 @@ export async function instantiateWasm(
   importObject: WebAssembly.Imports,
   base: string | undefined,
   onPerformance?: WavelengthPerformanceListener,
+  runtimeCache = true,
 ) {
   const startedAt = onPerformance ? performanceNow() : undefined;
   let path = 'gzip';
@@ -274,6 +387,7 @@ export async function instantiateWasm(
         'gzip',
         importObject,
         onPerformance,
+        runtimeCache,
       );
     } catch (err) {
       console.warn(`compressed wasm load failed: ${errorMessage(err)}`);
@@ -285,6 +399,7 @@ export async function instantiateWasm(
       'raw',
       importObject,
       onPerformance,
+      runtimeCache,
     );
   } catch (err) {
     outcome = 'error';
