@@ -7,7 +7,7 @@ import { Field } from "../../components/ui/Field";
 import { Select } from "../../components/ui/Select";
 import { InlineError } from "../../components/ui/InlineError";
 import { PrimaryButton, TextLink } from "../../components/ui/Button";
-import { Segmented } from "../../components/ui/Segmented";
+import { NetworkPicker } from "../../components/ui/NetworkPicker";
 import { ToggleRow } from "../../components/ui/ToggleRow";
 import { cn } from "../../lib/cn";
 import {
@@ -80,10 +80,10 @@ export function ChooseNetworkScreen({
           <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
             Network
           </span>
-          <Segmented
+          <NetworkPicker
             value={network}
             onChange={onNetworkChange}
-            options={AVAILABLE_NETWORKS.map((n) => ({ value: n, label: n }))}
+            options={AVAILABLE_NETWORKS}
           />
         </div>
 
