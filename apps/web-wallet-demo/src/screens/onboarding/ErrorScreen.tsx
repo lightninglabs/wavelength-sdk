@@ -3,14 +3,16 @@ import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { WipeDataButton } from "../../components/WipeDataButton";
 import { Card } from "../../components/ui/Card";
-import { PrimaryButton } from "../../components/ui/Button";
+import { PrimaryButton, TextLink } from "../../components/ui/Button";
 
 // ErrorScreen serves the `error` phase: the runtime failed to initialise or
 // start. It surfaces the message and offers a retry, plus the wipe escape
 // hatch for when stored data (a stale database, say) is what keeps the
 // runtime from starting. Expected conditions (the wallet already running in
 // another tab, say) override the title/sub/message with friendlier copy and
-// hide the wipe button, which cannot help there.
+// hide the wipe button, which cannot help there. An optional onBack renders a
+// "Back to wallets" link, for when a selected wallet is available to fall
+// back to.
 export function ErrorScreen({
   network,
   message,
@@ -19,6 +21,7 @@ export function ErrorScreen({
   title = "Runtime error",
   sub = "Something went wrong starting the wallet runtime.",
   showWipe = true,
+  onBack = null,
 }: {
   network: string;
   message: string;
@@ -27,6 +30,7 @@ export function ErrorScreen({
   title?: string;
   sub?: string;
   showWipe?: boolean;
+  onBack?: (() => void) | null;
 }) {
   return (
     <AuthLayout network={network}>
@@ -54,6 +58,11 @@ export function ErrorScreen({
           </div>
         )}
       </div>
+      {onBack ? (
+        <div className="mt-5 text-center text-sm">
+          <TextLink onClick={onBack}>Back to wallets</TextLink>
+        </div>
+      ) : null}
     </AuthLayout>
   );
 }

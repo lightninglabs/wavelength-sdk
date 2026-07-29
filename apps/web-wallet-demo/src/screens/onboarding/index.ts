@@ -1,5 +1,4 @@
 export { LoadingScreen } from "./LoadingScreen";
-export { ConnectScreen } from "./ConnectScreen";
 export { UnlockScreen } from "./UnlockScreen";
 export { SyncingScreen } from "./SyncingScreen";
 export { BackupScreen } from "./BackupScreen";

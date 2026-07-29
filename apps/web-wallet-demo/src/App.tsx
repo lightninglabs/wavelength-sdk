@@ -15,25 +15,28 @@ import {
   usePollWhileWaiting,
 } from "./lib/usePollWhileWaiting";
 import {
-  RuntimeForm,
-  defaultsForNetwork,
-  signetDefaults,
-} from "./lib/runtime-config";
-import {
-  readWalletKind,
-  writePasskeyCredentialId,
-  writeWalletKind,
-} from "./lib/walletKind";
+  addWallet,
+  loadWallets,
+  newWalletEntry,
+  removeWallet,
+  runtimeConfigForEntry,
+  updateWallet,
+  WalletEntry,
+} from "./lib/walletRegistry";
+import { RuntimeNetwork, WalletEndpoints } from "./lib/runtime-config";
 import { HomeScreen } from "./screens/home";
 import { OnboardingFlow } from "./screens/onboarding/OnboardingFlow";
 import {
   BackupScreen,
-  ConnectScreen,
+  ChooseNetworkScreen,
+  DataMissingScreen,
   ErrorScreen,
   LoadingScreen,
   StoppedScreen,
   SyncingScreen,
   UnlockScreen,
+  WalletListScreen,
+  WalletSetupScreen,
 } from "./screens/onboarding";
 import { ReceiveScreen } from "./screens/receive";
 import { SendScreen } from "./screens/send";
@@ -41,13 +44,16 @@ import { ActivityScreen } from "./screens/activity";
 import { SettingsScreen } from "./screens/settings";
 import { ExitScreen } from "./screens/exit";
 
-// App is the wallet orchestrator: it owns cross-screen session state (the
-// connect form, recovery-phrase backup gating, wallet-kind persistence, the
-// active tab) and routes to the correct screen by runtime phase. The engine
-// is owned by main.tsx and reached through the granular provider hooks; each
-// screen self-serves the wallet data, verbs and passkey ceremony it needs, so
-// App only wires up what stays cross-cutting: the connect form, backup
-// gating, wallet-kind persistence and the routing switch itself.
+// App is the wallet orchestrator: it owns cross-screen session state (which
+// registry entry is selected, the pre-start sub-screen shown while no wallet
+// is running, recovery-phrase backup gating, the active tab) and routes to
+// the correct screen by runtime phase. The registry (lib/walletRegistry) is
+// the source of truth for which wallets exist; the engine itself only ever
+// knows about the one entry currently started. The engine is owned by
+// main.tsx and reached through the granular provider hooks; each screen
+// self-serves the wallet data, verbs and passkey ceremony it needs, so App
+// only wires up what stays cross-cutting: registry selection, the pre-start
+// routing, backup gating and the phase routing switch itself.
 export function App() {
   const { phase, error, start, stop } = useWallet();
   // Kept only to drive the app-wide "poll while a boarding deposit or
@@ -63,125 +69,214 @@ export function App() {
   // going after the waiting screen unmounts.
   usePollWhileWaiting(hasPendingOnchain(activity, balance));
 
-  const [form, setForm] = useState<RuntimeForm>(signetDefaults);
+  const [walletsVersion, setWalletsVersion] = useState(0);
+  const wallets = useMemo(() => loadWallets(), [walletsVersion]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  // preStart is the sub-screen shown while no wallet is running: the list, the
+  // create/restore form, or the legacy network picker for the entry being opened.
+  const [preStart, setPreStart] = useState<
+    | { kind: "list" }
+    | { kind: "create" }
+    | { kind: "restore" }
+    | { kind: "chooseNetwork"; entryId: string }
+  >({ kind: "list" });
+  const activeEntry = wallets.find((w) => w.id === selectedWalletId) ?? null;
+  // pendingNetwork holds a legacy entry's unpersisted network guess until an
+  // unlock proves it right.
+  const [pendingNetwork, setPendingNetwork] = useState<
+    { network: RuntimeNetwork; endpoints: WalletEndpoints } | null
+  >(null);
+  const [onboardingMode, setOnboardingMode] = useState<"create" | "restore">(
+    "create",
+  );
+
   const [mnemonic, setMnemonic] = useState<string[]>([]);
   const [backupAcknowledged, setBackupAcknowledged] = useState(false);
   const [tab, setTab] = useState<AppTab>("home");
-  const [kindVersion, setKindVersion] = useState(0);
 
   // A failed start() (or stop()) surfaces on the 'error' phase, so the
   // 'starting'/'stopping' spinner needs no error affordance of its own.
   const runtimeBusy = phase === "starting" || phase === "stopping";
 
-  // onField updates a single runtime-config field (connect + settings forms).
-  const onField = useCallback(
-    <K extends keyof RuntimeForm>(key: K, value: RuntimeForm[K]) => {
-      setForm((current) => ({ ...current, [key]: value }));
-    },
-    [],
-  );
+  // Derived display network: pendingNetwork (a legacy entry's unproven guess)
+  // wins while it is set, then the entry's own recorded network, then a
+  // fallback for screens rendered before any wallet is selected.
+  const network = pendingNetwork?.network ?? activeEntry?.network ?? "signet";
 
-  const onNetworkChange = useCallback(
-    (network: RuntimeForm["network"]) => {
-      setForm(defaultsForNetwork(network));
-    },
-    [],
-  );
+  // openWallet starts the runtime for a registry entry. Legacy entries with no
+  // recorded network detour through the network picker first. The mode is what
+  // onboarding renders in if the daemon reports needsWallet; it defaults to
+  // create so an unfinished entry always resumes deterministically instead of
+  // in whatever mode a prior session left behind.
+  const openWallet = useCallback(
+    async (
+      entry: WalletEntry,
+      override?: { network: RuntimeNetwork; endpoints: WalletEndpoints },
+      mode: "create" | "restore" = "create",
+    ) => {
+      if (!entry.network && !override) {
+        setSelectedWalletId(entry.id);
+        setPreStart({ kind: "chooseNetwork", entryId: entry.id });
 
-  // walletKind is the locally recorded unlock mode for the active data dir; it
-  // drives which unlock affordances the locked/settings screens show. kindVersion
-  // forces a re-read after a create or unlock writes the marker to localStorage,
-  // which is untracked by React.
-  const walletKind = useMemo(
-    () => readWalletKind(form.dataDir),
-    [form.dataDir, kindVersion],
-  );
-
-  const startRuntime = useCallback(async () => {
-    try {
-      const startedInfo = await start(form);
-      setBackupAcknowledged(Boolean(startedInfo.walletReady));
-    } catch {
-      // Surfaced via wallet.error (the phase moves to 'error').
-    }
-  }, [start, form]);
-
-  // onWalletCreated records the freshly chosen unlock mode (and, for a
-  // passkey wallet, the credential id) and stages the recovery phrase for the
-  // backup screen. An imported passkey wallet (opened from another device)
-  // returns no mnemonic, so its backup step is skipped. Guard the localStorage
-  // writes (they can throw under quota / private mode) so a storage failure
-  // cannot swallow the backup screen for a wallet that was actually created;
-  // the kind/credential markers only influence which unlock affordance shows
-  // later.
-  const onWalletCreated = useCallback(
-    (mnemonicWords: string[], kind: WalletKind, credentialId?: string) => {
-      try {
-        writeWalletKind(form.dataDir, kind);
-        if (credentialId) {
-          writePasskeyCredentialId(form.dataDir, credentialId);
-        }
-      } catch {
-        // Non-fatal: proceed without the persisted wallet-kind marker.
+        return;
       }
-      setKindVersion((v) => v + 1);
-      setMnemonic(mnemonicWords);
-      setBackupAcknowledged(mnemonicWords.length === 0);
-    },
-    [form.dataDir],
-  );
-
-  // onRestoreStarted records a restore as a password wallet and skips the
-  // backup screen: a restore is a phrase the user already holds. Guard the
-  // localStorage write (it can throw under quota / private mode) so a
-  // storage failure does not abort the rest of the restore transition; the
-  // kind marker only influences which unlock affordance shows later.
-  const onRestoreStarted = useCallback(() => {
-    try {
-      writeWalletKind(form.dataDir, "password");
-      setKindVersion((v) => v + 1);
-    } catch {
-      // Non-fatal: proceed without the persisted wallet-kind marker.
-    }
-    setMnemonic([]);
-    setBackupAcknowledged(true);
-  }, [form.dataDir]);
-
-  // onWalletUnlocked records the unlock mode (and, for a passkey unlock, the
-  // credential id used) and moves straight to the dashboard: an unlocked
-  // wallet's recovery phrase was already shown on an earlier create. Guard
-  // the localStorage writes (they can throw under quota / private mode) so a
-  // storage failure cannot block the unlocked wallet from reaching the
-  // dashboard; the kind/credential markers only influence which unlock
-  // affordance shows later.
-  const onWalletUnlocked = useCallback(
-    (kind: WalletKind, credentialId?: string) => {
+      setSelectedWalletId(entry.id);
+      setPendingNetwork(override ?? null);
+      setOnboardingMode(mode);
+      // Assembled outside the try so a malformed hand-edited entry throws
+      // visibly instead of the open click being a silent no-op.
+      const config = runtimeConfigForEntry(entry, override);
       try {
-        writeWalletKind(form.dataDir, kind);
-        if (credentialId) {
-          writePasskeyCredentialId(form.dataDir, credentialId);
-        }
+        const startedInfo = await start(config);
+        setBackupAcknowledged(Boolean(startedInfo.walletReady));
       } catch {
-        // Non-fatal: proceed without the persisted wallet-kind marker.
+        // Surfaced via wallet.error (the phase moves to 'error').
       }
-      setKindVersion((v) => v + 1);
-      setBackupAcknowledged(true);
     },
-    [form.dataDir],
+    [start],
   );
 
-  // recoverWithPhrase tears the runtime down so the user can reconnect and
-  // rebuild the wallet from a recovery phrase on the create/restore screen.
-  const recoverWithPhrase = useCallback(async () => {
+  // submitSetup registers the entry, then starts the runtime; the daemon
+  // reports needsWallet and onboarding renders in the chosen mode.
+  const submitSetup = useCallback(
+    async (
+      mode: "create" | "restore",
+      args: { name: string; network: RuntimeNetwork; endpoints: WalletEndpoints },
+    ) => {
+      const entry = newWalletEntry(args);
+      addWallet(entry);
+      setWalletsVersion((v) => v + 1);
+      await openWallet(entry, undefined, mode);
+    },
+    [openWallet],
+  );
+
+  // backToWallets stops the runtime (if running) and returns to the list.
+  const backToWallets = useCallback(async () => {
     try {
       await stop();
-      setMnemonic([]);
-      setBackupAcknowledged(false);
-      setTab("home");
     } catch {
       // Surfaced via wallet.error.
     }
+    setSelectedWalletId(null);
+    setPendingNetwork(null);
+    setPreStart({ kind: "list" });
+    setMnemonic([]);
+    setBackupAcknowledged(false);
+    setTab("home");
   }, [stop]);
+
+  // retryStart re-runs the failed start against the entry that was selected
+  // when it failed, keeping the onboarding mode the failed attempt was headed
+  // for; with no selection (a stale error from a prior session) it falls back
+  // to the wallet list instead.
+  const retryStart = useCallback(() => {
+    if (activeEntry) {
+      void openWallet(activeEntry, pendingNetwork ?? undefined, onboardingMode);
+    } else {
+      void backToWallets();
+    }
+  }, [activeEntry, pendingNetwork, onboardingMode, openWallet, backToWallets]);
+
+  // retryLegacyNetwork re-guesses a legacy entry's network after a previous
+  // guess found no wallet data on it: the runtime is already started against
+  // the wrong network, so it must stop before restarting with the new pick.
+  // The selection is kept so the entry stays active throughout.
+  const retryLegacyNetwork = useCallback(
+    async (chosenNetwork: RuntimeNetwork, endpoints: WalletEndpoints) => {
+      if (!activeEntry) {
+        return;
+      }
+      try {
+        await stop();
+      } catch {
+        // Surfaced via wallet.error.
+      }
+      await openWallet(activeEntry, {
+        network: chosenNetwork,
+        endpoints,
+      });
+    },
+    [activeEntry, stop, openWallet],
+  );
+
+  // onWalletCreated records the freshly chosen unlock mode (and, for a
+  // passkey wallet, the credential id) on the registry entry and stages the
+  // recovery phrase for the backup screen. An imported passkey wallet
+  // (opened from another device) returns no mnemonic, so its backup step is
+  // skipped. updateWallet swallows storage failures itself, so no guard is
+  // needed here the way the old localStorage writes required one.
+  const onWalletCreated = useCallback(
+    (mnemonicWords: string[], kind: WalletKind, credentialId?: string) => {
+      if (selectedWalletId) {
+        updateWallet(selectedWalletId, {
+          walletKind: kind,
+          ...(credentialId ? { credentialId } : {}),
+          ...(pendingNetwork
+            ? { network: pendingNetwork.network, endpoints: pendingNetwork.endpoints }
+            : {}),
+          lastUsedAt: Date.now(),
+        });
+        setWalletsVersion((v) => v + 1);
+        setPendingNetwork(null);
+      }
+      setMnemonic(mnemonicWords);
+      setBackupAcknowledged(mnemonicWords.length === 0);
+    },
+    [selectedWalletId, pendingNetwork],
+  );
+
+  // onWalletRestored records a completed restore as a password wallet and
+  // skips the backup screen: a restore is a phrase the user already holds.
+  // It fires only once the restored wallet is up, so a restore that fails
+  // before then leaves the entry unstamped and needsWallet re-renders the
+  // restore form instead of the data-missing screen.
+  const onWalletRestored = useCallback(() => {
+    if (selectedWalletId) {
+      updateWallet(selectedWalletId, {
+        walletKind: "password",
+        ...(pendingNetwork
+          ? { network: pendingNetwork.network, endpoints: pendingNetwork.endpoints }
+          : {}),
+        lastUsedAt: Date.now(),
+      });
+      setWalletsVersion((v) => v + 1);
+      setPendingNetwork(null);
+    }
+    setMnemonic([]);
+    setBackupAcknowledged(true);
+  }, [selectedWalletId, pendingNetwork]);
+
+  // onWalletUnlocked records the unlock mode (and, for a passkey unlock, the
+  // credential id used) on the registry entry, resolving a legacy entry's
+  // pendingNetwork guess into its permanent record, and moves straight to the
+  // dashboard: an unlocked wallet's recovery phrase was already shown on an
+  // earlier create.
+  const onWalletUnlocked = useCallback(
+    (kind: WalletKind, credentialId?: string) => {
+      if (selectedWalletId) {
+        updateWallet(selectedWalletId, {
+          walletKind: kind,
+          ...(credentialId ? { credentialId } : {}),
+          ...(pendingNetwork
+            ? { network: pendingNetwork.network, endpoints: pendingNetwork.endpoints }
+            : {}),
+          lastUsedAt: Date.now(),
+        });
+        setWalletsVersion((v) => v + 1);
+        setPendingNetwork(null);
+      }
+      setBackupAcknowledged(true);
+    },
+    [selectedWalletId, pendingNetwork],
+  );
+
+  // recoverWithPhrase tears the runtime down so the user can rebuild the
+  // wallet from a recovery phrase on the restore screen.
+  const recoverWithPhrase = useCallback(async () => {
+    await backToWallets();
+    setPreStart({ kind: "restore" });
+  }, [backToWallets]);
 
   // acknowledgeBackup marks the recovery phrase as saved, moving the user
   // from the backup screen to the dashboard.
@@ -200,7 +295,85 @@ export function App() {
     }
   }, [stop]);
 
-  const network = form.network;
+  // renderPreStart renders the sub-screen shown while no wallet is running:
+  // the wallet list, the create/restore form, or the legacy network picker.
+  // Shared by the runtimeReady phase and by the stopped phase whenever no
+  // wallet is currently selected.
+  function renderPreStart() {
+    switch (preStart.kind) {
+    case "list":
+      if (wallets.length === 0) {
+        // First run: the create form directly, with the switch link standing
+        // in for the list an empty registry cannot show, so restore stays
+        // reachable on a fresh browser.
+        return (
+          <WalletSetupScreen
+            mode="create"
+            onSubmit={(args) => void submitSetup("create", args)}
+            onBack={null}
+            onSwitchMode={() => setPreStart({ kind: "restore" })}
+            busy={runtimeBusy}
+            error={error?.message ?? ""}
+          />
+        );
+      }
+
+      return (
+        <WalletListScreen
+          wallets={wallets}
+          onOpen={(entry) => void openWallet(entry)}
+          onCreate={() => setPreStart({ kind: "create" })}
+          onRestore={() => setPreStart({ kind: "restore" })}
+          onRemove={(entry) => {
+            removeWallet(entry.id);
+            setWalletsVersion((v) => v + 1);
+          }}
+          busy={runtimeBusy}
+        />
+      );
+
+    case "create":
+    case "restore": {
+      // On first run there is no list to go back to, so only the mode-switch
+      // link renders.
+      const other = preStart.kind === "create" ? "restore" : "create";
+
+      return (
+        <WalletSetupScreen
+          mode={preStart.kind}
+          onSubmit={(args) => void submitSetup(preStart.kind, args)}
+          onBack={
+            wallets.length > 0 ? () => setPreStart({ kind: "list" }) : null
+          }
+          onSwitchMode={() => setPreStart({ kind: other })}
+          busy={runtimeBusy}
+          error={error?.message ?? ""}
+        />
+      );
+    }
+
+    case "chooseNetwork": {
+      const entry = wallets.find((w) => w.id === preStart.entryId) ?? null;
+
+      return (
+        <ChooseNetworkScreen
+          walletName={entry?.name ?? "Wallet"}
+          onSubmit={(chosenNetwork, endpoints) => {
+            if (entry) {
+              void openWallet(entry, { network: chosenNetwork, endpoints });
+            }
+          }}
+          onBack={() => void backToWallets()}
+          busy={runtimeBusy}
+          error={error?.message ?? ""}
+        />
+      );
+    }
+
+    default:
+      return null;
+    }
+  }
 
   switch (phase) {
   case "loading":
@@ -231,25 +404,58 @@ export function App() {
     );
 
   case "runtimeReady":
-    return (
-      <ConnectScreen
-        form={form}
-        onField={onField}
-        onNetworkChange={onNetworkChange}
-        onStart={startRuntime}
-        busy={runtimeBusy}
-        error={error?.message ?? ""}
-      />
-    );
+    return renderPreStart();
 
   case "needsWallet":
+    if (activeEntry?.walletKind) {
+      // A completed wallet reported needsWallet while running on an unproven
+      // legacy network guess: the guess was wrong, not the data missing. Offer
+      // the picker again rather than the data-missing screen, whose "Set up
+      // again" would poison the entry with the wrong network.
+      if (pendingNetwork) {
+        return (
+          <ChooseNetworkScreen
+            walletName={activeEntry.name}
+            onSubmit={(chosenNetwork, endpoints) =>
+              void retryLegacyNetwork(chosenNetwork, endpoints)
+            }
+            onBack={() => void backToWallets()}
+            busy={runtimeBusy}
+            error="No wallet found on this network. Pick a different network and try again."
+          />
+        );
+      }
+
+      return (
+        <DataMissingScreen
+          walletName={activeEntry.name}
+          network={network}
+          onSetUpAgain={() => {
+            updateWallet(activeEntry.id, { walletKind: null, credentialId: null });
+            setWalletsVersion((v) => v + 1);
+            // Match the screen's copy: setting up again means bringing back
+            // the wallet the user already had, so land on restore. The list
+            // remains the deliberate route to a fresh create.
+            setOnboardingMode("restore");
+          }}
+          onRemove={() => {
+            removeWallet(activeEntry.id);
+            setWalletsVersion((v) => v + 1);
+            void backToWallets();
+          }}
+        />
+      );
+    }
+
     return (
       <OnboardingFlow
         network={network}
-        dataDir={form.dataDir}
+        mode={onboardingMode}
+        walletName={activeEntry?.name ?? "My Wallet"}
         onWalletCreated={onWalletCreated}
-        onRestoreStarted={onRestoreStarted}
+        onWalletRestored={onWalletRestored}
         onWalletUnlocked={onWalletUnlocked}
+        onBack={() => void backToWallets()}
       />
     );
 
@@ -257,9 +463,18 @@ export function App() {
     return (
       <UnlockScreen
         network={network}
-        dataDir={form.dataDir}
-        walletKind={walletKind}
+        walletKind={activeEntry?.walletKind ?? null}
+        credentialId={activeEntry?.credentialId ?? null}
+        walletName={activeEntry?.name ?? "My Wallet"}
         onWalletUnlocked={onWalletUnlocked}
+        onBack={() => void backToWallets()}
+        onRemove={() => {
+          if (activeEntry) {
+            removeWallet(activeEntry.id);
+            setWalletsVersion((v) => v + 1);
+          }
+          void backToWallets();
+        }}
         onRecover={recoverWithPhrase}
       />
     );
@@ -269,9 +484,13 @@ export function App() {
     return <SyncingScreen network={network} />;
 
   case "stopped":
-    return (
-      <StoppedScreen network={network} onStart={startRuntime} busy={runtimeBusy} />
-    );
+    if (activeEntry) {
+      return (
+        <StoppedScreen network={network} onBack={() => void backToWallets()} />
+      );
+    }
+
+    return renderPreStart();
 
   case "error": {
     // Duck-typed on `code` rather than instanceof: a duplicate bundled copy
@@ -291,7 +510,8 @@ export function App() {
           title="Wallet open in another tab"
           sub="Only one tab can run the wallet at a time."
           message="This wallet is already running in another tab or window. Close it there (or stop its runtime), then press Try again."
-          onRetry={startRuntime}
+          onRetry={retryStart}
+          onBack={() => void backToWallets()}
           busy={runtimeBusy}
           showWipe={false}
         />
@@ -308,7 +528,8 @@ export function App() {
           title="Could not start just now"
           sub="The browser would not hand over the wallet runtime lock."
           message="Something interrupted the wallet as it was starting. Press Try again."
-          onRetry={startRuntime}
+          onRetry={retryStart}
+          onBack={() => void backToWallets()}
           busy={runtimeBusy}
           showWipe={false}
         />
@@ -319,7 +540,8 @@ export function App() {
       <ErrorScreen
         network={network}
         message={error?.message ?? ""}
-        onRetry={startRuntime}
+        onRetry={retryStart}
+        onBack={() => void backToWallets()}
         busy={runtimeBusy}
       />
     );
@@ -353,9 +575,15 @@ export function App() {
       {tab === "activity" ? <ActivityScreen onNavigate={setTab} /> : null}
       {tab === "settings" ? (
         <SettingsScreen
-          form={form}
-          onField={onField}
-          walletKind={walletKind}
+          entry={activeEntry}
+          onSwitchWallet={() => void backToWallets()}
+          onDeleteWallet={() => {
+            if (activeEntry) {
+              removeWallet(activeEntry.id);
+              setWalletsVersion((v) => v + 1);
+            }
+            void backToWallets();
+          }}
           onStop={stopRuntime}
           onNavigate={setTab}
         />
