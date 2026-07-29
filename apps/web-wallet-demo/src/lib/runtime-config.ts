@@ -2,77 +2,28 @@ import { defaultConfig } from "@lightninglabs/wavelength-web";
 import type { DebugLevel } from "@lightninglabs/wavelength-react";
 
 // NETWORKS are the selectable runtime networks. Mainnet is intentionally
-// excluded - this build targets test networks only.
+// excluded - this build targets test networks only. regtest is a hidden dev
+// option (see lib/devGate.ts).
 export const NETWORKS = ["signet", "testnet", "regtest"] as const;
-
-// RuntimeNetwork is the demo's selectable network union. RuntimeConfig.network
-// is optional and includes 'mainnet', so RuntimeForm narrows it to this
-// required, test-only union for controlled pickers.
 export type RuntimeNetwork = (typeof NETWORKS)[number];
 
-// RuntimeForm is the fully-populated runtime config the connect/settings forms
-// edit (every field required so inputs are always controlled).
-export type RuntimeForm = {
-  network: RuntimeNetwork;
-  dataDir: string;
-  allowMainnet: boolean;
+// WalletEndpoints is the per-wallet server endpoint snapshot, chosen at
+// wallet creation and stored on the registry entry, never edited afterwards.
+export type WalletEndpoints = {
   arkServerAddress: string;
   walletEsploraUrl: string;
   swapServerAddress: string;
-  swapDatabaseFileName: string;
   arkServerInsecure: boolean;
   swapServerInsecure: boolean;
-  disableSwaps: boolean;
   debugLevel: DebugLevel;
 };
 
-// RuntimeFieldSetter updates a single field of the runtime form, preserving the
-// value type of that field (string or boolean).
-export type RuntimeFieldSetter = <K extends keyof RuntimeForm>(
-  key: K,
-  value: RuntimeForm[K],
-) => void;
-
-// demoFieldDefaults are the demo-only fields layered under every network
-// preset so the connect/settings forms are always fully populated.
-const demoFieldDefaults = {
-  dataDir: "/wavelength-demo",
-  allowMainnet: false,
-  swapDatabaseFileName: "/wavelength-swaps.db",
-  arkServerInsecure: false,
-  swapServerInsecure: false,
-  disableSwaps: false,
-  debugLevel: "info" as DebugLevel,
-};
-
-// hostedDefaults builds the form for a hosted test network from the SDK's own
-// REST preset, so the demo never hand-copies gateway URLs.
-function hostedDefaults(network: "signet" | "testnet"): RuntimeForm {
-  const preset = defaultConfig(network);
-
-  return {
-    ...demoFieldDefaults,
-    network,
-    arkServerAddress: preset.arkServerAddress ?? "",
-    walletEsploraUrl: preset.walletEsploraUrl ?? "",
-    swapServerAddress: preset.swapServerAddress ?? "",
-  };
-}
-
-// signetDefaults are the default runtime gateways for the signet test network.
-export const signetDefaults: RuntimeForm = hostedDefaults("signet");
-
-// testnetDefaults are the default runtime gateways for Bitcoin testnet3.
-export const testnetDefaults: RuntimeForm = hostedDefaults("testnet");
-
-// regtestDefaults target the local frontend-regtest Wavelength Operator overlay
-// (regtest Wavelength Operator info). The SDK ships no regtest preset (local ports vary
-// per machine), so this form is fully demo-local; swap gateway uses host
-// port 10032 because waved's default HTTP gateway also binds
-// localhost:10031.
-export const regtestDefaults: RuntimeForm = {
-  ...demoFieldDefaults,
-  network: "regtest",
+// regtestEndpoints target the local frontend-regtest overlay. The SDK ships
+// no regtest preset (local ports vary per machine), so these are demo-local;
+// the swap gateway uses host port 10032 because waved's default HTTP gateway
+// also binds localhost:10031. They prefill the editable advanced fields on
+// the create screen when regtest is selected.
+const regtestEndpoints: WalletEndpoints = {
   arkServerAddress: "http://127.0.0.1:7071",
   walletEsploraUrl: "http://127.0.0.1:8501",
   swapServerAddress: "http://127.0.0.1:10032",
@@ -81,16 +32,22 @@ export const regtestDefaults: RuntimeForm = {
   debugLevel: "debug",
 };
 
-// defaultsForNetwork returns the preset runtime form for a network selection.
-export function defaultsForNetwork(network: RuntimeNetwork): RuntimeForm {
-  switch (network) {
-  case "regtest":
-    return regtestDefaults;
-  case "testnet":
-    return testnetDefaults;
-  default:
-    return signetDefaults;
+// endpointsForNetwork returns the endpoint preset for a network: the SDK's
+// hosted REST preset for signet/testnet, the local overlay for regtest.
+export function endpointsForNetwork(network: RuntimeNetwork): WalletEndpoints {
+  if (network === "regtest") {
+    return { ...regtestEndpoints };
   }
+  const preset = defaultConfig(network);
+
+  return {
+    arkServerAddress: preset.arkServerAddress ?? "",
+    walletEsploraUrl: preset.walletEsploraUrl ?? "",
+    swapServerAddress: preset.swapServerAddress ?? "",
+    arkServerInsecure: false,
+    swapServerInsecure: false,
+    debugLevel: "info",
+  };
 }
 
 // hostname extracts the host from a URL for compact display, falling back to
