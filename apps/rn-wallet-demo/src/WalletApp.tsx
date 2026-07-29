@@ -603,11 +603,13 @@ export function WalletApp() {
     return (
       <UnlockScreen
         network={network}
+        walletName={activeEntry?.name ?? 'Wallet'}
         walletKind={activeEntry?.walletKind ?? null}
         credentialId={activeEntry?.credentialId ?? null}
         onWalletUnlocked={onWalletUnlocked}
         onRecover={() => void recoverWithPhrase()}
-        onWipe={() => void wipeCurrentEntry()}
+        onBack={() => void backToWallets()}
+        onRemove={() => void wipeCurrentEntry()}
       />
     );
 
