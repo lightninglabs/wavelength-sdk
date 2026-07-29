@@ -404,17 +404,6 @@ export function WalletApp() {
     setMnemonic([]);
   }, []);
 
-  const stopRuntime = useCallback(async () => {
-    try {
-      await stop();
-      setMnemonic([]);
-      setBackupAcknowledged(false);
-      setTab('home');
-    } catch {
-      // Surfaced via wallet.error.
-    }
-  }, [stop]);
-
   // renderPreStart renders the sub-screen shown while no wallet is running:
   // the wallet list, the create/restore form, or the legacy network picker.
   // Shared by the runtimeReady phase and by the stopped phase whenever no
@@ -682,14 +671,10 @@ export function WalletApp() {
       ) : null}
       {tab === 'activity' ? <ActivityScreen onNavigate={setTab} /> : null}
       {tab === 'settings' && activeEntry ? (
-        // form and onField no longer exist (RuntimeForm/RuntimeFieldSetter
-        // were removed from lib/runtime-config in an earlier task);
-        // SettingsScreen's own props still declare them until Task 6, so
-        // this call site is expected to show missing-property errors.
         <SettingsScreen
-          walletKind={activeEntry.walletKind}
-          onStop={() => void stopRuntime()}
-          onWipe={() => void wipeCurrentEntry()}
+          entry={activeEntry}
+          onSwitchWallet={() => void backToWallets()}
+          onDeleteWallet={() => void wipeCurrentEntry()}
           onNavigate={setTab}
         />
       ) : null}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import {
+  ArrowLeftRight,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -8,7 +9,6 @@ import {
   LogOut,
   type LucideIcon,
   Monitor,
-  Power,
   Server,
   Settings as SettingsIcon,
   ShieldCheck,
@@ -16,11 +16,7 @@ import {
   Wallet,
   Zap,
 } from 'lucide-react-native';
-import {
-  WalletKind,
-  useWallet,
-  useWalletInfo,
-} from '@lightninglabs/wavelength-react';
+import { useWallet, useWalletInfo } from '@lightninglabs/wavelength-react';
 import { GatewayFields } from '../../components/GatewayFields';
 import { PageHead } from '../../components/layout/PageHead';
 import { AppTab } from '../../components/layout/nav';
@@ -32,7 +28,7 @@ import { Segmented } from '../../components/ui/Segmented';
 import { SummaryRow } from '../../components/ui/SummaryRow';
 import { formatSats, shortKey } from '../../lib/format';
 import { statusLabel } from '../../lib/phase';
-import { RuntimeFieldSetter, RuntimeForm } from '../../lib/runtime-config';
+import { WalletEntry } from '../../lib/walletRegistry';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -128,6 +124,69 @@ const makeStyles = (p: Palette) => ({
     lineHeight: 18,
     marginBottom: 16,
   },
+  walletRow: {
+    alignItems: 'center' as const,
+    flexDirection: 'row' as const,
+    gap: 12,
+    marginTop: 12,
+  },
+  walletIconBox: {
+    alignItems: 'center' as const,
+    borderColor: p.border,
+    borderWidth: 1,
+    backgroundColor: p.well,
+    height: 40,
+    justifyContent: 'center' as const,
+    width: 40,
+  },
+  walletBody: {
+    flex: 1,
+    gap: 4,
+  },
+  walletNameRow: {
+    alignItems: 'center' as const,
+    flexDirection: 'row' as const,
+    gap: 8,
+  },
+  walletName: {
+    color: p.text,
+    flexShrink: 1,
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+  },
+  networkChip: {
+    borderColor: p.border,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  networkChipText: {
+    color: p.muted,
+    fontFamily: fonts.sans,
+    fontSize: 10,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase' as const,
+  },
+  walletCreated: {
+    color: p.faint,
+    fontFamily: fonts.sans,
+    fontSize: 12,
+  },
+  switchButton: {
+    alignItems: 'center' as const,
+    backgroundColor: p.surfaceAlt,
+    borderColor: p.border,
+    borderWidth: 1,
+    flexDirection: 'row' as const,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  switchButtonText: {
+    color: p.text,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 13,
+  },
   entry: {
     alignItems: 'center' as const,
     backgroundColor: p.surfaceAlt,
@@ -175,21 +234,27 @@ const makeStyles = (p: Palette) => ({
   },
 });
 
-// SettingsScreen surfaces runtime status, identity, appearance, security,
-// advanced gateway configuration, and the danger zone (stop + wipe).
+// createdLabel renders a wallet entry's creation timestamp as a short date.
+function createdLabel(ms: number): string {
+  return new Date(ms).toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// SettingsScreen surfaces this wallet's identity, runtime status, appearance,
+// wallet-type security, advanced gateway configuration, build version and
+// the wallet-management actions (switch, delete).
 export function SettingsScreen({
-  form,
-  onField,
-  walletKind,
-  onStop,
-  onWipe,
+  entry,
+  onSwitchWallet,
+  onDeleteWallet,
   onNavigate,
 }: {
-  form: RuntimeForm;
-  onField: RuntimeFieldSetter;
-  walletKind: WalletKind | null;
-  onStop: () => void;
-  onWipe: () => void;
+  entry: WalletEntry;
+  onSwitchWallet: () => void;
+  onDeleteWallet: () => void;
   onNavigate: (tab: AppTab) => void;
 }) {
   const { phase } = useWallet();
@@ -198,7 +263,7 @@ export function SettingsScreen({
   const { theme, palette, setTheme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const [advanced, setAdvanced] = useState(false);
-  const [confirmWipe, setConfirmWipe] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const identity = info?.identityPubKey || '';
   const Chevron = advanced ? ChevronUp : ChevronDown;
 
@@ -245,6 +310,41 @@ export function SettingsScreen({
 
       <Band>
         <Label accent="violet" rule>
+          This wallet
+        </Label>
+        <View style={styles.walletRow}>
+          <View style={styles.walletIconBox}>
+            <Wallet size={17} color={palette.muted} />
+          </View>
+          <View style={styles.walletBody}>
+            <View style={styles.walletNameRow}>
+              <Text style={styles.walletName} numberOfLines={1}>
+                {entry.name}
+              </Text>
+              <View style={styles.networkChip}>
+                <Text style={styles.networkChipText}>
+                  {entry.network ?? 'unknown'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.walletCreated}>
+              Created {createdLabel(entry.createdAt)}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Switch wallet"
+            accessibilityRole="button"
+            onPress={onSwitchWallet}
+            style={styles.switchButton}
+          >
+            <ArrowLeftRight size={16} color={palette.text} />
+            <Text style={styles.switchButtonText}>Switch wallet</Text>
+          </Pressable>
+        </View>
+      </Band>
+
+      <Band tinted>
+        <Label accent="teal" rule>
           Runtime
         </Label>
         <View style={styles.statGrid}>
@@ -265,8 +365,8 @@ export function SettingsScreen({
         </View>
       </Band>
 
-      <Band tinted>
-        <Label accent="teal" rule>
+      <Band>
+        <Label accent="lime" rule>
           Identity
         </Label>
         <View style={styles.identityRow}>
@@ -277,7 +377,7 @@ export function SettingsScreen({
         </View>
       </Band>
 
-      <Band>
+      <Band tinted>
         <Label rule>About</Label>
         <View style={styles.rows}>
           <SummaryRow label="Version" value={info?.version || '-'} mono />
@@ -285,17 +385,17 @@ export function SettingsScreen({
         </View>
       </Band>
 
-      <Band tinted>
-        <Label accent="lime" rule>
+      <Band>
+        <Label accent="sky" rule>
           Security
         </Label>
         <View style={styles.rows}>
           <SummaryRow
             label="Wallet type"
             value={
-              walletKind === 'passkey'
+              entry.walletKind === 'passkey'
                 ? 'Passkey'
-                : walletKind === 'password'
+                : entry.walletKind === 'password'
                   ? 'Password'
                   : 'Unknown'
             }
@@ -303,10 +403,8 @@ export function SettingsScreen({
         </View>
       </Band>
 
-      <Band>
-        <Label accent="sky" rule>
-          Appearance
-        </Label>
+      <Band tinted>
+        <Label rule>Appearance</Label>
         <View style={styles.appearanceRow}>
           <View style={styles.appearanceLabel}>
             <Monitor size={16} color={palette.muted} />
@@ -324,7 +422,7 @@ export function SettingsScreen({
         </View>
       </Band>
 
-      <Band tinted>
+      <Band>
         <Label rule>Advanced</Label>
         <Pressable onPress={() => setAdvanced((v) => !v)} style={styles.advancedHead}>
           <View style={styles.advancedLabel}>
@@ -336,15 +434,15 @@ export function SettingsScreen({
         {advanced ? (
           <View style={styles.advancedBody}>
             <Text style={styles.advancedHint}>
-              Display only. The running configuration cannot be changed. Stop
-              the runtime to reconnect with different servers.
+              Display only. This is the configuration the wallet was created
+              with; it cannot be changed after the fact.
             </Text>
-            <GatewayFields form={form} onField={onField} disabled />
+            <GatewayFields endpoints={entry.endpoints} dataDir={entry.dataDir} />
           </View>
         ) : null}
       </Band>
 
-      <Band>
+      <Band tinted>
         <Label rule>Danger zone</Label>
         <Pressable
           accessibilityLabel="Emergency exit"
@@ -360,28 +458,24 @@ export function SettingsScreen({
           <ChevronRight size={16} color={palette.muted} />
         </Pressable>
         <View style={styles.danger}>
-          <Pressable onPress={onStop} style={styles.dangerButton}>
-            <Power size={16} color={palette.bad} />
-            <Text style={styles.dangerText}>Stop runtime</Text>
-          </Pressable>
-          <Pressable onPress={() => setConfirmWipe(true)} style={styles.dangerButton}>
+          <Pressable onPress={() => setConfirmDelete(true)} style={styles.dangerButton}>
             <Trash2 size={16} color={palette.bad} />
-            <Text style={styles.dangerText}>Clear wallet data</Text>
+            <Text style={styles.dangerText}>Delete this wallet</Text>
           </Pressable>
         </View>
       </Band>
 
       <ConfirmDialog
-        open={confirmWipe}
-        title="Clear wallet data?"
-        description="This permanently deletes the wallet and all data stored on this device. You can only get it back with your recovery phrase or passkey. This cannot be undone."
-        confirmLabel="Clear everything"
+        open={confirmDelete}
+        title="Delete this wallet?"
+        description="This deletes the wallet's data from this device and removes it from the list."
+        confirmLabel="Delete wallet"
         destructive
         onConfirm={() => {
-          setConfirmWipe(false);
-          onWipe();
+          setConfirmDelete(false);
+          onDeleteWallet();
         }}
-        onCancel={() => setConfirmWipe(false)}
+        onCancel={() => setConfirmDelete(false)}
       />
     </ScrollView>
   );

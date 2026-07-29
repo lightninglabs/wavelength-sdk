@@ -12,7 +12,7 @@ import { Palette, ThemeName, palettes } from './tokens';
 
 // The theme preference key. It deliberately survives a wallet-data wipe: it is
 // a UI preference, not wallet data (the wipe flow deletes the data directory
-// and clears only the wallet markers in walletKind.ts).
+// and clears only the wallet registry keys).
 const STORAGE_KEY = 'wavelength-theme';
 
 type ThemeContextValue = {
