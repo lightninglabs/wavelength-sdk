@@ -1,20 +1,29 @@
 const { expect, test } = require("@playwright/test");
 
-// createReadyWallet walks a cold page to a ready wallet: configure the runtime,
-// start it, create a wallet, and acknowledge the recovery phrase.
-async function createReadyWallet(
-  page,
-  { baseURL, dataDir, swapDatabaseFileName, password },
-  testInfo,
-) {
-  await page.goto("/");
-  // The "Start runtime" button is the connect screen, which only renders once
-  // the WASM runtime has loaded (phase runtimeReady).
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
+// fillCreateForm fills the create-wallet screen: name, regtest network, and
+// the mock server's endpoints in the advanced section. Requires the page to
+// have been opened with ?regtest=1 so the regtest option is visible.
+async function fillCreateForm(page, baseURL, name) {
+  await page.getByLabel("Wallet name").fill(name);
+  await page.getByRole("button", { name: "regtest", exact: true }).click();
+  await page.getByRole("button", { name: "Advanced endpoints" }).click();
+  await page.getByLabel("Ark server address").fill(baseURL);
+  await page.getByLabel("Wallet Esplora URL").fill(baseURL);
+  await page.getByLabel("Swap server address").fill(baseURL);
+}
 
-  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+// createReadyWallet walks a cold page to a ready wallet: land on the
+// first-run create-wallet screen, submit it into onboarding, create the
+// wallet, and acknowledge the recovery phrase. Each test gets its own
+// Playwright browser context, so storage isolation across wallets no longer
+// needs a per-test data directory the way it did before wallets were
+// registry entries.
+async function createReadyWallet(page, { baseURL, name, password }, testInfo) {
+  await page.goto("/?regtest=1");
+  const cont = page.getByRole("button", { name: "Continue" });
+  await expect(cont).toBeVisible({ timeout: 30000 });
+  await fillCreateForm(page, baseURL, name);
+  await cont.click();
 
   const createWallet = page.getByRole("button", { name: "Create wallet" });
   await expect(createWallet).toBeVisible({ timeout: 60000 });
@@ -41,8 +50,7 @@ test("wallet create and address state persist with OPFS SQLite", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
   const consoleMessages = [];
   page.on("console", (message) => {
@@ -60,13 +68,7 @@ test("wallet create and address state persist with OPFS SQLite", async ({
     }
   });
 
-  await createReadyWallet(
-    page,
-    { baseURL, dataDir, swapDatabaseFileName, password },
-    testInfo,
-  );
-
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
+  await createReadyWallet(page, { baseURL, name, password }, testInfo);
 
   // The account chip carries the full identity pubkey and only renders inside
   // the authenticated app shell, so its presence confirms we reached the
@@ -116,15 +118,16 @@ test("wallet create and address state persist with OPFS SQLite", async ({
   await expect(page.getByText("Emergency exit")).toBeVisible();
   await expect(page.getByTestId("vtxo-picker")).toBeVisible();
 
-  // Reload and reopen the same data directory. Surviving the reload IS the
-  // OPFS-persistence assertion: a non-persistent (in-memory) VFS would lose the
-  // wallet, so the post-reload screen would offer "Create wallet" instead of
-  // "Unlock" and the expectations below would fail.
+  // Reload and reopen the same wallet from the returning-user list. Surviving
+  // the reload IS the OPFS-persistence assertion: a non-persistent
+  // (in-memory) VFS would lose the wallet, so the post-reload screen would
+  // offer "Create a wallet" instead of "Your wallets" and the expectations
+  // below would fail.
   await page.reload();
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-
-  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+  await page.getByRole("button", { name }).click();
 
   const unlock = page.getByRole("button", { name: "Unlock", exact: true });
   await expect(unlock).toBeVisible({ timeout: 60000 });
@@ -151,21 +154,22 @@ test("a second tab fails fast with a friendly locked message and can take over",
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-lock-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-lock-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
-  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await createReadyWallet(page, { baseURL, name, password });
   await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
 
   // A second tab of the same origin must fail the start fast on the Web Locks
   // pre-check and show the actionable multi-tab copy, never the raw SQLite
-  // trace the exclusive OPFS handles would otherwise produce.
+  // trace the exclusive OPFS handles would otherwise produce. The wallet is
+  // already registered, so the second tab lands on the returning-user list
+  // and opens the same entry by name.
   const second = await context.newPage();
   await second.goto("/");
-  const startRuntime = second.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-  await configureRuntime(second, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await expect(
+    second.getByRole("heading", { name: "Your wallets" }),
+  ).toBeVisible({ timeout: 30000 });
+  await second.getByRole("button", { name }).click();
 
   await expect(
     second.getByRole("heading", { name: "Wallet open in another tab" }),
@@ -174,7 +178,7 @@ test("a second tab fails fast with a friendly locked message and can take over",
     second.getByText("This wallet is already running in another tab"),
   ).toBeVisible();
   // The wipe escape hatch is hidden for this expected condition.
-  await expect(second.getByText("Clear wallet data")).toBeHidden();
+  await expect(second.getByText("Clear all data")).toBeHidden();
 
   await testInfo.attach("second-tab-locked", {
     body: await second.screenshot({ fullPage: true }),
@@ -203,18 +207,17 @@ test("stopping the runtime in one tab hands the wallet to another", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-handoff-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-handoff-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
-  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await createReadyWallet(page, { baseURL, name, password });
   await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
 
   const second = await context.newPage();
   await second.goto("/");
-  const startRuntime = second.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-  await configureRuntime(second, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await expect(
+    second.getByRole("heading", { name: "Your wallets" }),
+  ).toBeVisible({ timeout: 30000 });
+  await second.getByRole("button", { name }).click();
   await expect(
     second.getByRole("heading", { name: "Wallet open in another tab" }),
   ).toBeVisible({ timeout: 30000 });
@@ -227,7 +230,7 @@ test("stopping the runtime in one tab hands the wallet to another", async ({
   // home screen; the Settings screen adds a second, so stay off it here).
   await page.getByRole("button", { name: "Stop runtime" }).click();
   await expect(
-    page.getByRole("button", { name: "Start runtime" }),
+    page.getByRole("heading", { name: "Runtime stopped" }),
   ).toBeVisible({ timeout: 60000 });
 
   await second.getByRole("button", { name: "Try again" }).click();
@@ -239,8 +242,7 @@ test("a refused lock request shows a retry, not the wipe hatch", async ({
   page,
 }, testInfo) => {
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-lockfail-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-lockfail-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
   // Make the browser refuse the lock outright, which is a different condition
   // from another tab holding it: nothing is wrong with the wallet data, so the
@@ -250,17 +252,17 @@ test("a refused lock request shows a retry, not the wipe hatch", async ({
       Promise.reject(new DOMException("denied", "SecurityError"));
   });
 
-  await page.goto("/");
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await page.goto("/?regtest=1");
+  const cont = page.getByRole("button", { name: "Continue" });
+  await expect(cont).toBeVisible({ timeout: 30000 });
+  await fillCreateForm(page, baseURL, name);
+  await cont.click();
 
   await expect(
     page.getByRole("heading", { name: "Could not start just now" }),
   ).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
-  await expect(page.getByText("Clear wallet data")).toBeHidden();
+  await expect(page.getByText("Clear all data")).toBeHidden();
 });
 
 // An invoice with an amount in its HRP, an amountless invoice, and an address.
@@ -275,10 +277,9 @@ test("send screen shows only the fields the destination needs", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-send-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-send-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
-  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await createReadyWallet(page, { baseURL, name, password });
 
   const accountChip = page.getByTestId("account-pubkey");
   await expect(accountChip).toBeVisible({ timeout: 60000 });
@@ -334,17 +335,3 @@ test("send screen shows only the fields the destination needs", async ({
   await expect(page.getByText("Review")).toBeHidden();
   await expect(dest).toBeVisible();
 });
-
-async function configureRuntime(page, baseURL, dataDir, swapDatabaseFileName) {
-  await page.getByRole("button", { name: "regtest", exact: true }).click();
-  // Every endpoint field, including Ark server address and Wallet Esplora
-  // URL, lives inside the Advanced section, so expand it before filling them.
-  await page.getByRole("button", { name: "Advanced endpoints" }).click();
-  // Mailbox traffic shares the Ark and swap server edges, so RuntimeConfig no
-  // longer exposes separate mailbox server fields.
-  await page.getByLabel("Ark server address").fill(baseURL);
-  await page.getByLabel("Wallet Esplora URL").fill(baseURL);
-  await page.getByLabel("Swap server address").fill(baseURL);
-  await page.getByLabel("Data directory").fill(dataDir);
-  await page.getByLabel("Swap database file").fill(swapDatabaseFileName);
-}
