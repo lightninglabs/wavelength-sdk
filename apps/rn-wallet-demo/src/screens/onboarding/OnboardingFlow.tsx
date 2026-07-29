@@ -1,56 +1,73 @@
 import { useState } from 'react';
 import {
   useWalletCreate,
+  useWalletEngine,
   useWalletPasskey,
   useWalletRecovery,
   useWalletRestore,
 } from '@lightninglabs/wavelength-react';
 import type { WalletKind } from '@lightninglabs/wavelength-react';
 import { passkeyCeremony } from '../../lib/passkeyCeremony';
+import { loadWallets } from '../../lib/walletRegistry';
 import { WalletMode } from '../../components/ui/WalletTypePicker';
 import { CreateWalletScreen } from './CreateWalletScreen';
 import { LoadingScreen } from './LoadingScreen';
 import { RestoreWalletScreen } from './RestoreWalletScreen';
 
-type Step = 'create' | 'restore';
+// passkeyName labels a freshly created passkey with the wallet's user-chosen
+// name plus a timestamp, so wallets stay distinguishable in the OS prompt.
+function passkeyName(walletName: string): string {
+  const stamp = new Date().toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
-const APP_NAME = 'Wavelength Demo';
+  return `${walletName} · ${stamp}`;
+}
 
 // OnboardingFlow serves the needsWallet phase (runtime started, no local
-// wallet). It routes between creating a wallet and restoring one from a
-// phrase, self-serving the create/restore/passkey verbs and reporting the
-// outcome to the caller through session callbacks. walletKind and
-// credentialId are the stored wallet markers (loaded by WalletApp): a
-// recorded passkey wallet means the user should re-open it rather than mint
-// a second one, so onboarding leads with the unlock affordance. The passkey
-// ceremony is held behind a loading screen so a freshly derived recovery
-// phrase is never revealed underneath the OS prompt.
+// wallet) for a single registry entry, routed by the mode the wallet list
+// chose for it: create a fresh wallet, or restore one from a phrase or
+// passkey. It self-serves the create/restore/passkey verbs and reports the
+// outcome to the caller through session callbacks. The passkey ceremony is
+// held behind a loading screen so a freshly derived recovery phrase is never
+// revealed underneath the OS prompt.
 export function OnboardingFlow({
   network,
-  walletKind,
-  credentialId,
+  mode,
+  walletName,
   onWalletCreated,
-  onRestoreStarted,
+  onWalletRestored,
   onWalletUnlocked,
+  onBack,
 }: {
   network: string;
-  walletKind: WalletKind | null;
-  credentialId: string | null;
+  mode: 'create' | 'restore';
+  walletName: string;
   onWalletCreated: (
     mnemonic: string[],
     kind: WalletKind,
     credentialId?: string,
   ) => void;
-  onRestoreStarted: () => void;
+  /** Called once a phrase restore has brought the wallet up. */
+  onWalletRestored: () => void;
   onWalletUnlocked: (kind: WalletKind, credentialId?: string) => void;
+  /** Stops the runtime and returns to the wallet list. */
+  onBack: () => void;
 }) {
-  const [step, setStep] = useState<Step>('create');
+  const engine = useWalletEngine();
   const { create, createPending, createError } = useWalletCreate();
   const { restore, restorePending, restoreError } = useWalletRestore();
-  // useWalletPasskey stays namespaced because its `create` verb would
-  // otherwise collide with useWalletCreate's above.
   const passkey = useWalletPasskey(passkeyCeremony);
   const { recovery, acknowledge: acknowledgeRecovery } = useWalletRecovery();
+
+  // The passkey-restore affordance on the restore screen bypasses
+  // useWalletPasskey.open (see onRestorePasskey below), so it tracks its own
+  // busy/error state rather than sharing passkey.openPending/openError.
+  const [restorePasskeyPending, setRestorePasskeyPending] = useState(false);
+  const [restorePasskeyError, setRestorePasskeyError] = useState('');
 
   // Passkey support is still probing: hold on a loading screen rather than
   // flash a password-only form that would flip to passkey-first a moment
@@ -59,7 +76,7 @@ export function OnboardingFlow({
     return (
       <LoadingScreen
         network={network}
-        title="Create wallet"
+        title={mode === 'create' ? 'Create wallet' : 'Restore wallet'}
         sub="Checking device capabilities."
       />
     );
@@ -78,20 +95,17 @@ export function OnboardingFlow({
       ? recovery.error.message
       : '';
 
-  const leadWithUnlock =
-    passkey.supported && (credentialId !== null || walletKind === 'passkey');
-
   // The create-wallet and restore-wallet screens are mutually exclusive steps
   // of the same onboarding flow, so they share one combined busy/error surface
   // (the two daemon calls share the same underlying createWallet RPC).
   const onboardingBusy = createPending || restorePending;
-  const onboardingError = (createError ?? restoreError)?.message ?? '';
+  const onboardingErrorObj = createError ?? restoreError;
+  const onboardingError = onboardingErrorObj?.message ?? '';
 
-  // Passkey creation and unlock share one busy/error surface, matching the
-  // daemon operation they both drive underneath (the passkey ceremony plus an
-  // open-wallet call).
-  const passkeyBusy = passkey.createPending || passkey.openPending;
-  const passkeyError = (passkey.createError ?? passkey.openError)?.message ?? '';
+  // Passkey creation shares one busy/error surface with the ceremony, which
+  // matches the daemon operation it drives underneath.
+  const passkeyBusy = passkey.createPending;
+  const passkeyError = passkey.createError?.message ?? '';
 
   // createPasswordWallet runs the classic password create path: it generates
   // a fresh seed and hands the recovery phrase to the caller to stage on the
@@ -110,38 +124,80 @@ export function OnboardingFlow({
     onWalletCreated(result.mnemonic ?? [], 'password');
   }
 
-  // createPasskeyWallet derives the seed and DB password from a new passkey.
+  // createPasskeyWallet derives the seed and DB password from a new passkey,
+  // so there is no password field.
   async function createPasskeyWallet() {
     let outcome;
     try {
-      outcome = await passkey.create(APP_NAME);
+      outcome = await passkey.create(passkeyName(walletName));
     } catch {
       // Surfaced via passkey.createError.
       return;
     }
+
     // Outside the try: a throwing AsyncStorage write in onWalletCreated must
     // not be swallowed by the passkey ceremony's own catch and silently skip
     // the backup screen.
     //
-    // The daemon returns a mnemonic whenever a new local wallet is created
-    // from the derived seed, which includes importing a passkey wallet from
-    // another device; unlocking a wallet that already exists on this device
-    // returns none, so backup is skipped only then. A null slice from the
-    // wire is coerced to an empty array so the length check never throws.
+    // The daemon returns a mnemonic when a new local wallet is created from
+    // the derived seed, including importing a passkey wallet from another
+    // device. Unlocking an existing wallet on this device returns none, so
+    // backup is skipped only then. A null slice from the wire is coerced to
+    // an empty array so the length check never throws.
     const words = outcome.result.mnemonic ?? [];
     onWalletCreated(words, 'passkey', outcome.credentialId);
   }
 
   // onCreate dispatches the create flow by the mode chosen on the create
-  // screen.
-  function onCreate({ password, mode }: { password: string; mode: WalletMode }) {
-    if (mode === 'passkey') {
+  // screen: a passkey wallet (seed + DB password derived from a passkey) or a
+  // password wallet (classic user-chosen password).
+  function onCreate({
+    password,
+    mode: createMode,
+  }: {
+    password: string;
+    mode: WalletMode;
+  }) {
+    if (createMode === 'passkey') {
       void createPasskeyWallet();
 
       return;
     }
 
     void createPasswordWallet(password);
+  }
+
+  // restorePasswordWallet runs the phrase restore. restoreWallet resolves as
+  // soon as the wallet is usable and runs any recovery scan in the background
+  // (tracked via useWalletRecovery), so awaiting it never pins the user on
+  // the restore form for the scan. The registry entry is stamped only after
+  // that resolve: a restore that fails before the wallet comes up must leave
+  // the entry unstamped, so the needsWallet fallback re-renders this restore
+  // form (with the snapshot's preserved failure) instead of treating the
+  // entry as an existing wallet whose data went missing.
+  async function restorePasswordWallet(args: {
+    password: string;
+    mnemonic: string[];
+    passphrase: string;
+    recoverState: boolean;
+    recoveryWindow?: number;
+  }) {
+    try {
+      await restore({
+        password: args.password,
+        mnemonic: args.mnemonic,
+        seedPassphrase: args.passphrase || undefined,
+        recoverState: args.recoverState,
+        recoveryWindow: args.recoveryWindow,
+      });
+    } catch {
+      // Surfaced via restoreError while this form is still mounted, and via
+      // restoreFailure once the phase falls back and remounts it.
+      return;
+    }
+    // Outside the try: a throwing storage write in onWalletRestored must not
+    // be swallowed by the restore's own catch.
+    onWalletRestored();
   }
 
   function onRestore(args: {
@@ -151,33 +207,49 @@ export function OnboardingFlow({
     recoverState: boolean;
     recoveryWindow?: number;
   }) {
-    // Fire-and-forget: restoreWallet lands us on the wallet as soon as it is
-    // ready and runs recovery in the background (tracked via
-    // useWalletRecovery), so a long indexer scan never pins the user on
-    // the restore form.
-    void restore({
-      password: args.password,
-      mnemonic: args.mnemonic,
-      seedPassphrase: args.passphrase || undefined,
-      recoverState: args.recoverState,
-      recoveryWindow: args.recoveryWindow,
-    }).catch(() => undefined);
-    onRestoreStarted();
+    void restorePasswordWallet(args);
   }
 
-  // onUnlockPasskey opens an existing passkey wallet, scoped to the stored
-  // credential when one is known.
-  async function onUnlockPasskey() {
-    let outcome;
+  // onRestorePasskey opens a wallet from a discoverable passkey that has
+  // never been registered on this entry. It asserts the passkey itself
+  // (rather than going through useWalletPasskey.open) so the registry can be
+  // checked for a duplicate between the ceremony and the daemon import: a
+  // passkey that already unlocks another entry should send the user back to
+  // that entry instead of quietly minting a second wallet for it.
+  async function onRestorePasskey() {
+    setRestorePasskeyError('');
+    let assertion;
     try {
-      outcome = await passkey.open(credentialId ?? undefined);
+      assertion = await passkeyCeremony.assertPasskeyPrf();
     } catch {
-      // Surfaced via passkey.openError.
+      setRestorePasskeyError('Passkey ceremony was cancelled or failed.');
+
+      return;
+    }
+
+    const existing = (await loadWallets()).find(
+      (w) => w.credentialId === assertion.credentialId,
+    );
+    if (existing) {
+      setRestorePasskeyError(
+        `That passkey already unlocks "${existing.name}". Open it from the wallet list instead.`,
+      );
+
+      return;
+    }
+
+    setRestorePasskeyPending(true);
+    try {
+      await engine.openWalletFromPasskey({ prfOutput: assertion.prfOutput });
+    } catch {
+      setRestorePasskeyError('Could not open a wallet from that passkey.');
+      setRestorePasskeyPending(false);
+
       return;
     }
     // Outside the try: a throwing AsyncStorage write in onWalletUnlocked
-    // must not be swallowed by the passkey ceremony's own catch.
-    onWalletUnlocked('passkey', outcome.credentialId);
+    // must not be swallowed by the daemon call's own catch.
+    onWalletUnlocked('passkey', assertion.credentialId);
   }
 
   // Passkey enrollment in flight: hold on a loading screen so the freshly
@@ -192,10 +264,9 @@ export function OnboardingFlow({
     );
   }
 
-  // Passkey unlock in flight (the lead-with-unlock affordance on this
-  // screen): hold on a loading screen behind the biometric prompt instead of
-  // leaving the form visible underneath it.
-  if (passkey.openPending) {
+  // Passkey restore in flight: hold on the same "unlocking" loading screen
+  // used elsewhere while the ceremony and daemon import run.
+  if (restorePasskeyPending) {
     return (
       <LoadingScreen
         network={network}
@@ -205,14 +276,21 @@ export function OnboardingFlow({
     );
   }
 
-  if (step === 'restore') {
+  if (mode === 'restore') {
     return (
       <RestoreWalletScreen
         network={network}
         onRestore={onRestore}
-        onBack={() => setStep('create')}
+        onBack={onBack}
         busy={onboardingBusy}
         error={onboardingError}
+        onRestorePasskey={
+          passkey.supported ? () => void onRestorePasskey() : undefined
+        }
+        passkeyBusy={restorePasskeyPending}
+        passkeyError={restorePasskeyError}
+        restoreFailure={restoreFailure}
+        onDismissRestoreFailure={acknowledgeRecovery}
       />
     );
   }
@@ -221,10 +299,8 @@ export function OnboardingFlow({
     <CreateWalletScreen
       network={network}
       passkeySupported={passkey.supported}
-      leadWithUnlock={leadWithUnlock}
       onCreate={onCreate}
-      onUnlockPasskey={() => void onUnlockPasskey()}
-      onRestore={() => setStep('restore')}
+      onBack={onBack}
       busy={onboardingBusy}
       error={onboardingError}
       passkeyBusy={passkeyBusy}

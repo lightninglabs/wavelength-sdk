@@ -12,8 +12,6 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Field } from "../../components/ui/Field";
 import { InlineError } from "../../components/ui/InlineError";
 import { GhostButton, PrimaryButton, TextLink } from "../../components/ui/Button";
-import { requestWipe } from "../../lib/wipeLocalData";
-import { readPasskeyCredentialId } from "../../lib/walletKind";
 import { LoadingScreen } from "./LoadingScreen";
 
 // UnlockScreen serves the `locked` phase: a wallet exists on this device and
@@ -25,19 +23,25 @@ import { LoadingScreen } from "./LoadingScreen";
 // never shown mid-biometric-prompt.
 export function UnlockScreen({
   network,
-  dataDir,
+  walletName,
   walletKind,
+  credentialId,
   onWalletUnlocked,
   onRecover,
+  onBack,
+  onRemove,
 }: {
   network: string;
-  dataDir: string;
+  walletName: string;
   walletKind: WalletKind | null;
+  credentialId: string | null;
   onWalletUnlocked: (kind: WalletKind, credentialId?: string) => void;
   onRecover: () => void;
+  onBack: () => void;
+  onRemove: () => void;
 }) {
   const [password, setPassword] = useState("");
-  const [confirmWipe, setConfirmWipe] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const { unlock, unlockPending, unlockError } = useWalletUnlock();
   const passkey = useWalletPasskey(webPasskeyCeremony);
   const anyBusy = unlockPending || passkey.openPending;
@@ -84,13 +88,13 @@ export function UnlockScreen({
     onWalletUnlocked("password");
   }
 
-  // onUnlockPasskey opens an existing passkey wallet, scoped to the stored
-  // credential id when one is known. The seed and DB password are re-derived
-  // from the passkey.
+  // onUnlockPasskey opens an existing passkey wallet, scoped to the known
+  // credential id when the registry has one on file. The seed and DB
+  // password are re-derived from the passkey.
   async function onUnlockPasskey() {
     let outcome;
     try {
-      outcome = await passkey.open(readPasskeyCredentialId(dataDir) ?? undefined);
+      outcome = await passkey.open(credentialId ?? undefined);
     } catch {
       // Surfaced via passkey.openError.
       return;
@@ -114,7 +118,11 @@ export function UnlockScreen({
 
   return (
     <AuthLayout network={network}>
-      <AuthHeader title="Unlock wallet" sub={sub} />
+      <div className="mb-2 text-sm">
+        <TextLink onClick={onBack}>Back to wallets</TextLink>
+      </div>
+
+      <AuthHeader title={walletName} sub={sub} />
 
       {showPasskey ? (
         <div className="mb-4 space-y-4">
@@ -180,22 +188,22 @@ export function UnlockScreen({
       <div className="mt-2 text-center text-xs">
         <button
           type="button"
-          onClick={() => setConfirmWipe(true)}
+          onClick={() => setConfirmRemove(true)}
           className="text-faint underline underline-offset-2 transition-colors
             hover:text-muted"
         >
-          Start over (clear all data)
+          Remove this wallet
         </button>
       </div>
 
       <ConfirmDialog
-        open={confirmWipe}
-        title="Clear wallet data?"
-        description="This permanently deletes the wallet and all data stored in this browser. You will need your recovery phrase or passkey to restore your wallet. This cannot be undone."
-        confirmLabel="Clear everything"
+        open={confirmRemove}
+        title="Remove this wallet?"
+        description="This removes the wallet from this list only. Its data stays in this browser's storage until you clear all data from the wallet list."
+        confirmLabel="Remove wallet"
         destructive
-        onConfirm={requestWipe}
-        onCancel={() => setConfirmWipe(false)}
+        onConfirm={onRemove}
+        onCancel={() => setConfirmRemove(false)}
       />
     </AuthLayout>
   );

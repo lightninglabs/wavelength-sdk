@@ -42,9 +42,9 @@ pnpm --filter web-wallet-demo dev
 ```
 
 Open the URL Vite prints (typically `http://localhost:5173`). The demo boots a
-**signet** wallet out of the box: the connect screen preselects signet, using
-the demo's own signet preset (`signetDefaults` in
-`src/lib/runtime-config.ts`), which mirrors the same public gateway URLs
+**signet** wallet out of the box: the create-wallet screen preselects signet,
+using the preset `endpointsForNetwork('signet')` returns in
+`src/lib/runtime-config.ts`, which mirrors the same public gateway URLs
 `defaultConfig('signet')` would produce. No local backend is required.
 
 Cross-origin isolation headers are configured in the demo's Vite config so
@@ -76,10 +76,10 @@ checkout, overridable with `WAVELENGTH_DIR`) and copies the full
 `RUNTIME_ASSET_FILES` set into `public/runtime/<RUNTIME_MANIFEST_VERSION>/`,
 the versioned path the demo's `runtimeBaseUrl` points at.
 
-**Testnet.** Select testnet on the connect screen to boot with its own
-testnet preset (`testnetDefaults` in `src/lib/runtime-config.ts`), which
-mirrors the same public gateway URLs `defaultConfig('testnet')` would
-produce. No local backend is needed.
+**Testnet.** Select testnet on the create-wallet screen to boot with the
+preset `endpointsForNetwork('testnet')` returns, which mirrors the same
+public gateway URLs `defaultConfig('testnet')` would produce. No local
+backend is needed.
 
 **Troubleshooting OPFS.** If wallet persistence fails in the browser, confirm
 COOP/COEP headers are present:

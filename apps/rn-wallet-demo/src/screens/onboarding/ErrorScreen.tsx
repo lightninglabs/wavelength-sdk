@@ -3,7 +3,7 @@ import { RefreshCw, TriangleAlert } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { WipeDataButton } from '../../components/WipeDataButton';
-import { PrimaryButton } from '../../components/ui/Button';
+import { PrimaryButton, TextLink } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -36,23 +36,32 @@ const makeStyles = (p: Palette) => ({
   retry: {
     marginTop: 20,
   },
+  back: {
+    alignItems: 'center' as const,
+    marginTop: 20,
+  },
 });
 
 // ErrorScreen serves the `error` phase: the runtime failed to initialise or
 // start. It surfaces the message and offers a retry, plus the wipe escape
 // hatch for when stored data (a stale database, say) is what keeps the
-// runtime from starting.
+// runtime from starting. onBack renders a "Back to wallets" link for when a
+// selected wallet is available to fall back to. RN has no multi-tab concept,
+// so unlike the web demo this stays the one generic variant: there is no
+// wallet_locked / runtime_lock_unavailable copy swap here.
 export function ErrorScreen({
   network,
   message,
   onRetry,
   onWipe,
+  onBack,
   busy,
 }: {
   network: string;
   message: string;
   onRetry: () => void;
   onWipe: () => void;
+  onBack: () => void;
   busy: boolean;
 }) {
   const { palette } = useTheme();
@@ -77,6 +86,9 @@ export function ErrorScreen({
           {busy ? 'Retrying…' : 'Try again'}
         </PrimaryButton>
         <WipeDataButton onWipe={onWipe} />
+      </View>
+      <View style={styles.back}>
+        <TextLink onPress={onBack}>Back to wallets</TextLink>
       </View>
     </AuthLayout>
   );

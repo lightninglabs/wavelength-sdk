@@ -1,20 +1,29 @@
 const { expect, test } = require("@playwright/test");
 
-// createReadyWallet walks a cold page to a ready wallet: configure the runtime,
-// start it, create a wallet, and acknowledge the recovery phrase.
-async function createReadyWallet(
-  page,
-  { baseURL, dataDir, swapDatabaseFileName, password },
-  testInfo,
-) {
-  await page.goto("/");
-  // The "Start runtime" button is the connect screen, which only renders once
-  // the WASM runtime has loaded (phase runtimeReady).
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
+// fillCreateForm fills the create-wallet screen: name, regtest network, and
+// the mock server's endpoints in the advanced section. Requires the page to
+// have been opened with ?regtest=1 so the regtest option is visible.
+async function fillCreateForm(page, baseURL, name) {
+  await page.getByLabel("Wallet name").fill(name);
+  await page.getByRole("button", { name: "regtest", exact: true }).click();
+  await page.getByRole("button", { name: "Advanced endpoints" }).click();
+  await page.getByLabel("Ark server address").fill(baseURL);
+  await page.getByLabel("Wallet Esplora URL").fill(baseURL);
+  await page.getByLabel("Swap server address").fill(baseURL);
+}
 
-  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+// createReadyWallet walks a cold page to a ready wallet: land on the
+// first-run create-wallet screen, submit it into onboarding, create the
+// wallet, and acknowledge the recovery phrase. Each test gets its own
+// Playwright browser context, so storage isolation across wallets no longer
+// needs a per-test data directory the way it did before wallets were
+// registry entries.
+async function createReadyWallet(page, { baseURL, name, password }, testInfo) {
+  await page.goto("/?regtest=1");
+  const cont = page.getByRole("button", { name: "Continue" });
+  await expect(cont).toBeVisible({ timeout: 30000 });
+  await fillCreateForm(page, baseURL, name);
+  await cont.click();
 
   const createWallet = page.getByRole("button", { name: "Create wallet" });
   await expect(createWallet).toBeVisible({ timeout: 60000 });
@@ -41,8 +50,7 @@ test("wallet create and address state persist with OPFS SQLite", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
   const consoleMessages = [];
   page.on("console", (message) => {
@@ -60,13 +68,7 @@ test("wallet create and address state persist with OPFS SQLite", async ({
     }
   });
 
-  await createReadyWallet(
-    page,
-    { baseURL, dataDir, swapDatabaseFileName, password },
-    testInfo,
-  );
-
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
+  await createReadyWallet(page, { baseURL, name, password }, testInfo);
 
   // The account chip carries the full identity pubkey and only renders inside
   // the authenticated app shell, so its presence confirms we reached the
@@ -116,15 +118,16 @@ test("wallet create and address state persist with OPFS SQLite", async ({
   await expect(page.getByText("Emergency exit")).toBeVisible();
   await expect(page.getByTestId("vtxo-picker")).toBeVisible();
 
-  // Reload and reopen the same data directory. Surviving the reload IS the
-  // OPFS-persistence assertion: a non-persistent (in-memory) VFS would lose the
-  // wallet, so the post-reload screen would offer "Create wallet" instead of
-  // "Unlock" and the expectations below would fail.
+  // Reload and reopen the same wallet from the returning-user list. Surviving
+  // the reload IS the OPFS-persistence assertion: a non-persistent
+  // (in-memory) VFS would lose the wallet, so the post-reload screen would
+  // offer "Create a wallet" instead of "Your wallets" and the expectations
+  // below would fail.
   await page.reload();
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-
-  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+  await page.getByRole("button", { name }).click();
 
   const unlock = page.getByRole("button", { name: "Unlock", exact: true });
   await expect(unlock).toBeVisible({ timeout: 60000 });
@@ -151,21 +154,22 @@ test("a second tab fails fast with a friendly locked message and can take over",
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-lock-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-lock-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
-  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await createReadyWallet(page, { baseURL, name, password });
   await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
 
   // A second tab of the same origin must fail the start fast on the Web Locks
   // pre-check and show the actionable multi-tab copy, never the raw SQLite
-  // trace the exclusive OPFS handles would otherwise produce.
+  // trace the exclusive OPFS handles would otherwise produce. The wallet is
+  // already registered, so the second tab lands on the returning-user list
+  // and opens the same entry by name.
   const second = await context.newPage();
   await second.goto("/");
-  const startRuntime = second.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-  await configureRuntime(second, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await expect(
+    second.getByRole("heading", { name: "Your wallets" }),
+  ).toBeVisible({ timeout: 30000 });
+  await second.getByRole("button", { name }).click();
 
   await expect(
     second.getByRole("heading", { name: "Wallet open in another tab" }),
@@ -174,7 +178,7 @@ test("a second tab fails fast with a friendly locked message and can take over",
     second.getByText("This wallet is already running in another tab"),
   ).toBeVisible();
   // The wipe escape hatch is hidden for this expected condition.
-  await expect(second.getByText("Clear wallet data")).toBeHidden();
+  await expect(second.getByText("Clear all data")).toBeHidden();
 
   await testInfo.attach("second-tab-locked", {
     body: await second.screenshot({ fullPage: true }),
@@ -203,18 +207,17 @@ test("stopping the runtime in one tab hands the wallet to another", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-handoff-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-handoff-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
-  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await createReadyWallet(page, { baseURL, name, password });
   await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
 
   const second = await context.newPage();
   await second.goto("/");
-  const startRuntime = second.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-  await configureRuntime(second, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await expect(
+    second.getByRole("heading", { name: "Your wallets" }),
+  ).toBeVisible({ timeout: 30000 });
+  await second.getByRole("button", { name }).click();
   await expect(
     second.getByRole("heading", { name: "Wallet open in another tab" }),
   ).toBeVisible({ timeout: 30000 });
@@ -227,7 +230,7 @@ test("stopping the runtime in one tab hands the wallet to another", async ({
   // home screen; the Settings screen adds a second, so stay off it here).
   await page.getByRole("button", { name: "Stop runtime" }).click();
   await expect(
-    page.getByRole("button", { name: "Start runtime" }),
+    page.getByRole("heading", { name: "Runtime stopped" }),
   ).toBeVisible({ timeout: 60000 });
 
   await second.getByRole("button", { name: "Try again" }).click();
@@ -239,8 +242,7 @@ test("a refused lock request shows a retry, not the wipe hatch", async ({
   page,
 }, testInfo) => {
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-lockfail-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-lockfail-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
   // Make the browser refuse the lock outright, which is a different condition
   // from another tab holding it: nothing is wrong with the wallet data, so the
@@ -250,17 +252,17 @@ test("a refused lock request shows a retry, not the wipe hatch", async ({
       Promise.reject(new DOMException("denied", "SecurityError"));
   });
 
-  await page.goto("/");
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
-  await configureRuntime(page, baseURL, dataDir, swapDatabaseFileName);
-  await startRuntime.click();
+  await page.goto("/?regtest=1");
+  const cont = page.getByRole("button", { name: "Continue" });
+  await expect(cont).toBeVisible({ timeout: 30000 });
+  await fillCreateForm(page, baseURL, name);
+  await cont.click();
 
   await expect(
     page.getByRole("heading", { name: "Could not start just now" }),
   ).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
-  await expect(page.getByText("Clear wallet data")).toBeHidden();
+  await expect(page.getByText("Clear all data")).toBeHidden();
 });
 
 // An invoice with an amount in its HRP, an amountless invoice, and an address.
@@ -275,10 +277,9 @@ test("send screen shows only the fields the destination needs", async ({
 }, testInfo) => {
   const password = "test-password";
   const baseURL = testInfo.project.use.baseURL;
-  const dataDir = `/wavewalletdk-smoke-send-${Date.now()}`;
-  const swapDatabaseFileName = `/wavewalletdk-swaps-send-${Date.now()}.db`;
+  const name = "Smoke Wallet";
 
-  await createReadyWallet(page, { baseURL, dataDir, swapDatabaseFileName, password });
+  await createReadyWallet(page, { baseURL, name, password });
 
   const accountChip = page.getByTestId("account-pubkey");
   await expect(accountChip).toBeVisible({ timeout: 60000 });
@@ -335,16 +336,214 @@ test("send screen shows only the fields the destination needs", async ({
   await expect(dest).toBeVisible();
 });
 
-async function configureRuntime(page, baseURL, dataDir, swapDatabaseFileName) {
+test("two wallets keep separate identities and can be switched between", async ({
+  page,
+}, testInfo) => {
+  const password = "test-password";
+  const baseURL = testInfo.project.use.baseURL;
+  const nameA = "Wallet A";
+  const nameB = "Wallet B";
+
+  await createReadyWallet(page, { baseURL, name: nameA, password }, testInfo);
+
+  const accountChip = page.getByTestId("account-pubkey");
+  await expect(accountChip).toBeVisible({ timeout: 60000 });
+  const pubkeyA = await accountChip.getAttribute("data-pubkey");
+
+  // Settings is the only path back to the wallet list once a wallet is
+  // running; "Switch wallet" stops the runtime and returns to it.
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Switch wallet" }).click();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+
+  // The create screen reached from the list is the same SPA route, so the
+  // ?regtest=1 query param carried from createReadyWallet's initial
+  // navigation is still in the URL and the regtest option stays available
+  // with no re-navigation needed.
+  await page.getByRole("button", { name: "Create new wallet" }).click();
+  const cont = page.getByRole("button", { name: "Continue" });
+  await expect(cont).toBeVisible({ timeout: 30000 });
+  await fillCreateForm(page, baseURL, nameB);
+  await cont.click();
+
+  const createWallet = page.getByRole("button", { name: "Create wallet" });
+  await expect(createWallet).toBeVisible({ timeout: 60000 });
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByLabel("Confirm password").fill(password);
+  await createWallet.click();
+
+  await expect(page.getByRole("heading", { name: "Recovery phrase" })).toBeVisible(
+    { timeout: 60000 },
+  );
+  await page.getByRole("button", { name: "I saved it" }).click();
+
+  await expect(accountChip).toBeVisible({ timeout: 60000 });
+  const pubkeyB = await accountChip.getAttribute("data-pubkey");
+  expect(pubkeyB).not.toBe(pubkeyA);
+
+  // Switch back to the list and confirm both wallets are registered as
+  // regtest entries.
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Switch wallet" }).click();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+
+  const rowA = page.getByRole("listitem").filter({ hasText: nameA });
+  const rowB = page.getByRole("listitem").filter({ hasText: nameB });
+  await expect(rowA).toBeVisible();
+  await expect(rowB).toBeVisible();
+  await expect(rowA.getByText("regtest")).toBeVisible();
+  await expect(rowB.getByText("regtest")).toBeVisible();
+
+  // Unlocking wallet A must yield its original identity, not wallet B's.
+  await page.getByRole("button", { name: nameA }).click();
+  const unlock = page.getByRole("button", { name: "Unlock", exact: true });
+  await expect(unlock).toBeVisible({ timeout: 60000 });
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await unlock.click();
+
+  await expect(accountChip).toBeVisible({ timeout: 60000 });
+  const reopenedPubkeyA = await accountChip.getAttribute("data-pubkey");
+  expect(reopenedPubkeyA).toBe(pubkeyA);
+});
+
+test("a legacy pre-registry wallet migrates and keeps its identity", async ({
+  page,
+}, testInfo) => {
+  const password = "test-password";
+  const baseURL = testInfo.project.use.baseURL;
+  const name = "Legacy Wallet";
+
+  await createReadyWallet(page, { baseURL, name, password }, testInfo);
+
+  const accountChip = page.getByTestId("account-pubkey");
+  await expect(accountChip).toBeVisible({ timeout: 60000 });
+  const identity = await accountChip.getAttribute("data-pubkey");
+
+  // Simulate a pre-registry install: drop the registry entry and leave only
+  // the single-wallet era's per-dataDir marker key behind, then reload so
+  // migrateLegacyEntries seeds a fresh legacy entry from it.
+  const dataDir = await page.evaluate(() => {
+    const [entry] = JSON.parse(localStorage.getItem("wavelength:wallets"));
+    localStorage.removeItem("wavelength:wallets");
+    localStorage.setItem("wavelength:wallet-kind:" + entry.dataDir, "password");
+
+    return entry.dataDir;
+  });
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+  // The legacy entry has no display name yet, so it is named after its
+  // dataDir.
+  await page.getByRole("button", { name: /wallets\// }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Choose network" }),
+  ).toBeVisible({ timeout: 30000 });
   await page.getByRole("button", { name: "regtest", exact: true }).click();
-  // Every endpoint field, including Ark server address and Wallet Esplora
-  // URL, lives inside the Advanced section, so expand it before filling them.
   await page.getByRole("button", { name: "Advanced endpoints" }).click();
-  // Mailbox traffic shares the Ark and swap server edges, so RuntimeConfig no
-  // longer exposes separate mailbox server fields.
   await page.getByLabel("Ark server address").fill(baseURL);
   await page.getByLabel("Wallet Esplora URL").fill(baseURL);
   await page.getByLabel("Swap server address").fill(baseURL);
-  await page.getByLabel("Data directory").fill(dataDir);
-  await page.getByLabel("Swap database file").fill(swapDatabaseFileName);
-}
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // On-disk data survived the registry reset, so the legacy entry unlocks
+  // rather than starting fresh onboarding.
+  const unlock = page.getByRole("button", { name: "Unlock", exact: true });
+  await expect(unlock).toBeVisible({ timeout: 60000 });
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await unlock.click();
+
+  await expect(accountChip).toBeVisible({ timeout: 60000 });
+  const migratedIdentity = await accountChip.getAttribute("data-pubkey");
+  expect(migratedIdentity).toBe(identity);
+
+  // The legacy marker key is consumed once migrated, and the chosen network
+  // is now permanently recorded on the entry.
+  const legacyKeyAfter = await page.evaluate(
+    (dir) => localStorage.getItem("wavelength:wallet-kind:" + dir),
+    dataDir,
+  );
+  expect(legacyKeyAfter).toBeNull();
+
+  const registeredNetwork = await page.evaluate((dir) => {
+    const entries = JSON.parse(localStorage.getItem("wavelength:wallets"));
+    const entry = entries.find((e) => e.dataDir === dir);
+
+    return entry ? entry.network : null;
+  }, dataDir);
+  expect(registeredNetwork).toBe("regtest");
+});
+
+test("removing a wallet restores first-run, and missing OPFS data offers to set up again", async ({
+  page,
+}, testInfo) => {
+  const password = "test-password";
+  const baseURL = testInfo.project.use.baseURL;
+
+  // Part one: create a wallet, remove it from the list, and confirm the
+  // first-run create screen renders again for the now-empty registry.
+  const nameRemoved = "Removable Wallet";
+  await createReadyWallet(page, { baseURL, name: nameRemoved, password }, testInfo);
+  await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Switch wallet" }).click();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+  await page.getByRole("button", { name: "Remove from list" }).click();
+  await page.getByRole("button", { name: "Remove wallet" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Create a wallet" }),
+  ).toBeVisible({ timeout: 30000 });
+
+  // Part two: create a second wallet, wipe its OPFS-backed data (inlining
+  // the clearOPFS loop from src/lib/wipeLocalData.ts, leaving the registry
+  // entry itself untouched), and reload.
+  const nameMissing = "Missing Data Wallet";
+  await createReadyWallet(page, { baseURL, name: nameMissing, password }, testInfo);
+  await expect(page.getByTestId("account-pubkey")).toBeVisible({ timeout: 60000 });
+
+  // The OPFS files stay open (and non-removable) while the SQLite worker
+  // holds them, exactly why wipeLocalData.ts defers its own clearOPFS call
+  // until after a reload has torn the worker down. A reload here (rather than
+  // Settings -> Switch wallet) guarantees the worker thread is gone, since
+  // App boots with no wallet selected and lands back on the list.
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Your wallets" })).toBeVisible(
+    { timeout: 30000 },
+  );
+
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    for await (const [entryName] of root.entries()) {
+      await root.removeEntry(entryName, { recursive: true });
+    }
+  });
+  await page.getByRole("button", { name: nameMissing }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Wallet data missing" }),
+  ).toBeVisible({ timeout: 60000 });
+  await page.getByRole("button", { name: "Set up again" }).click();
+
+  // "Set up again" promises the user their existing recovery phrase or
+  // passkey, so it must land on the restore screen (not create, which would
+  // mint a brand-new seed under the old wallet's name), with a way back to
+  // the wallet list.
+  await expect(
+    page.getByRole("heading", { name: "Restore wallet" }),
+  ).toBeVisible({ timeout: 30000 });
+  await expect(
+    page.getByRole("button", { name: "Restore wallet" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Back to wallets" }),
+  ).toBeVisible();
+});

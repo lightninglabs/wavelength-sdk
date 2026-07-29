@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { Fingerprint, KeyRound, ShieldCheck } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { GhostButton, PrimaryButton, TextLink } from '../../components/ui/Button';
+import { PrimaryButton, TextLink } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { InlineError } from '../../components/ui/InlineError';
 import {
@@ -34,29 +34,6 @@ const makeStyles = (p: Palette) => ({
   form: {
     gap: 16,
   },
-  hint: {
-    color: p.muted,
-    fontFamily: fonts.sans,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 8,
-  },
-  divider: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: 12,
-    marginVertical: 20,
-  },
-  dividerLine: {
-    backgroundColor: p.border,
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    color: p.faint,
-    fontFamily: fonts.sans,
-    fontSize: 12,
-  },
   keysNote: {
     alignItems: 'center' as const,
     flexDirection: 'row' as const,
@@ -67,53 +44,25 @@ const makeStyles = (p: Palette) => ({
     fontFamily: fonts.sans,
     fontSize: 12,
   },
-  footer: {
-    borderColor: p.border,
-    borderTopWidth: 1,
-    marginTop: 24,
-    paddingTop: 20,
-  },
-  footerRow: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: 4,
-    justifyContent: 'center' as const,
-  },
-  footerText: {
-    color: p.faint,
-    fontFamily: fonts.sans,
-    fontSize: 12,
-  },
   restoreFailure: {
     gap: 6,
-    marginBottom: 16,
+    marginTop: 20,
+  },
+  backRow: {
+    alignItems: 'center' as const,
+    marginTop: 20,
   },
 });
 
-// Divider renders the hairline "or" separator between auth affordances.
-function Divider({ label }: { label: string }) {
-  const styles = useThemedStyles(makeStyles);
-
-  return (
-    <View style={styles.divider}>
-      <View style={styles.dividerLine} />
-      <Text style={styles.dividerText}>{label}</Text>
-      <View style={styles.dividerLine} />
-    </View>
-  );
-}
-
-// CreateWalletScreen creates a fresh wallet (passkey or password) and offers
-// the "already have a wallet?" affordances (unlock with passkey, restore from
-// phrase). When leadWithUnlock is true the unlock affordance is promoted
-// above the create form.
+// CreateWalletScreen creates a fresh wallet (a passkey wallet or a password
+// wallet) for this registry entry. Restoring an existing wallet is a
+// separate entry point, chosen from the wallet list before the runtime
+// starts, so this screen only ever creates.
 export function CreateWalletScreen({
   network,
   passkeySupported,
-  leadWithUnlock,
   onCreate,
-  onUnlockPasskey,
-  onRestore,
+  onBack,
   busy,
   error,
   passkeyBusy,
@@ -123,10 +72,9 @@ export function CreateWalletScreen({
 }: {
   network: string;
   passkeySupported: boolean;
-  leadWithUnlock: boolean;
   onCreate: (args: { password: string; mode: WalletMode }) => void;
-  onUnlockPasskey: () => void;
-  onRestore: () => void;
+  /** Stops the runtime and returns to the wallet list. */
+  onBack: () => void;
   busy: boolean;
   error: string;
   passkeyBusy: boolean;
@@ -153,41 +101,12 @@ export function CreateWalletScreen({
   const anyBusy = busy || passkeyBusy;
   const canSubmit = passkeyCreate ? !anyBusy : !anyBusy && passwordOk;
 
-  const unlockButton = passkeySupported ? (
-    <GhostButton
-      icon={Fingerprint}
-      onPress={onUnlockPasskey}
-      disabled={anyBusy}
-      busy={passkeyBusy}
-    >
-      {passkeyBusy ? 'Waiting for passkey…' : 'Unlock with passkey'}
-    </GhostButton>
-  ) : null;
-
-  const unlockHint = (
-    <Text style={styles.hint}>
-      Opens a wallet you already created with this passkey on this or another
-      device. It does not make a new one.
-    </Text>
-  );
-
   return (
     <AuthLayout network={network}>
       <AuthHeader
         title="Create wallet"
         sub="Keys are generated and stored on this device."
       />
-
-      {leadWithUnlock && unlockButton ? (
-        <View style={styles.section}>
-          {unlockButton}
-          {unlockHint}
-          <View style={{ marginTop: 8 }}>
-            <InlineError message={passkeyError} />
-          </View>
-          <Divider label="or create a new wallet" />
-        </View>
-      ) : null}
 
       {passkeySupported ? (
         <View style={styles.section}>
@@ -238,6 +157,7 @@ export function CreateWalletScreen({
               : 'Create wallet'}
         </PrimaryButton>
         <InlineError message={error} />
+        <InlineError message={passkeyError} />
 
         <View style={styles.keysNote}>
           <ShieldCheck size={13} color={palette.good} />
@@ -247,28 +167,20 @@ export function CreateWalletScreen({
         </View>
       </View>
 
-      <View style={styles.footer}>
-        {!leadWithUnlock && unlockButton ? (
-          <View style={styles.section}>
-            <Divider label="already have a wallet?" />
-            {unlockButton}
-            {unlockHint}
-            <View style={{ marginTop: 8 }}>
-              <InlineError message={passkeyError} />
-            </View>
-          </View>
-        ) : null}
-        {restoreFailure ? (
-          <View style={styles.restoreFailure}>
-            <InlineError message={restoreFailure} />
-            <TextLink onPress={onDismissRestoreFailure}>Dismiss</TextLink>
-          </View>
-        ) : null}
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>No passkey on this device? </Text>
-          <TextLink onPress={onRestore}>Restore from recovery phrase</TextLink>
+      {restoreFailure ? (
+        <View style={styles.restoreFailure}>
+          <InlineError message={restoreFailure} />
+          <TextLink onPress={onDismissRestoreFailure}>Dismiss</TextLink>
         </View>
-      </View>
+      ) : null}
+
+      {/* Suppressed while a create is in flight so the runtime is never torn
+          down underneath a mid-flight daemon call. */}
+      {!anyBusy ? (
+        <View style={styles.backRow}>
+          <TextLink onPress={onBack}>Back to wallets</TextLink>
+        </View>
+      ) : null}
     </AuthLayout>
   );
 }

@@ -50,17 +50,17 @@ const makeStyles = (p: Palette) => ({
 });
 
 // StoppedScreen serves the `stopped` phase: the runtime was torn down and its
-// in-memory keys cleared. Starting again re-runs the connect flow. The last
-// known block height and version are self-served from the provider (the
-// engine keeps the most recent info around after a stop).
+// in-memory keys cleared. There is nothing more to do with this wallet in
+// this state, so the only action is back to the wallet list; opening it
+// again from there re-runs the unlock flow. The last known block height and
+// version are self-served from the provider (the engine keeps the most
+// recent info around after a stop).
 export function StoppedScreen({
   network,
-  onStart,
-  busy,
+  onBack,
 }: {
   network: string;
-  onStart: () => void;
-  busy: boolean;
+  onBack: () => void;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -76,7 +76,7 @@ export function StoppedScreen({
     <AuthLayout network={network}>
       <AuthHeader
         title="Runtime stopped"
-        sub={`The runtime was torn down. Start it again to reconnect to the ${network} servers.`}
+        sub={`The runtime was torn down. Open it again from the wallet list to reconnect to the ${network} servers.`}
       />
       <Card style={styles.card}>
         <View style={styles.row}>
@@ -90,8 +90,8 @@ export function StoppedScreen({
         </View>
       </Card>
       <View style={styles.start}>
-        <PrimaryButton icon={Power} onPress={onStart} disabled={busy} busy={busy}>
-          {busy ? 'Starting runtime…' : 'Start runtime'}
+        <PrimaryButton icon={Power} onPress={onBack}>
+          Back to wallet list
         </PrimaryButton>
       </View>
       <Text style={styles.hint}>

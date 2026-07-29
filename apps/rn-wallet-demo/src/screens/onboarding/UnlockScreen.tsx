@@ -59,11 +59,14 @@ const makeStyles = (p: Palette) => ({
     fontFamily: fonts.sans,
     fontSize: 12,
   },
-  wipeRow: {
+  backRow: {
+    marginBottom: 8,
+  },
+  removeRow: {
     alignItems: 'center' as const,
     marginTop: 8,
   },
-  wipeText: {
+  removeText: {
     color: p.faint,
     fontFamily: fonts.sans,
     fontSize: 12,
@@ -77,26 +80,32 @@ const makeStyles = (p: Palette) => ({
 // on PRF support, so it stays available even without a local marker. The
 // passkey ceremony is held behind a loading screen so a synced wallet is
 // never shown mid-biometric-prompt. credentialId (loaded by WalletApp) scopes
-// the assertion to a known credential when one is on record.
+// the assertion to a known credential when one is on record. walletName
+// titles the header and onBack returns to the wallet list, matching the web
+// demo now that a device can hold more than one wallet.
 export function UnlockScreen({
   network,
+  walletName,
   walletKind,
   credentialId,
   onWalletUnlocked,
   onRecover,
-  onWipe,
+  onBack,
+  onRemove,
 }: {
   network: string;
+  walletName: string;
   walletKind: WalletKind | null;
   credentialId: string | null;
   onWalletUnlocked: (kind: WalletKind, credentialId?: string) => void;
   onRecover: () => void;
-  onWipe: () => void;
+  onBack: () => void;
+  onRemove: () => void;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const [password, setPassword] = useState('');
-  const [confirmWipe, setConfirmWipe] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const { unlock, unlockPending, unlockError } = useWalletUnlock();
   const passkey = useWalletPasskey(passkeyCeremony);
   const anyBusy = unlockPending || passkey.openPending;
@@ -143,8 +152,9 @@ export function UnlockScreen({
     onWalletUnlocked('password');
   }
 
-  // onUnlockPasskey opens an existing passkey wallet, scoped to the stored
-  // credential when one is known.
+  // onUnlockPasskey opens an existing passkey wallet, scoped to the known
+  // credential id when the registry has one on file. The seed and DB
+  // password are re-derived from the passkey.
   async function onUnlockPasskey() {
     let outcome;
     try {
@@ -172,7 +182,11 @@ export function UnlockScreen({
 
   return (
     <AuthLayout network={network}>
-      <AuthHeader title="Unlock wallet" sub={sub} />
+      <View style={styles.backRow}>
+        <TextLink onPress={onBack}>Back to wallets</TextLink>
+      </View>
+
+      <AuthHeader title={walletName} sub={sub} />
 
       {showPasskey ? (
         <View style={styles.passkeyBlock}>
@@ -234,23 +248,23 @@ export function UnlockScreen({
         <TextLink onPress={onRecover}>Recover with phrase</TextLink>
       </View>
 
-      <View style={styles.wipeRow}>
-        <Pressable onPress={() => setConfirmWipe(true)} hitSlop={8}>
-          <Text style={styles.wipeText}>Start over (clear all data)</Text>
+      <View style={styles.removeRow}>
+        <Pressable onPress={() => setConfirmRemove(true)} hitSlop={8}>
+          <Text style={styles.removeText}>Remove this wallet</Text>
         </Pressable>
       </View>
 
       <ConfirmDialog
-        open={confirmWipe}
-        title="Clear wallet data?"
-        description="This permanently deletes the wallet and all data stored on this device. You will need your recovery phrase or passkey to restore your wallet. This cannot be undone."
-        confirmLabel="Clear everything"
+        open={confirmRemove}
+        title="Remove this wallet?"
+        description="This deletes this wallet's data from this device. You will need your recovery phrase or passkey to restore it. This cannot be undone."
+        confirmLabel="Remove wallet"
         destructive
         onConfirm={() => {
-          setConfirmWipe(false);
-          onWipe();
+          setConfirmRemove(false);
+          onRemove();
         }}
-        onCancel={() => setConfirmWipe(false)}
+        onCancel={() => setConfirmRemove(false)}
       />
     </AuthLayout>
   );

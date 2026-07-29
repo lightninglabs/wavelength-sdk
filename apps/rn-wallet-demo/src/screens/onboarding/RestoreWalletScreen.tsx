@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { ClipboardPaste, KeyRound } from 'lucide-react-native';
+import { ClipboardPaste, Fingerprint, KeyRound } from 'lucide-react-native';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { GhostButton, PrimaryButton } from '../../components/ui/Button';
+import { GhostButton, PrimaryButton, TextLink } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { InlineError } from '../../components/ui/InlineError';
 import { Segmented } from '../../components/ui/Segmented';
@@ -36,6 +36,33 @@ function parseMnemonicPaste(text: string): string[] {
 const makeStyles = (p: Palette) => ({
   form: {
     gap: 16,
+  },
+  passkeySection: {
+    marginBottom: 8,
+  },
+  divider: {
+    alignItems: 'center' as const,
+    flexDirection: 'row' as const,
+    gap: 12,
+    marginVertical: 20,
+  },
+  dividerLine: {
+    backgroundColor: p.border,
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    color: p.faint,
+    fontFamily: fonts.sans,
+    fontSize: 12,
+  },
+  restoreFailure: {
+    gap: 6,
+    marginTop: 20,
+  },
+  backRow: {
+    alignItems: 'center' as const,
+    marginTop: 20,
   },
   phraseHead: {
     alignItems: 'center' as const,
@@ -100,15 +127,37 @@ const makeStyles = (p: Palette) => ({
   },
 });
 
+// Divider renders the hairline "or" separator between the passkey restore
+// affordance and the recovery phrase form.
+function Divider({ label }: { label: string }) {
+  const styles = useThemedStyles(makeStyles);
+
+  return (
+    <View style={styles.divider}>
+      <View style={styles.dividerLine} />
+      <Text style={styles.dividerText}>{label}</Text>
+      <View style={styles.dividerLine} />
+    </View>
+  );
+}
+
 // RestoreWalletScreen rebuilds a wallet on-device from an existing recovery
 // phrase. Restores are always password wallets, so it collects a new local
-// password alongside the phrase.
+// password alongside the phrase. When onRestorePasskey is provided and this
+// device supports passkey PRF, it also offers a passkey-based alternative
+// above the phrase form: rather than typing the recovery phrase, the wallet
+// is derived straight from an existing passkey.
 export function RestoreWalletScreen({
   network,
   onRestore,
   onBack,
   busy,
   error,
+  onRestorePasskey,
+  passkeyBusy,
+  passkeyError,
+  restoreFailure,
+  onDismissRestoreFailure,
 }: {
   network: string;
   onRestore: (args: {
@@ -118,9 +167,18 @@ export function RestoreWalletScreen({
     recoverState: boolean;
     recoveryWindow?: number;
   }) => void;
+  /** Stops the runtime and returns to the wallet list. */
   onBack: () => void;
   busy: boolean;
   error: string;
+  /** Opens a wallet from a passkey the user already registered elsewhere. */
+  onRestorePasskey?: () => void;
+  passkeyBusy?: boolean;
+  passkeyError?: string;
+  /** A restore that failed before the wallet came up, or empty when none. */
+  restoreFailure?: string;
+  /** Dismisses the restore-failure message. */
+  onDismissRestoreFailure?: () => void;
 }) {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -175,6 +233,24 @@ export function RestoreWalletScreen({
         title="Restore wallet"
         sub="Enter your recovery phrase to rebuild this wallet on-device."
       />
+
+      {onRestorePasskey ? (
+        <View style={styles.passkeySection}>
+          <GhostButton
+            icon={Fingerprint}
+            onPress={onRestorePasskey}
+            disabled={busy || passkeyBusy}
+            busy={passkeyBusy}
+          >
+            {passkeyBusy ? 'Waiting for passkey…' : 'Restore from passkey'}
+          </GhostButton>
+          <View style={{ marginTop: 8 }}>
+            <InlineError message={passkeyError ?? ''} />
+          </View>
+          <Divider label="or use your recovery phrase" />
+        </View>
+      ) : null}
+
       <View style={styles.form}>
         <Field
           label="New password"
@@ -297,10 +373,22 @@ export function RestoreWalletScreen({
           {busy ? 'Restoring wallet…' : 'Restore wallet'}
         </PrimaryButton>
         <InlineError message={error} />
-        <GhostButton onPress={onBack} disabled={busy}>
-          Back
-        </GhostButton>
       </View>
+
+      {restoreFailure ? (
+        <View style={styles.restoreFailure}>
+          <InlineError message={restoreFailure} />
+          <TextLink onPress={onDismissRestoreFailure}>Dismiss</TextLink>
+        </View>
+      ) : null}
+
+      {/* Suppressed while a restore or passkey ceremony is in flight so the
+          runtime is never torn down underneath a mid-flight daemon call. */}
+      {!busy && !passkeyBusy ? (
+        <View style={styles.backRow}>
+          <TextLink onPress={onBack}>Back to wallets</TextLink>
+        </View>
+      ) : null}
     </AuthLayout>
   );
 }

@@ -1,87 +1,48 @@
 import { View } from 'react-native';
-import { DEBUG_LEVELS } from '@lightninglabs/wavelength-react-native';
-import { Field } from './ui/Field';
-import { Select } from './ui/Select';
-import { ToggleRow } from './ui/ToggleRow';
-import { RuntimeFieldSetter, RuntimeForm } from '../lib/runtime-config';
+import { SummaryRow } from './ui/SummaryRow';
+import { WalletEndpoints } from '../lib/runtime-config';
 
-// GatewayFields renders the runtime gateway endpoints and security toggles
-// bound to a RuntimeForm. `disabled` makes them display-only (the Settings
-// advanced section). The data directory is platform-resolved, so it is always
-// display-only.
+// GatewayFields is a read-only display of a wallet's endpoint configuration,
+// used by the Settings advanced section. Endpoints are fixed at wallet
+// creation and never edited afterward, so this is always display-only. A
+// legacy entry whose network was chosen this session but not yet persisted
+// has no endpoints yet; every value falls back to a placeholder rather than
+// crashing on the missing fields.
 export function GatewayFields({
-  form,
-  onField,
-  disabled = false,
+  endpoints,
+  dataDir,
 }: {
-  form: RuntimeForm;
-  onField: RuntimeFieldSetter;
-  disabled?: boolean;
+  endpoints: WalletEndpoints | null;
+  dataDir: string;
 }) {
+  const value = (v: string | undefined) => (v ? v : 'Not set');
+
   return (
-    <View style={{ gap: 16 }}>
-      <Field
+    <View style={{ gap: 10 }}>
+      <SummaryRow
         label="Ark server address"
-        value={form.arkServerAddress}
-        onChange={(v) => onField('arkServerAddress', v)}
+        value={value(endpoints?.arkServerAddress)}
         mono
-        disabled={disabled}
       />
-      <Field
+      <SummaryRow
         label="Wallet Esplora URL"
-        value={form.walletEsploraUrl}
-        onChange={(v) => onField('walletEsploraUrl', v)}
+        value={value(endpoints?.walletEsploraUrl)}
         mono
-        disabled={disabled}
       />
-      <Field
+      <SummaryRow
         label="Swap server address"
-        value={form.swapServerAddress}
-        onChange={(v) => onField('swapServerAddress', v)}
+        value={value(endpoints?.swapServerAddress)}
         mono
-        disabled={disabled}
       />
-      <Field
-        label="Data directory"
-        value={form.dataDir}
-        onChange={(v) => onField('dataDir', v)}
-        mono
-        disabled
+      <SummaryRow label="Data directory" value={value(dataDir)} mono />
+      <SummaryRow label="Debug level" value={value(endpoints?.debugLevel)} mono />
+      <SummaryRow
+        label="Allow insecure transport"
+        value={endpoints ? (endpoints.arkServerInsecure ? 'Yes' : 'No') : 'Not set'}
       />
-      <Field
-        label="Swap database file"
-        value={form.swapDatabaseFileName}
-        onChange={(v) => onField('swapDatabaseFileName', v)}
-        mono
-        disabled={disabled}
-      />
-      <Select
-        label="Debug level"
-        value={form.debugLevel}
-        onChange={(v) => onField('debugLevel', v as RuntimeForm['debugLevel'])}
-        options={DEBUG_LEVELS}
-        disabled={disabled}
-      />
-      <ToggleRow
-        title="Allow insecure transport"
-        subtitle="Permit non-TLS Ark server connections"
-        on={form.arkServerInsecure}
-        onChange={(v) => onField('arkServerInsecure', v)}
-        disabled={disabled}
-      />
-      <ToggleRow
-        title="Allow insecure swap transport"
-        subtitle="Permit non-TLS swap server connections"
-        on={form.swapServerInsecure}
-        onChange={(v) => onField('swapServerInsecure', v)}
-        disabled={disabled}
-      />
-      <ToggleRow
-        title="Disable swaps"
-        subtitle="Run without the submarine-swap server"
-        on={form.disableSwaps}
-        onChange={(v) => onField('disableSwaps', v)}
-        disabled={disabled}
+      <SummaryRow
+        label="Allow insecure swap transport"
+        value={endpoints ? (endpoints.swapServerInsecure ? 'Yes' : 'No') : 'Not set'}
       />
     </View>
   );
