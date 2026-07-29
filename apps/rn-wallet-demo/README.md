@@ -49,12 +49,17 @@ cd apps/rn-wallet-demo
 
 npx expo start --dev-client --clear     # Metro (keep running)
 
-npx expo run:android                    # Android emulator or device
-LANG=en_US.UTF-8 npx expo run:ios       # iOS simulator (locale needed by pod install)
+pnpm run android                        # Android emulator or device
+pnpm run ios                            # iOS simulator
 ```
 
-The first `expo run:*` generates the native `android/` and `ios/` projects
-(gitignored) and takes a while; later runs are incremental.
+The first run generates the native `android/` and `ios/` projects (gitignored)
+and takes a while; later runs are incremental. The `ios` script sets a UTF-8
+locale, which `pod install` needs.
+
+The iOS build needs no code signing, so it works on a machine that has never
+set up an Apple developer account. Enabling passkeys is the one exception; see
+[Passkeys](#passkeys) below.
 
 ## Networks
 
@@ -96,9 +101,22 @@ local build uses), so treat wallets created with it as throwaways.
   account and a device screen lock (PIN) set. The association file must be
   live at `https://wavelength.lightning.engineering/.well-known/assetlinks.json`
   when the ceremony runs.
-- **iOS:** not yet functional end to end; the entitlement is configured, but
-  the server-side association awaits an Apple Developer Program Team ID. The
-  buttons stay hidden below iOS 18 either way.
+- **iOS:** not yet functional end to end; the server-side association awaits an
+  Apple Developer Program Team ID. The buttons stay hidden below iOS 18 either
+  way. The entitlement passkeys need is opt-in:
+
+  ```sh
+  npx expo prebuild --clean -p ios   # only when switching the flag
+  pnpm run ios:passkeys
+  ```
+
+  iOS passkeys require an associated-domains entitlement, and `expo run:ios`
+  refuses to build any target that declares one unless the machine has an Apple
+  development certificate, simulator builds included. Leaving it off by default
+  keeps the ordinary build free of that requirement. `app.config.ts` adds the
+  entitlement when `WAVELENGTH_IOS_PASSKEYS=1`, which the `ios:passkeys` script
+  sets. Entitlements are baked into the generated `ios/` project, so switching
+  the flag takes a `prebuild --clean` to take effect.
 
 ## Troubleshooting
 
