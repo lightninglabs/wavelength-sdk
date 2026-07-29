@@ -64,5 +64,5 @@ verb-prefixed state, for example `useWalletSend()` returns
 `{ send, sendPending, sendError, sendData, resetSend }`. `useWalletEngine()` is
 the escape hatch for anything the hooks don't cover.
 
-See the [documentation](https://wavelength.lightning.engineering) for the full
-hook reference.
+See the [hook reference](https://wavelength.lightning.engineering/reference/wavelength-react/)
+in the documentation for the full surface.

@@ -75,8 +75,8 @@ preset is a starting point, not a limit.
 
 ## App structure
 
-The app mirrors the web demo (`apps/web-wallet-demo`) screen for screen so
-the two SDK surfaces can be compared directly:
+The app mirrors the web demo ([`apps/web-wallet-demo`](../web-wallet-demo))
+screen for screen so the two SDK surfaces can be compared directly:
 
 - `src/WalletApp.tsx` routes by wallet lifecycle phase (connect, create or
   restore, backup, unlock, syncing, stopped, error) and hosts the
@@ -116,38 +116,6 @@ local build uses), so treat wallets created with it as throwaways.
   entitlement when `WAVELENGTH_IOS_PASSKEYS=1`, which the `ios:passkeys` script
   sets. Entitlements are baked into the generated `ios/` project, so switching
   the flag takes a `prebuild --clean` to take effect.
-
-## Multi-wallet manual verification
-
-There is no hermetic smoke test for this app (see the repo root
-`CLAUDE.md`), so the wallet-list and per-wallet flows are checked by hand
-against a regtest stack. Cover at least:
-
-- [ ] Create a passkey wallet and a password wallet, each with a distinct
-      name, and confirm both land back on the wallet list.
-- [ ] The list renders each wallet's kind chip, an "unfinished" badge for an
-      entry that never finished setup, and orders entries by most recently
-      used.
-- [ ] Switch wallets from Settings and confirm the switch returns to the
-      list with the other entry unlockable.
-- [ ] Delete a single wallet (long-press its row, then confirm) and verify
-      its data is actually gone: recreate a wallet with the same name and
-      confirm it starts fresh rather than picking up the deleted entry's
-      state.
-- [ ] Legacy migration: set the old flat `wavelength.walletKind` and
-      `wavelength.passkeyCredentialId` AsyncStorage keys directly (a dev
-      build makes this easy), relaunch, and confirm the migrated entry shows
-      the one-time network picker before it can start.
-- [ ] The regtest network preset is reachable only through the long-press
-      gate on the network picker, matching the web demo's dev-only
-      affordance.
-- [ ] Restoring from a passkey that already unlocks another entry on this
-      device short-circuits to that existing entry instead of minting a
-      duplicate. Android only: iOS passkeys remain experimental (see
-      [Passkeys](#passkeys)).
-- [ ] If the running app shows UI that does not match the code you just
-      changed, restart Metro with `--clear` (see Troubleshooting below)
-      before chasing the symptom further.
 
 ## Troubleshooting
 

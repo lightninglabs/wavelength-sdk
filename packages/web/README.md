@@ -48,6 +48,7 @@ await client.start(defaultConfig("signet"));
 
 The wallet runtime ships as a set of files (`RUNTIME_ASSET_FILES`) that you host
 yourself and point `runtimeBaseUrl` at. Obtain the set either from the
-`wavelength` release assets or by building it from a `wavelength` checkout; see
-the [documentation](https://wavelength.lightning.engineering) for the exact
-steps.
+[wavelength release assets](https://github.com/lightninglabs/wavelength/releases)
+or by building it from a `wavelength` checkout; see
+[Hosting runtime assets](https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets/)
+for the exact steps.
