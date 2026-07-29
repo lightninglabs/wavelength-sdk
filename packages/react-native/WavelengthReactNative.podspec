@@ -14,7 +14,9 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,mm,swift}"
   s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
 
-  # The gomobile-built daemon; staged by scripts/fetch-bindings.sh (gitignored).
+  # The gomobile-built daemon. Not shipped in the npm package and gitignored
+  # here, so it must be staged before `pod install`; the package README has the
+  # steps, and a wavelength-sdk checkout can run scripts/fetch-bindings.sh.
   s.vendored_frameworks = "ios/Wavewalletdk.xcframework"
 
   # The Go runtime's DNS resolver links against libresolv (res_9_* symbols).
