@@ -26,7 +26,12 @@ docs/superpowers/
 .claude/launch.json
 
 # Staged gomobile bindings and native build output for the RN transport;
-# rebuilt from wavelength by packages/react-native/scripts/fetch-bindings.sh.
+# staged by packages/react-native/scripts/fetch-bindings.sh (downloaded from
+# the pinned wavelength release) or bindings-local.sh (built from a checkout).
 packages/react-native/android/libs/
 packages/react-native/ios/Wavewalletdk.xcframework/
 packages/react-native/android/build/
+# fetch-bindings.sh downloads into a temp directory beside the staged output so
+# the final move is a rename rather than a copy of several hundred megabytes. A
+# run killed before its cleanup trap fires leaves that directory behind.
+packages/react-native/.fetch-bindings-*/

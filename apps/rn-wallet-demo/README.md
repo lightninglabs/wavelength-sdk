@@ -17,9 +17,9 @@ This app is a development harness, not a published product. It runs as an Expo
 - **Android:** the Android SDK and NDK, a JDK (17+), and a running emulator or
   a connected device.
 - **iOS:** macOS with Xcode and an installed iOS simulator runtime.
-- **Wallet runtime binaries:** built from a daemon source checkout by
-  `packages/react-native/scripts/fetch-bindings.sh` (they are gitignored, not
-  committed). See below.
+- **Wallet runtime binaries:** downloaded from the paired wavelength release
+  by `packages/react-native/scripts/fetch-bindings.sh` (they are gitignored,
+  not committed). See below.
 - For the regtest flow: the local regtest stack running (the wallet expects
   the operator gRPC on `:7070`, Esplora on `:8501`, and the swap server gRPC
   on `:10030`).
@@ -29,12 +29,11 @@ This app is a development harness, not a published product. It runs as an Expo
 From the repository root:
 
 ```sh
-# 1. Build and stage the native wallet runtime for both platforms. Point
-#    WAVELENGTH_DIR at your daemon source checkout. The first build compiles the
-#    daemon for every ABI and takes several minutes; rerun it whenever the
-#    paired daemon revision changes.
-WAVELENGTH_DIR=/path/to/daemon-checkout \
-  pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
+# 1. Download and stage the native wallet runtime for both platforms from the
+#    paired wavelength release; rerun it whenever the paired daemon revision
+#    changes. To build from a local daemon checkout instead (for an unreleased
+#    daemon revision), use `run bindings:local` with WAVELENGTH_DIR set.
+pnpm --filter @lightninglabs/wavelength-react-native run bindings:fetch
 
 # 2. Install and build the workspace.
 pnpm install && pnpm build

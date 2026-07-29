@@ -27,7 +27,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test",
-    "fetch-bindings": "bash scripts/fetch-bindings.sh"
+    "bindings:fetch": "bash scripts/fetch-bindings.sh",
+    "bindings:local": "bash scripts/bindings-local.sh"
   },
   "codegenConfig": {
     "name": "WavelengthSpec",

@@ -1,9 +1,10 @@
 // Prints RUNTIME_MANIFEST_VERSION, the pinned daemon version from
 // packages/core/src/version.ts, for build tooling that cannot import
-// TypeScript: the demo's fetch-runtime-assets.sh and wasm-local.sh, the
-// deploy-pages workflow, and ci.yml's runtime-pin job. Plain JS on purpose so
-// it runs on any Node without type stripping. The value is parsed from the
-// source text, so the const must stay a single-quoted string literal; its
+// TypeScript: the demo's fetch-runtime-assets.sh and wasm-local.sh, the RN
+// transport's fetch-bindings.sh, the deploy-pages workflow, ci.yml's
+// runtime-pin job, and release.yml's pin-matches-tag check. Plain JS on
+// purpose so it runs on any Node without type stripping. The value is parsed
+// from the source text, so the const must stay a single-quoted string literal; its
 // TSDoc says so.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

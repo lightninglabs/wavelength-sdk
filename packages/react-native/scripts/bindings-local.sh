@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Build the wavewalletdk gomobile bindings from a local wavelength checkout and
+# stage them into this package: android/libs/Wavewalletdk.aar and
+# ios/Wavewalletdk.xcframework. Both are gitignored. This is the local-build
+# alternative to fetch-bindings.sh for working against an unreleased daemon
+# revision; when the paired daemon version is a published release, prefer
+# fetch-bindings.sh, which downloads the prebuilt binaries instead.
+#
+# Usage: bindings-local.sh [android|ios|all]   (default: all)
+# Env:   WAVELENGTH_DIR  path to the wavelength checkout
+#                    (default: sibling of the repo root, ../wavelength)
+#
+# Android needs the Android SDK + NDK and a JDK (17+); iOS needs macOS with
+# Xcode. Both need Go and gomobile (wavelength's gen_bindings.sh checks).
+set -euo pipefail
+
+PKG="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$PKG/../.." && pwd)"
+WAVELENGTH="${WAVELENGTH_DIR:-$ROOT/../wavelength}"
+TARGET="${1:-all}"
+
+if [[ ! -d "$WAVELENGTH" ]]; then
+  echo "wavelength checkout not found at $WAVELENGTH; set WAVELENGTH_DIR" >&2
+  exit 1
+fi
+
+case "$TARGET" in
+  android|ios|all) ;;
+  *) echo "usage: bindings-local.sh [android|ios|all]" >&2; exit 1 ;;
+esac
+
+# Build first so a failed build leaves previously staged artifacts intact.
+make -C "$WAVELENGTH" mobile target="$TARGET"
+
+BUILD="$WAVELENGTH/sdk/wavewalletdk/mobile/build"
+
+if [[ "$TARGET" == "android" || "$TARGET" == "all" ]]; then
+  mkdir -p "$PKG/android/libs"
+  rm -f "$PKG/android/libs/Wavewalletdk.aar"
+  cp "$BUILD/android/Wavewalletdk.aar" "$PKG/android/libs/"
+  echo "Staged android/libs/Wavewalletdk.aar"
+fi
+
+if [[ "$TARGET" == "ios" || "$TARGET" == "all" ]]; then
+  mkdir -p "$PKG/ios"
+  rm -rf "$PKG/ios/Wavewalletdk.xcframework"
+  cp -R "$BUILD/ios/Wavewalletdk.xcframework" "$PKG/ios/"
+  # gomobile's generated headers use the ObjC modules syntax (@import), which
+  # clang rejects while compiling the Objective-C++ turbo module glue. Rewrite
+  # it to a classic #import so consumers need no special module flags.
+  find "$PKG/ios/Wavewalletdk.xcframework" -name '*.h' \
+    -exec sed -i '' 's|@import Foundation;|#import <Foundation/Foundation.h>|' {} +
+  echo "Staged ios/Wavewalletdk.xcframework"
+fi
