@@ -590,13 +590,8 @@ export function WalletApp() {
     return (
       <OnboardingFlow
         network={network}
-        // mode, walletName and onBack are not yet part of OnboardingFlow's
-        // props (Task 4 adds them); passed here to match the target shape,
-        // so tsc flags this call site until that lands.
         mode={onboardingMode}
         walletName={activeEntry?.name ?? 'My Wallet'}
-        walletKind={activeEntry?.walletKind ?? null}
-        credentialId={activeEntry?.credentialId ?? null}
         onWalletCreated={onWalletCreated}
         onWalletRestored={onWalletRestored}
         onWalletUnlocked={onWalletUnlocked}
