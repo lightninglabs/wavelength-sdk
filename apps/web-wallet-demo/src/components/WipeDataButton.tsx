@@ -19,13 +19,13 @@ export function WipeDataButton() {
         className="text-xs text-faint underline underline-offset-2
           transition-colors hover:text-muted"
       >
-        Clear wallet data
+        Clear all data
       </button>
 
       <ConfirmDialog
         open={confirmWipe}
-        title="Clear wallet data?"
-        description="This permanently deletes the wallet and all data stored in this browser. You can only get it back with your recovery phrase or passkey. This cannot be undone."
+        title="Clear all data?"
+        description="This permanently deletes every wallet and all data stored in this browser. You can only get them back with a recovery phrase or passkey. This cannot be undone."
         confirmLabel="Clear everything"
         destructive
         onConfirm={requestWipe}
