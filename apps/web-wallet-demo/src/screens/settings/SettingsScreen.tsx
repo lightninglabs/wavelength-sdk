@@ -1,12 +1,12 @@
 import { ReactNode, useState } from "react";
 import {
+  ArrowLeftRight,
   ChevronDown,
   ChevronRight,
   Layers,
   LogOut,
   type LucideIcon,
   Monitor,
-  Power,
   Server,
   Settings as SettingsIcon,
   ShieldCheck,
@@ -14,11 +14,7 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import {
-  WalletKind,
-  useWallet,
-  useWalletInfo,
-} from "@lightninglabs/wavelength-react";
+import { useWallet, useWalletInfo } from "@lightninglabs/wavelength-react";
 import { GatewayFields } from "../../components/GatewayFields";
 import { PageHead } from "../../components/layout/PageHead";
 import { AppTab } from "../../components/layout/nav";
@@ -31,8 +27,7 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { cn } from "../../lib/cn";
 import { formatSats, shortKey } from "../../lib/format";
 import { statusLabel } from "../../lib/phase";
-import { requestWipe } from "../../lib/wipeLocalData";
-import { RuntimeFieldSetter, RuntimeForm } from "../../lib/runtime-config";
+import { WalletEntry } from "../../lib/walletRegistry";
 import { useTheme } from "../../theme/ThemeProvider";
 
 // TwoCol pairs two compact sections within one band, split by a hairline column
@@ -46,20 +41,28 @@ function TwoCol({ left, right }: { left: ReactNode; right: ReactNode }) {
   );
 }
 
-// SettingsScreen surfaces identity, appearance, runtime status, wallet-type
-// security, advanced gateway configuration, build version and the runtime stop
-// control, consolidated into full-bleed Zones bands.
+// createdLabel renders a wallet entry's creation timestamp as a short date.
+function createdLabel(ms: number): string {
+  return new Date(ms).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// SettingsScreen surfaces this wallet's identity, runtime status, appearance,
+// wallet-type security, advanced gateway configuration, build version and
+// the wallet-management actions (switch, delete), consolidated into
+// full-bleed Zones bands.
 export function SettingsScreen({
-  form,
-  onField,
-  walletKind,
-  onStop,
+  entry,
+  onSwitchWallet,
+  onDeleteWallet,
   onNavigate,
 }: {
-  form: RuntimeForm;
-  onField: RuntimeFieldSetter;
-  walletKind: WalletKind | null;
-  onStop: () => void;
+  entry: WalletEntry;
+  onSwitchWallet: () => void;
+  onDeleteWallet: () => void;
   onNavigate: (tab: AppTab) => void;
 }) {
   const { phase } = useWallet();
@@ -67,7 +70,7 @@ export function SettingsScreen({
   const phaseLabel = statusLabel(phase);
   const { theme, setTheme } = useTheme();
   const [advanced, setAdvanced] = useState(false);
-  const [confirmWipe, setConfirmWipe] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const identity = info?.identityPubKey || "";
 
   // A row's `tone` colors its stat icon with the accent matching the stat's
@@ -111,7 +114,44 @@ export function SettingsScreen({
       />
 
       <Band>
-        <Label accent="violet" rule>Runtime</Label>
+        <Label accent="violet" rule>This wallet</Label>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center
+                border border-border bg-well text-muted"
+            >
+              <Wallet size={17} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-fg">{entry.name}</span>
+                <span
+                  className="border border-border px-1.5 py-0.5 text-[10px]
+                    uppercase tracking-wide text-muted"
+                >
+                  {entry.network ?? "unknown"}
+                </span>
+              </div>
+              <div className="mt-0.5 text-xs text-muted">
+                Created {createdLabel(entry.createdAt)}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onSwitchWallet}
+            className="inline-flex items-center justify-center gap-2 border
+              border-border bg-surface-alt px-4 py-2.5 text-sm font-semibold
+              text-fg transition-colors hover:border-border-strong"
+          >
+            <ArrowLeftRight size={16} /> Switch wallet
+          </button>
+        </div>
+      </Band>
+
+      <Band tinted>
+        <Label accent="teal" rule>Runtime</Label>
         <div className="mt-4 flex flex-wrap divide-border sm:divide-x">
           {runtime.map((r) => (
             <div key={r.label} className="flex-1 px-0 sm:px-5 sm:first:pl-0">
@@ -135,7 +175,7 @@ export function SettingsScreen({
         </div>
       </Band>
 
-      <Band tinted>
+      <Band>
         <TwoCol
           left={
             <>
@@ -160,7 +200,7 @@ export function SettingsScreen({
         />
       </Band>
 
-      <Band>
+      <Band tinted>
         <TwoCol
           left={
             <>
@@ -169,9 +209,9 @@ export function SettingsScreen({
                 <SummaryRow
                   label="Wallet type"
                   value={
-                    walletKind === "passkey"
+                    entry.walletKind === "passkey"
                       ? "Passkey"
-                      : walletKind === "password"
+                      : entry.walletKind === "password"
                         ? "Password"
                         : "Unknown"
                   }
@@ -202,7 +242,7 @@ export function SettingsScreen({
         />
       </Band>
 
-      <Band tinted>
+      <Band>
         <TwoCol
           left={
             <>
@@ -253,21 +293,12 @@ export function SettingsScreen({
               <div className="mt-3 flex flex-row items-start gap-3">
                 <button
                   type="button"
-                  onClick={onStop}
+                  onClick={() => setConfirmDelete(true)}
                   className="inline-flex items-center justify-center gap-2 border
                     border-bad bg-bad/10 px-4 py-2.5 text-sm font-semibold
                     text-bad transition-opacity hover:opacity-90"
                 >
-                  <Power size={16} /> Stop runtime
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmWipe(true)}
-                  className="inline-flex items-center justify-center gap-2 border
-                    border-bad bg-bad/10 px-4 py-2.5 text-sm font-semibold
-                    text-bad transition-opacity hover:opacity-90"
-                >
-                  <Trash2 size={16} /> Clear wallet data
+                  <Trash2 size={16} /> Delete this wallet
                 </button>
               </div>
             </>
@@ -276,21 +307,21 @@ export function SettingsScreen({
         {advanced ? (
           <div className="mt-6 border-t border-border pt-6">
             <p className="mb-4 text-xs text-muted">
-              Display only. The running configuration cannot be changed. Stop
-              the runtime to reconnect with different servers.
+              Display only. This is the configuration the wallet was created
+              with; it cannot be changed after the fact.
             </p>
-            <GatewayFields form={form} onField={onField} disabled />
+            <GatewayFields endpoints={entry.endpoints} dataDir={entry.dataDir} />
           </div>
         ) : null}
       </Band>
       <ConfirmDialog
-        open={confirmWipe}
-        title="Clear wallet data?"
-        description="This permanently deletes the wallet and all data stored in this browser. You can only get it back with your recovery phrase or passkey. This cannot be undone."
-        confirmLabel="Clear everything"
+        open={confirmDelete}
+        title="Delete this wallet?"
+        description="This removes the wallet from your list only. Its data stays in this browser's storage until you use Clear all data on the wallet list to reclaim it."
+        confirmLabel="Delete wallet"
         destructive
-        onConfirm={requestWipe}
-        onCancel={() => setConfirmWipe(false)}
+        onConfirm={onDeleteWallet}
+        onCancel={() => setConfirmDelete(false)}
       />
     </div>
   );

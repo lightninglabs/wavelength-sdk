@@ -573,18 +573,15 @@ export function App() {
         <SendScreen onNavigate={setTab} balanceSat={balanceSat(balance)} />
       ) : null}
       {tab === "activity" ? <ActivityScreen onNavigate={setTab} /> : null}
-      {tab === "settings" ? (
+      {tab === "settings" && activeEntry ? (
         <SettingsScreen
           entry={activeEntry}
           onSwitchWallet={() => void backToWallets()}
           onDeleteWallet={() => {
-            if (activeEntry) {
-              removeWallet(activeEntry.id);
-              setWalletsVersion((v) => v + 1);
-            }
+            removeWallet(activeEntry.id);
+            setWalletsVersion((v) => v + 1);
             void backToWallets();
           }}
-          onStop={stopRuntime}
           onNavigate={setTab}
         />
       ) : null}
