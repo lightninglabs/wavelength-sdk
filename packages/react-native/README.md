@@ -34,16 +34,36 @@ tagged with the `RUNTIME_MANIFEST_VERSION` that
 directory:
 
 ```sh
-mkdir -p android/libs && cp ~/Downloads/Wavewalletdk.aar android/libs/
-
-tar -xzf ~/Downloads/Wavewalletdk.xcframework.tar.gz -C ios Wavewalletdk.xcframework
+TMP="$(mktemp -d ./.stage-XXXXXX)"
+tar -xzf ~/Downloads/Wavewalletdk.xcframework.tar.gz \
+  -C "$TMP" Wavewalletdk.xcframework
+extracted=$?
 
 # The release archive is the raw gomobile output, whose headers use the ObjC
 # modules syntax. clang rejects that while compiling this package's
 # Objective-C++ glue, so rewrite it to a classic import.
-find ios/Wavewalletdk.xcframework -name '*.h' \
+find "$TMP/Wavewalletdk.xcframework" -name '*.h' \
   -exec sed -i.orig 's|@import Foundation;|#import <Foundation/Foundation.h>|' {} +
-find ios/Wavewalletdk.xcframework -name '*.h.orig' -delete
+find "$TMP/Wavewalletdk.xcframework" -name '*.h.orig' -delete
+
+# Swap in only if tar succeeded, since pasted commands do not stop at the first
+# error and the removal below is destructive. tar's exit status is the test to
+# use: a truncated archive still leaves a directory behind, headers and all, so
+# checking that the framework exists would not catch an interrupted download.
+# The podspec check confirms this is the package directory, so a paste from the
+# wrong one cannot delete something else's ios/.
+if [ "$extracted" -eq 0 ] && [ -f ~/Downloads/Wavewalletdk.aar ] &&
+   [ -f WavelengthReactNative.podspec ]; then
+  mkdir -p android/libs
+  cp ~/Downloads/Wavewalletdk.aar android/libs/
+  # Replace the framework rather than unpacking over it: tar merges into an
+  # existing directory and would leave slices from an earlier revision behind.
+  rm -rf ios/Wavewalletdk.xcframework
+  mv "$TMP/Wavewalletdk.xcframework" ios/
+else
+  echo "staging failed; previous binaries left in place" >&2
+fi
+rm -rf "$TMP"
 ```
 
 Working from a checkout of this repository instead, the `bindings:fetch` script

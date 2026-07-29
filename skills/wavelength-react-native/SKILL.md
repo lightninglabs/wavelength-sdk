@@ -49,9 +49,15 @@ Check the npm registry for current versions; do not rely on memorized ones.
 - Expo apps need a **development build**, not Expo Go: the native wallet
   runtime is a compiled module that Expo Go cannot load. `npx expo run:android`
   and `npx expo run:ios` both produce development builds that include it.
-- Until hosted binary distribution ships, the native wallet runtime
-  binaries (`Wavewalletdk.aar`, `Wavewalletdk.xcframework`) must be staged from a
-  source checkout before the first build; see the installation page above.
+- The native wallet runtime binaries (`Wavewalletdk.aar`,
+  `Wavewalletdk.xcframework`) are not bundled in the npm package. Stage them
+  before the first build from the paired wavelength release: the `.aar` is
+  copied into `android/libs/`, while the iOS archive is unpacked to one side,
+  has its headers rewritten (clang rejects gomobile's `@import` before it will
+  compile the package's Objective-C++ glue), and only then replaces any
+  `ios/Wavewalletdk.xcframework` already there. Follow the installation page
+  above rather than improvising it. From a checkout of the SDK repository, the
+  `bindings:fetch` script does all of it for you.
 - Passkey ceremonies are injected. Pass `createNativePasskeyCeremony({ rpId })`
   from wavelength-react-native into `useWalletPasskey(ceremony)`; do not
   implement platform authentication calls by hand. The `rpId` domain needs
