@@ -227,7 +227,7 @@ export function WalletListScreen({
         </View>
       </View>
 
-      <WipeDataButton onWipe={onWipeAll} />
+      <WipeDataButton onWipe={onWipeAll} scope="all" />
 
       <ConfirmDialog
         open={removing !== null}
