@@ -9,10 +9,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "engineering.lightning.wavelength.demo",
-      "supportsTablet": false,
-      "associatedDomains": [
-        "webcredentials:wavelength.lightning.engineering"
-      ]
+      "supportsTablet": false
     },
     "android": {
       "package": "engineering.lightning.wavelength.demo",

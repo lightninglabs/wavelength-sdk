@@ -42,7 +42,7 @@ This starts Metro, the dev server that serves the JS bundle to the app. Keep
 it running in its own terminal; `--clear` drops a possibly stale cache.
 
 ```bash title="Terminal"
-npx expo run:android
+pnpm run android
 ```
 
 This generates the native `android` project if needed, compiles the dev
@@ -50,15 +50,20 @@ build, installs it on the running emulator or a connected device, and
 launches it.
 
 ```bash title="Terminal"
-LANG=en_US.UTF-8 npx expo run:ios
+pnpm run ios
 ```
 
 This does the same for the iOS simulator: generates the native `ios` project
-if needed, compiles the dev build, installs it, and launches it. The `LANG`
-prefix satisfies `pod install`'s locale requirement.
+if needed, compiles the dev build, installs it, and launches it. The script
+sets `LANG=en_US.UTF-8` to satisfy `pod install`'s locale requirement.
 
-The first `expo run:*` generates the native `android/` and `ios/` projects
-(gitignored) and takes a while; later runs are incremental.
+The iOS build needs no code signing, so it works on a machine that has never
+set up an Apple developer account. The demo's iOS passkey support is the one
+exception, and it is opt-in behind `WAVELENGTH_IOS_PASSKEYS=1`; see the demo
+README.
+
+The first run generates the native `android/` and `ios/` projects (gitignored)
+and takes a while; later runs are incremental.
 
 ## Networks
 
