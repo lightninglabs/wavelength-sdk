@@ -40,14 +40,55 @@ Expo apps need a **development build**, not Expo Go: the native wallet runtime i
 
 <Callout type="note" title="Native binaries are not bundled">
 The native wallet runtime binaries (`Wavewalletdk.aar`, `Wavewalletdk.xcframework`)
-are not included in the npm package. Stage them into the package (`android/libs/`
-and `ios/` inside `@lightninglabs/wavelength-react-native`) before running
-`pod install` or a Gradle build. Either download them from the paired
-[wavelength release](https://github.com/lightninglabs/wavelength/releases) and
-copy them to those paths yourself, or run the package's
-`scripts/fetch-bindings.sh` against a `wavelength` checkout, which builds and
-stages them for you.
+are not included in the npm package. Stage them into the installed package before
+running `pod install` or a Gradle build, using the steps below.
 </Callout>
+
+Download `Wavewalletdk.aar` and `Wavewalletdk.xcframework.tar.gz` from the
+[wavelength release](https://github.com/lightninglabs/wavelength/releases) tagged
+with the `RUNTIME_MANIFEST_VERSION` that `@lightninglabs/wavelength-core`
+exports, then stage them from the installed package directory:
+
+The release ships the raw gomobile output, whose headers use the Objective-C
+modules syntax. clang rejects that while compiling this package's Objective-C++
+glue, so the framework is unpacked into a scratch directory, rewritten there,
+and swapped in only at the end. A failed extraction then leaves whatever you
+already had staged intact:
+
+```bash title="Terminal"
+cd node_modules/@lightninglabs/wavelength-react-native
+
+TMP="$(mktemp -d ./.stage-XXXXXX)"
+tar -xzf ~/Downloads/Wavewalletdk.xcframework.tar.gz \
+  -C "$TMP" Wavewalletdk.xcframework
+extracted=$?
+
+find "$TMP/Wavewalletdk.xcframework" -name '*.h' \
+  -exec sed -i.orig 's|@import Foundation;|#import <Foundation/Foundation.h>|' {} +
+find "$TMP/Wavewalletdk.xcframework" -name '*.h.orig' -delete
+
+# Swap in only if tar succeeded, since pasted commands do not stop at the first
+# error and the removal below is destructive. A truncated archive still leaves
+# a directory behind, so tar's exit status is the test, not the framework's
+# existence. The podspec check confirms the cd above landed, so a paste from
+# the wrong directory cannot delete something else's ios/.
+if [ "$extracted" -eq 0 ] && [ -f ~/Downloads/Wavewalletdk.aar ] &&
+   [ -f WavelengthReactNative.podspec ]; then
+  mkdir -p android/libs
+  cp ~/Downloads/Wavewalletdk.aar android/libs/
+  # Replace rather than unpacking over: tar merges into an existing directory
+  # and would leave slices from an earlier revision behind.
+  rm -rf ios/Wavewalletdk.xcframework
+  mv "$TMP/Wavewalletdk.xcframework" ios/
+else
+  echo "staging failed; previous binaries left in place" >&2
+fi
+rm -rf "$TMP"
+```
+
+Working from a checkout of the SDK repository instead, its `bindings:fetch`
+script does all of this for you, and `bindings:local` builds the binaries from a
+`wavelength` source checkout (for an unreleased daemon revision).
 
 ## Next steps
 

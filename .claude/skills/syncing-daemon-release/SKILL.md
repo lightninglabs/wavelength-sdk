@@ -48,6 +48,7 @@ cd <daemon checkout> && git worktree remove --force /tmp/wavelength-<version>
 | Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes |
 | Wasm runtime build | `wasm:local` (step 5) | Bump the pin first |
 | Runtime asset FILE LIST | Nothing | Three places in lockstep: `packages/web/src/runtime-manifest.ts` (`RUNTIME_ASSET_FILES`), `apps/web-wallet-demo/scripts/wasm-local.sh`, `apps/web-wallet-demo/scripts/fetch-runtime-assets.sh`. A fourth lives upstream in wavelength's `mobile-bindings.yml`, which packs the release archive |
+| Gomobile mobile bindings build | `bindings:local` (step 5) | Bump the pin first. Mirrors the wasm row: build from `$WAVELENGTH_DIR`, since the pin is often not downloadable yet. `bindings:fetch` works only once it names a published release |
 | Gomobile facade (`sdk/wavewalletdk/mobile`) | Nothing | Native SDK docs checkpoint (below) |
 
 ## RPC checklist
@@ -119,7 +120,17 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    `Wavewalletdk.wasm.tar.gz` from the release named by the pin. That archive
    lands on a DRAFT release and draft assets are not publicly downloadable, so
    a tag-shaped pin that `runtime-pin` still rejects usually means the release
-   is unpublished, not that the pin is wrong.
+   is unpublished, not that the pin is wrong. The RN transport's mobile
+   bindings key off the same pin and need the same treatment: restage them with
+   `pnpm --filter @lightninglabs/wavelength-react-native run bindings:local`,
+   which builds the `.aar` and the `.xcframework` from the same
+   `$WAVELENGTH_DIR` worktree (pass `android` or `ios` to build one platform;
+   Android needs the SDK/NDK and a JDK, iOS needs macOS with Xcode). Reach for
+   `bindings:fetch` only once the pin names a published release: it builds a
+   release URL from the pin, so it 404s for a commit-SHA pin (no such release)
+   and for a tag whose release is still a draft (assets not public), which is
+   the same reason the wasm half of this step builds locally. Nothing in CI
+   covers the bindings, so a stale staging only shows up on a device build.
 6. **Native SDK docs**: run the checkpoint below. It is cheap and usually a
    no-op, but nothing else in this procedure catches native-page drift.
 7. **Versions + commits**: the packages version in lockstep with the daemon

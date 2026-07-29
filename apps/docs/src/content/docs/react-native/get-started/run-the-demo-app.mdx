@@ -18,12 +18,11 @@ pnpm build
 ```
 
 The demo needs the native wallet runtime binaries staged before it can build.
-Point `WAVELENGTH_DIR` at a daemon source checkout and run the package's
-`fetch-bindings` script:
+Run the package's `bindings:fetch` script, which downloads them from the
+paired wavelength release:
 
 ```bash title="Terminal"
-WAVELENGTH_DIR=/path/to/daemon-checkout \
-  pnpm --filter @lightninglabs/wavelength-react-native run fetch-bindings
+pnpm --filter @lightninglabs/wavelength-react-native run bindings:fetch
 ```
 
 See [Installation](/react-native/get-started/installation/) for why the

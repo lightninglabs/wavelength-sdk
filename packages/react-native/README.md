@@ -25,14 +25,52 @@ npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-rea
 ```
 
 The native wallet runtime binaries (`Wavewalletdk.aar` and
-`Wavewalletdk.xcframework`) are not bundled inside the npm package. Get them one
-of two ways, then stage them into this package before running `pod install` or a
-Gradle build:
+`Wavewalletdk.xcframework`) are not bundled inside the npm package. Stage them
+into this package before running `pod install` or a Gradle build.
 
-- Download them from the paired
-  [wavelength release](https://github.com/lightninglabs/wavelength/releases).
-- Build them from a `wavelength` checkout with `scripts/fetch-bindings.sh`, which
-  compiles them from the daemon source named by `WAVELENGTH_DIR`.
+Download them from the [wavelength release](https://github.com/lightninglabs/wavelength/releases)
+tagged with the `RUNTIME_MANIFEST_VERSION` that
+`@lightninglabs/wavelength-core` exports, then, from the installed package
+directory:
+
+```sh
+TMP="$(mktemp -d ./.stage-XXXXXX)"
+tar -xzf ~/Downloads/Wavewalletdk.xcframework.tar.gz \
+  -C "$TMP" Wavewalletdk.xcframework
+extracted=$?
+
+# The release archive is the raw gomobile output, whose headers use the ObjC
+# modules syntax. clang rejects that while compiling this package's
+# Objective-C++ glue, so rewrite it to a classic import.
+find "$TMP/Wavewalletdk.xcframework" -name '*.h' \
+  -exec sed -i.orig 's|@import Foundation;|#import <Foundation/Foundation.h>|' {} +
+find "$TMP/Wavewalletdk.xcframework" -name '*.h.orig' -delete
+
+# Swap in only if tar succeeded, since pasted commands do not stop at the first
+# error and the removal below is destructive. tar's exit status is the test to
+# use: a truncated archive still leaves a directory behind, headers and all, so
+# checking that the framework exists would not catch an interrupted download.
+# The podspec check confirms this is the package directory, so a paste from the
+# wrong one cannot delete something else's ios/.
+if [ "$extracted" -eq 0 ] && [ -f ~/Downloads/Wavewalletdk.aar ] &&
+   [ -f WavelengthReactNative.podspec ]; then
+  mkdir -p android/libs
+  cp ~/Downloads/Wavewalletdk.aar android/libs/
+  # Replace the framework rather than unpacking over it: tar merges into an
+  # existing directory and would leave slices from an earlier revision behind.
+  rm -rf ios/Wavewalletdk.xcframework
+  mv "$TMP/Wavewalletdk.xcframework" ios/
+else
+  echo "staging failed; previous binaries left in place" >&2
+fi
+rm -rf "$TMP"
+```
+
+Working from a checkout of this repository instead, the `bindings:fetch` script
+does all of the above for you, and `bindings:local` builds the binaries from the
+daemon source named by `WAVELENGTH_DIR` (for unreleased daemon revisions).
+Neither ships in the published package: both resolve paths relative to the
+repository root, which does not exist in an install.
 
 ## Quick start
 

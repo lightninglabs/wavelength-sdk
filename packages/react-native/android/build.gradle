@@ -30,7 +30,9 @@ android {
 
 dependencies {
   implementation "com.facebook.react:react-android"
-  // The gomobile-generated bindings, staged by scripts/fetch-bindings.sh.
+  // The gomobile-generated bindings. Not shipped in the npm package, so they
+  // must be staged before a Gradle build; the package README has the steps, and
+  // a wavelength-sdk checkout can run scripts/fetch-bindings.sh.
   api files("libs/Wavewalletdk.aar")
   // Passkeys: Credential Manager plus its Play services provider binding.
   implementation "androidx.credentials:credentials:1.6.0"

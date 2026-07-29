@@ -16,7 +16,7 @@ npm install @lightninglabs/wavelength-react-native @lightninglabs/wavelength-rea
 
 Requires React Native 0.76+ with the New Architecture enabled, iOS 15.1+, and Android minSdk 24. Expo apps need a development build, not Expo Go: the native wallet runtime is a compiled module that Expo Go cannot load. See [Requirements](/react-native/get-started/requirements/) for the full platform matrix.
 
-Until hosted binary distribution ships, the native wallet runtime must be staged before the first build; see [Installation](/react-native/get-started/installation/) for the staging step. The native side is built by `npx expo run:android` / `npx expo run:ios` (which installs iOS pods automatically), so there is no separate pod step to run by hand.
+The native wallet runtime binaries are not bundled in the npm package, so they must be staged before the first build; see [Installation](/react-native/get-started/installation/) for the staging step. The native side is built by `npx expo run:android` / `npx expo run:ios` (which installs iOS pods automatically), so there is no separate pod step to run by hand.
 
 </Step>
 
