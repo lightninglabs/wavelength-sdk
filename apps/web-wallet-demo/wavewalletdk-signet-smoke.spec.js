@@ -1,9 +1,5 @@
 const { expect, test } = require("@playwright/test");
 
-const arkServerURL = "https://signet.wavelength-rest.lightning.finance";
-const swapServerURL = "https://signet.swapd-rest.lightning.finance";
-const esploraURL = "https://mempool-signet.testnet.lightningcluster.com/api";
-
 test("wavelength demo starts with live signet defaults", async ({
   page,
 }, testInfo) => {
@@ -23,30 +19,27 @@ test("wavelength demo starts with live signet defaults", async ({
     }
   });
 
+  // No ?regtest=1, so a fresh registry lands on the create-wallet screen with
+  // only the hosted network presets available.
   await page.goto("/");
-  // The connect screen (with its "Start runtime" button) renders only after the
-  // WASM runtime has loaded.
-  const startRuntime = page.getByRole("button", { name: "Start runtime" });
-  await expect(startRuntime).toBeVisible({ timeout: 30000 });
+  const walletName = page.getByLabel("Wallet name");
+  await expect(walletName).toBeVisible({ timeout: 30000 });
 
-  // Every endpoint field lives under "Advanced endpoints", so expand it before
-  // asserting the seeded signet defaults (network defaults to signet). Mailbox
-  // traffic shares the Ark and swap edges, so there are no separate mailbox
-  // server fields.
-  await page.getByRole("button", { name: "Advanced endpoints" }).click();
-  await expect(page.getByLabel("Ark server address")).toHaveValue(arkServerURL);
-  await expect(page.getByLabel("Wallet Esplora URL")).toHaveValue(esploraURL);
-  await expect(page.getByLabel("Swap server address")).toHaveValue(
-    swapServerURL,
-  );
+  // Regtest requires the query param to unlock, and its "Advanced endpoints"
+  // section is regtest-only, so neither renders here. Signet and testnet use
+  // their SDK presets with nothing to edit, which is why the whole endpoints
+  // section is gone for them.
+  await expect(
+    page.getByRole("button", { name: "regtest", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Advanced endpoints" }),
+  ).toHaveCount(0);
 
-  await page.getByLabel("Data directory").fill(
-    `/wavewalletdk-signet-smoke-${Date.now()}`,
-  );
-  await page.getByLabel("Swap database file").fill(
-    `/wavewalletdk-signet-swaps-${Date.now()}.db`,
-  );
-  await startRuntime.click();
+  await walletName.fill(`Signet Smoke ${Date.now()}`);
+  // Signet is the first network in the list and selected by default, so no
+  // extra click is needed to keep it selected.
+  await page.getByRole("button", { name: "Continue" }).click();
 
   // A fresh wallet on signet lands on the create screen once the runtime has
   // connected to the live servers.
