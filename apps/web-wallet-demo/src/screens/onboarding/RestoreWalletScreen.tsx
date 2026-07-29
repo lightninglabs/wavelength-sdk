@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyRound } from "lucide-react";
+import { Fingerprint, KeyRound } from "lucide-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { Field } from "../../components/ui/Field";
@@ -7,6 +7,7 @@ import { InlineError } from "../../components/ui/InlineError";
 import {
   GhostButton,
   PrimaryButton,
+  TextLink,
 } from "../../components/ui/Button";
 import { Segmented } from "../../components/ui/Segmented";
 import { ToggleRow } from "../../components/ui/ToggleRow";
@@ -34,13 +35,21 @@ function parseMnemonicPaste(text: string): string[] {
 
 // RestoreWalletScreen rebuilds a wallet on-device from an existing recovery
 // phrase. Restores are always password wallets, so it collects a new local
-// password alongside the phrase.
+// password alongside the phrase. When onRestorePasskey is provided and this
+// device supports passkey PRF, it also offers a passkey-based alternative
+// above the phrase form: rather than typing the recovery phrase, the wallet
+// is derived straight from an existing passkey.
 export function RestoreWalletScreen({
   network,
   onRestore,
   onBack,
   busy,
   error,
+  onRestorePasskey,
+  passkeyBusy,
+  passkeyError,
+  restoreFailure,
+  onDismissRestoreFailure,
 }: {
   network: string;
   onRestore: (args: {
@@ -50,9 +59,18 @@ export function RestoreWalletScreen({
     recoverState: boolean;
     recoveryWindow?: number;
   }) => void;
+  /** Stops the runtime and returns to the wallet list. */
   onBack: () => void;
   busy: boolean;
   error: string;
+  /** Opens a wallet from a passkey the user already registered elsewhere. */
+  onRestorePasskey?: () => void;
+  passkeyBusy?: boolean;
+  passkeyError?: string;
+  /** A restore that failed before the wallet came up, or empty when none. */
+  restoreFailure?: string;
+  /** Dismisses the restore-failure message. */
+  onDismissRestoreFailure?: () => void;
 }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -116,6 +134,28 @@ export function RestoreWalletScreen({
         title="Restore wallet"
         sub="Enter your recovery phrase to rebuild this wallet on-device."
       />
+
+      {onRestorePasskey ? (
+        <div className="mb-6">
+          <GhostButton
+            icon={Fingerprint}
+            onClick={onRestorePasskey}
+            disabled={busy || passkeyBusy}
+            busy={passkeyBusy}
+          >
+            {passkeyBusy ? "Waiting for passkey…" : "Restore from passkey"}
+          </GhostButton>
+          <div className="mt-2">
+            <InlineError message={passkeyError ?? ""} />
+          </div>
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-faint">or use your recovery phrase</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </div>
+      ) : null}
+
       <form
         className="space-y-4"
         onSubmit={(e) => {
@@ -232,10 +272,28 @@ export function RestoreWalletScreen({
           {busy ? "Restoring wallet…" : "Restore wallet"}
         </PrimaryButton>
         <InlineError message={error} />
-        <GhostButton onClick={onBack} disabled={busy}>
-          Back
-        </GhostButton>
       </form>
+
+      {restoreFailure ? (
+        <div className="mt-6 border-t border-border pt-5">
+          <InlineError message={restoreFailure} />
+          <button
+            type="button"
+            onClick={onDismissRestoreFailure}
+            className="mt-1 text-xs font-medium text-muted hover:text-fg"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      {/* Suppressed while a restore or passkey ceremony is in flight so the
+          runtime is never torn down underneath a mid-flight daemon call. */}
+      {!busy && !passkeyBusy ? (
+        <div className="mt-5 text-center text-sm">
+          <TextLink onClick={onBack}>Back to wallets</TextLink>
+        </div>
+      ) : null}
     </AuthLayout>
   );
 }
