@@ -138,11 +138,28 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    (without the `v`) so the release workflow's tag check passes. Commits use
    bare area prefixes (`core:`, `web:`, `docs:`, `demo:`), one logical change
    each, every commit building on its own.
-8. **Publish**: after the sync merges, create a GitHub release tagged with
-   the pin (e.g. `v0.2.0`). Publishing that release triggers release.yml,
-   which verifies the tag against the package versions and the pin, then
-   publishes all four packages to npm. Nothing publishes until this release
-   is cut. Full procedure and failure modes: RELEASE.md at the repo root.
+8. **Publish**: create a DRAFT GitHub release tagged with the pin (e.g.
+   `v0.2.0`), targeting main. Draft it as soon as the sync PR is up (drafts
+   create no tag; the tag is minted at publish time from main's tip, so only
+   publish after the merge). Check the pre-release box for any hyphenated
+   version; release.yml refuses to publish a hyphenated tag without it, and
+   the dist-tag follows (stable lands on `latest`, prerelease on `next`).
+   Publishing triggers release.yml, which verifies the tag against the
+   package versions and the pin, then publishes all four packages to npm.
+   Nothing publishes until this release is cut. Full procedure and failure
+   modes: RELEASE.md at the repo root.
+
+   Release notes format: an intro line naming the paired wavelength release
+   (linked), then for a prerelease an `npm install
+   @lightninglabs/wavelength-web@next` snippet. Then the changes since the
+   previous tag, grouped under `## SDK packages`, `## Docs site`, and
+   `## Demo apps` headings (plus `## Maintenance` for repo plumbing), one
+   bullet per merged PR in the GitHub auto-notes style:
+   `* <concise change> by @<author> in <PR URL>`. Source the PR list from
+   the auto-generated notes (gh api releases/generate-notes) so nothing
+   merged since the last tag is missed; a PR whose content spans sections
+   (e.g. a sync PR carrying both the pin and CLI docs) may appear once per
+   section. End with the auto-notes' **Full Changelog** compare link.
 
 ## Verification ladder (run in this order)
 
