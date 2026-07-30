@@ -40,7 +40,7 @@ amount.
 | Flag | Default | Description |
 |---|---|---|
 | `--status` | (none) | Filter by status: live, pending_forfeit, forfeiting, forfeited, spent, unilateral_exit, failed, spending. |
-| `--min_amount` | `0` | Minimum amount in sats. |
+| `--min-amount` | `0` | Minimum amount in sats. |
 | `--fields` | (none) | Comma-separated field names to include in the response. |
 | `--ndjson` | `false` | Emit one JSON object per VTXO, newline-delimited. |
 
@@ -55,22 +55,23 @@ wavecli ark vtxos list --status live
 Queues one or more VTXOs for refresh, then commits the queued intents to the
 next round, extending their expiry. By default this also issues `ark rounds
 join` on the caller's behalf, so refresh is a one-shot operation; pass
-`--no_join` to batch multiple refresh or leave intents into the same round and
+`--no-join` to batch multiple refresh or leave intents into the same round and
 join explicitly afterward.
 
 A refresh is charged an operator fee, so the command asks before it queues
 anything. On an interactive terminal it fetches a fee preview, prints the
-summary to stderr, and waits for a y/N confirmation. On non-interactive stdin
-it refuses to prompt and exits `INVALID_ARGS`, so scripts and agents have to
-pass either `--yes` to consent up front or `--dry_run` to preview.
+summary to stderr, and waits for a y/N confirmation. On non-interactive stdin,
+or when input is disabled with `--no-input` or `CI=true`, it refuses to prompt
+and exits `5` with a `CONFIRMATION_REQUIRED` envelope, so scripts and agents
+have to pass either `--yes` to consent up front or `--dry-run` to preview.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--outpoint` | (none) | VTXO outpoint(s) to refresh (txid:index); repeatable. Required unless `--all` is set, and mutually exclusive with it. |
 | `--all` | `false` | Refresh all live VTXOs. |
-| `--dry_run` | `false` | Validate without queuing and preview the estimated operator fee. |
+| `--dry-run` | `false` | Validate without queuing and preview the estimated operator fee. |
 | `--yes` | `false` | Skip the interactive fee confirmation. Required on non-interactive stdin. |
-| `--no_join` | `false` | Skip the implicit `ark rounds join` follow-up so this refresh can batch with other queued intents. |
+| `--no-join` | `false` | Skip the implicit `ark rounds join` follow-up so this refresh can batch with other queued intents. |
 
 Calls the daemon `RefreshVTXOs` RPC.
 
@@ -80,14 +81,14 @@ wavecli ark vtxos refresh --all --yes
 
 #### Fee preview
 
-`--dry_run` returns an itemized advisory estimate alongside the usual
+`--dry-run` returns an itemized advisory estimate alongside the usual
 validation. The per-outpoint rows land in the JSON body on stdout and carry
 the amount, remaining lifetime, and the fee components (liquidity fee,
 on-chain share, and margin) that sum to each row's total. A human-readable
 summary goes to stderr so piping stdout into `jq` doesn't pull prose with it.
 
 ```bash title="Terminal"
-wavecli ark vtxos refresh --all --dry_run
+wavecli ark vtxos refresh --all --dry-run
 ```
 
 Every number here is advisory. The binding fee comes from the server-issued
@@ -110,18 +111,20 @@ coin that already costs more to exit than it holds.
 Queues one or more VTXOs for cooperative leave, then commits the queued
 intents to the next round. Each forfeited VTXO pays out its amount, minus the
 operator fee, to the specified on-chain destination. Auto-joins the next round
-like `vtxos refresh` unless `--no_join` is set.
+like `vtxos refresh` unless `--no-join` is set. Leaving with `--all` asks for
+confirmation first; non-interactively it exits `5` (`CONFIRMATION_REQUIRED`)
+unless `--yes` or `--dry-run` is passed.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--outpoint` | (none) | VTXO outpoint(s) to leave (txid:index); repeatable. Required unless `--all` is set. |
 | `--all` | `false` | Leave all live VTXOs. |
-| `--address` | (none) | Default on-chain destination address. Mutually exclusive with `--pk_script`. |
-| `--pk_script` | (none) | Default destination pk_script, hex-encoded. Mutually exclusive with `--address`. |
+| `--address` | (none) | Default on-chain destination address. Mutually exclusive with `--pk-script`. |
+| `--pk-script` | (none) | Default destination pk-script, hex-encoded. Mutually exclusive with `--address`. |
 | `--destination` | (none) | Per-outpoint destination override: `outpoint=address` or `outpoint=script:<hex>`. Not supported with `--all`. |
-| `--dry_run` | `false` | Validate without queuing. |
+| `--dry-run` | `false` | Validate without queuing. |
 | `--yes` | `false` | Skip the interactive confirmation required for `--all`. |
-| `--no_join` | `false` | Skip the implicit `ark rounds join` follow-up so this leave can batch with other queued intents. |
+| `--no-join` | `false` | Skip the implicit `ark rounds join` follow-up so this leave can batch with other queued intents. |
 
 Calls the daemon `LeaveVTXOs` RPC.
 
@@ -151,7 +154,7 @@ wavecli ark rounds get --round-id r-1234
 
 Commits currently queued round intents (refresh or leave) and emits a join
 request to the operator. `ark vtxos refresh` and `ark vtxos leave` invoke this
-automatically; call it directly only after passing `--no_join` to one of those
+automatically; call it directly only after passing `--no-join` to one of those
 commands, to batch multiple intents into the same round.
 
 Calls the daemon `JoinNextRound` RPC.
@@ -184,12 +187,20 @@ wavecli ark rounds list --state confirmed
 ### `rounds watch`
 
 Opens a server-streaming connection that prints round state transitions as
-they occur. Press Ctrl-C to stop.
+they occur. Press Ctrl-C to stop, or bound the watch up front: `--for` watches
+for a fixed duration (overriding the global `--timeout` for the stream) and
+`--max-events` stops after a number of updates, either of which ends the
+stream cleanly with exit `0`.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--max-events` | `0` | Stop after this many updates; `0` has no event-count limit. |
+| `--for` | `0` | Watch for this duration instead of the global `--timeout`. |
 
 Calls the daemon `WatchRounds` RPC.
 
 ```bash title="Terminal"
-wavecli ark rounds watch
+wavecli ark rounds watch --for 2m
 ```
 
 ## `oor`
@@ -270,11 +281,15 @@ Boarding UTXO recovery: `sweep` (broadcast) and `sweep list`.
 Scans boarding UTXOs whose CSV timeout path has matured and prints the
 recoverable amount, estimated fee, and net amount. Pass `--broadcast` to
 publish one aggregate sweep transaction; without it the command only previews.
+Broadcasting moves funds, so it asks for confirmation first;
+non-interactively it exits `5` (`CONFIRMATION_REQUIRED`) unless `--yes` is
+passed.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--outpoint` | (none) | Boarding UTXO outpoint to sweep (txid:index); repeatable. |
 | `--broadcast` | `false` | Broadcast the aggregate sweep and track it until confirmed. |
+| `--yes` | `false` | Approve broadcasting the fund-moving sweep. |
 | `--fee-rate-sat-per-vbyte` | `0` | Fee-rate override in sat/vByte; zero estimates by conf target. |
 | `--conf-target` | `0` | Confirmation target for fee estimation; zero uses the daemon default. |
 | `--sweep-address` | (none) | Sweep destination. Empty uses a fresh wallet address. |
@@ -328,7 +343,7 @@ wavecli ark fees estimate --amount 50000
 ```
 
 To price a refresh of VTXOs you already hold, reach for
-[`ark vtxos refresh --dry_run`](#fee-preview) instead. It resolves each
+[`ark vtxos refresh --dry-run`](#fee-preview) instead. It resolves each
 selected VTXO's amount and remaining lifetime from the daemon, so you don't
 have to look either up and pass them by hand.
 
@@ -382,14 +397,17 @@ for bech32m addresses, `--pubkey` for recipient x-only pubkeys, or both.
 Recipients pair with `--amount` positionally in the order they appear, with
 `--to` entries before `--pubkey` entries. The everyday `send` verb composes
 the same path via `WalletService.Send`; reach for this only when you need the
-raw daemon RPC directly.
+raw daemon RPC directly. A real (non-`--dry-run`) submit moves funds, so it
+asks for confirmation first; non-interactively it exits `5`
+(`CONFIRMATION_REQUIRED`) unless `--yes` is passed.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--to` | (none) | Recipient bech32m taproot address(es); repeatable. |
 | `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex; repeatable, paired after any `--to` entries. |
 | `--amount` | (none) | Amount(s) in sats, one per recipient, in `--to` then `--pubkey` order. |
-| `--dry_run` | `false` | Validate without submitting. |
+| `--dry-run` | `false` | Validate without submitting. |
+| `--yes` | `false` | Approve submitting the fund-moving transfer. |
 
 Calls the daemon `SendVTXO` RPC.
 
@@ -400,15 +418,18 @@ wavecli ark send inround --to bcrt1... --amount 10000
 ### `send oor`
 
 Initiates an out-of-round transfer directly between the client and operator,
-without waiting for a round.
+without waiting for a round. A real (non-`--dry-run`) transfer moves funds, so
+it asks for confirmation first; non-interactively it exits `5`
+(`CONFIRMATION_REQUIRED`) unless `--yes` is passed.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--to` | (none) | Recipient address. Mutually exclusive with `--pubkey`. |
 | `--pubkey` | (none) | Recipient 32-byte x-only pubkey hex. Mutually exclusive with `--to`. |
 | `--amount` | (none) | Amount in sats. |
-| `--dry_run` | `false` | Validate without initiating. |
-| `--idempotency_key` | (none) | Caller-provided key for retrying the same OOR send intent. |
+| `--dry-run` | `false` | Validate without initiating. |
+| `--yes` | `false` | Approve initiating the fund-moving transfer. |
+| `--idempotency-key` | (none) | Caller-provided key for retrying the same OOR send intent. |
 
 Calls the daemon `SendOOR` RPC.
 

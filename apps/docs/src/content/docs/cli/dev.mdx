@@ -10,7 +10,7 @@ method directly. Unlike the curated wallet verbs, its structure is not
 hand-written: it is built at startup from the daemon proto descriptors compiled
 into the binary (the `devrpc` registry), so it always mirrors the exact RPC
 surface the daemon ships. Method flags are generated from each request message's
-fields, and each leaf accepts `--json` for a raw request payload.
+fields, and each leaf accepts `--request-json` for a raw request payload.
 
 Run `dev` with no arguments to print a JSON summary of the available services
 and their methods. The command tree is three levels deep:
@@ -35,8 +35,8 @@ dispatching the call.
 
 `dev` itself takes no bespoke flags beyond `--help` and the global connection
 flags (`--rpcserver`, `--tlscertpath`, `--no-tls`); each generated method leaf
-takes flags derived from its own request message, or `--json` for a raw
-payload.
+takes flags derived from its own request message, or `--request-json` for a
+raw payload.
 
 ## Example
 
@@ -69,7 +69,7 @@ its request and response proto type and whether it is server-streaming.
 ## Invoking a method
 
 Each method leaf takes flags generated from its request message fields, or a
-`--json` raw payload. Server-streaming methods print one JSON object per
+`--request-json` raw payload. Server-streaming methods print one JSON object per
 message until the stream ends; client-streaming methods are not supported.
 
 ```bash title="Terminal"

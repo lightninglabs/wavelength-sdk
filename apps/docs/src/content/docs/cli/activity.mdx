@@ -23,6 +23,9 @@ wavecli activity --format json
 | `--cursor` | (none) | Activity page token from a prior page's `next_cursor`. Empty starts from the newest entry. |
 | `--format` | `table` | Output format: table, expanded, x, or json. |
 
+The global `--json` flag is a shorthand for `--format json` on both `activity`
+and `activity inspect`.
+
 ## Example
 
 By default `activity` renders a compact table to stdout, with columns

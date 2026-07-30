@@ -58,3 +58,8 @@ there's no interactive prompt to fall back to, a real refresh requires
 `yes: true`; without it the tool returns an error telling the agent to call
 `dry_run: true` first for the itemized advisory estimate, then re-call with
 `yes: true` to acknowledge the fee and queue.
+
+The raw send tools (`ark.send.inround`, `ark.send.oor`) carry the same
+money-movement gate as their CLI counterparts: a real send requires
+`yes: true`, while `dry_run: true` previews stay ungated. Without either the
+tool returns an actionable error instead of dispatching funds.

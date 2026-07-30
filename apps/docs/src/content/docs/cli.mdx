@@ -1,13 +1,13 @@
 ---
 title: wavecli
-description: The command-line client for the wallet daemon. It issues gRPC calls to a running waved and prints structured JSON suitable for humans and agents.
+description: The command-line client for the wallet daemon. It issues gRPC calls to a running waved and prints command-appropriate human or machine-readable output.
 ---
 
 import Callout from '~/components/mdx/Callout.astro';
 
 `wavecli` is the command-line client for the wallet daemon (`waved`). It
-issues gRPC calls to a running daemon and prints structured JSON to stdout,
-suitable for both human and agent consumption. The everyday surface is a small
+issues gRPC calls to a running daemon and prints command-appropriate human or
+machine-readable output. The everyday surface is a small
 set of wallet verbs (create, unlock, send, recv, activity, balance, exit); a
 handful of daemon-introspection commands and advanced subtrees round it out.
 
@@ -28,12 +28,23 @@ configured with a set of persistent flags, available on every command:
 | `--macaroonpath` | (none) | Path to the daemon RPC macaroon. |
 | `--no-tls` | `false` | Disable TLS for the daemon connection (development and regtest). |
 | `--no-macaroons` | `false` | Disable macaroon authentication for the daemon connection (development and regtest). |
-| `--json` | (none) | Raw JSON request payload that maps directly to the RPC request proto. When set, the command's bespoke flags are ignored. |
+| `--timeout` | `30s` | Maximum duration for each daemon RPC. `0` disables the deadline. |
+| `--json` | `false` | Emit machine-readable JSON output. A shorthand for `--format json` on commands with a `--format` selector. |
+| `--no-input` | `false` | Never prompt or implicitly consume stdin. Setting the `CI=true` environment variable has the same prompt-suppression effect. |
+| `--request-json` | (none) | Raw JSON request payload that maps directly to the RPC request proto. When set, the command's bespoke flags are ignored. |
 
-The `--json` flag is the raw-request escape hatch: pass a JSON object shaped
-like the method's request proto and it is sent verbatim, so an agent can drive
-any command from a single serialized payload instead of assembling flags. It is
-distinct from the per-command `--format json` output selector.
+The `--request-json` flag is the raw-request escape hatch: pass a JSON object
+shaped like the method's request proto and it is sent verbatim, so an agent can
+drive any command from a single serialized payload instead of assembling flags.
+It is distinct from the `--json` output selector.
+
+Flags are spelled in kebab-case, but every flag also accepts the snake_case
+spelling of the same name (`--max_fee` resolves to `--max-fee`), so a name
+copied from an RPC field or a daemon log works unchanged.
+
+Ctrl-C (and SIGTERM) cancel the running command cleanly: in-flight RPCs are
+cancelled, and a command interrupted while waiting on settlement reports a
+`CANCELED` envelope with the last observed phase.
 
 <Callout type="note" title="Regtest quickstart">
 A local regtest daemon typically runs without TLS or macaroon auth on the
@@ -60,15 +71,20 @@ non-zero:
   "error": {
     "code": "WALLET_LOCKED",
     "message": "wallet is locked; run `wavecli unlock`",
-    "details": ""
+    "details": "",
+    "retryable": false
   }
 }
 ```
 
 `code` is a stable machine-readable string (for example `INVALID_ARGS`,
-`WALLET_LOCKED`, `NOT_FOUND`, `METHOD_NOT_FOUND`, `DRY_RUN_OK`), `message` is a
-human-facing description, and `details` carries optional diagnostic context
-(such as the wrapping RPC call chain).
+`WALLET_LOCKED`, `NOT_FOUND`, `METHOD_NOT_FOUND`, `CONFIRMATION_REQUIRED`,
+`CANCELED`), `message` is a human-facing description, and `details` carries
+optional diagnostic context (such as the wrapping RPC call chain). `retryable`
+reports whether a blind retry is safe: codes that can fire after a fund-moving
+RPC was already accepted (`DEADLINE_EXCEEDED`, `ABORTED`, `WAIT_TIMEOUT`)
+report `false`, and where the CLI knows a concrete next step it adds a
+`remediation` string (for example "check state before retrying").
 
 ## Exit codes
 
@@ -80,13 +96,16 @@ parsing prose. The codes are semantic:
 | `0` | success | The command completed. Set implicitly when the command returns without error. |
 | `1` | generic error | Catch-all failure not covered by a more specific code. |
 | `2` | invalid arguments | The invocation was rejected before reaching the daemon: a missing required flag, a malformed outpoint, conflicting `--offchain`/`--onchain`, and similar. |
-| `3` | auth failure | The daemon rejected the call as unauthenticated or not permitted (a missing or invalid macaroon). A wrong password and a locked wallet both report `2` instead; see the mapping below. |
+| `3` | auth failure | The daemon rejected the call as unauthenticated or not permitted (a missing or invalid macaroon), or the wallet is not ready for the verb (locked, not yet created, or still syncing, reported as `WALLET_LOCKED` and friends). A wrong password on `unlock` reports `2` instead; see the mapping below. |
 | `4` | not found | A queried resource does not exist on the daemon (an unknown round id, a missing exit job). |
-| `10` | dry-run OK | A `--dry-run` invocation passed all local validation; no RPC was dispatched. |
+| `5` | confirmation required | The command is valid, but a fund-moving action needs explicit `--yes` (or `--force`) approval in a non-interactive environment. |
 
 Daemon-side gRPC failures are mapped onto the same table: `InvalidArgument`,
 `OutOfRange`, and `FailedPrecondition` map to exit code `2`; `Unauthenticated`
-and `PermissionDenied` to `3`; `NotFound` to `4`; everything else to `1`.
+and `PermissionDenied` to `3`; `NotFound` to `4`; everything else to `1`. The
+one carve-out is the wallet lifecycle preconditions (locked, not created,
+syncing): they arrive as `FailedPrecondition` but exit `3`, agreeing with the
+`WALLET_LOCKED` envelope they emit.
 
 ## Command index
 

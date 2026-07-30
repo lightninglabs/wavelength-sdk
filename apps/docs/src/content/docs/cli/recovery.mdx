@@ -66,8 +66,9 @@ wavecli recovery status <recovery_id>
 ### `recovery escalate`
 
 Manually starts on-chain recovery for one previously armed vHTLC. Requires
-explicit consent: on non-interactive stdin you must pass `--yes` or the command
-exits `INVALID_ARGS`.
+explicit consent: on non-interactive stdin, or when input is disabled with
+`--no-input` or `CI=true`, you must pass `--yes` or the command exits `5` with
+a `CONFIRMATION_REQUIRED` envelope.
 
 | Flag | Default | Description |
 |---|---|---|

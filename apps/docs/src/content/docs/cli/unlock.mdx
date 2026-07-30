@@ -5,23 +5,27 @@ description: Unlock an existing wallet by decrypting its on-disk seed and starti
 
 Decrypts the on-disk wallet seed and starts the wallet subsystem, making the
 wallet RPCs usable. Like `create`, the password is never accepted on the
-command line: it is read from stdin, the `WAVED_WALLET_PASSWORD` environment
-variable, or `--wallet_password_file`.
+command line and stdin is never consumed implicitly: it is read, in priority
+order, from the `WAVED_WALLET_PASSWORD` environment variable,
+`--wallet-password-file`, an explicit `--password-stdin`, or an interactive
+terminal prompt. When none of those sources is available the command exits `2`
+with instructions instead of hanging.
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | wavecli unlock
+printf '%s\n' 'hunter2hunter2' | wavecli unlock --password-stdin
 ```
 
 ## Flags
 
 | Flag | Default | Description |
 |---|---|---|
-| `--wallet_password_file` | (none) | Path to a file containing the wallet password. |
+| `--wallet-password-file` | (none) | Path to a file containing the wallet password. |
+| `--password-stdin` | `false` | Read one wallet password line from stdin. |
 
 ## Example
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | wavecli --no-tls unlock
+printf '%s\n' 'hunter2hunter2' | wavecli --no-tls unlock --password-stdin
 ```
 
 ```json
@@ -32,7 +36,7 @@ echo -n 'hunter2hunter2' | wavecli --no-tls unlock
 
 A wrong password exits with code `2` and an `INVALID_ARGUMENT` error envelope
 on stderr. Other wallet commands run against a still-locked wallet return a
-`WALLET_LOCKED` envelope and also exit `2`.
+`WALLET_LOCKED` envelope and exit `3` (auth failure).
 
 ## Underlying RPC
 

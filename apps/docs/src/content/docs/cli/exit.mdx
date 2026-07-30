@@ -95,8 +95,8 @@ wavecli exit plan --outpoint TXID:VOUT
 ## Exit codes
 
 With `--dry-run` the command validates the request locally and prints the
-preview without dispatching; a valid preview exits `10` (`DRY_RUN_OK`), a
-validation failure exits non-zero.
+preview without dispatching; a valid preview exits `0`, a validation failure
+exits non-zero.
 
 <Callout type="caution" title="Unilateral unroll is expensive">
 A forced unroll pays on-chain fees and cannot be combined with a custom
