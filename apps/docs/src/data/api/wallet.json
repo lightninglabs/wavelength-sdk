@@ -959,7 +959,7 @@
           "repeated": false,
           "optional": false,
           "oneof": null,
-          "comment": "sweep_all marks an onchain send that drained the selected VTXOs\nentirely (wavecli send --send-all). A sweep's pending amount is the\ngross outflow with the operator fee still baked in (the fee is only\nknown once the leave round seals), so completion uses this marker to\nnet the settled fee back out of the displayed amount. Bounded sends\nleave it false: their amount is the exact destination value and the\nfee is paid on top out of change."
+          "comment": "sweep_all marks an onchain send that drained the selected VTXOs\nentirely (wavecli send --sweep-all). A sweep's pending amount is the\ngross outflow with the operator fee still baked in (the fee is only\nknown once the leave round seals), so completion uses this marker to\nnet the settled fee back out of the displayed amount. Bounded sends\nleave it false: their amount is the exact destination value and the\nfee is paid on top out of change."
         }
       ]
     },
