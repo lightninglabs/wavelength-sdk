@@ -36,15 +36,20 @@ wavecli schema balance
   "params": null,
   "request_type": "BalanceRequest",
   "response_type": "BalanceResponse",
-  "json_input": false,
-  "mcp_tool": true
+  "request_json_input": false,
+  "mcp_tool": true,
+  "side_effect": false,
+  "output_schema_id": "wavecli.balance.output",
+  "output_schema_version": 1
 }
 ```
 
-Each schema entry reports whether the command supports `--dry-run` / `--dry_run`,
-whether it accepts `--json` raw input (`json_input`), and whether it is exposed
-as an MCP tool (`mcp_tool`). An unknown method name exits `4` with a
-`METHOD_NOT_FOUND` envelope.
+Each schema entry reports whether the command supports `--dry-run`, whether it
+accepts `--request-json` raw input (`request_json_input`), whether it is
+exposed as an MCP tool (`mcp_tool`), whether invoking it can change wallet or
+daemon state (`side_effect`), and the id and version of its additive output
+contract (`output_schema_id`, `output_schema_version`). An unknown method name
+exits `4` with a `METHOD_NOT_FOUND` envelope.
 
 ## Underlying RPC
 

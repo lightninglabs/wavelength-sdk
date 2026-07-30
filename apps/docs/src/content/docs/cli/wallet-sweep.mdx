@@ -7,7 +7,9 @@ Previews, or with `--broadcast` publishes, a sweep of every confirmed
 backing-wallet UTXO to a single destination address. Boarding outputs are
 excluded; use [`ark sweep`](/cli/ark/) for those. Without `--broadcast` the
 command returns a preview of the selected inputs, fee, and net amount without
-leasing inputs or broadcasting.
+leasing inputs or broadcasting. Broadcasting moves funds, so it asks for
+confirmation first; non-interactively it exits `5` (`CONFIRMATION_REQUIRED`)
+unless `--yes` is passed.
 
 ```bash title="Terminal"
 wavecli wallet-sweep --destination bcrt1...
@@ -20,6 +22,7 @@ wavecli wallet-sweep --destination bcrt1... --broadcast
 |---|---|---|
 | `--destination` | (none) | Required. On-chain destination address for the swept funds. |
 | `--broadcast` | `false` | Publish the sweep. Omitted means preview only. |
+| `--yes` | `false` | Approve broadcasting the fund-moving sweep. |
 | `--fee-rate` | `0` | Explicit fee rate in sat/vByte. `0` estimates from the chain backend at `--conf-target`. |
 | `--conf-target` | `0` | Confirmation target for fee estimation when `--fee-rate` is `0`. |
 

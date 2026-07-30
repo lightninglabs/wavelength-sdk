@@ -10,13 +10,18 @@ prints it to stderr so you can record it offline, and encrypts the seed with
 the supplied password. Pass `--recover` with a `--mnemonic-file` to import an
 existing mnemonic and rebuild Ark wallet state instead.
 
-The wallet password is never read from the command line. It comes from stdin,
-the `WAVED_WALLET_PASSWORD` environment variable, or `--wallet_password_file`;
-the interactive prompt asks for confirmation. The optional aezeed seed
-passphrase comes from `WAVED_SEED_PASSPHRASE` or `--seed_passphrase_file`.
+The wallet password is never read from the command line, and stdin is never
+consumed implicitly. It comes, in priority order, from the
+`WAVED_WALLET_PASSWORD` environment variable, `--wallet-password-file`, an
+explicit `--password-stdin`, or an interactive terminal prompt that asks for
+confirmation. When none of those sources is available (non-interactive stdin
+without `--password-stdin`, or input disabled via `--no-input` / `CI=true`)
+the command exits `2` with instructions instead of hanging. The optional
+aezeed seed passphrase comes from `WAVED_SEED_PASSPHRASE` or
+`--seed-passphrase-file`.
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | wavecli create
+printf '%s\n' 'hunter2hunter2' | wavecli create --password-stdin
 ```
 
 <Callout type="caution" title="The mnemonic is shown once">
@@ -30,8 +35,9 @@ the wallet unrecoverable.
 
 | Flag | Default | Description |
 |---|---|---|
-| `--wallet_password_file` | (none) | Path to a file containing the wallet password. |
-| `--seed_passphrase_file` | (none) | Path to a file containing the optional aezeed passphrase. |
+| `--wallet-password-file` | (none) | Path to a file containing the wallet password. |
+| `--password-stdin` | `false` | Read one wallet password line from stdin. |
+| `--seed-passphrase-file` | (none) | Path to a file containing the optional aezeed passphrase. |
 | `--print-mnemonic-json` | `false` | Include the mnemonic in the JSON response on stdout (default: stderr only). |
 | `--recover` | `false` | Import an existing mnemonic and recover Ark wallet state. |
 | `--mnemonic-file` | (none) | Path to a file containing an existing 24-word aezeed mnemonic. Requires `--recover`. |
@@ -40,7 +46,7 @@ the wallet unrecoverable.
 ## Example
 
 ```bash title="Terminal"
-echo -n 'hunter2hunter2' | wavecli --no-tls create
+printf '%s\n' 'hunter2hunter2' | wavecli --no-tls create --password-stdin
 ```
 
 The mnemonic goes to stderr; stdout carries the identity and recovery summary:
