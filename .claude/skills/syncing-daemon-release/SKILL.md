@@ -114,9 +114,17 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    Every subcommand gets its own `###` section with its own flags table.
    Verify operational claims against `waved/config.go` and
    `gateway_server.go`.
-5. **Runtime assets**: `pnpm --filter web-wallet-demo run wasm:local` (builds
-   from `$WAVELENGTH_DIR` into `public/runtime/<version>/`; bump the pin first
-   or it stages under the OLD version). The deploy instead fetches
+5. **Runtime assets**: check the release first (`gh release view <pin> --repo
+   lightninglabs/wavelength --json isDraft,assets`). If it is published with
+   assets attached, `pnpm --filter web-wallet-demo run wasm:fetch` and `pnpm
+   --filter @lightninglabs/wavelength-react-native run bindings:fetch` are
+   both correct and much faster than building, and they exercise the deploy's
+   actual path. Fall back to the `:local` scripts only for a commit-SHA pin or
+   a draft release.
+
+   `pnpm --filter web-wallet-demo run wasm:local` builds from
+   `$WAVELENGTH_DIR` into `public/runtime/<version>/` (bump the pin first or it
+   stages under the OLD version). The deploy instead fetches
    `Wavewalletdk.wasm.tar.gz` from the release named by the pin. That archive
    lands on a DRAFT release and draft assets are not publicly downloadable, so
    a tag-shaped pin that `runtime-pin` still rejects usually means the release
@@ -125,12 +133,11 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    `pnpm --filter @lightninglabs/wavelength-react-native run bindings:local`,
    which builds the `.aar` and the `.xcframework` from the same
    `$WAVELENGTH_DIR` worktree (pass `android` or `ios` to build one platform;
-   Android needs the SDK/NDK and a JDK, iOS needs macOS with Xcode). Reach for
-   `bindings:fetch` only once the pin names a published release: it builds a
-   release URL from the pin, so it 404s for a commit-SHA pin (no such release)
-   and for a tag whose release is still a draft (assets not public), which is
-   the same reason the wasm half of this step builds locally. Nothing in CI
-   covers the bindings, so a stale staging only shows up on a device build.
+   Android needs the SDK/NDK and a JDK, iOS needs macOS with Xcode). Both
+   `:fetch` scripts build a release URL from the pin, so they 404 for a
+   commit-SHA pin (no such release) and for a tag whose release is still a
+   draft (assets not public). Nothing in CI covers the bindings, so a stale
+   staging only shows up on a device build.
 6. **Native SDK docs**: run the checkpoint below. It is cheap and usually a
    no-op, but nothing else in this procedure catches native-page drift.
 7. **Versions + commits**: the packages version in lockstep with the daemon
