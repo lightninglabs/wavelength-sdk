@@ -73,6 +73,32 @@ export class BoardClient {
   }
 
   /**
+   * Reports what the payer currently owes.
+   *
+   * This is the only thing that moves the board's meter. The board runs no
+   * clock of its own, deliberately: one that accrued on its own schedule would
+   * show money piling up for a payer that registered and then paid nothing,
+   * and an audience can catch that. The payer does the metering, so the payer
+   * is the only honest source for the figure.
+   */
+  async reportMeter(streamId: string, accruedMsat: number): Promise<void> {
+    const response = await this.doFetch(
+      `${this.baseUrl}/api/stream/${encodeURIComponent(streamId)}/meter`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accruedMsat: Math.floor(accruedMsat) }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `board refused the meter report: ${response.status}`,
+      );
+    }
+  }
+
+  /**
    * Ends the run, declaring the residual that accrued but never reached a
    * whole chunk. The board shows it as forgiven, which is what metered billing
    * does below a minimum charge.

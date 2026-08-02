@@ -38,6 +38,8 @@ function fakeWorld(overrides: {
   quotedSat?: number;
   /** Overrides the invoice string outright, for unreadable-amount cases. */
   invoice?: string;
+  /** Status the board returns for a meter report. */
+  meterStatus?: number;
 } = {}) {
   const calls: Call[] = [];
   let clock = 0;
@@ -79,6 +81,10 @@ function fakeWorld(overrides: {
 
     if (url.includes("/api/stream/") && url.endsWith("/stop")) {
       return new Response("{}", { status: 200 });
+    }
+
+    if (url.includes("/api/stream/") && url.endsWith("/meter")) {
+      return new Response("{}", { status: overrides.meterStatus ?? 200 });
     }
 
     if (url.endsWith("/api/receipt")) {
@@ -454,6 +460,49 @@ describe("StreamController", () => {
       "stopping",
       "stopped",
     ]);
+  });
+
+  it("reports the meter to the board as it accrues", async () => {
+    const w = fakeWorld();
+    await w.controller.start();
+
+    w.advance(1500);
+    await w.controller.tick();
+
+    const reports = w.calls.filter((c) => c.url.endsWith("/meter"));
+    assert.ok(reports.length >= 1, "no meter report was sent");
+    assert.deepEqual(reports[0]?.body, { accruedMsat: 1_500_000 });
+  });
+
+  it("keeps paying when the board will not take a meter report", async () => {
+    // The board is a display. Failing to update it must not interrupt the
+    // money, so a rejected report is swallowed.
+    const w = fakeWorld({ meterStatus: 503 });
+    await w.controller.start();
+
+    w.advance(3000);
+    await w.controller.tick();
+
+    assert.equal(w.controller.getState().payments, 1);
+  });
+
+  it("stops reporting once the run has stopped", async () => {
+    const w = fakeWorld();
+    await w.controller.start();
+
+    w.advance(1500);
+    await w.controller.tick();
+    await w.controller.stop();
+
+    const before = w.calls.filter((c) => c.url.endsWith("/meter")).length;
+
+    // A tick after stopping must not resume the meter, or a finished run
+    // would keep accruing on the board.
+    w.advance(5000);
+    await w.controller.tick();
+
+    const after = w.calls.filter((c) => c.url.endsWith("/meter")).length;
+    assert.equal(after, before, "a stopped stream kept reporting");
   });
 
   it("refuses to start twice", async () => {

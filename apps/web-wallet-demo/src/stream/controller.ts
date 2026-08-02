@@ -76,6 +76,13 @@ export interface StreamDeps {
 }
 
 const DEFAULT_TARGET_INTERVAL_MS = 3_000;
+
+/**
+ * How often to tell the board what we owe. Far more often than payments land,
+ * so the board interpolates over a short gap rather than a long one, and stops
+ * quickly when we stop.
+ */
+const METER_REPORT_INTERVAL_MS = 1_000;
 const DEFAULT_MAX_CONSECUTIVE_FAILURES = 3;
 
 export class StreamController {
@@ -98,6 +105,7 @@ export class StreamController {
 
   private registration: StreamRegistration | null = null;
   private lastTickAt = 0;
+  private lastMeterReportAt = 0;
   private seq = 0;
 
   constructor(opts: StreamOptions, deps: StreamDeps) {
@@ -145,6 +153,10 @@ export class StreamController {
     this.seq = 0;
     this.lastTickAt = this.deps.now();
 
+    // Report on the very first tick rather than a second into the run, so the
+    // board starts moving as soon as we do.
+    this.lastMeterReportAt = 0;
+
     this.patch({
       phase: "running",
       streamId: registration.streamId,
@@ -176,6 +188,8 @@ export class StreamController {
         this.state.accruedMsat +
         (this.opts.rateMsatPerSec * elapsedMs) / 1000,
     });
+
+    this.maybeReportMeter(now);
 
     const chunkMsat = this.state.chunkSat * 1000;
     if (this.state.inFlight || this.state.accruedMsat < chunkMsat) {
@@ -209,6 +223,30 @@ export class StreamController {
     }
 
     this.patch({ phase: "stopped" });
+  }
+
+  /**
+   * Tells the board what we owe, at most once per report interval.
+   *
+   * Fire and forget: the board is a display, and failing to update it is not a
+   * reason to interrupt paying. A dropped report just means the board
+   * interpolates a little further before the next one lands.
+   */
+  private maybeReportMeter(now: number): void {
+    const registration = this.registration;
+    if (registration === null) {
+      return;
+    }
+
+    if (now - this.lastMeterReportAt < METER_REPORT_INTERVAL_MS) {
+      return;
+    }
+
+    this.lastMeterReportAt = now;
+
+    void this.board
+      .reportMeter(registration.streamId, this.state.accruedMsat)
+      .catch(() => undefined);
   }
 
   /**
