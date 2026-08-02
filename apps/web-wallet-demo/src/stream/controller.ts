@@ -245,7 +245,11 @@ export class StreamController {
     this.lastMeterReportAt = now;
 
     void this.board
-      .reportMeter(registration.streamId, this.state.accruedMsat)
+      .reportMeter(
+        registration.streamId,
+        this.state.accruedMsat,
+        this.state.chunkSat,
+      )
       .catch(() => undefined);
   }
 

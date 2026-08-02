@@ -81,13 +81,20 @@ export class BoardClient {
    * and an audience can catch that. The payer does the metering, so the payer
    * is the only honest source for the figure.
    */
-  async reportMeter(streamId: string, accruedMsat: number): Promise<void> {
+  async reportMeter(
+    streamId: string,
+    accruedMsat: number,
+    chunkSat: number,
+  ): Promise<void> {
     const response = await this.doFetch(
       `${this.baseUrl}/api/stream/${encodeURIComponent(streamId)}/meter`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ accruedMsat: Math.floor(accruedMsat) }),
+        body: JSON.stringify({
+          accruedMsat: Math.floor(accruedMsat),
+          chunkSat,
+        }),
       },
     );
 

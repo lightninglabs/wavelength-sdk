@@ -471,7 +471,12 @@ describe("StreamController", () => {
 
     const reports = w.calls.filter((c) => c.url.endsWith("/meter"));
     assert.ok(reports.length >= 1, "no meter report was sent");
-    assert.deepEqual(reports[0]?.body, { accruedMsat: 1_500_000 });
+    // The chunk rides along because the board charts the residual against
+    // it; without it the bar has no denominator.
+    assert.deepEqual(reports[0]?.body, {
+      accruedMsat: 1_500_000,
+      chunkSat: 3000,
+    });
   });
 
   it("keeps paying when the board will not take a meter report", async () => {
