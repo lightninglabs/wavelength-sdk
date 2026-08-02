@@ -11,7 +11,11 @@
 // is what a meter is: continuous measurement, discrete settlement.
 
 import { BoardClient, type StreamRegistration } from "./board.ts";
-import { authorizationHeader, parseChallenge } from "./l402.ts";
+import {
+  authorizationHeader,
+  invoiceAmountSat,
+  parseChallenge,
+} from "./l402.ts";
 
 /** How far along a run is. */
 export type StreamPhase =
@@ -178,7 +182,7 @@ export class StreamController {
       return;
     }
 
-    await this.buyTick(chunkMsat);
+    await this.buyTick();
   }
 
   /**
@@ -211,7 +215,7 @@ export class StreamController {
    * Buys one tick: bare request, pay the challenge, present the preimage,
    * discard the token, push the receipt.
    */
-  private async buyTick(chunkMsat: number): Promise<void> {
+  private async buyTick(): Promise<void> {
     const registration = this.registration;
     if (registration === null) {
       return;
@@ -223,6 +227,26 @@ export class StreamController {
 
     try {
       const challenge = await this.requestChallenge(registration.tickEndpoint);
+
+      // The service sets the price, not us, and under metered pricing it
+      // varies per request. Read what was actually quoted before paying, so
+      // the meter is drawn down by the real figure rather than by the chunk we
+      // guessed, and so an absurd quote can be refused rather than paid.
+      const quotedSat = invoiceAmountSat(challenge.invoice);
+      if (quotedSat === null) {
+        throw new Error(
+          "the challenge invoice carries no readable amount, so there is " +
+            "no way to know what paying it would cost",
+        );
+      }
+
+      if (quotedSat > registration.maxSats) {
+        throw new Error(
+          `the service quoted ${quotedSat} sats, above the ${registration.maxSats} ` +
+            `sat ceiling it advertised`,
+        );
+      }
+
       const preimage = await this.deps.payInvoice(challenge.invoice);
 
       // Present the proof of payment to collect the resource. We do not keep
@@ -255,9 +279,14 @@ export class StreamController {
 
       this.seq = seq;
 
+      // Draw the meter down by what was actually paid. Clamped at zero
+      // because a quote larger than the accrual means we have paid ahead,
+      // and owing a negative amount is not a thing.
+      const paidMsat = quotedSat * 1000;
+
       this.patch({
-        accruedMsat: this.state.accruedMsat - chunkMsat,
-        settledSat: this.state.settledSat + this.state.chunkSat,
+        accruedMsat: Math.max(0, this.state.accruedMsat - paidMsat),
+        settledSat: this.state.settledSat + quotedSat,
         payments: this.state.payments + 1,
         consecutiveFailures: 0,
         lastError: pushError,

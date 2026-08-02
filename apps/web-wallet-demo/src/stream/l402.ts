@@ -62,3 +62,48 @@ function quotedParam(header: string, name: string): string {
 
   return match?.[1] ?? "";
 }
+
+/**
+ * Reads the amount out of a BOLT11's human-readable part, in satoshis.
+ *
+ * The controller needs this because the client does not set the price: the
+ * service quotes each tick, and under metered pricing that quote varies per
+ * request. Deducting an assumed chunk instead of what was actually invoiced
+ * would let the meter drift away from the money.
+ *
+ * Only the human-readable part is parsed, which is everything before the final
+ * separator, so this needs no bech32 decode and no crypto. Returns null for an
+ * amountless invoice or one whose amount cannot be read, which the caller must
+ * treat as a refusal rather than as zero.
+ */
+export function invoiceAmountSat(bolt11: string): number | null {
+  // The data part uses bech32's charset, which excludes the digit 1, so the
+  // last 1 in the string is always the separator and an amount can never
+  // contain one.
+  const separator = bolt11.lastIndexOf("1");
+  if (separator <= 0) {
+    return null;
+  }
+
+  const hrp = bolt11.slice(0, separator).toLowerCase();
+  const match = /^ln(?:bcrt|tbs|bc|tb|sb)(\d+)([munp])?$/.exec(hrp);
+  if (match === null) {
+    // Either an amountless invoice or a prefix we do not know. Both are a
+    // refusal: an unreadable amount is not the same as no amount owed.
+    return null;
+  }
+
+  const digits = Number(match[1]);
+  if (!Number.isFinite(digits)) {
+    return null;
+  }
+
+  // Each multiplier is a power of ten, so the conversion is a decimal shift.
+  // Work in millisatoshis and round up, because a sub-satoshi invoice still
+  // costs the payer a whole satoshi.
+  const MSAT_PER_BTC = 1e11;
+  const divisor = { m: 1e3, u: 1e6, n: 1e9, p: 1e12 }[match[2] ?? ""] ?? 1;
+  const msat = (digits * MSAT_PER_BTC) / divisor;
+
+  return Math.ceil(msat / 1000);
+}

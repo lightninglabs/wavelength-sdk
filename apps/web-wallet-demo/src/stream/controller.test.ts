@@ -34,6 +34,10 @@ function fakeWorld(overrides: {
   receiptStatus?: number;
   payInvoice?: (bolt11: string) => Promise<string>;
   rateMsatPerSec?: number;
+  /** What the service quotes per tick, in sats. */
+  quotedSat?: number;
+  /** Overrides the invoice string outright, for unreadable-amount cases. */
+  invoice?: string;
 } = {}) {
   const calls: Call[] = [];
   let clock = 0;
@@ -47,10 +51,16 @@ function fakeWorld(overrides: {
     ...overrides.registration,
   };
 
+  // A BOLT11 human-readable part carrying the quoted amount. Only the prefix
+  // is parsed by the controller, so the data part can be a placeholder.
+  const quotedSat = overrides.quotedSat ?? 1000;
+  const invoice =
+    overrides.invoice ?? `lnbcrt${quotedSat * 10}n1placeholder`;
+
   const challengeHeader =
     overrides.wwwAuthenticate === undefined
-      ? `LSAT macaroon="bWFj", invoice="lnbcrt10u1invoice", ` +
-        `L402 macaroon="bWFj", invoice="lnbcrt10u1invoice"`
+      ? `LSAT macaroon="bWFj", invoice="${invoice}", ` +
+        `L402 macaroon="bWFj", invoice="${invoice}"`
       : overrides.wwwAuthenticate;
 
   const doFetch: typeof fetch = async (input, init) => {
@@ -111,6 +121,8 @@ function fakeWorld(overrides: {
   return {
     controller,
     calls,
+    invoice,
+    quotedSat,
     advance: (ms: number) => {
       clock += ms;
     },
@@ -167,12 +179,15 @@ describe("StreamController", () => {
 
       const state = w.controller.getState();
       assert.equal(state.payments, 1);
-      assert.equal(state.settledSat, 3000);
+
+      // The service quoted 1000 sats, so 1000 is what settles, whatever the
+      // client's chunk arithmetic hoped for.
+      assert.equal(state.settledSat, 1000);
       assert.equal(state.lastError, null);
 
-      // The accrual is drawn down by exactly one chunk rather than reset, so
-      // a payment that lands late does not silently forgive the overshoot.
-      assert.equal(state.accruedMsat, 0);
+      // The accrual is drawn down by what was actually paid rather than
+      // reset, so the remaining 2000 sats stay owed.
+      assert.equal(state.accruedMsat, 2_000_000);
 
       const ticks = w.ticksTo(TICK_ENDPOINT);
       assert.equal(ticks.length, 2, "one bare ask and one paid retry");
@@ -188,7 +203,7 @@ describe("StreamController", () => {
 
       const receipt = w.calls.find((c) => c.url.endsWith("/api/receipt"));
       assert.deepEqual(receipt?.body, {
-        bolt11: "lnbcrt10u1invoice",
+        bolt11: w.invoice,
         preimage: "ab".repeat(32),
         streamId: "stream-1",
         seq: 1,
@@ -307,9 +322,72 @@ describe("StreamController", () => {
 
     // The money moved. A display that is down must not un-spend it.
     assert.equal(state.payments, 1);
-    assert.equal(state.settledSat, 3000);
+    assert.equal(state.settledSat, 1000);
     assert.match(state.lastError ?? "", /board rejected the receipt/);
     assert.equal(state.phase, "running");
+  });
+
+  it("settles the amount the service quoted, not the chunk it guessed",
+    async () => {
+      // The client's arithmetic wants 3000 sats a tick; the service charges
+      // 500. Under metered pricing this is the normal case, not an edge one.
+      const w = fakeWorld({ quotedSat: 500 });
+      await w.controller.start();
+
+      w.advance(3000);
+      await w.controller.tick();
+
+      const state = w.controller.getState();
+      assert.equal(state.settledSat, 500);
+      assert.equal(
+        state.accruedMsat,
+        2_500_000,
+        "the unpaid remainder must stay owed",
+      );
+    });
+
+  it("refuses a quote above the ceiling the service advertised", async () => {
+    const w = fakeWorld({ quotedSat: 500_000 });
+    await w.controller.start();
+
+    w.advance(3000);
+    await w.controller.tick();
+
+    const state = w.controller.getState();
+    assert.equal(state.payments, 0);
+    assert.match(state.lastError ?? "", /above the .* ceiling/);
+
+    // Nothing was paid, so nothing was spent and the debt survives.
+    assert.equal(state.accruedMsat, 3_000_000);
+  });
+
+  it("refuses an invoice whose amount cannot be read", async () => {
+    // An amountless invoice. Treating an unreadable amount as zero would let
+    // the meter drain against payments of unknown size.
+    const w = fakeWorld({ invoice: "lnbcrt1placeholder" });
+    await w.controller.start();
+
+    w.advance(3000);
+    await w.controller.tick();
+
+    assert.equal(w.controller.getState().payments, 0);
+    assert.match(
+      w.controller.getState().lastError ?? "",
+      /no readable amount/,
+    );
+  });
+
+  it("never lets the meter go negative when it pays ahead", async () => {
+    const w = fakeWorld({ quotedSat: 5000 });
+    await w.controller.start();
+
+    // Only 3000 sats have accrued, but the tick costs 5000.
+    w.advance(3000);
+    await w.controller.tick();
+
+    const state = w.controller.getState();
+    assert.equal(state.settledSat, 5000);
+    assert.equal(state.accruedMsat, 0, "owing a negative amount is not a thing");
   });
 
   it("refuses an endpoint that serves without payment", async () => {
@@ -345,7 +423,7 @@ describe("StreamController", () => {
     const w = fakeWorld();
     await w.controller.start();
 
-    // One full chunk plus a third of another.
+    // Accrue 4000 sats, of which one 1000 sat tick settles.
     w.advance(4000);
     await w.controller.tick();
 
@@ -354,7 +432,7 @@ describe("StreamController", () => {
     assert.equal(w.controller.getState().phase, "stopped");
 
     const stop = w.calls.find((c) => c.url.endsWith("/stop"));
-    assert.deepEqual(stop?.body, { forgivenMsat: 1_000_000 });
+    assert.deepEqual(stop?.body, { forgivenMsat: 3_000_000 });
   });
 
   it("notifies subscribers as the run progresses", async () => {
