@@ -17,6 +17,22 @@ import {
 export class ActivityStream {
   #running = false;
   #cursor = 0;
+  /**
+   * Preimages seen on the stream, keyed by payment hash.
+   *
+   * The daemon reveals a send's preimage exactly once, on the entry it pushes
+   * when the swap settles, and omits it from the list snapshot that every
+   * later refresh reads. Without remembering it here the field is unreachable
+   * through any public API: the stream event is consumed for its cursor and
+   * the body discarded, and the refresh that follows overwrites the entry with
+   * a copy that has none.
+   *
+   * That matters because a preimage is proof of payment, and the only way a
+   * caller can demonstrate to a third party that an invoice was actually
+   * settled. Holding them in memory is enough: they are re-delivered on the
+   * includeExisting replay when a stream reopens.
+   */
+  #preimages = new Map<string, string>();
   #backoff = STREAM_BACKOFF_MS;
   #failures = 0;
   #lifecycleGeneration = 0;
@@ -62,18 +78,39 @@ export class ActivityStream {
     this.#running = false;
     this.#lifecycleGeneration += 1;
     this.#cursor = 0;
+    this.#preimages.clear();
     clearTimeout(this.#retryTimer);
     clearTimeout(this.#debounce);
     this.#opts.client.stopActivity();
   }
 
+  /**
+   * Returns the preimage seen for a payment hash, or undefined. It is the only
+   * route to a settled send's proof of payment; see #preimages.
+   */
+  preimageFor(paymentHash: string): string | undefined {
+    return this.#preimages.get(paymentHash);
+  }
+
+  /** Every preimage seen so far, for merging into a refreshed snapshot. */
+  preimages(): ReadonlyMap<string, string> {
+    return this.#preimages;
+  }
+
   /** Forwarded 'activity' client events; debounced into one onActivity call. */
-  noteActivity(entry: Pick<Entry, 'cursor'>): void {
+  noteActivity(entry: Pick<Entry, 'cursor'> & Partial<Entry>): void {
     if (!this.#running) {
       return;
     }
     if (Number.isSafeInteger(entry.cursor) && entry.cursor > this.#cursor) {
       this.#cursor = entry.cursor;
+    }
+
+    // Capture the proof before the body is dropped. This is the only moment
+    // it exists anywhere the SDK can see.
+    const progress = entry.progress;
+    if (progress?.paymentHash && progress.preimage) {
+      this.#preimages.set(progress.paymentHash, progress.preimage);
     }
     clearTimeout(this.#debounce);
     this.#debounce = setTimeout(() => this.#opts.onActivity(), ACTIVITY_DEBOUNCE_MS);
