@@ -21,7 +21,7 @@ export function Field({
   value?: string;
   onChange?: (next: string) => void;
   mono?: boolean;
-  inputMode?: "numeric" | "text";
+  inputMode?: "numeric" | "decimal" | "text";
   disabled?: boolean;
 }) {
   return (

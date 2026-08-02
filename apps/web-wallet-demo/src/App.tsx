@@ -37,6 +37,7 @@ import {
 } from "./screens/onboarding";
 import { ReceiveScreen } from "./screens/receive";
 import { SendScreen } from "./screens/send";
+import { StreamScreen } from "./screens/stream";
 import { ActivityScreen } from "./screens/activity";
 import { SettingsScreen } from "./screens/settings";
 import { ExitScreen } from "./screens/exit";
@@ -350,6 +351,7 @@ export function App() {
       {tab === "send" ? (
         <SendScreen onNavigate={setTab} balanceSat={balanceSat(balance)} />
       ) : null}
+      {tab === "stream" ? <StreamScreen onNavigate={setTab} /> : null}
       {tab === "activity" ? <ActivityScreen onNavigate={setTab} /> : null}
       {tab === "settings" ? (
         <SettingsScreen

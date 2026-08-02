@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   LayoutGrid,
   type LucideIcon,
+  Radio,
   Settings,
 } from "lucide-react";
 
@@ -15,6 +16,7 @@ export type AppTab =
   | "send"
   | "activity"
   | "settings"
+  | "stream"
   | "exit";
 
 // NAV is the primary navigation, shared by the top navbar and the mobile
@@ -31,6 +33,7 @@ export const NAV: Array<{
   { id: "activity", label: "Activity", icon: Activity, iconClass: "text-teal" },
   { id: "receive", label: "Receive", icon: ArrowDownLeft, iconClass: "text-sky" },
   { id: "send", label: "Send", icon: ArrowUpRight, iconClass: "text-orange" },
+  { id: "stream", label: "Stream", icon: Radio, iconClass: "text-orange" },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
