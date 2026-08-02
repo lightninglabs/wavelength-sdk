@@ -6,6 +6,7 @@
     "preview": "vite preview",
     "build": "vite build",
     "test": "playwright test",
+    "test:unit": "node --test 'src/**/*.test.ts'",
     "test:signet": "playwright test --config=playwright.signet.config.js",
     "typecheck": "tsc --noEmit",
     "wasm:local": "bash scripts/wasm-local.sh",
