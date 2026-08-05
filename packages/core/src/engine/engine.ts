@@ -598,7 +598,16 @@ class WavelengthEngine implements WalletEngine {
   list(req: ListRequest): Promise<ListResult> {
     this.#assertNotDisposed();
     // Listing reads state, so nothing to refresh.
-    return this.client.list(req);
+    return this.client.list(req).then((result) => {
+      if (!result.activity) return result;
+      return {
+        ...result,
+        activity: {
+          ...result.activity,
+          entries: restorePreimages(result.activity.entries, this.#stream.preimages()),
+        },
+      };
+    });
   }
 
   clearLogs(): void {
@@ -692,7 +701,10 @@ class WavelengthEngine implements WalletEngine {
     if (snap.phase === 'stopping' || snap.phase === 'stopped') {
       return snap.balance;
     }
-    const entries: Entry[] = rows.activity?.entries || [];
+    const entries: Entry[] = restorePreimages(
+      rows.activity?.entries || [],
+      this.#stream.preimages(),
+    );
     const nextInfo = stabilize(snap.info, info);
     const nextBalance = stabilize(snap.balance, balance);
     const nextActivity = stabilize(snap.activity, entries);
@@ -849,4 +861,39 @@ class WavelengthEngine implements WalletEngine {
   #rejectRestoreOnTeardown(): void {
     this.#rejectRestore(new Error('the runtime stopped during the restore'));
   }
+}
+
+/**
+ * Puts back the preimages the list snapshot drops.
+ *
+ * The daemon reveals a send's preimage once, on the stream entry it pushes at
+ * settle, and never again: every list read returns the entry with the field
+ * empty. So a refresh would otherwise erase proof of payment that the SDK had
+ * already seen, and a caller who blinked would have no way to get it back.
+ *
+ * Entries that already carry a preimage, or for which none was ever seen, are
+ * returned untouched, so this allocates nothing in the ordinary case and never
+ * invents a value it was not given.
+ */
+export function restorePreimages(
+  entries: readonly Entry[],
+  preimages: ReadonlyMap<string, string>,
+): Entry[] {
+  if (preimages.size === 0) {
+    return entries as Entry[];
+  }
+
+  return entries.map((entry) => {
+    const progress = entry.progress;
+    if (!progress?.paymentHash || progress.preimage) {
+      return entry;
+    }
+
+    const preimage = preimages.get(progress.paymentHash);
+    if (preimage === undefined) {
+      return entry;
+    }
+
+    return { ...entry, progress: { ...progress, preimage } };
+  });
 }
