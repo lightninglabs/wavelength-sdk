@@ -142,6 +142,17 @@ export interface Config {
    */
   maxOperatorFeeSat: number /* int64 */;
   /**
+   * AutoRefreshFeeFloorSat is the optional fixed allowance in the
+   * automatic-maintenance budget curve. Zero disables the floor.
+   */
+  autoRefreshFeeFloorSat: number /* int64 */;
+  /**
+   * AutoRefreshFeeRatePPM is the optional proportional allowance in the
+   * automatic-maintenance budget curve. Zero disables this component.
+   * MaxOperatorFeeSat remains the hard ceiling over the whole curve.
+   */
+  autoRefreshFeeRatePPM: number /* uint32 */;
+  /**
    * SigningWorkers bounds concurrent VTXO MuSig2 signer sessions. Zero
    * selects the wallet-backend default and one forces serial signing.
    */
