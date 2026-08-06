@@ -95,7 +95,23 @@ inside `@lightninglabs/wavelength-web`. When you upgrade the SDK, obtain and
 redeploy the matching WASM bundle. Mismatched versions can fail at load time or
 produce subtle runtime errors.
 
-**Compression.** The client prefers `wavewalletdk.wasm.gz` when the browser
-supports `DecompressionStream` and falls back to the uncompressed
-`wavewalletdk.wasm`. Host both files so every supported browser can load the
-runtime.
+**Compression.** The client fetches `wavewalletdk.wasm.gz` first and falls back
+to the uncompressed `wavewalletdk.wasm` if it cannot be used. Host both files so
+every supported browser can load the runtime.
+
+No particular *compression* headers are required. The client reads the file's
+first bytes and branches on the magic number rather than on `Content-Type` or
+`Content-Encoding`, so a body your host serves compressed, one it has already
+inflated, and one labelled `application/gzip` all load the same way, and
+compilation streams in every case. Compress it however your host makes easiest.
+
+Other headers still matter: a cross-origin `runtimeBaseUrl` needs
+`Cross-Origin-Resource-Policy: cross-origin` on these assets, covered in
+[cross-origin isolation](/web/get-started/cross-origin-isolation/).
+
+Do still set long-lived cache headers, but note that the browser will not keep a
+module this large in its HTTP cache regardless of what you send. The SDK
+therefore keeps its own copy in Cache Storage so returning visitors do not
+re-download it; see [Data &
+persistence](/web/runtime/data-and-persistence/#the-runtime-cache) for what that
+stores and when it is pruned.

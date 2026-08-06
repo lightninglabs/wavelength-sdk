@@ -26,8 +26,11 @@ What it demonstrates:
   ready, stopped, and error screens driven by `phase` and `useWalletInfo()`,
   with a wallet list and a create/restore flow shown before any engine starts.
 - **Password and passkey onboarding** via `useWalletCreate` / `useWalletUnlock` and
-  `useWalletPasskey(webPasskeyCeremony)`, with the credential id persisted on
+  `useWalletPasskey(...)`, with the credential id persisted on
   the wallet's registry entry for scoped unlock (`src/lib/walletRegistry.ts`).
+  The demo passes a ceremony built with `createWebPasskeyCeremony` so passkey
+  timing lands on the same sink as its other performance samples;
+  `webPasskeyCeremony` is the equivalent without instrumentation.
 - **Core wallet flows**: deposit address, Lightning receive, send (prepare and
   confirm), balance and activity, and settings.
 - **Network presets** for signet, testnet, and regtest, each wallet permanently

@@ -1,8 +1,11 @@
 import {
   BaseWavelengthClient,
+  RUNTIME_MANIFEST_VERSION,
   WavelengthError,
   WavelengthEventType,
   validateRuntimeConfig,
+  type WavelengthPerformanceEvent,
+  type WavelengthPerformanceListener,
 } from '@lightninglabs/wavelength-core';
 import type {
   ActivityStreamOptions,
@@ -23,6 +26,7 @@ import {
   isWalletLockedMessage,
 } from '../runtime-lock.ts';
 import type { RuntimeLockLease } from '../runtime-lock.ts';
+import { performanceNow, reportPerformance } from '../performance.ts';
 import { PendingCall, errorMessage, toWavelengthEvent } from '../util.ts';
 
 type WorkerControlMethod = '$ready' | '$startActivity' | '$stopActivity';
@@ -64,6 +68,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
       this.emit({ type: 'log', payload: { level: 'warn', message } }),
   });
   private readonly options: WebClientOptions;
+  private readonly onPerformance: WavelengthPerformanceListener | undefined;
   private nextRequestID = 1;
   // The lease held by the running session, threaded into every teardown so a
   // release only frees the lock when this session still owns it.
@@ -78,6 +83,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   constructor(options: WebClientOptions = {}) {
     super();
     this.options = options;
+    this.onPerformance = options.onPerformance;
     this.worker = this.spawnWorker();
   }
 
@@ -115,7 +121,17 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     // the fingerprinted worker URL can't carry them as query params, so they
     // arrive as the first message (see the worker's $init handler).
     worker.postMessage({
-      $init: { runtimeBaseUrl: base, debug: options.debug ?? false },
+      $init: {
+        runtimeBaseUrl: base,
+        // Names the worker's runtime cache bucket. It cannot import the
+        // constant, and without it the worker leaves caching off.
+        runtimeVersion: RUNTIME_MANIFEST_VERSION,
+        // Absent means enabled, so an older worker paired with a newer client
+        // keeps caching rather than silently losing it.
+        runtimeCache: options.runtimeCache ?? true,
+        debug: options.debug ?? false,
+        performance: Boolean(options.onPerformance),
+      },
     });
     this.runtimeExited = false;
 
@@ -172,8 +188,27 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     });
   }
 
-  ready(): Promise<void> {
-    return this.request('$ready').then(() => undefined);
+  async ready(): Promise<void> {
+    const startedAt = this.onPerformance ? performanceNow() : undefined;
+    // A $ready that rejected still reports, because the time was really spent,
+    // but it is tagged so a consumer can keep abandoned work out of a latency
+    // distribution rather than having to infer the failure from the duration.
+    let outcome = 'success';
+    try {
+      await this.request('$ready');
+    } catch (err) {
+      outcome = 'error';
+      throw err;
+    } finally {
+      if (startedAt !== undefined) {
+        reportPerformance(this.onPerformance, {
+          stage: 'runtime',
+          phase: 'workerReady',
+          durationMs: performanceNow() - startedAt,
+          detail: { outcome },
+        });
+      }
+    }
   }
 
   // start and stop are serialized against each other so a host's overlapping
@@ -377,7 +412,14 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
       error?: string;
       event?: { type: WavelengthEventType; payload?: unknown };
       fatal?: { message?: string };
+      performance?: WavelengthPerformanceEvent;
     };
+
+    if (data.performance) {
+      reportPerformance(this.onPerformance, data.performance);
+
+      return;
+    }
 
     if (data.fatal) {
       // The worker's runtime exited. Kill the worker to free its OPFS handles,

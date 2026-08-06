@@ -39,6 +39,7 @@ const coreSymbols = [
   'ExitInfeasibilityReason', 'SweepWalletRequest', 'SweepWalletResult', 'WalletSweepInput',
   'ActivityStreamPayload', 'ActivityStreamState', 'WalletPhase', 'ServerTransport',
   'MobileConfig', 'DistributiveOmit',
+  'WavelengthPerformanceEvent', 'WavelengthPerformanceListener',
 ];
 
 const reactSymbols = [
@@ -54,8 +55,8 @@ const reactSymbols = [
 const webSymbols = [
   'createWebClient', 'WebClientOptions', 'RuntimeThread', 'createWebWalletEngine',
   'MainThreadWavelengthClient', 'RUNTIME_ASSETS', 'RUNTIME_ASSET_FILES',
-  'RUNTIME_MANIFEST_VERSION', 'webPasskeyCeremony', 'supportsPasskeyPrf',
-  'registerPasskeyWallet', 'assertPasskeyPrf',
+  'RUNTIME_MANIFEST_VERSION', 'webPasskeyCeremony', 'createWebPasskeyCeremony',
+  'supportsPasskeyPrf', 'registerPasskeyWallet', 'assertPasskeyPrf',
   'WebWalletEngineOptions',
 ];
 

@@ -38,7 +38,9 @@ export const webClientOptionsSig = `type WebClientOptions = {
   workerURL?: string;
   runtimeBaseUrl?: string;
   runtimeThread?: RuntimeThread;
+  runtimeCache?: boolean;
   debug?: boolean;
+  onPerformance?: WavelengthPerformanceListener;
 };`;
 
 export const createWebWalletEngineSig = `function createWebWalletEngine(
@@ -72,20 +74,22 @@ export const runtimeAssetsSig = `const RUNTIME_ASSETS: {
 
 export const runtimeManifestVersionSig = `const RUNTIME_MANIFEST_VERSION: string;`;
 
-export const passkeyCeremonySig = `const webPasskeyCeremony: PasskeyCeremony = {
-  supportsPasskeyPrf,
-  registerPasskeyWallet,
-  assertPasskeyPrf,
-};`;
+export const passkeyCeremonySig = `const webPasskeyCeremony: PasskeyCeremony;`;
+
+export const createWebPasskeyCeremonySig = `function createWebPasskeyCeremony(
+  options?: { onPerformance?: WavelengthPerformanceListener },
+): PasskeyCeremony`;
 
 export const supportsPasskeyPrfSig = `function supportsPasskeyPrf(): Promise<boolean>;`;
 
 export const registerPasskeyWalletSig = `function registerPasskeyWallet(
   appName: string,
+  onPerformance?: WavelengthPerformanceListener,
 ): Promise<PasskeyAssertion>;`;
 
 export const assertPasskeyPrfSig = `function assertPasskeyPrf(
   allowCredentialId?: string,
+  onPerformance?: WavelengthPerformanceListener,
 ): Promise<PasskeyAssertion>;`;
 
 export const passkeyAssertionSig = `type PasskeyAssertion = {
@@ -194,6 +198,8 @@ Browser-specific options for `createWebClient`. The config passed to
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Base URL the daemon runtime binaries (wavewalletdk.wasm.gz, wasm_exec.js, sqlite-*.js) are resolved against. Unset resolves relative to the document: worker mode computes the document base URL and forwards it to the worker so it resolves page-relative just like main-thread mode. Default: unset (page-relative).' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Which thread runs the WASM runtime. \'main\' produces a MainThreadWavelengthClient that blocks rendering while busy; use it only when Worker support is unavailable. Default: \'worker\'.' },
   { name: 'debug', type: 'boolean', desc: 'Logs every RPC request and response payload to the console. Payloads can include addresses and amounts, so treat this as a development-only aid and never enable it in a shipped app. Main-thread mode logs facade calls directly; worker mode forwards the flag into the worker so it can log there too. Default: false.' },
+  { name: 'runtimeCache', type: 'boolean', desc: 'Keeps a copy of the daemon runtime in Cache Storage so a returning visitor reads it from disk instead of downloading it again. Set false to take every runtime binary from the network, which is what you want while iterating on a local daemon build: rebuilding at the same RUNTIME_MANIFEST_VERSION produces new bytes under a bucket name that has not changed, and DevTools\' "Disable cache" governs only the HTTP cache, so it will not help. Turning it off deletes nothing: an existing bucket is left as it is and simply not read or written, so turning it back on resumes from it. Default: true.' },
+  { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Receives structured timing samples for runtime readiness and wasm loading. Instrumentation stays off unless this is supplied: with it omitted no timing is measured and no samples are delivered. A listener that throws cannot break wallet work. Pass the same callback to createWebWalletEngine to also cover wallet RPCs, info adoption and sync polling. Default: unset (disabled).' },
 ]} />
 
 </ApiSymbol>
@@ -236,6 +242,8 @@ The browser-specific settings from `WebClientOptions` combined with [`WalletEngi
   { name: 'runtimeBaseUrl', type: 'string', desc: 'Same as WebClientOptions.runtimeBaseUrl.' },
   { name: 'runtimeThread', type: 'RuntimeThread', desc: 'Same as WebClientOptions.runtimeThread.' },
   { name: 'debug', type: 'boolean', desc: 'Same as WebClientOptions.debug.' },
+  { name: 'runtimeCache', type: 'boolean', desc: 'Same as WebClientOptions.runtimeCache.' },
+  { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Same as WebClientOptions.onPerformance, and forwarded to the engine as well, so one listener covers runtime loading plus wallet RPCs, info adoption and sync polling.' },
   { name: 'config', type: 'RuntimeConfig', desc: 'Required when autoStart is true. Default runtime config used by autoStart and by the engine\'s start() when called with no argument.' },
   { name: 'autoStart', type: 'true | false', desc: 'Optional. Start the runtime automatically once it is ready. Setting it to true requires config.' },
 ]} />
@@ -359,18 +367,29 @@ from:
   (`document.baseURI`) on the main thread and forwards it to the worker as
   part of its `$init` message, keeping worker mode and main-thread mode
   page-relative in the same way.
-- **Compressed-first wasm loading:** the client prefers the gzip-compressed
-  `wavewalletdk.wasm.gz` binary, inflating it through a `DecompressionStream` and
-  instantiating the resulting bytes, when the browser supports
-  `DecompressionStream`. If that path fails (or the API is unavailable), it
-  falls back to fetching the uncompressed `wavewalletdk.wasm` and instantiating
-  it via `WebAssembly.instantiateStreaming`.
-- **Streaming-to-ArrayBuffer fallback:** `instantiateStreaming` requires the
-  server to serve the wasm response with an `application/wasm` content type.
-  If the host is misconfigured and omits it, streaming instantiation throws
-  and the client retries by reading the same response into an `ArrayBuffer`
-  and calling `WebAssembly.instantiate` on the bytes directly, so a
-  misconfigured MIME type does not break self-hosted runtimes.
+- **Compressed-first wasm loading:** the client fetches the gzip-compressed
+  `wavewalletdk.wasm.gz` binary first and falls back to the uncompressed
+  `wavewalletdk.wasm` only if that asset cannot be loaded at all.
+- **The body decides, not the headers:** both assets go through one loader,
+  which reads the first four bytes and branches on the magic number
+  (`1f 8b` for gzip, `00 61 73 6d` for wasm) rather than on `Content-Type` or
+  `Content-Encoding`. That matters because neither header is trustworthy: a
+  host may label the compressed file `application/gzip`, or serve it already
+  inflated, and `Content-Encoding` is not a CORS-safelisted response header, so
+  cross-origin it is often invisible even when the transport did decode the
+  body. Reading the bytes means every one of those configurations lands on the
+  same path and none of them falls back to the larger uncompressed asset
+  unnecessarily. It also means you do not have to configure anything for the
+  compressed asset to work.
+- **Streaming throughout:** the loader rewraps the body in a response it labels
+  `application/wasm` itself and hands that to
+  `WebAssembly.instantiateStreaming`, so compilation overlaps the download. When
+  the bytes are gzip they are piped through a `DecompressionStream` on the way,
+  which keeps the compressed path streaming too rather than buffering the whole
+  module first. Labelling the response is what makes this independent of the
+  host's own `Content-Type`, which `instantiateStreaming` would otherwise
+  reject. A gzip body on a browser with no `DecompressionStream` is the one case
+  that falls back to `wavewalletdk.wasm`.
 - **Worker entry resolution:** the worker script itself (unlike the daemon
   binaries above) ships inside `@lightninglabs/wavelength-web` and is emitted
   by your bundler via `new URL('../wavewalletdk-worker.js', import.meta.url)`, so
@@ -388,11 +407,36 @@ for a complete self-hosting walkthrough.
 <ApiSymbol name="webPasskeyCeremony" kind="const">
 
 Browser (WebAuthn/PRF) implementation of the
-[`PasskeyCeremony`](/reference/wavelength-core/#PasskeyCeremony) contract. It is
-literally the three standalone functions below grouped into one object; pass
-it to `useWalletPasskey` from wavelength-react, or call the functions directly.
+[`PasskeyCeremony`](/reference/wavelength-core/#PasskeyCeremony) contract,
+built from the three standalone functions below with instrumentation left off.
+Pass it to `useWalletPasskey` from wavelength-react, or call the functions
+directly. It is a stable module-level value, so it is safe to pass straight to
+a hook dependency list.
 
 <Signature title="wavelength-web.d.ts" code={passkeyCeremonySig} />
+
+</ApiSymbol>
+
+<ApiSymbol name="createWebPasskeyCeremony" kind="function">
+
+Builds a browser [`PasskeyCeremony`](/reference/wavelength-core/#PasskeyCeremony)
+that reports ceremony timing. Use this instead of `webPasskeyCeremony` when you
+want passkey samples on the same sink as runtime and wallet timing; with no
+options it behaves identically.
+
+Call it once and keep the result, rather than calling it inside a render: each
+call returns a new object, and hooks that take a ceremony compare it by
+identity.
+
+<Signature title="wavelength-web.d.ts" code={createWebPasskeyCeremonySig} />
+
+<ParamsTable rows={[
+  { name: 'options.onPerformance', type: 'WavelengthPerformanceListener', desc: 'Receives a sample per ceremony, tagged with the outcome so cancellations are distinguishable from errors. Phases are registerCeremony and assertCeremony; note that one registerPasskeyWallet call emits both when the browser omits the PRF result from create() and registration falls back to an assertion. Omit it to keep instrumentation disabled. Default: unset (disabled).' },
+]} />
+
+<Returns type="PasskeyCeremony">
+A ceremony forwarding the listener into `registerPasskeyWallet` and `assertPasskeyPrf`.
+</Returns>
 
 </ApiSymbol>
 
@@ -428,6 +472,7 @@ reliably without prompting a chooser.
 
 <ParamsTable rows={[
   { name: 'appName', type: 'string', desc: 'Used as both the WebAuthn relying-party name (rp.name) and the account display name shown by the platform passkey UI.' },
+  { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Optional. Receives a registerCeremony sample tagged with the outcome, so a cancellation is distinguishable from an error. When the browser omits the PRF result from create() this falls back to an assertion, which emits its own assertCeremony sample, so a single call can produce two. Omit it to keep instrumentation disabled. Default: unset (disabled).' },
 ]} />
 
 <Returns type="Promise<PasskeyAssertion>">
@@ -445,6 +490,7 @@ id used.
 
 <ParamsTable rows={[
   { name: 'allowCredentialId', type: 'string', desc: 'Optional. When set, the assertion is scoped to that one credential (base64url id from a prior PasskeyAssertion.credentialId) so the OS unlocks it directly without a chooser. When omitted, the assertion is discoverable (an empty allowCredentials list) so a synced passkey can be offered even on a device that has never seen this wallet.' },
+  { name: 'onPerformance', type: 'WavelengthPerformanceListener', desc: 'Optional. Receives one assertCeremony sample for this call, tagged with the outcome so a cancellation is distinguishable from an error. Omit it to keep instrumentation disabled. Default: unset (disabled).' },
 ]} />
 
 <Returns type="Promise<PasskeyAssertion>">

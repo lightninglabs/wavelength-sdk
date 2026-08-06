@@ -225,3 +225,68 @@ describe('wavewalletdk worker activity lifecycle', () => {
     await onmessage({ data: { id: 4, method: '$stopActivity' } });
   });
 });
+
+describe('wavewalletdk worker runtime cache option', () => {
+  async function loadWorker() {
+    const source = await readFile(
+      new URL('./wavewalletdk-worker.js', import.meta.url),
+      'utf8',
+    );
+    let opens = 0;
+    const deletes: string[] = [];
+    const self: Record<string, unknown> = {
+      postMessage: () => undefined,
+      addEventListener: () => undefined,
+      caches: {
+        open: async () => {
+          opens += 1;
+          return {};
+        },
+        keys: async () => ['wavelength-runtime-v1-old'],
+        delete: async (name: string) => {
+          deletes.push(name);
+          return true;
+        },
+      },
+    };
+    const context: Record<string, unknown> = {
+      self,
+      console,
+      URL,
+      Event: class Event {},
+      setTimeout,
+      clearTimeout,
+    };
+    vm.runInNewContext(source, context);
+
+    return {
+      context,
+      onmessage: self.onmessage as (event: unknown) => Promise<void>,
+      opens: () => opens,
+      deletes: () => deletes,
+    };
+  }
+
+  it('never opens the bucket when the client disables the cache', async () => {
+    const w = await loadWorker();
+    await w.onmessage({
+      data: { $init: { runtimeVersion: 'v1.2.3', runtimeCache: false } },
+    });
+
+    const openRuntimeCache = w.context.openRuntimeCache as () => Promise<unknown>;
+    assert.equal(await openRuntimeCache(), undefined);
+    // Not opening is what keeps an existing bucket untouched: the superseded
+    // sweep runs from inside open, so declining to open declines to prune.
+    assert.equal(w.opens(), 0);
+    assert.deepEqual(w.deletes(), []);
+  });
+
+  it('caches when $init omits the flag, so an older client keeps working', async () => {
+    const w = await loadWorker();
+    await w.onmessage({ data: { $init: { runtimeVersion: 'v1.2.3' } } });
+
+    const openRuntimeCache = w.context.openRuntimeCache as () => Promise<unknown>;
+    assert.ok(await openRuntimeCache());
+    assert.equal(w.opens(), 1);
+  });
+});

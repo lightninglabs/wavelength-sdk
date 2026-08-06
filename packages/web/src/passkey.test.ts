@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import {
   PASSKEY_PRF_SALT_HEX,
   PasskeyCancelledError,
+  type WavelengthPerformanceEvent,
 } from "@lightninglabs/wavelength-core";
 import {
   assertPasskeyPrf,
@@ -227,14 +228,34 @@ describe("registerPasskeyWallet", () => {
     assert.equal(get.mock.callCount(), 0);
   });
 
+  it("reports the browser registration ceremony when opted in", async () => {
+    const samples: WavelengthPerformanceEvent[] = [];
+    const create = mock.fn(async () => ({
+      id: "cred-profiled",
+      getClientExtensionResults: () => ({
+        prf: { results: { first: PRF32_BYTES.buffer } },
+      }),
+    }));
+    stubGlobal("navigator", { credentials: { create } });
+
+    await registerPasskeyWallet("My App", (sample) => samples.push(sample));
+
+    assert.equal(samples.length, 1);
+    assert.equal(samples[0].stage, "passkey");
+    assert.equal(samples[0].phase, "registerCeremony");
+    assert.deepEqual(samples[0].detail, { outcome: "success" });
+  });
+
   it("throws when navigator.credentials.create resolves to null (cancellation)", async () => {
+    const samples: WavelengthPerformanceEvent[] = [];
     const create = mock.fn(async () => null);
     stubGlobal("navigator", { credentials: { create } });
 
     await assert.rejects(
-      () => registerPasskeyWallet("My App"),
+      () => registerPasskeyWallet("My App", (sample) => samples.push(sample)),
       /passkey registration was cancelled/,
     );
+    assert.deepEqual(samples[0].detail, { outcome: "cancelled" });
   });
 
   it("falls back to a scoped assertion when create() omits PRF", async () => {

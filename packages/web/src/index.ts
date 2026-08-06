@@ -1,13 +1,15 @@
 import {
   WavelengthClient,
-  PasskeyCeremony,
   createWalletEngine,
   type DistributiveOmit,
+  type PasskeyCeremony,
+  type WavelengthPerformanceListener,
   type WalletEngine,
   type WalletEngineOptions,
 } from '@lightninglabs/wavelength-core';
 import {
   assertPasskeyPrf,
+  createWebPasskeyCeremony,
   registerPasskeyWallet,
   supportsPasskeyPrf,
 } from './passkey.ts';
@@ -54,6 +56,27 @@ export type WebClientOptions = {
    * debugging and never on for a shipped app.
    */
   debug?: boolean;
+  /**
+   * Receives structured runtime timing samples. Omit it to disable
+   * instrumentation and its timing calls.
+   */
+  onPerformance?: WavelengthPerformanceListener;
+  /**
+   * Keep a copy of the daemon runtime in Cache Storage so a returning visitor
+   * reads it from disk instead of downloading it again. Defaults to true.
+   *
+   * Set false to take every runtime binary from the network. This is what you
+   * want while iterating on a local daemon build: rebuilding at the same
+   * RUNTIME_MANIFEST_VERSION produces a new binary at a bucket name that has
+   * not changed, so the cached copy would keep being served instead. The
+   * browser gives you no way out of this on its own; DevTools' "Disable cache"
+   * governs the HTTP cache only and leaves Cache Storage untouched.
+   *
+   * Turning it off does not delete anything. An existing bucket is left exactly
+   * as it is, and simply not read from or written to, so flipping this back on
+   * resumes where it left off. To reclaim the space, clear site data.
+   */
+  runtimeCache?: boolean;
 };
 
 /**
@@ -86,26 +109,43 @@ export type WebWalletEngineOptions = WebClientOptions &
 export function createWebWalletEngine(
   options: WebWalletEngineOptions = {},
 ): WalletEngine {
-  const { workerURL, runtimeBaseUrl, runtimeThread, debug, ...engineOptions } =
-    options;
+  // Every WebClientOptions field has to be named twice here, because the rest
+  // has to stay intact for createWalletEngine: spreading it is what preserves
+  // the config/autoStart discriminated union. A field missing from these lists
+  // is silently dropped rather than rejected, so clientOptionKeys below pins
+  // them against the type.
+  const {
+    workerURL,
+    runtimeBaseUrl,
+    runtimeThread,
+    debug,
+    runtimeCache,
+    onPerformance,
+    ...engineOptions
+  } = options;
 
   return createWalletEngine({
-    client: createWebClient({ workerURL, runtimeBaseUrl, runtimeThread, debug }),
+    client: createWebClient({
+      workerURL,
+      runtimeBaseUrl,
+      runtimeThread,
+      debug,
+      runtimeCache,
+      onPerformance,
+    }),
+    onPerformance,
     ...engineOptions,
   });
 }
 
 export { assertPasskeyPrf, registerPasskeyWallet, supportsPasskeyPrf };
+export { createWebPasskeyCeremony };
 
 /**
  * The browser (WebAuthn/PRF) implementation of the {@link PasskeyCeremony}
  * contract; pass it to useWalletPasskey, or drive it directly.
  */
-export const webPasskeyCeremony: PasskeyCeremony = {
-  supportsPasskeyPrf,
-  registerPasskeyWallet,
-  assertPasskeyPrf,
-};
+export const webPasskeyCeremony: PasskeyCeremony = createWebPasskeyCeremony();
 
 export { defaultConfig } from './config.ts';
 

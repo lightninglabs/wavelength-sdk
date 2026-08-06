@@ -93,7 +93,7 @@ test('reference type badges link to their documented API symbols', async ({ page
 
   // Literal and compound labels stay plain code rather than becoming noisy
   // links with an imprecise destination.
-  await expect(factory.locator('.wdk-params__type-link')).toHaveCount(3);
+  await expect(factory.locator('.wdk-params__type-link')).toHaveCount(4);
   await expect(
     factory.locator('.wdk-params__type').filter({ hasText: 'true | false' }).locator('.wdk-params__type-link'),
   ).toHaveCount(0);

@@ -8,6 +8,7 @@ import type {
   FacadeMethod,
   RuntimeConfig,
   WalletInfo,
+  WavelengthPerformanceListener,
 } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSETS } from '../runtime-manifest.ts';
 import type { WebClientOptions } from '../index.ts';
@@ -26,6 +27,7 @@ import {
 } from '../runtime-lock.ts';
 import type { RuntimeLockLease } from '../runtime-lock.ts';
 import { ActivityHandle, debugTs, errorMessage } from '../util.ts';
+import { performanceNow, reportPerformance } from '../performance.ts';
 
 type ActivityOpen = {
   generation: number;
@@ -59,12 +61,16 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
   private disposed = false;
   private readonly runtimeBaseUrl: string | undefined;
   private readonly debug: boolean;
+  private readonly onPerformance: WavelengthPerformanceListener | undefined;
+  private readonly runtimeCache: boolean;
   private readonly onRuntimeReady = () => this.emit({ type: 'runtimeReady' });
 
   constructor(options: WebClientOptions = {}) {
     super();
     this.runtimeBaseUrl = options.runtimeBaseUrl;
     this.debug = options.debug ?? false;
+    this.onPerformance = options.onPerformance;
+    this.runtimeCache = options.runtimeCache ?? true;
     // The runtime fires 'wavewalletdk-ready' once; keep the handler reference
     // so dispose() can detach it if the client is torn down before it fires.
     globalThis.addEventListener('wavewalletdk-ready', this.onRuntimeReady, {
@@ -420,8 +426,26 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     }
 
     const base = this.runtimeBaseUrl;
+    const sqliteStartedAt = this.onPerformance ? performanceNow() : undefined;
     await loadScript(resolveRuntimeAsset(base, RUNTIME_ASSETS.sqliteBridge));
+    if (sqliteStartedAt !== undefined) {
+      reportPerformance(this.onPerformance, {
+        stage: 'runtime',
+        phase: 'sqliteBridgeScript',
+        durationMs: performanceNow() - sqliteStartedAt,
+        detail: { transport: 'main' },
+      });
+    }
+    const goScriptStartedAt = this.onPerformance ? performanceNow() : undefined;
     await loadScript(resolveRuntimeAsset(base, RUNTIME_ASSETS.wasmExec));
+    if (goScriptStartedAt !== undefined) {
+      reportPerformance(this.onPerformance, {
+        stage: 'runtime',
+        phase: 'wasmExecScript',
+        durationMs: performanceNow() - goScriptStartedAt,
+        detail: { transport: 'main' },
+      });
+    }
 
     const goCtor = (
       globalThis as typeof globalThis & {
@@ -436,7 +460,13 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     }
 
     const go = new goCtor();
-    const result = await instantiateWasm(go.importObject, base);
+    const result = await instantiateWasm(
+      go.importObject,
+      base,
+      this.onPerformance,
+      this.runtimeCache,
+    );
+    const goReadyStartedAt = this.onPerformance ? performanceNow() : undefined;
     const runPromise = go.run(result.instance);
 
     // If the runtime exits (resolves or rejects) before signaling ready, boot
@@ -483,6 +513,14 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     });
 
     await Promise.race([waitForReadyEvent(), bootExit]);
+    if (goReadyStartedAt !== undefined) {
+      reportPerformance(this.onPerformance, {
+        stage: 'runtime',
+        phase: 'goReady',
+        durationMs: performanceNow() - goReadyStartedAt,
+        detail: { transport: 'main' },
+      });
+    }
     ready = true;
   }
 }

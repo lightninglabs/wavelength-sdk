@@ -5,13 +5,13 @@ import {
   useWalletUnlock,
 } from "@lightninglabs/wavelength-react";
 import type { WalletKind } from "@lightninglabs/wavelength-react";
-import { webPasskeyCeremony } from "@lightninglabs/wavelength-web";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Field } from "../../components/ui/Field";
 import { InlineError } from "../../components/ui/InlineError";
 import { GhostButton, PrimaryButton, TextLink } from "../../components/ui/Button";
+import { instrumentedPasskeyCeremony } from "../../lib/performance";
 import { LoadingScreen } from "./LoadingScreen";
 
 // UnlockScreen serves the `locked` phase: a wallet exists on this device and
@@ -43,7 +43,7 @@ export function UnlockScreen({
   const [password, setPassword] = useState("");
   const [confirmRemove, setConfirmRemove] = useState(false);
   const { unlock, unlockPending, unlockError } = useWalletUnlock();
-  const passkey = useWalletPasskey(webPasskeyCeremony);
+  const passkey = useWalletPasskey(instrumentedPasskeyCeremony);
   const anyBusy = unlockPending || passkey.openPending;
 
   // Passkey support is still probing: hold on a loading screen rather than
@@ -111,7 +111,7 @@ export function UnlockScreen({
       <LoadingScreen
         network={network}
         title="Unlocking wallet"
-        sub="Decrypting keys and syncing. This can take a few seconds."
+        sub="Decrypting keys and opening your wallet."
       />
     );
   }
@@ -171,7 +171,7 @@ export function UnlockScreen({
 
           {anyBusy ? (
             <p className="text-center text-xs text-muted">
-              Decrypting keys and syncing. This can take a few seconds.
+              Decrypting keys and opening your wallet.
             </p>
           ) : null}
         </form>

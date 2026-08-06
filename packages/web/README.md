@@ -44,6 +44,39 @@ await client.ready();
 await client.start(defaultConfig("signet"));
 ```
 
+## Performance diagnostics
+
+`onPerformance` opts a client or engine into structured timing samples. The
+callback covers runtime fetch, gzip decompression, WebAssembly compilation, Go
+startup, wallet create/unlock RPCs, post-RPC `getInfo` adoption, and sync
+polling. Passkey ceremonies are separate: the client and engine never run one,
+so pass the same callback to `createWebPasskeyCeremony({ onPerformance })` and
+use the ceremony it returns. When the callback is absent, the transport does
+not collect or send timing samples.
+
+```ts
+import {
+  createWebPasskeyCeremony,
+  createWebWalletEngine,
+  type WavelengthPerformanceEvent,
+} from "@lightninglabs/wavelength-web";
+
+const report = (sample: WavelengthPerformanceEvent) => {
+  console.debug("wavelength timing", sample);
+};
+
+const engine = createWebWalletEngine({
+  runtimeBaseUrl: "https://your-host/wavewalletdk/",
+  onPerformance: report,
+});
+
+const passkeys = createWebPasskeyCeremony({ onPerformance: report });
+```
+
+Reporters are diagnostics. An exception thrown by the callback is swallowed so
+it cannot break wallet work. Samples use low-cardinality metadata and do not
+contain passwords, passkey output, addresses, or amounts.
+
 ## Runtime assets
 
 The wallet runtime ships as a set of files (`RUNTIME_ASSET_FILES`) that you host
@@ -52,3 +85,13 @@ yourself and point `runtimeBaseUrl` at. Obtain the set either from the
 or by building it from a `wavelength` checkout; see
 [Hosting runtime assets](https://wavelength.lightning.engineering/web/get-started/hosting-runtime-assets/)
 for the exact steps.
+
+Serve `wavewalletdk.wasm.gz` however your host makes easiest. The SDK reads the
+first bytes of the response and branches on the magic number rather than on
+`Content-Type` or `Content-Encoding`, so a compressed body, an
+already-inflated one, and a generic `application/gzip` label all load the same
+way and all stay on the compressed asset. Compilation streams either way.
+
+Keep the raw `wavewalletdk.wasm` asset beside it. It is the fallback when the
+compressed one cannot be fetched, and for browsers with no
+`DecompressionStream`.

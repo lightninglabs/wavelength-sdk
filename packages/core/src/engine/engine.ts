@@ -3,6 +3,11 @@ import type { RuntimeConfig } from '../config.ts';
 import { toError } from '../errors.ts';
 import type { WavelengthEvent } from '../events.ts';
 import {
+  performanceNow,
+  reportPerformance,
+  type WavelengthPerformanceListener,
+} from '../performance.ts';
+import {
   exitBatch as runExitBatch,
   type ExitBatchEvent,
   type ExitBatchOptions,
@@ -58,12 +63,22 @@ import type { WalletSnapshot } from './snapshot.ts';
 import { stabilize } from './stabilize.ts';
 import { SnapshotStore } from './store.ts';
 
+/** The instrumentation options every arm of {@link WalletEngineOptions} shares. */
+type WalletEnginePerformanceOptions = {
+  /**
+   * Receives structured timing samples for runtime readiness, wallet
+   * create/open RPCs, post-operation info adoption, and sync polling. Omit it
+   * to keep performance instrumentation disabled.
+   */
+  onPerformance?: WavelengthPerformanceListener;
+};
+
 /**
  * Options for {@link createWalletEngine}. A discriminated union: the type
  * requires config when autoStart is true, so autoStart cannot be set without
  * a config to start from.
  */
-export type WalletEngineOptions =
+export type WalletEngineOptions = WalletEnginePerformanceOptions & (
   | {
       /** The transport client the engine drives. */
       client: WavelengthClient;
@@ -79,7 +94,8 @@ export type WalletEngineOptions =
       config?: RuntimeConfig;
       /** Start the runtime automatically once it is ready. Requires config; omit or set false when config is unset. */
       autoStart?: false;
-    };
+    }
+);
 
 /**
  * Removes a key from every arm of a union type. TypeScript's built-in Omit
@@ -188,6 +204,7 @@ class WavelengthEngine implements WalletEngine {
   readonly client: WavelengthClient;
   readonly #store = new SnapshotStore();
   readonly #config: RuntimeConfig | undefined;
+  readonly #onPerformance: WavelengthPerformanceListener | undefined;
   #disposed = false;
   // Counts stops the host asked for, so a start that rejects afterwards can
   // tell an intentional shutdown from a runtime that died underneath it.
@@ -204,6 +221,8 @@ class WavelengthEngine implements WalletEngine {
   readonly #reconciler: SettleReconciler;
   readonly #syncPoller: Poller;
   readonly #restorePoller: Poller;
+  #syncStartedAt: number | undefined;
+  #syncTicks = 0;
 
   // The pending restore promise, settled exactly once at usability (resolve)
   // or wallet-down failure (reject).
@@ -218,6 +237,7 @@ class WavelengthEngine implements WalletEngine {
   constructor(options: WalletEngineOptions) {
     this.client = options.client;
     this.#config = options.config;
+    this.#onPerformance = options.onPerformance;
 
     this.#stream = new ActivityStream({
       client: this.client,
@@ -240,7 +260,11 @@ class WavelengthEngine implements WalletEngine {
     this.#syncPoller = new Poller({
       intervalMs: SYNC_POLL_MS,
       failureLimit: SYNC_POLL_FAILURE_LIMIT,
-      tick: () => this.refresh(),
+      tick: () => {
+        this.#syncTicks += 1;
+
+        return this.refresh();
+      },
       onExhausted: (err) => {
         // A poller tick already in flight when the poller stops can resolve
         // after the phase has left 'syncing', so only dispatch while the
@@ -257,8 +281,18 @@ class WavelengthEngine implements WalletEngine {
       tick: () => this.#restoreTick(),
     });
 
+    const readyStartedAt = this.#onPerformance
+      ? performanceNow()
+      : undefined;
     this.client.ready().then(
       () => {
+        if (readyStartedAt !== undefined) {
+          reportPerformance(this.#onPerformance, {
+            stage: 'runtime',
+            phase: 'clientReady',
+            durationMs: performanceNow() - readyStartedAt,
+          });
+        }
         if (this.#disposed) {
           return;
         }
@@ -270,6 +304,14 @@ class WavelengthEngine implements WalletEngine {
         }
       },
       (err) => {
+        if (readyStartedAt !== undefined) {
+          reportPerformance(this.#onPerformance, {
+            stage: 'runtime',
+            phase: 'clientReady',
+            durationMs: performanceNow() - readyStartedAt,
+            detail: { outcome: 'error' },
+          });
+        }
         if (!this.#disposed) {
           this.#dispatch({ type: 'runtimeFailed' }, { error: toError(err) });
         }
@@ -381,11 +423,16 @@ class WavelengthEngine implements WalletEngine {
 
   async createWallet(req: CreateWalletRequest): Promise<CreateWalletResult> {
     this.#assertNotDisposed();
-    const result = await this.client.createWallet(req);
-    await this.#adoptInfo();
-    this.#kickRefresh();
+    return this.#measureWallet('createTotal', async () => {
+      const result = await this.#measureWallet(
+        'createRpc',
+        () => this.client.createWallet(req),
+      );
+      await this.#adoptInfo('create');
+      this.#kickRefresh();
 
-    return result;
+      return result;
+    });
   }
   restoreWallet(req: RestoreWalletRequest): Promise<WalletInfo> {
     // A restore with server-assisted recovery blocks createWallet for the
@@ -493,21 +540,31 @@ class WavelengthEngine implements WalletEngine {
   }
   async unlockWallet(req: UnlockWalletRequest): Promise<UnlockWalletResult> {
     this.#assertNotDisposed();
-    const result = await this.client.unlockWallet(req);
-    await this.#adoptInfo();
-    this.#kickRefresh();
+    return this.#measureWallet('unlockTotal', async () => {
+      const result = await this.#measureWallet(
+        'unlockRpc',
+        () => this.client.unlockWallet(req),
+      );
+      await this.#adoptInfo('unlock');
+      this.#kickRefresh();
 
-    return result;
+      return result;
+    });
   }
   async openWalletFromPasskey(
     req: OpenWalletFromPasskeyRequest,
   ): Promise<OpenWalletFromPasskeyResult> {
     this.#assertNotDisposed();
-    const result = await this.client.openWalletFromPasskey(req);
-    await this.#adoptInfo();
-    this.#kickRefresh();
+    return this.#measureWallet('passkeyOpenTotal', async () => {
+      const result = await this.#measureWallet(
+        'passkeyOpenRpc',
+        () => this.client.openWalletFromPasskey(req),
+      );
+      await this.#adoptInfo('passkeyOpen');
+      this.#kickRefresh();
 
-    return result;
+      return result;
+    });
   }
   async deposit(req: DepositRequest = {}): Promise<DepositResult> {
     this.#assertNotDisposed();
@@ -672,9 +729,23 @@ class WavelengthEngine implements WalletEngine {
       this.#reconciler.cancel();
     }
     if (phase === 'syncing') {
+      if (this.#syncStartedAt === undefined && this.#onPerformance) {
+        this.#syncStartedAt = performanceNow();
+        this.#syncTicks = 0;
+      }
       this.#syncPoller.start();
     } else {
       this.#syncPoller.stop();
+      if (this.#syncStartedAt !== undefined) {
+        reportPerformance(this.#onPerformance, {
+          stage: 'wallet',
+          phase: 'sync',
+          durationMs: performanceNow() - this.#syncStartedAt,
+          detail: { ticks: this.#syncTicks, outcome: phase },
+        });
+        this.#syncStartedAt = undefined;
+        this.#syncTicks = 0;
+      }
     }
     if (phase === 'restoring') {
       this.#restorePoller.start();
@@ -723,23 +794,55 @@ class WavelengthEngine implements WalletEngine {
   // every attempt fails the daemon is presumed gone: escalate via
   // walletAdoptionFailed rather than silently leaving the wallet stuck
   // without info.
-  async #adoptInfo(): Promise<WalletInfo | null> {
+  async #adoptInfo(
+    operation: 'create' | 'unlock' | 'passkeyOpen',
+  ): Promise<WalletInfo | null> {
+    const startedAt = this.#onPerformance ? performanceNow() : undefined;
+    let attempts = 0;
+    let retryWaitMs = 0;
+    let adopted = false;
+
     for (let attempt = 0; attempt < ADOPT_INFO_RETRIES; attempt++) {
       if (this.#disposed) {
-        return null;
+        break;
       }
+      attempts += 1;
       try {
         const info = await this.client.getInfo();
         this.#dispatch({ type: 'infoReceived', info }, { info });
+        adopted = true;
+
+        if (startedAt !== undefined) {
+          reportPerformance(this.#onPerformance, {
+            stage: 'wallet',
+            phase: 'adoptInfo',
+            durationMs: performanceNow() - startedAt,
+            detail: { operation, attempts, retryWaitMs, outcome: 'success' },
+          });
+        }
 
         return info;
       } catch {
         if (attempt < ADOPT_INFO_RETRIES - 1) {
+          retryWaitMs += ADOPT_INFO_RETRY_MS;
           await new Promise<void>((resolve) => {
             setTimeout(resolve, ADOPT_INFO_RETRY_MS);
           });
         }
       }
+    }
+    if (startedAt !== undefined && !adopted) {
+      reportPerformance(this.#onPerformance, {
+        stage: 'wallet',
+        phase: 'adoptInfo',
+        durationMs: performanceNow() - startedAt,
+        detail: {
+          operation,
+          attempts,
+          retryWaitMs,
+          outcome: this.#disposed ? 'disposed' : 'exhausted',
+        },
+      });
     }
     if (!this.#disposed) {
       this.#dispatch(
@@ -753,6 +856,31 @@ class WavelengthEngine implements WalletEngine {
     }
 
     return null;
+  }
+
+  async #measureWallet<T>(
+    phase: string,
+    task: () => Promise<T>,
+  ): Promise<T> {
+    if (!this.#onPerformance) {
+      return task();
+    }
+
+    const startedAt = performanceNow();
+    let outcome = 'success';
+    try {
+      return await task();
+    } catch (err) {
+      outcome = 'error';
+      throw err;
+    } finally {
+      reportPerformance(this.#onPerformance, {
+        stage: 'wallet',
+        phase,
+        durationMs: performanceNow() - startedAt,
+        detail: { outcome },
+      });
+    }
   }
 
   // Serialized background refresh with a consecutive-failure budget. Below
