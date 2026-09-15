@@ -1,0 +1,64 @@
+---
+title: Expiry and refresh
+description: Why VTXOs expire, how Wavelength refreshes them automatically while the wallet is running, and the liveness requirement this places on your app and its users.
+---
+
+import Callout from '~/components/mdx/Callout.astro';
+
+Every VTXO expires. Wavelength refreshes VTXOs automatically before that happens, but it can only do so **while the wallet is running and can reach the operator**. That turns into the one ongoing obligation an Ark wallet places on your users: the app has to come online often enough for the refresh to happen. This page explains where the expiry comes from, what the daemon does about it, and what you should build and communicate so nobody discovers the deadline the hard way.
+
+## Why VTXOs expire
+
+Each VTXO lives inside an operator **batch** (see [Balances & VTXOs](/concepts/balances-and-vtxos/)). The batch's on-chain output carries a sweep path for the operator behind a relative CSV timelock, the **sweep delay**: once the batch transaction confirms, that delay resolves to a fixed block height after which the operator can reclaim the whole batch. This is not an arbitrary policy; it is what lets the operator recover liquidity from batches whose participants have moved on, and it is part of why Ark works without inbound liquidity management.
+
+The batch lifetime is chosen by the operator, not by Wavelength, and it is surfaced per VTXO: `list({ view: 'vtxos' })` returns each VTXO's `batchExpiry`, the **absolute block height** at which its batch's sweep delay matures, alongside `relativeExpiry`, the CSV delay (in blocks) on its unilateral exit path. Before `batchExpiry` is reached, every VTXO must either be **refreshed** into a newer batch or moved on-chain via [cooperative leave or unilateral exit](/concepts/leaving-ark/).
+
+<Callout type="caution">
+Once a VTXO's batch expiry height passes, the operator sweeps the batch, and there is no grace period. At that point the VTXO is no longer yours in any trustless sense: the swept value is reclaimed by the operator. A reclaim flow is in the works that would let a user prove ownership of an expired VTXO and receive a fresh one, but it is not available yet, and by design it depends on the operator being live and honest. Plan as if expiry means lost funds; treat anything recovered after the fact as a second chance, not a guarantee. Everything below exists to make sure wallets never get there.
+</Callout>
+
+## Automatic refresh while the wallet runs
+
+While the daemon is running, it watches every new block and re-evaluates each live VTXO against its expiry height. There is no refresh method on `WavelengthClient`; the daemon drives the whole cycle itself:
+
+1. **Safe.** The VTXO is far from expiry. Nothing happens.
+2. **Needs refresh.** When the remaining lifetime drops below the refresh threshold, the daemon submits a **batch swap**: it forfeits the old VTXO in the next round and receives a fresh VTXO in a newer batch, resetting the expiry clock. This is a signed round interaction, so it needs both the wallet (to co-sign the forfeit) and a reachable operator. If the operator is unreachable, the attempt fails and is retried on subsequent blocks.
+3. **Critical.** If a VTXO gets dangerously close to expiry without a successful refresh (for example, the operator has been unreachable for a long stretch), the daemon stops waiting and attempts an automatic **unilateral exit** while there is still enough time for the exit's own timelocks to mature. Completing the exit is not free: it needs on-chain fee funds in the backing wallet, so check [`getExitPlan()`](/concepts/leaving-ark/) for `canStart` and any funding shortfall if a wallet is heading into this stage.
+4. **Expired.** The failure case the ladder is designed to prevent. Only reachable if the wallet was offline (or the operator unreachable and the exit path unusable) all the way through the earlier stages. Recovery from here is at the operator's discretion (see the caution above).
+
+The refresh threshold defaults to about a day of blocks (144) before expiry and grows for VTXOs that would need a deeper or slower unilateral exit, so the critical stage always leaves enough room to get out on-chain. Operators can also advertise a **free refresh window**, a late-lifetime span in which a pure refresh has its fee waived (`serverInfo.freeRefreshWindowBlocks` on [`getInfo()`](/reference/wavelength-core/#getInfo)). When that window can be reached without eating into the exit-safety margin, the daemon delays the refresh into it; when it cannot, the daemon refreshes earlier and pays the normal fee.
+
+A successful refresh is deliberately boring: balance is unchanged apart from any fee, no `send`/`receive`/`deposit`/`exit` entry appears in the activity feed, and the only visible difference is that `list({ view: 'vtxos' })` shows new outpoints with a later `batchExpiry`.
+
+## The liveness requirement
+
+All of the machinery above lives in the wallet daemon, and the daemon only runs while your app runs. **Nothing refreshes an offline wallet.** There is no server-side scheduler, and the operator cannot refresh for you, because a refresh spends the user's VTXO and therefore needs the user's signature. That is the point: the same property that makes the wallet self-custodial makes liveness the user's job.
+
+What "running" means differs by platform:
+
+- **Web**: the daemon is WebAssembly in a worker on your page. It runs while a tab with the wallet open exists and stops the moment the last tab closes. There is no background execution.
+- **React Native / native**: the daemon runs inside your app's process. Standard mobile lifecycle rules apply; a suspended or killed app is an offline wallet.
+
+So the practical requirement is: **each wallet must be opened, and kept open long enough to complete a round, well before its earliest `batchExpiry`**. How often that is depends on the batch lifetime your operator configures; the reference operator defaults to 1008 blocks, about a week, so weekly use is a sensible baseline expectation. Read the real deadline from your own wallet's VTXOs rather than assuming a constant.
+
+For an integrator, that translates into a short checklist:
+
+- **Know the deadline.** `list({ view: 'vtxos' })` gives you the earliest `batchExpiry` across live VTXOs. Comparing it against the current chain height tells you how much runway a wallet has.
+- **Bring users back with margin.** Whatever re-engagement channels you have (push notifications, email, calendar-style reminders), schedule them from the earliest expiry with generous margin, not at the last minute. A refresh needs a completed round, and the automatic fallbacks need blocks to work with.
+- **Start the engine and get the wallet unlocked early.** Refresh needs a running, unlocked wallet, and neither happens by default: pass `autoStart: true` (with a `config`) to the engine factory or call `engine.start(config)` on launch, and design your unlock flow (a passkey prompt, a session resume) to run up front rather than behind a menu. Once the wallet is unlocked and running, the refresh needs no further UI or user action.
+- **Treat long-dormant wallets as urgent.** After a restore, or when a user returns from a long absence, keep the app open and online rather than immediately closing it; the daemon will refresh or exit whatever is close to the edge. The same caution applies to recovery flows: see [Keys, backup, and recovery](/concepts/keys-backup-and-recovery/).
+
+<Callout type="tip">
+If a wallet will be intentionally abandoned for a long period (cold storage, an app being decommissioned), do not rely on refresh at all. Move the balance on-chain first with a cooperative leave. Expiry pressure only applies to funds that stay inside Ark.
+</Callout>
+
+## What to tell your users
+
+End users do not need to know what a batch swap is. They need one honest sentence: **"Open the app at least once a week, or your balance can eventually be forfeited."** (Substitute the real cadence your operator's batch lifetime implies.) Frame the in-app messaging the same way phone backups are framed: a routine, automatic process that just needs the app open to run.
+
+Two things are worth making explicit in your product copy:
+
+- Opening the app and unlocking the wallet is all it takes. There is no button to press beyond that; maintenance is automatic while the app is running.
+- The deadline is real but generous, and the wallet defends itself: if it is online and cannot refresh, it will attempt to move funds on-chain automatically rather than let them expire.
+
+The failure mode you are protecting against is the user who installs the app, deposits, and never returns. For that user, no amount of daemon-side cleverness helps; only your re-engagement design does.

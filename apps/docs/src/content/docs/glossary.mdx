@@ -9,7 +9,7 @@ Ark is the shared off-chain protocol layer Wavelength builds on. Users hold VTXO
 
 ## Batch swap
 
-A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. Wavelength may perform batch swaps automatically as part of routine wallet maintenance. See [Balances & VTXOs](/concepts/balances-and-vtxos/) for how VTXO expiry fits into the lifecycle.
+A batch swap refreshes VTXOs that are nearing expiry by forfeiting them in the current round in exchange for new VTXOs in a fresh batch. The new outputs reset the batch lifetime clock, so you can keep funds off-chain without returning to the Bitcoin base layer. Wavelength performs batch swaps automatically as part of routine wallet maintenance while the wallet is online. See [Expiry and refresh](/concepts/expiry-and-refresh/) for how VTXO expiry fits into the lifecycle.
 
 ## Boarding
 
@@ -73,4 +73,4 @@ A vHTLC (virtual HTLC) is an Ark output whose taproot script encodes hashlock-an
 
 ## VTXO
 
-A VTXO (Virtual Transaction Output) is an off-chain output that represents spendable bitcoin inside Ark. You hold VTXOs after boarding or receiving a payment; you spend them through cooperative off-chain transfers, batch swaps, cooperative leave, or unilateral exit. Each VTXO is backed by an on-chain batch output and carries a CSV-based expiry, after which you must refresh or exit. See [Balances & VTXOs](/concepts/balances-and-vtxos/).
+A VTXO (Virtual Transaction Output) is an off-chain output that represents spendable bitcoin inside Ark. You hold VTXOs after boarding or receiving a payment; you spend them through cooperative off-chain transfers, batch swaps, cooperative leave, or unilateral exit. Each VTXO is backed by an on-chain batch output and carries a batch expiry, before which it must be refreshed or exited. See [Balances & VTXOs](/concepts/balances-and-vtxos/) and [Expiry and refresh](/concepts/expiry-and-refresh/).
