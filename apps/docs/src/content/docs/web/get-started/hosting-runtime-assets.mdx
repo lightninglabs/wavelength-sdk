@@ -156,8 +156,24 @@ or `createWebWalletEngine()` to skip verification; doing so logs a one-time
 console warning so the switch is never silently left off in production.
 
 **Hosting requirements.** Serve the runtime assets same-origin where
-possible. If your app sets a Content-Security-Policy, `script-src` must
+possible. If your web app sets a Content-Security-Policy, `script-src` must
 include `blob:` alongside `'self'`: the SDK executes its verified bootstrap
 scripts from blob URLs, and a policy without `blob:` breaks the SDK outright.
 Hosting the assets cross-origin additionally requires CORS headers on the
 asset host, since the client fetches them before verifying their bytes.
+
+**Chrome extension packages.** Manifest V3 disallows blob scripts. Bundle the
+runtime assets inside the extension and use
+`runtimeBaseUrl: chrome.runtime.getURL('runtime/')`. When the execution context
+and asset belong to that same extension, the loader verifies the bootstrap
+scripts and executes their packaged URLs. This supports `script-src 'self'
+'wasm-unsafe-eval'` without allowing remotely hosted code or disabling integrity.
+The exception relies on the browser's installed-package lifecycle; ordinary web
+URLs and other extension origins still execute verified blob bytes.
+
+The manifest must also opt into cross-origin isolation for OPFS SQLite. Host
+the dedicated wallet worker in an extension document, such as an offscreen
+document created for the `WORKERS` reason; the extension service worker has no
+`Worker` constructor. Closing a popup must not accidentally remove the wallet's
+owner. This is a runtime-hosting requirement, not a promise of continuous
+background execution.

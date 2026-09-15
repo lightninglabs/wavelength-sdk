@@ -28,6 +28,7 @@ await new Response(
 const savedFetch = globalThis.fetch;
 const savedCaches = (globalThis as { caches?: unknown }).caches;
 const savedInstantiate = WebAssembly.instantiate;
+const savedLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
 
 function stubGlobal(name: string, value: unknown): void {
   Object.defineProperty(globalThis, name, {
@@ -49,6 +50,8 @@ afterEach(() => {
   stubGlobal('fetch', savedFetch);
   stubGlobal('caches', savedCaches);
   stubWebAssembly('instantiate', savedInstantiate);
+  if (savedLocation) Object.defineProperty(globalThis, 'location', savedLocation);
+  else delete (globalThis as Record<string, unknown>).location;
   mock.restoreAll();
 });
 
@@ -558,6 +561,22 @@ describe('loadVerifiedScript', () => {
   afterEach(() => {
     delete (globalThis as Record<string, unknown>).document;
   });
+
+  for (const [context, asset] of [
+    ['chrome-extension://aaaaaaaa/', 'https://assets.example/wasm_exec.js'],
+    ['chrome-extension://aaaaaaaa/', 'chrome-extension://bbbbbbbb/wasm_exec.js'],
+    ['https://app.example/', 'https://app.example/wasm_exec.js'],
+  ]) {
+    it(`keeps blob execution for ${asset} from ${context}`, async () => {
+      const bytes = new TextEncoder().encode('/* verified fixture */');
+      const digest = await sha256Sri(bytes.buffer as ArrayBuffer);
+      stubGlobal('location', { href: context });
+      stubGlobal('fetch', async () => new Response(bytes));
+      const created = stubDocument();
+      await loadVerifiedScript(asset, 'wasm_exec.js', { 'wasm_exec.js': digest });
+      assert.match(String(created[0]?.src), /^blob:/);
+    });
+  }
 
   it('executes a verified script from a blob URL and revokes it', async () => {
     const bytes = new TextEncoder().encode('globalThis.__x = 1;');

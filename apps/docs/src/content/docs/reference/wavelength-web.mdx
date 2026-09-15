@@ -427,7 +427,10 @@ from:
   in `RUNTIME_ASSET_DIGESTS` for `RUNTIME_MANIFEST_VERSION`. The bootstrap
   scripts are fetched, verified, and then executed from a blob URL (a
   `<script src={blobURL}>` on the main thread, `importScripts(blobURL)` in
-  the worker); the wasm bytes are verified and then passed straight to
+  the worker). Same-extension Chrome resources instead execute from their
+  packaged URLs after verification, because Manifest V3 disallows blob scripts;
+  this path relies on the browser owning the installed package and its updates.
+  The wasm bytes are verified and then passed straight to
   `WebAssembly.instantiate`, buffered rather than streamed, since the bytes
   must be complete before they can be hashed. A digest mismatch throws
   `asset_integrity_failed` and does not fall back to another loading path,

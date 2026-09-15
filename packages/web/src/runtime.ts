@@ -94,7 +94,9 @@ function scriptLoadKey(url: string, digests: RuntimeDigests | null): string {
 /**
  * Fetches a runtime bootstrap script, verifies its bytes against the pinned
  * digest table (unless digests is null, meaning runtimeIntegrity: false),
- * and executes it via a <script> pointed at a blob URL. Executing from a
+ * and executes it via a <script> pointed at a blob URL. Same-extension Chrome
+ * assets execute from their packaged URL after verification, since Manifest
+ * V3 disallows blob scripts. Executing from a
  * blob means the script cannot resolve siblings from its own location, so
  * callers must pre-set any location-derived globals the script needs (the
  * sqlite bridge globals in loadRuntime). A second call for the same URL and
@@ -156,7 +158,11 @@ async function loadVerifiedScriptUncached(
     await verifyAssetBytes(bytes, name, url, digests);
   }
 
-  const blobUrl = URL.createObjectURL(
+  // Only extension-packaged resources can use this path: the browser owns
+  // their installed bytes and update lifecycle. A web URL must still execute
+  // the exact verified bytes, rather than fetching mutable content twice.
+  const packaged = isPackagedExtensionScript(url);
+  const scriptURL = packaged ? url : URL.createObjectURL(
     new Blob([bytes], { type: 'text/javascript' }),
   );
   try {
@@ -166,12 +172,22 @@ async function loadVerifiedScriptUncached(
       script.dataset.wavelengthSrc = url;
       script.onload = () => resolve();
       script.onerror = () => reject(runtimeAssetError(url));
-      script.src = blobUrl;
+      script.src = scriptURL;
       document.head.append(script);
     });
   } finally {
-    URL.revokeObjectURL(blobUrl);
+    if (!packaged) URL.revokeObjectURL(scriptURL);
   }
+}
+
+// Mirrored in wavewalletdk-worker.js, which cannot import this TS module.
+function isPackagedExtensionScript(url: string): boolean {
+  if (!globalThis.location?.href) return false;
+  const context = new URL(globalThis.location.href);
+  const asset = new URL(url, context);
+  return context.protocol === 'chrome-extension:' &&
+    asset.protocol === context.protocol && asset.host === context.host &&
+    context.host !== '';
 }
 
 /**

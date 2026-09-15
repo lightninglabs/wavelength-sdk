@@ -10,6 +10,8 @@
     "test": "playwright test",
     "perf": "playwright test --config=playwright.perf.config.js",
     "test:signet": "playwright test --config=playwright.signet.config.js",
+    "build:extension": "node extension-probe/build.mjs",
+    "test:extension": "playwright test --config=extension-probe/playwright.config.cjs",
     "typecheck": "tsc --noEmit",
     "wasm:local": "bash scripts/wasm-local.sh",
     "wasm:fetch": "bash scripts/fetch-runtime-assets.sh"

@@ -53,9 +53,15 @@ default worker transport the browser's CSP violation message does not match
 any error the SDK recognizes, so it surfaces as the generic `wavelength_error`
 instead.
 
-**Fix:** Add `blob:` to your `script-src` directive alongside `'self'`. See
+**Web app fix:** Add `blob:` to your `script-src` directive alongside `'self'`. See
 [Hosting runtime assets](/web/get-started/hosting-runtime-assets/#integrity-verification)
 for the full CSP requirement.
+
+For Chrome Manifest V3 extensions, package the runtime inside the same extension
+and pass its `chrome.runtime.getURL('runtime/')` URL instead. The loader verifies
+those scripts before executing their packaged URLs under `script-src 'self'
+'wasm-unsafe-eval'`; do not disable integrity or try to allow blob scripts in the
+extension policy.
 
 ### Wallet is open in another tab (`wallet_locked`)
 

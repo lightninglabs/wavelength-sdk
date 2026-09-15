@@ -103,6 +103,17 @@ executing them, on by default. A mismatch throws `WavelengthError` with code
 match the SDK release. Set `runtimeIntegrity: false` to skip verification for
 a runtime you built from source. `RUNTIME_ASSET_DIGESTS` exports the full
 digest table so you can also verify your hosted set at deploy time. If your
-app sets a Content-Security-Policy, `script-src` must include `blob:`
+web app sets a Content-Security-Policy, `script-src` must include `blob:`
 alongside `'self'`, since the SDK executes its bootstrap scripts from blob
 URLs.
+
+Chrome extensions package the runtime assets inside their own extension and
+set `runtimeBaseUrl: chrome.runtime.getURL('runtime/')`. For this same-extension
+case, both runtime modes verify the bootstrap scripts and then execute their
+packaged URLs, compatible with Manifest V3's `script-src 'self'
+'wasm-unsafe-eval'`. Web URLs and other extension origins retain blob execution.
+This exception relies on the browser owning the installed package and its update
+lifecycle; it is not a general verify-then-refetch path for mutable web assets.
+OPFS also needs cross-origin isolation and a suitable worker owner. See the
+[extension probe](../../apps/web-wallet-demo/extension-probe/README.md) for the
+manifest, executable recovery tests and remaining lifecycle limitations.

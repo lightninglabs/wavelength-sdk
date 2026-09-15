@@ -255,7 +255,8 @@ async function verifyAssetBytes(bytes, name, url) {
   }
 }
 
-// Fetches, verifies, and executes a bootstrap script from a blob URL.
+// Fetches, verifies, and executes a bootstrap script from a blob URL, or its
+// packaged URL when both the worker and asset belong to one Chrome extension.
 // importScripts has no integrity support, so the bytes are hashed by hand;
 // executing from a blob also means the script cannot resolve siblings from
 // its own URL, which the sqliteBridge* globals set in loadRuntime cover.
@@ -277,6 +278,15 @@ async function importVerifiedScript(name) {
     throw assetLoadError(url, err);
   });
   await verifyAssetBytes(bytes, name, url);
+
+  // Manifest V3 disallows blob scripts. Installed extension resources are
+  // owned by the browser's package/update lifecycle, so they can execute from
+  // their original URL after the same digest check. Never apply this to a web
+  // URL, where a second fetch could return different bytes. Mirrors runtime.ts.
+  if (isPackagedExtensionScript(url)) {
+    importScripts(url);
+    return;
+  }
   const blobUrl = URL.createObjectURL(
     new Blob([bytes], { type: "text/javascript" }),
   );
@@ -285,6 +295,15 @@ async function importVerifiedScript(name) {
   } finally {
     URL.revokeObjectURL(blobUrl);
   }
+}
+
+function isPackagedExtensionScript(url) {
+  if (!self.location?.href) return false;
+  const context = new URL(self.location.href);
+  const asset = new URL(url, context);
+  return context.protocol === "chrome-extension:" &&
+    asset.protocol === context.protocol && asset.host === context.host &&
+    context.host !== "";
 }
 
 async function loadRuntime() {
