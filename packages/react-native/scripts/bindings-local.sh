@@ -12,6 +12,8 @@
 #
 # Android needs the Android SDK + NDK and a JDK (17+); iOS needs macOS with
 # Xcode. Both need Go and gomobile (wavelength's gen_bindings.sh checks).
+# Android's sqlite_cgo build tag is selected by that checkout's mobile target;
+# do not pass it globally, since iOS keeps the default SQLite driver.
 set -euo pipefail
 
 PKG="$(cd "$(dirname "$0")/.." && pwd)"
