@@ -91,6 +91,10 @@ export type {
 } from './passkey.ts';
 
 export { defaultConfig } from './config.ts';
+// The raw module lets a package that drives the daemon some other way (for
+// example from a Bare worklet) reuse this registration instead of shipping a
+// second module under the same name.
+export { default as NativeWavelength } from './NativeWavelength.ts';
 export { NativeWavelengthClient } from './client.ts';
 export type {
   NativeActivityEvent,
