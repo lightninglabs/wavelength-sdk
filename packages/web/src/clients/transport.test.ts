@@ -3009,6 +3009,120 @@ describe('runtime integrity option', () => {
     }
   });
 
+  // stubStartGlobals installs the globals both transports need to reach the
+  // daemon: an auto-replying Worker, a granting lock, and a main-thread bridge
+  // that records each facade method. The returned restore puts them back.
+  function stubStartGlobals() {
+    const names = [
+      'Worker',
+      'navigator',
+      'addEventListener',
+      'removeEventListener',
+      'wavewalletdkCall',
+    ];
+    const saved = new Map(
+      names.map((name) => [name, (globalThis as Record<string, unknown>)[name]]),
+    );
+    const stub = (name: string, value: unknown) =>
+      Object.defineProperty(globalThis, name, { configurable: true, value });
+    const locks = grantingLocks();
+    const mainCalls: string[] = [];
+    stub('Worker', AutoReplyWorker);
+    stub('navigator', locks.navigator);
+    stub('addEventListener', () => undefined);
+    stub('removeEventListener', () => undefined);
+    stub('wavewalletdkCall', async (method: string) => {
+      mainCalls.push(method);
+
+      return {};
+    });
+
+    return {
+      locks,
+      mainCalls,
+      restore: () => {
+        for (const [name, value] of saved) stub(name, value);
+      },
+    };
+  }
+
+  it('refuses a mainnet start with integrity disabled in both modes', async () => {
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    mock.method(console, 'warn', () => undefined);
+    const env = stubStartGlobals();
+    const mainnet = { network: 'mainnet', allowMainnet: true } as const;
+    const isInvalidConfig = (err: unknown) => {
+      assert.equal((err as { code?: string }).code, 'invalid_config');
+      assert.match((err as Error).message, /runtime integrity/);
+
+      return true;
+    };
+
+    try {
+      const worker = new WorkerWavelengthClient({
+        workerURL: 'fake-worker.js',
+        runtimeIntegrity: false,
+      });
+      const workerMessages = FakeWorker.latest!.messages;
+      const main = new MainThreadWavelengthClient({ runtimeIntegrity: false });
+      for (const client of [worker, main]) {
+        await assert.rejects(client.start(mainnet), isInvalidConfig);
+        await assert.rejects(
+          client.startExternalSeedWallet(
+            { ...mainnet, dataDir: '/wallets' },
+            { seedEntropy: new Uint8Array(16) },
+          ),
+          isInvalidConfig,
+        );
+        client.dispose();
+      }
+
+      assert.equal(
+        workerMessages.some((m) => m.method?.startsWith('start')),
+        false,
+      );
+      assert.deepEqual(env.mainCalls, []);
+      assert.equal(env.locks.state.requests, 0);
+    } finally {
+      env.restore();
+    }
+  });
+
+  it('starts on testnet with integrity disabled and on mainnet with it on', async () => {
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const warn = mock.method(console, 'warn', () => undefined);
+    const env = stubStartGlobals();
+    const testnet = { network: 'testnet', arkServerAddress: 'h:7070' } as const;
+
+    try {
+      const worker = new WorkerWavelengthClient({
+        workerURL: 'fake-worker.js',
+        runtimeIntegrity: false,
+      });
+      await worker.start(testnet);
+      assert.ok(FakeWorker.latest!.messages.some((m) => m.method === 'start'));
+      await worker.stop();
+      worker.dispose();
+
+      const main = new MainThreadWavelengthClient({ runtimeIntegrity: false });
+      await main.start(testnet);
+      assert.ok(env.mainCalls.includes('start'));
+      await main.stop();
+      main.dispose();
+      assert.equal(warn.mock.callCount(), 1);
+
+      const verified = new WorkerWavelengthClient({ workerURL: 'fake-worker.js' });
+      await verified.start({ network: 'mainnet', allowMainnet: true });
+      assert.ok(FakeWorker.latest!.messages.some((m) => m.method === 'start'));
+      await verified.stop();
+      verified.dispose();
+    } finally {
+      env.restore();
+    }
+  });
+
   // grantingLocks stubs navigator.locks with a lock that is always available,
   // reporting when the holder lets it go. Duplicated from the activity
   // transport describe block above (that copy is module-private to it), so

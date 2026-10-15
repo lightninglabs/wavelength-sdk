@@ -91,7 +91,8 @@ export type WebClientOptions = {
    * On by default. Set false only when running a runtime built from source
    * (for example a local wavelength checkout), whose bytes cannot match the
    * pinned release; disabling logs a one-time console warning so the switch
-   * is never silently left off in production.
+   * is never silently left off in production. A start with network 'mainnet'
+   * rejects with invalid_config while verification is disabled.
    */
   runtimeIntegrity?: boolean;
 };
