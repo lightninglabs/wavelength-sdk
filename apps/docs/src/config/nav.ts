@@ -39,6 +39,7 @@ export const NAV: NavGroup[] = [
     section: 'concepts',
     items: [
       { slug: 'concepts/balances-and-vtxos', label: 'Balances and VTXOs', section: 'concepts' },
+      { slug: 'concepts/expiry-and-refresh', label: 'Expiry and refresh', section: 'concepts' },
       { slug: 'concepts/activity-and-events', label: 'Activity and events', section: 'concepts' },
       { slug: 'concepts/wallet-lifecycle-and-auth', label: 'Wallet lifecycle and auth', section: 'concepts' },
       { slug: 'concepts/keys-backup-and-recovery', label: 'Keys, backup, and recovery', section: 'concepts' },
