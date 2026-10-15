@@ -389,12 +389,14 @@ describe('wavewalletdk worker asset integrity', () => {
     assets: Record<string, Uint8Array>,
     rejectAssets: Set<string> = new Set(),
     cryptoOverride: unknown = crypto,
+    contextURL?: string,
   ): Harness {
     const listeners = new Map<string, Array<() => void>>();
     const posted: unknown[] = [];
     const fetched: string[] = [];
     const imported: string[] = [];
     const self: Record<string, unknown> = {
+      ...(contextURL ? { location: { href: contextURL } } : {}),
       postMessage: (m: unknown) => posted.push(m),
       addEventListener: (name: string, listener: () => void) => {
         const current = listeners.get(name) ?? [];
@@ -505,6 +507,25 @@ describe('wavewalletdk worker asset integrity', () => {
       'https://x/wavewalletdk.wasm',
     ]);
   });
+
+  for (const base of ['https://assets.example/', 'chrome-extension://bbbbbbbb/']) {
+    it(`keeps blob imports for assets outside its extension: ${base}`, async () => {
+      const source = await readFile(new URL('./wavewalletdk-worker.js', import.meta.url), 'utf8');
+      const assets = { 'sqlite-bridge.js': BRIDGE, 'wasm_exec.js': EXEC, 'wavewalletdk.wasm': WASM };
+      const h = bootLoadingWorker(source, assets, new Set(), crypto, 'chrome-extension://aaaaaaaa/worker.js');
+      await h.onmessage({ data: { $init: {
+        runtimeBaseUrl: base,
+        assetDigests: Object.fromEntries(Object.entries(assets).map(([name, bytes]) => [name, sri(bytes)])),
+      } } });
+      const call = h.onmessage({ data: { id: 1, method: '$ready' } });
+      await pollUntil(() => h.imported.length === 2);
+      h.fireReady();
+      await call;
+      assert.ok(h.imported.every(url => url.startsWith('blob:')));
+      assert.deepEqual(fromRealm(h.posted.find(m => (m as { id?: number }).id === 1)),
+        { id: 1, ok: true, result: { ready: true } });
+    });
+  }
 
   it('names the network reason in the warning when the compressed wasm fetch rejects', async () => {
     // The gzip fallback logs err.cause so an operator can tell a DNS or CORS
