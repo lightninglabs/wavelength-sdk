@@ -23,9 +23,11 @@ import {
   isRuntimeAssetMessage,
 } from '../runtime.ts';
 import {
+  assertIntegrityForNetwork,
   isRuntimeIntegrityMessage,
   resolveIntegrityDigests,
 } from '../integrity.ts';
+import type { RuntimeDigests } from '../integrity.ts';
 import {
   RuntimeLock,
   RUNTIME_LOCK_NAME,
@@ -83,6 +85,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
   });
   private readonly options: WebClientOptions;
   private readonly onPerformance: WavelengthPerformanceListener | undefined;
+  private readonly integrityDigests: RuntimeDigests | null;
   private nextRequestID = 1;
   // The lease held by the running session, threaded into every teardown so a
   // release only frees the lock when this session still owns it.
@@ -98,6 +101,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     super();
     this.options = options;
     this.onPerformance = options.onPerformance;
+    this.integrityDigests = resolveIntegrityDigests(options.runtimeIntegrity);
     this.worker = this.spawnWorker();
   }
 
@@ -147,7 +151,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
         runtimeCache: options.runtimeCache ?? true,
         debug: options.debug ?? false,
         performance: Boolean(options.onPerformance),
-        assetDigests: resolveIntegrityDigests(options.runtimeIntegrity),
+        assetDigests: this.integrityDigests,
       },
     });
     this.runtimeExited = false;
@@ -293,6 +297,7 @@ export class WorkerWavelengthClient extends BaseWavelengthClient {
     whenRunning?: () => Promise<T>,
   ): Promise<T> {
     validateRuntimeConfig(config, this.serverTransport);
+    assertIntegrityForNetwork(config, this.integrityDigests);
     if (this.disposed) {
       throw new WavelengthError('Wavelength client disposed', 'worker_error');
     }

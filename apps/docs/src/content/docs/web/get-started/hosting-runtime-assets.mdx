@@ -153,7 +153,8 @@ echo "sha256-$(openssl dgst -sha256 -binary "$f" | openssl base64 -A)"
 a `wavelength` checkout will not match the pinned digests, since those pin a
 specific published release. Set `runtimeIntegrity: false` on `createWebClient()`
 or `createWebWalletEngine()` to skip verification; doing so logs a one-time
-console warning so the switch is never silently left off in production.
+console warning so the switch is never silently left off in production. A
+mainnet start rejects with `invalid_config` while verification is off.
 
 **Hosting requirements.** Serve the runtime assets same-origin where
 possible. If your app sets a Content-Security-Policy, `script-src` must

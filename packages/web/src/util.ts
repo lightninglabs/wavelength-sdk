@@ -34,17 +34,44 @@ export function debugTs(): string {
   return new Date().toISOString().split('T').join(' ').slice(0, -1);
 }
 
+// Facade fields that carry wallet secrets, compared lowercased with
+// underscores removed so the Go PascalCase, camelCase and snake_case wire
+// shapes all match. wavewalletdk-worker.js cannot import this module and
+// carries an identical copy; keep the two in sync.
+const SECRET_FIELDS: ReadonlySet<string> = new Set([
+  'walletpassword',
+  'seedpassphrase',
+  'mnemonic',
+  'encipheredseed',
+  'seedentropy',
+  'prfoutput',
+]);
+
+const REDACTED = '[REDACTED]';
+
 /**
- * Removes seed-bearing wallet startup values from opt-in transport debug
- * logs. The real payload still crosses the private transport boundary.
+ * Returns a copy of a facade request or result for opt-in transport debug
+ * logs, with every secret field (wallet passwords, mnemonics, seed material,
+ * passkey PRF output) replaced at any depth. Other fields are kept. The real
+ * payload still crosses the private transport boundary.
  */
-export function facadeDebugPayload(
-  method: string,
-  payload: unknown,
-): unknown {
-  return method === 'startExternalSeedWallet'
-    ? '[REDACTED external-seed wallet payload]'
-    : payload;
+export function facadeDebugPayload(payload: unknown): unknown {
+  if (Array.isArray(payload)) {
+    return payload.map(facadeDebugPayload);
+  }
+  // Checked by tag rather than prototype so objects from another realm
+  // (a structured clone, a vm context) are still walked.
+  if (Object.prototype.toString.call(payload) !== '[object Object]') {
+    return payload;
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload as object)) {
+    const secret = SECRET_FIELDS.has(key.toLowerCase().replaceAll('_', ''));
+    out[key] = secret && value != null ? REDACTED : facadeDebugPayload(value);
+  }
+
+  return out;
 }
 
 /**

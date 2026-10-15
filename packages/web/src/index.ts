@@ -57,9 +57,10 @@ export type WebClientOptions = {
    */
   runtimeThread?: RuntimeThread;
   /**
-   * Log every RPC request and response payload to the console. Off by default;
-   * payloads can include addresses and amounts, so logging is opt-in for
-   * debugging and never on for a shipped app.
+   * Log every RPC request and response payload to the console. Wallet secrets
+   * (passwords, mnemonics, seed material, passkey PRF output) are redacted.
+   * Off by default; payloads still include addresses and amounts, so logging is
+   * opt-in for debugging and never on for a shipped app.
    */
   debug?: boolean;
   /**
@@ -90,7 +91,8 @@ export type WebClientOptions = {
    * On by default. Set false only when running a runtime built from source
    * (for example a local wavelength checkout), whose bytes cannot match the
    * pinned release; disabling logs a one-time console warning so the switch
-   * is never silently left off in production.
+   * is never silently left off in production. A start with network 'mainnet'
+   * rejects with invalid_config while verification is disabled.
    */
   runtimeIntegrity?: boolean;
 };

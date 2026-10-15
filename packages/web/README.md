@@ -101,7 +101,8 @@ bootstrap scripts against SHA-256 digests pinned for the SDK's release before
 executing them, on by default. A mismatch throws `WavelengthError` with code
 `asset_integrity_failed`, most likely because the hosted asset set does not
 match the SDK release. Set `runtimeIntegrity: false` to skip verification for
-a runtime you built from source. `RUNTIME_ASSET_DIGESTS` exports the full
+a runtime you built from source; a mainnet start then rejects with
+`invalid_config`. `RUNTIME_ASSET_DIGESTS` exports the full
 digest table so you can also verify your hosted set at deploy time. If your
 app sets a Content-Security-Policy, `script-src` must include `blob:`
 alongside `'self'`, since the SDK executes its bootstrap scripts from blob

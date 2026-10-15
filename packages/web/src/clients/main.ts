@@ -22,7 +22,10 @@ import {
   waitForReadyEvent,
   wavewalletdkCall,
 } from '../runtime.ts';
-import { resolveIntegrityDigests } from '../integrity.ts';
+import {
+  assertIntegrityForNetwork,
+  resolveIntegrityDigests,
+} from '../integrity.ts';
 import type { RuntimeDigests } from '../integrity.ts';
 import {
   RuntimeLock,
@@ -173,6 +176,7 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
     whenRunning?: () => Promise<T>,
   ): Promise<T> {
     validateRuntimeConfig(config, this.serverTransport);
+    assertIntegrityForNetwork(config, this.integrityDigests);
     if (this.disposed) {
       throw new WavelengthError('Wavelength client disposed', 'wavelength_error');
     }
@@ -317,14 +321,14 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       if (this.debug) {
         console.log(
           `${debugTs()} Executing ${method}:`,
-          facadeDebugPayload(method, params),
+          facadeDebugPayload(params),
         );
       }
       const result = await globalWallet.wavewalletdkCall(method, params);
       if (this.debug) {
         console.log(
           `${debugTs()} Executed ${method} result:`,
-          facadeDebugPayload(method, result),
+          facadeDebugPayload(result),
         );
       }
 

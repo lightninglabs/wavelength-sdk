@@ -26,18 +26,42 @@ let runtimeCacheEnabled = true;
 let assetDigests = null;
 
 // debug mirrors the client's debug option, set from the $init message. When on,
-// every RPC request/response is logged - payloads can include addresses and
-// amounts, so it stays off unless the consumer opts in.
+// every RPC request/response is logged with wallet secrets redacted - payloads
+// still include addresses and amounts, so it stays off unless the consumer
+// opts in.
 let debug = false;
 let performanceEnabled = false;
 function debugTs() {
   return new Date().toISOString().split("T").join(" ").slice(0, -1);
 }
 
-function facadeDebugPayload(method, payload) {
-  return method === "startExternalSeedWallet"
-    ? "[REDACTED external-seed wallet payload]"
-    : payload;
+// Mirrors SECRET_FIELDS and facadeDebugPayload in packages/web/src/util.ts,
+// hand-copied because this worker cannot import it; keep the two identical.
+const SECRET_FIELDS = new Set([
+  "walletpassword",
+  "seedpassphrase",
+  "mnemonic",
+  "encipheredseed",
+  "seedentropy",
+  "prfoutput",
+]);
+const REDACTED = "[REDACTED]";
+
+function facadeDebugPayload(payload) {
+  if (Array.isArray(payload)) {
+    return payload.map(facadeDebugPayload);
+  }
+  if (Object.prototype.toString.call(payload) !== "[object Object]") {
+    return payload;
+  }
+
+  const out = {};
+  for (const [key, value] of Object.entries(payload)) {
+    const secret = SECRET_FIELDS.has(key.toLowerCase().replaceAll("_", ""));
+    out[key] = secret && value != null ? REDACTED : facadeDebugPayload(value);
+  }
+
+  return out;
 }
 
 function performanceNow() {
@@ -180,14 +204,14 @@ self.onmessage = async (event) => {
     if (debug) {
       console.log(
         `${debugTs()} Executing ${method}:`,
-        facadeDebugPayload(method, params),
+        facadeDebugPayload(params),
       );
     }
     const result = await self.wavewalletdkCall(method, params || {});
     if (debug) {
       console.log(
         `${debugTs()} Executed ${method} result:`,
-        facadeDebugPayload(method, result),
+        facadeDebugPayload(result),
       );
     }
     self.postMessage({ id, ok: true, result });

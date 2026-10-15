@@ -271,7 +271,7 @@ describe('wavewalletdk worker external-seed redaction', () => {
 
     const renderedLogs = JSON.stringify(logs);
     assert.equal(renderedLogs.includes('AAECAwQFBgcICQoLDA0ODw=='), false);
-    assert.match(renderedLogs, /REDACTED external-seed wallet payload/);
+    assert.match(renderedLogs, /"seed_entropy":"\[REDACTED\]"/);
   });
 });
 

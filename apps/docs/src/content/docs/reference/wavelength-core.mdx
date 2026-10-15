@@ -451,7 +451,7 @@ persistIdentity(result.identityPubKey);
 
 Keep the root seed and derivation logic in the integrating application. The
 final 16-byte entropy is the only seed material that enters this request. The
-transport redacts the whole startup request and result from opt-in debug logs.
+transport redacts the seed entropy from opt-in debug logs.
 
 <ApiTypeLabel name="ExternalSeedWalletRequest" />
 

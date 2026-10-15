@@ -1,4 +1,5 @@
 import { WavelengthError } from '@lightninglabs/wavelength-core';
+import type { RuntimeConfig } from '@lightninglabs/wavelength-core';
 import { RUNTIME_ASSET_DIGESTS } from './runtime-manifest.ts';
 
 /**
@@ -114,6 +115,24 @@ export function resolveIntegrityDigests(
   }
 
   return RUNTIME_ASSET_DIGESTS;
+}
+
+/**
+ * Refuses a mainnet start while runtime integrity verification is disabled,
+ * with the same invalid_config error the other runtime config checks use.
+ * Other networks keep the one-time warning from {@link resolveIntegrityDigests}.
+ */
+export function assertIntegrityForNetwork(
+  config: RuntimeConfig,
+  digests: RuntimeDigests | null,
+): void {
+  if (digests === null && config.network === 'mainnet') {
+    throw new WavelengthError(
+      'mainnet requires runtime integrity verification; remove ' +
+        'runtimeIntegrity: false',
+      'invalid_config',
+    );
+  }
 }
 
 /**

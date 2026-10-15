@@ -50,7 +50,8 @@ async function boot() {
   // wasm:fetch), so every asset set gets a unique URL and a browser can never
   // reuse a stale cached runtime after a version bump. The path is resolved
   // against Vite's base URL (./ locally, /demo/ in production).
-  // debug logs every RPC request/response to the console for local diagnosis.
+  // debug logs every RPC request/response to the console, so it is on only
+  // under the Vite dev server and never in a deployed build.
   // The engine is built once here and injected into the provider, which is
   // transport-agnostic.
   const engine = createWebWalletEngine({
@@ -58,7 +59,7 @@ async function boot() {
       `runtime/${RUNTIME_MANIFEST_VERSION}/`,
       new URL(import.meta.env.BASE_URL, window.location.href),
     ).href,
-    debug: true,
+    debug: import.meta.env.DEV,
     onPerformance: performanceListener,
     // VITE_RUNTIME_INTEGRITY=off disables runtime asset digest verification.
     // A locally built asset set (wasm:local) cannot match the digests pinned

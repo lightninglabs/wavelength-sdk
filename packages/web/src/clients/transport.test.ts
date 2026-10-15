@@ -1223,7 +1223,8 @@ describe('activity transport requests', () => {
         renderedLogs.includes(Buffer.from(seedEntropy).toString('base64')),
         false,
       );
-      assert.match(renderedLogs, /REDACTED external-seed wallet payload/);
+      assert.match(renderedLogs, /"seed_entropy":"\[REDACTED\]"/);
+      assert.match(renderedLogs, /"data_dir":"\/wallets"/);
 
       await client.stop();
       await Promise.resolve();
@@ -1803,6 +1804,70 @@ describe('activity transport requests', () => {
     } finally {
       for (const [name, value] of Object.entries(saved)) {
         stub(name, value);
+      }
+    }
+  });
+
+  it('redacts wallet secrets from main-thread debug logs', async () => {
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const saved = {
+      addEventListener: globalThis.addEventListener,
+      removeEventListener: globalThis.removeEventListener,
+      call: (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall,
+    };
+    const stub = (name: string, value: unknown) =>
+      Object.defineProperty(globalThis, name, { configurable: true, value });
+    const mnemonic = ['abandon', 'ability', 'able', 'about'];
+    const results: Record<string, unknown> = {
+      createWallet: {
+        Mnemonic: mnemonic,
+        EncipheredSeed: 'ZW5jaXBoZXJlZA==',
+        IdentityPubKey: 'identity',
+      },
+      unlockWallet: { IdentityPubKey: 'identity' },
+      openWalletFromPasskey: {
+        Imported: true,
+        Mnemonic: mnemonic,
+        IdentityPubKey: 'identity',
+      },
+    };
+    stub('addEventListener', () => undefined);
+    stub('removeEventListener', () => undefined);
+    stub('wavewalletdkCall', async (method: string) => results[method]);
+    const savedLog = console.log;
+    const logs: unknown[][] = [];
+    console.log = (...args: unknown[]) => logs.push(args);
+
+    try {
+      const client = new MainThreadWavelengthClient({ debug: true });
+      const created = await client.createWallet({
+        password: 'wallet-password',
+        mnemonic,
+        seedPassphrase: 'seed-passphrase',
+        recoverState: true,
+      });
+      await client.unlockWallet({ password: 'wallet-password' });
+      await client.openWalletFromPasskey({ prfOutput: 'cd'.repeat(32) });
+      assert.deepEqual(created.mnemonic, mnemonic);
+
+      const rendered = JSON.stringify(logs);
+      for (const secret of [
+        Buffer.from('wallet-password').toString('base64'),
+        Buffer.from('seed-passphrase').toString('base64'),
+        'ZW5jaXBoZXJlZA==',
+        'cd'.repeat(32),
+        ...mnemonic,
+      ]) {
+        assert.equal(rendered.includes(secret), false, `leaked ${secret}`);
+      }
+      assert.equal(logs.length, 6);
+      assert.match(rendered, /"RecoverState":true/);
+      assert.match(rendered, /"IdentityPubKey":"identity"/);
+      client.dispose();
+    } finally {
+      console.log = savedLog;
+      for (const [name, value] of Object.entries(saved)) {
+        stub(name === 'call' ? 'wavewalletdkCall' : name, value);
       }
     }
   });
@@ -2941,6 +3006,120 @@ describe('runtime integrity option', () => {
     } finally {
       Object.defineProperty(globalThis, 'Worker', { configurable: true, value: savedWorker });
       Object.defineProperty(globalThis, 'navigator', { configurable: true, value: savedNavigator });
+    }
+  });
+
+  // stubStartGlobals installs the globals both transports need to reach the
+  // daemon: an auto-replying Worker, a granting lock, and a main-thread bridge
+  // that records each facade method. The returned restore puts them back.
+  function stubStartGlobals() {
+    const names = [
+      'Worker',
+      'navigator',
+      'addEventListener',
+      'removeEventListener',
+      'wavewalletdkCall',
+    ];
+    const saved = new Map(
+      names.map((name) => [name, (globalThis as Record<string, unknown>)[name]]),
+    );
+    const stub = (name: string, value: unknown) =>
+      Object.defineProperty(globalThis, name, { configurable: true, value });
+    const locks = grantingLocks();
+    const mainCalls: string[] = [];
+    stub('Worker', AutoReplyWorker);
+    stub('navigator', locks.navigator);
+    stub('addEventListener', () => undefined);
+    stub('removeEventListener', () => undefined);
+    stub('wavewalletdkCall', async (method: string) => {
+      mainCalls.push(method);
+
+      return {};
+    });
+
+    return {
+      locks,
+      mainCalls,
+      restore: () => {
+        for (const [name, value] of saved) stub(name, value);
+      },
+    };
+  }
+
+  it('refuses a mainnet start with integrity disabled in both modes', async () => {
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    mock.method(console, 'warn', () => undefined);
+    const env = stubStartGlobals();
+    const mainnet = { network: 'mainnet', allowMainnet: true } as const;
+    const isInvalidConfig = (err: unknown) => {
+      assert.equal((err as { code?: string }).code, 'invalid_config');
+      assert.match((err as Error).message, /runtime integrity/);
+
+      return true;
+    };
+
+    try {
+      const worker = new WorkerWavelengthClient({
+        workerURL: 'fake-worker.js',
+        runtimeIntegrity: false,
+      });
+      const workerMessages = FakeWorker.latest!.messages;
+      const main = new MainThreadWavelengthClient({ runtimeIntegrity: false });
+      for (const client of [worker, main]) {
+        await assert.rejects(client.start(mainnet), isInvalidConfig);
+        await assert.rejects(
+          client.startExternalSeedWallet(
+            { ...mainnet, dataDir: '/wallets' },
+            { seedEntropy: new Uint8Array(16) },
+          ),
+          isInvalidConfig,
+        );
+        client.dispose();
+      }
+
+      assert.equal(
+        workerMessages.some((m) => m.method?.startsWith('start')),
+        false,
+      );
+      assert.deepEqual(env.mainCalls, []);
+      assert.equal(env.locks.state.requests, 0);
+    } finally {
+      env.restore();
+    }
+  });
+
+  it('starts on testnet with integrity disabled and on mainnet with it on', async () => {
+    const { WorkerWavelengthClient } = await import('./worker.ts');
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const warn = mock.method(console, 'warn', () => undefined);
+    const env = stubStartGlobals();
+    const testnet = { network: 'testnet', arkServerAddress: 'h:7070' } as const;
+
+    try {
+      const worker = new WorkerWavelengthClient({
+        workerURL: 'fake-worker.js',
+        runtimeIntegrity: false,
+      });
+      await worker.start(testnet);
+      assert.ok(FakeWorker.latest!.messages.some((m) => m.method === 'start'));
+      await worker.stop();
+      worker.dispose();
+
+      const main = new MainThreadWavelengthClient({ runtimeIntegrity: false });
+      await main.start(testnet);
+      assert.ok(env.mainCalls.includes('start'));
+      await main.stop();
+      main.dispose();
+      assert.equal(warn.mock.callCount(), 1);
+
+      const verified = new WorkerWavelengthClient({ workerURL: 'fake-worker.js' });
+      await verified.start({ network: 'mainnet', allowMainnet: true });
+      assert.ok(FakeWorker.latest!.messages.some((m) => m.method === 'start'));
+      await verified.stop();
+      verified.dispose();
+    } finally {
+      env.restore();
     }
   });
 

@@ -4,7 +4,6 @@ import { useWalletRefresh } from '@lightninglabs/wavelength-react';
 import { AuthHeader } from '../../components/layout/AuthHeader';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { PrimaryButton } from '../../components/ui/Button';
-import { CopyButton } from '../../components/ui/CopyButton';
 import { Palette, fonts } from '../../theme/tokens';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -55,11 +54,7 @@ const makeStyles = (p: Palette) => ({
     fontSize: 14,
   },
   actions: {
-    gap: 12,
     marginTop: 20,
-  },
-  copyRow: {
-    alignItems: 'center' as const,
   },
 });
 
@@ -106,9 +101,6 @@ export function BackupScreen({
         ))}
       </View>
       <View style={styles.actions}>
-        <View style={styles.copyRow}>
-          <CopyButton value={mnemonic.join(' ')} label="Copy phrase" />
-        </View>
         <PrimaryButton icon={Check} onPress={handleAcknowledge} disabled={refreshPending} busy={refreshPending}>
           I saved it
         </PrimaryButton>
