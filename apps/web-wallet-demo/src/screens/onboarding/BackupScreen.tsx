@@ -2,7 +2,6 @@ import { Check, TriangleAlert } from "lucide-react";
 import { useWalletRefresh } from "@lightninglabs/wavelength-react";
 import { AuthHeader } from "../../components/layout/AuthHeader";
 import { AuthLayout } from "../../components/layout/AuthLayout";
-import { CopyButton } from "../../components/ui/CopyButton";
 import { PrimaryButton } from "../../components/ui/Button";
 
 // BackupScreen serves a freshly created wallet (phase ready, backup not yet
@@ -52,10 +51,7 @@ export function BackupScreen({
           </div>
         ))}
       </div>
-      <div className="mt-5 flex flex-col gap-3">
-        <div className="flex justify-center">
-          <CopyButton value={mnemonic.join(" ")} label="Copy phrase" />
-        </div>
+      <div className="mt-5 flex flex-col">
         <PrimaryButton icon={Check} onClick={handleAcknowledge} disabled={refreshPending}>
           I saved it
         </PrimaryButton>
