@@ -1223,7 +1223,8 @@ describe('activity transport requests', () => {
         renderedLogs.includes(Buffer.from(seedEntropy).toString('base64')),
         false,
       );
-      assert.match(renderedLogs, /REDACTED external-seed wallet payload/);
+      assert.match(renderedLogs, /"seed_entropy":"\[REDACTED\]"/);
+      assert.match(renderedLogs, /"data_dir":"\/wallets"/);
 
       await client.stop();
       await Promise.resolve();
@@ -1803,6 +1804,70 @@ describe('activity transport requests', () => {
     } finally {
       for (const [name, value] of Object.entries(saved)) {
         stub(name, value);
+      }
+    }
+  });
+
+  it('redacts wallet secrets from main-thread debug logs', async () => {
+    const { MainThreadWavelengthClient } = await import('./main.ts');
+    const saved = {
+      addEventListener: globalThis.addEventListener,
+      removeEventListener: globalThis.removeEventListener,
+      call: (globalThis as { wavewalletdkCall?: unknown }).wavewalletdkCall,
+    };
+    const stub = (name: string, value: unknown) =>
+      Object.defineProperty(globalThis, name, { configurable: true, value });
+    const mnemonic = ['abandon', 'ability', 'able', 'about'];
+    const results: Record<string, unknown> = {
+      createWallet: {
+        Mnemonic: mnemonic,
+        EncipheredSeed: 'ZW5jaXBoZXJlZA==',
+        IdentityPubKey: 'identity',
+      },
+      unlockWallet: { IdentityPubKey: 'identity' },
+      openWalletFromPasskey: {
+        Imported: true,
+        Mnemonic: mnemonic,
+        IdentityPubKey: 'identity',
+      },
+    };
+    stub('addEventListener', () => undefined);
+    stub('removeEventListener', () => undefined);
+    stub('wavewalletdkCall', async (method: string) => results[method]);
+    const savedLog = console.log;
+    const logs: unknown[][] = [];
+    console.log = (...args: unknown[]) => logs.push(args);
+
+    try {
+      const client = new MainThreadWavelengthClient({ debug: true });
+      const created = await client.createWallet({
+        password: 'wallet-password',
+        mnemonic,
+        seedPassphrase: 'seed-passphrase',
+        recoverState: true,
+      });
+      await client.unlockWallet({ password: 'wallet-password' });
+      await client.openWalletFromPasskey({ prfOutput: 'cd'.repeat(32) });
+      assert.deepEqual(created.mnemonic, mnemonic);
+
+      const rendered = JSON.stringify(logs);
+      for (const secret of [
+        Buffer.from('wallet-password').toString('base64'),
+        Buffer.from('seed-passphrase').toString('base64'),
+        'ZW5jaXBoZXJlZA==',
+        'cd'.repeat(32),
+        ...mnemonic,
+      ]) {
+        assert.equal(rendered.includes(secret), false, `leaked ${secret}`);
+      }
+      assert.equal(logs.length, 6);
+      assert.match(rendered, /"RecoverState":true/);
+      assert.match(rendered, /"IdentityPubKey":"identity"/);
+      client.dispose();
+    } finally {
+      console.log = savedLog;
+      for (const [name, value] of Object.entries(saved)) {
+        stub(name === 'call' ? 'wavewalletdkCall' : name, value);
       }
     }
   });

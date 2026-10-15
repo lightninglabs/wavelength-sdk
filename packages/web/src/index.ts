@@ -57,9 +57,10 @@ export type WebClientOptions = {
    */
   runtimeThread?: RuntimeThread;
   /**
-   * Log every RPC request and response payload to the console. Off by default;
-   * payloads can include addresses and amounts, so logging is opt-in for
-   * debugging and never on for a shipped app.
+   * Log every RPC request and response payload to the console. Wallet secrets
+   * (passwords, mnemonics, seed material, passkey PRF output) are redacted.
+   * Off by default; payloads still include addresses and amounts, so logging is
+   * opt-in for debugging and never on for a shipped app.
    */
   debug?: boolean;
   /**

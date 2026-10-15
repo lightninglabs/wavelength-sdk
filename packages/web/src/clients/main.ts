@@ -317,14 +317,14 @@ export class MainThreadWavelengthClient extends BaseWavelengthClient {
       if (this.debug) {
         console.log(
           `${debugTs()} Executing ${method}:`,
-          facadeDebugPayload(method, params),
+          facadeDebugPayload(params),
         );
       }
       const result = await globalWallet.wavewalletdkCall(method, params);
       if (this.debug) {
         console.log(
           `${debugTs()} Executed ${method} result:`,
-          facadeDebugPayload(method, result),
+          facadeDebugPayload(result),
         );
       }
 
