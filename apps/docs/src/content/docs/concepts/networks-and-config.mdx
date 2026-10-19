@@ -79,6 +79,11 @@ Mainnet is deliberately gated. Set **`allowMainnet: true`** together with
 **`swapServerAddress`**, and **`walletEsploraUrl`**. Without **`allowMainnet`**,
 the SDK rejects the configuration before startup.
 
+On mainnet the daemon also refuses plaintext links to the Ark and swap
+servers, because both carry the wallet's credentials and payment traffic.
+Startup fails if `arkServerInsecure` or `swapServerInsecure` is set, or if
+`arkServerAddress` or `swapServerAddress` uses an `http://` URL.
+
 <Callout type="caution">
 `allowMainnet` is an explicit safety rail. Do not enable it in example code or demos that users might copy against production networks by accident.
 </Callout>

@@ -48,7 +48,9 @@ the daemon's own listener then runs without transport security.
 The default macaroon is written to `admin.macaroon` under the daemon's network
 directory. The REST gateway (`localhost:10031`) is a local plaintext HTTP proxy
 that forwards the `macaroon` HTTP header to the enforcing gRPC backend, so a
-call needs that header whenever macaroons are enabled.
+call needs that header whenever macaroons are enabled. Because that header
+would cross the network in plaintext, the daemon refuses a non-loopback
+`rpc.gateway.listenaddr` on mainnet unless `allow-insecure-mainnet` is set.
 
 ## Your first call
 
