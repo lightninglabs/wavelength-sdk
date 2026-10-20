@@ -44,6 +44,7 @@ status.
 | `--status` | (none) | Filter by status; repeatable. Values: live, pending_forfeit, forfeiting, forfeited, spent, unilateral_exit, failed, spending, pending_round, expired. Mutually exclusive with `--all`. |
 | `--all` | `false` | List every status. OOR checkpoint PSBTs are omitted unless `--fields` includes `oor_final_checkpoint_psbts`. |
 | `--min-amount` | `0` | Minimum amount in sats. |
+| `--asset-ref` | (none) | Filter by canonical asset reference. Empty lists both Bitcoin and asset VTXOs. |
 | `--fields` | (none) | Comma-separated field names to include in the response. |
 | `--ndjson` | `false` | Emit one JSON object per VTXO, newline-delimited. |
 
@@ -356,10 +357,21 @@ have to look either up and pass them by hand.
 Returns paginated fee ledger entries from the client's local accounting
 database, including total fees paid.
 
+By default, entries are listed newest first and paged with `--offset`. Setting
+`--after-entry-id` or `--event-type` switches to cursor mode: entries with an
+`entry_id` greater than `--after-entry-id` are listed in ascending order,
+optionally restricted to the given event types. To import the ledger
+incrementally, pass the largest `entry_id` seen so far and repeat until a page
+returns fewer than `--limit` entries. Cursor mode cannot be combined with
+`--offset`. An `entry_id` is local to one daemon database, so a cursor is only
+meaningful against the database that produced it.
+
 | Flag | Default | Description |
 |---|---|---|
 | `--limit` | `50` | Maximum number of entries. |
-| `--offset` | `0` | Number of entries to skip. |
+| `--offset` | `0` | Number of entries to skip. Offset mode only. |
+| `--after-entry-id` | `0` | List entries with an `entry_id` greater than this value, in ascending order. |
+| `--event-type` | (none) | Only list entries of this event type; repeatable. Unknown values match nothing. |
 
 Calls the daemon `GetFeeHistory` RPC.
 

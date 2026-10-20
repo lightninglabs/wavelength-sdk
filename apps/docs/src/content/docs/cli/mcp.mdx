@@ -56,7 +56,8 @@ plus the advanced `ark.*` namespace (for example `ark.vtxos.list`,
 `ark.vtxos.list` accepts `statuses` for a multi-status filter and `all: true`
 to include every status. The older `status_filter` argument remains
 available for a single status. `all` cannot be combined with either status
-filter. When `all: true` is set, the response omits OOR checkpoint PSBTs.
+filter. When `all: true` is set, the response omits OOR checkpoint PSBTs. Pass
+`asset_ref` to restrict the list to one canonical asset reference.
 
 `ark.vtxos.refresh` carries the same fee-consent contract as the CLI. Since
 there's no interactive prompt to fall back to, a real refresh requires

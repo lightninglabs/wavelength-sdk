@@ -1,6 +1,6 @@
 {
   "name": "@lightninglabs/wavelength-react-native",
-  "version": "0.1.2",
+  "version": "0.2.0-rc1",
   "private": false,
   "description": "React Native transport for the Wavelength self-custodial Lightning wallet SDK.",
   "license": "MIT",
@@ -46,7 +46,7 @@
     "react-native": ">=0.76.0"
   },
   "devDependencies": {
-    "react-native": "0.86.0",
+    "react-native": "0.86.3",
     "@types/react": "^19.2.17",
     "react": "19.2.3"
   },
