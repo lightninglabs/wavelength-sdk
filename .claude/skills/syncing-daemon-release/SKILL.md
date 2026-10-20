@@ -45,7 +45,7 @@ cd <daemon checkout> && git worktree remove --force /tmp/wavelength-<version>
 | RPC/field doc comments only | `pnpm gen:api-docs` | Nothing (pages render from wallet.json) |
 | DaemonService RPCs/messages (`waverpc/daemon.proto`) | Nothing | wallet.json covers `WalletService` ONLY, so an empty wallet.json diff after a large daemon.proto change is expected, not a generator failure. It lands as CLI/prose docs work (step 4); `wavecli` is the DaemonService client, so check `cmd_*.go` |
 | wavecli flags/commands | Nothing | The command's page in `apps/docs/src/content/docs/cli/`; a new top-level command also needs a `CLI_NAV` entry. A change to the GLOBAL flag set, the exit-code table, or the error envelope touches `cli.mdx` and potentially every command page: grep the whole `cli/` directory for the old flag spelling or exit code, not just the changed command's page. A REMOVED one must be deleted in lockstep: its `cli/<cmd>.mdx`, its `CLI_NAV` entry, its row in the `cli.mdx` table, and its slug in `apps/docs/tests/cli.spec.ts`'s hardcoded slug list (`git grep -n <cmd> apps/docs` finds stragglers) |
-| Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes |
+| Daemon operational facts (ports, TLS, build tags, gateway behavior) | Nothing | `apps/docs/src/content/docs/api/get-started.mdx` and `api/rest.mdx`; `cli.mdx` global flags/exit codes. Checks added to `waved/config.go` `Validate` also reach SDK users: `sdk/wavewalletdk/embedded.go` runs them at startup, so check `concepts/networks-and-config.mdx` too |
 | Wasm runtime build | `wasm:local` (step 5) | Bump the pin first |
 | Runtime asset FILE LIST | Nothing | Three places in lockstep: `packages/web/src/runtime-manifest.ts` (`RUNTIME_ASSET_FILES`, and in the same file, generated: `RUNTIME_ASSET_DIGESTS`), `apps/web-wallet-demo/scripts/wasm-local.sh`, `apps/web-wallet-demo/scripts/fetch-runtime-assets.sh`. A fourth lives upstream in wavelength's `mobile-bindings.yml`: its "Package browser WASM runtime" step lists the files packed into the release archive, so diff that step's list against the three local copies |
 | Gomobile mobile bindings build | `bindings:local` (step 5) | Bump the pin first. Mirrors the wasm row: build from `$WAVELENGTH_DIR`, since the pin is often not downloadable yet. `bindings:fetch` works only once it names a published release |
@@ -113,7 +113,10 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    (build tags hide commands, and help text omits exit codes and JSON shapes).
    Every subcommand gets its own `###` section with its own flags table.
    Verify operational claims against `waved/config.go` and
-   `gateway_server.go`.
+   `gateway_server.go`. Behavior changes (refresh, boarding, swap timing)
+   leave no trace in the type, proto, or CLI diffs, so also read the merged
+   PR titles in the range (`git log --merges <old>..<new>`) and recheck any
+   docs page that describes the changed behavior.
 5. **Runtime assets**: check the release first (`gh release view <pin> --repo
    lightninglabs/wavelength --json isDraft,assets`). If it is published with
    assets attached, `pnpm --filter web-wallet-demo run wasm:fetch` and `pnpm
@@ -133,8 +136,9 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
    separate workflow, so `wasm:fetch` and `bindings:fetch` 404 while every
    other release asset is present. Before assuming a draft, list the assets and
    check that workflow's run on the tag (`gh run list --repo
-   lightninglabs/wavelength --workflow mobile-bindings.yml`). A failed run is
-   fixed upstream by re-running the job, not worked around here. The RN
+   lightninglabs/wavelength --workflow mobile-bindings.yml`). Read the failed
+   job's log: a build failure needs an upstream fix, not a re-run, so raise it
+   with the user and continue with the `:local` scripts meanwhile. The RN
    transport's mobile bindings key off the same pin and need the same
    treatment: restage them with
    `pnpm --filter @lightninglabs/wavelength-react-native run bindings:local`,
@@ -207,6 +211,11 @@ WAVELENGTH_DIR=... pnpm --filter web-wallet-demo run wasm:local && \
 # Unicode \x{} PCRE; this perl form is portable:
 perl -CSD -ne 'print "$ARGV:$.\n" if /\x{2014}/' $(git ls-files packages apps scripts)
 ```
+
+Also verify that a wallet created on the previous runtime still unlocks on
+this one with the same identity, balance, and history. New database
+migrations ship in most releases, and every check above starts from an empty
+database.
 
 A *deterministic* smoke-test failure is often a legitimate daemon behavior
 change rather than a regression. Read the trace's page snapshot
