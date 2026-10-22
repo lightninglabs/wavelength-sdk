@@ -42,6 +42,8 @@ is expected, not a loss. Track a dispatched onchain send with
 | `--onchain` | `false` | Force onchain dispatch. |
 | `--amt` | `0` | Amount in satoshis. Required for on-chain sends unless `--sweep-all`; ignored for amount-bearing invoices. |
 | `--max-fee` | `0` | Max swap fee in satoshis for invoice sends. `0` lets the daemon cap the fee at roughly 1% of the amount. |
+| `--max-credit` | `0` | Offchain only: maximum total server credit the send may reserve, including credit funded by a top-up. `0` disables credit use. Rejected with `INVALID_ARGS` on an onchain send. |
+| `--max-credit-topup` | `0` | Offchain only: maximum new Ark value the send may move into server credit. `0` disables credit top-ups. Rejected with `INVALID_ARGS` on an onchain send. |
 | `--note` | (none) | Caller-supplied label attached to the entry. |
 | `--sweep-all` | `false` | On-chain only: drain the wallet to the destination. `--amt` must be `0`. |
 | `--dry-run` | `false` | Prepare and print the preview without dispatching funds. |

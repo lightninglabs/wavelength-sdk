@@ -1162,6 +1162,8 @@ export const sendRequestSig = `type SendRequest =
       amountSat?: number;
       note?: string;
       maxFeeSat?: number;
+      maxCreditSat?: number;
+      maxCreditTopupSat?: number;
     }
   | {
       onchainAddress: string;
@@ -1280,7 +1282,15 @@ and `sweepAll` applies only to the on-chain arm.
   { name: 'amountSat', type: 'number', desc: 'Optional. The amount to send, in sats. Ignored on the invoice path: v1 requires an amount-bearing BOLT-11 invoice.' },
   { name: 'note', type: 'string', desc: 'Optional. A note recorded with the activity.' },
   { name: 'maxFeeSat', type: 'number', desc: 'Optional. A cap on the fee, in sats.' },
+  { name: 'maxCreditSat', type: 'number', desc: 'Optional. The most server credit, in sats, the send may reserve, including credit funded by a top-up. Omitted or zero disables credit use.' },
+  { name: 'maxCreditTopupSat', type: 'number', desc: "Optional. The most new Ark value, in sats, the send may move into server credit. Omitted or zero disables top-ups. The server may round a shortfall up to its minimum Ark output; the rounded amount must stay within this cap." },
 ]} />
+
+Credit use is opt-in. With `maxCreditSat` omitted, an invoice send never
+spends server credit, so an invoice below the server's minimum Ark output
+fails to quote. Set `maxCreditSat` to let the quote settle on the `credit` or
+`mixed` rail, and `maxCreditTopupSat` as well when the wallet may need to top
+up its credit first. A top-up counts toward `expectedTotalOutflowSat`.
 
 **On-chain arm**
 

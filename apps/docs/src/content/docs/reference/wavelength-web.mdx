@@ -106,6 +106,8 @@ export const sendRequestSig = `type SendRequest =
       amountSat?: number;
       note?: string;
       maxFeeSat?: number;
+      maxCreditSat?: number;
+      maxCreditTopupSat?: number;
     }
   | {
       onchainAddress: string;
@@ -605,6 +607,8 @@ exclusive; `sweepAll` exists only on the on-chain branch.
   { name: 'amountSat', type: 'number', desc: "Required at runtime for on-chain sends unless sweepAll is true; the TypeScript type does not enforce this." },
   { name: 'note', type: 'string', desc: 'Optional memo stored with the activity entry.' },
   { name: 'maxFeeSat', type: 'number', desc: 'Optional fee ceiling for the send.' },
+  { name: 'maxCreditSat', type: 'number', desc: 'Invoice branch only. The most server credit, in sats, the send may reserve. Omitted or zero disables credit use.' },
+  { name: 'maxCreditTopupSat', type: 'number', desc: 'Invoice branch only. The most new Ark value, in sats, the send may move into server credit. Omitted or zero disables top-ups.' },
   { name: 'sweepAll', type: 'boolean', desc: 'Drain every live VTXO to onchainAddress. Only present on the on-chain branch.' },
 ]} />
 
