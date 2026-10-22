@@ -150,6 +150,19 @@ export type SendRequest =
       note?: string;
       /** An optional cap on the fee, in sats. */
       maxFeeSat?: number;
+      /**
+       * The most server credit, in sats, this send may reserve, including
+       * credit funded by a top-up. Omitted or zero disables credit use, so an
+       * invoice below the server's minimum Ark output fails to quote.
+       */
+      maxCreditSat?: number;
+      /**
+       * The most new Ark value, in sats, this send may move into server
+       * credit. Omitted or zero disables credit top-ups. The server may round
+       * a shortfall up to its minimum Ark output, and the rounded amount must
+       * stay within this cap.
+       */
+      maxCreditTopupSat?: number;
     }
   | {
       /** An on-chain address to pay. */
