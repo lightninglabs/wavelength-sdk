@@ -258,10 +258,10 @@ they never block a sync. After the main sync:
 ## After the sync: improve this skill
 
 Every release differs, so propose concrete edits to THIS file before
-finishing, and apply them on approval. The test for a candidate edit: would it
-help on a typical sync, or only on the exact change this release happened to
-carry? Durable environment facts and recurring change CLASSES belong here; a
-lesson tied to one field, file, or command quirk is a one-off that is easy to
-rediscover, so leave it out. Correct stale instructions rather than noting
-them, prune what the run proved obsolete, keep additions terse (name the file,
+finishing, and apply them on approval. Propose an edit only if it passes both
+tests: it applies to every sync run, not just releases that carry a certain
+kind of change, and an agent would not reliably get it right unaided (the
+mistake is silent, costly, or not discoverable from the code, the release, or a
+failing check). Anything that a typecheck, a test, or a grep would surface is
+left out. Correct stale instructions rather than noting them, prune what the run proved obsolete, keep additions terse (name the file,
 the symptom, the fix), and propose the diff rather than committing it.
