@@ -33,14 +33,16 @@ const QUOTE_TIMEOUT_MS = 60_000;
 // SendScreen walks a payment through form -> quote -> sent. Step one collects
 // only what cannot be derived from the destination; the quote supplies the
 // rest. Quoting and dispatch are self-served from the provider; only the
-// spendable balance (for the sweep-all guard) and tab routing come from the
-// caller.
+// spendable balance (for the sweep-all guard and the credit caps), the
+// available credit, and tab routing come from the caller.
 export function SendScreen({
   onNavigate,
   balanceSat,
+  creditSat,
 }: {
   onNavigate: (tab: AppTab) => void;
   balanceSat: number;
+  creditSat: number;
 }) {
   const { prepare } = useWalletPrepareSend();
   const { sendPrepared, sendPending } = useWalletSend();
@@ -102,6 +104,12 @@ export function SendScreen({
   // amountSat are mutually exclusive on the wire: the daemon rejects a
   // sweep_all request that also carries a non-zero amount. The invoice arm
   // never sends amountSat: the daemon ignores it on that path.
+  //
+  // The daemon disables credit unless the request caps it, which would leave
+  // invoices below the server's minimum Ark output unpayable. The caps here
+  // allow whatever the wallet could fund: credit may come from the existing
+  // balance or a top-up, and a top-up is funded from the spendable balance.
+  // The quote review shows the resulting total outflow before the user pays.
   function buildRequest(): SendRequest {
     const trimmed = dest.trim();
     const common = note ? { note } : {};
@@ -109,6 +117,8 @@ export function SendScreen({
     if (isInvoice) {
       return {
         invoice: trimmed,
+        maxCreditSat: balanceSat + creditSat,
+        maxCreditTopupSat: balanceSat,
         ...common,
       };
     }

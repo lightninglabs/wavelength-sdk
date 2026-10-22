@@ -11,7 +11,7 @@ import { AppShell } from './components/layout/AppShell';
 import { RecoveryBanner } from './components/RecoveryBanner';
 import { ExitBanner } from './components/ExitBanner';
 import { AppTab } from './components/layout/nav';
-import { balanceSat } from './lib/balance';
+import { balanceSat, creditAvailableSat } from './lib/balance';
 import {
   hasPendingOnchain,
   usePollWhileWaiting,
@@ -667,7 +667,11 @@ export function WalletApp() {
       {tab === 'home' ? <HomeScreen onNavigate={setTab} /> : null}
       {tab === 'receive' ? <ReceiveScreen onNavigate={setTab} /> : null}
       {tab === 'send' ? (
-        <SendScreen onNavigate={setTab} balanceSat={balanceSat(balance)} />
+        <SendScreen
+          onNavigate={setTab}
+          balanceSat={balanceSat(balance)}
+          creditSat={creditAvailableSat(balance)}
+        />
       ) : null}
       {tab === 'activity' ? <ActivityScreen onNavigate={setTab} /> : null}
       {tab === 'settings' && activeEntry ? (
