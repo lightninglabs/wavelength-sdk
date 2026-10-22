@@ -568,6 +568,22 @@
           "optional": false,
           "oneof": null,
           "comment": "sweep_all signals an explicit wallet-emptying onchain send: every\nlive VTXO is swept to the destination, less fees. The caller must\nset amt_sat = 0 when this flag is true and a strictly positive\namt_sat otherwise. This makes \"drain the wallet\" structurally\ndistinct from \"amt_sat defaulted to zero\" so a typo cannot empty\nthe wallet by accident. Ignored on the invoice path."
+        },
+        {
+          "name": "max_credit_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "max_credit_sat is the maximum total server credit the caller authorizes\nthis invoice send to reserve, including credit funded by a top-up. Zero\ndisables credit use. Ignored on the onchain path."
+        },
+        {
+          "name": "max_credit_topup_sat",
+          "type": "uint64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "max_credit_topup_sat is the maximum new Ark value the caller\nauthorizes this invoice send to move into server credit. Zero disables\ncredit top-ups. A server may round a shortfall up to its minimum Ark\noutput, but the rounded amount must remain within this cap. Ignored on\nthe onchain path."
         }
       ]
     },
