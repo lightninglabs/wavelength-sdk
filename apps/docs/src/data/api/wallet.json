@@ -104,6 +104,7 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
+        "ScheduledBatchWindow",
         "EntryFailureCode"
       ]
     },
@@ -130,6 +131,7 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
+        "ScheduledBatchWindow",
         "EntryFailureCode",
         "CreditReceive"
       ]
@@ -159,6 +161,7 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
+        "ScheduledBatchWindow",
         "EntryFailureCode",
         "VTXOInventory",
         "WalletVTXO",
@@ -189,6 +192,7 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
+        "ScheduledBatchWindow",
         "EntryFailureCode"
       ]
     },
@@ -338,6 +342,7 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
+        "ScheduledBatchWindow",
         "EntryFailureCode",
         "SubscribeGap"
       ]
@@ -365,6 +370,7 @@
         "ArkAddressRequest",
         "WalletEntryProgress",
         "WalletEntryPhase",
+        "ScheduledBatchWindow",
         "EntryFailureCode",
         "ActivitySwapTrace",
         "ActivityVTXOTrace",
@@ -1052,6 +1058,52 @@
           "optional": false,
           "oneof": null,
           "comment": "preimage is the hex-encoded Lightning payment preimage once the swap\nrevealed it. For a completed Lightning-backed send this is the proof of\npayment for the paid invoice (sha256(preimage) == payment_hash); it is\nempty until the preimage is durably known and for non-Lightning entries."
+        },
+        {
+          "name": "waiting_reason",
+          "type": "string",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "waiting_reason explains why this pending operation is waiting to join.\nCleared when the live attempt no longer waits for registration."
+        },
+        {
+          "name": "batch_window",
+          "type": "ScheduledBatchWindow",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "batch_window is the selected window for this operation, if known."
+        }
+      ]
+    },
+    "ScheduledBatchWindow": {
+      "name": "ScheduledBatchWindow",
+      "comment": "ScheduledBatchWindow describes the selected batch opportunity for a pending\noperation. Times use the operator's UTC clock; cutoff starts quoting, not\nconfirmation. This is advisory progress, not a durable registration promise.",
+      "fields": [
+        {
+          "name": "registration_opens_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "registration_opens_unix is the first second accepting joins."
+        },
+        {
+          "name": "cutoff_unix",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "cutoff_unix is the first second rejecting joins."
+        },
+        {
+          "name": "planned_join_unix_ms",
+          "type": "int64",
+          "repeated": false,
+          "optional": false,
+          "oneof": null,
+          "comment": "planned_join_unix_ms is the client's planned wake before preparation."
         }
       ]
     },

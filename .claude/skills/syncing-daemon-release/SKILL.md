@@ -102,8 +102,10 @@ export WAVELENGTH_DIR=/absolute/path/to/wavelength   # a worktree at the
 3. **API data**: `pnpm gen:api-docs`. Its gates fail loudly by design:
    - Nav drift: update `API_NAV` (and the curation maps in `config/api.ts`),
      then re-run. Never weaken the check.
-   - Missing doc comments: fix by adding comments upstream in wallet.proto,
-     never by tolerating empty descriptions.
+   - Missing doc comments: the tag is immutable, so add the comments in the
+     throwaway daemon worktree, regenerate, note it in the docs commit body,
+     and raise an upstream fix in wallet.proto so the next release carries
+     them. Never weaken the gate.
    - Run it twice; the second run must produce a byte-identical wallet.json.
    - Sample keys in `API_SAMPLES` must be real request field names (a spec
      enforces this).
