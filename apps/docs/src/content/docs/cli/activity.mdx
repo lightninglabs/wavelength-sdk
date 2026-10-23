@@ -30,7 +30,15 @@ and `activity inspect`.
 
 By default `activity` renders a compact table to stdout, with columns
 `LAST UPDATE`, `KIND`, `STATUS`, `AMOUNT`, `FEE`, `PHASE`, `ID`, `NOTE`.
-`--format json` emits the raw response for pipelines instead:
+When a pending deposit or send is waiting to join a scheduled batch, a detail
+block follows the table for each such entry, labelled by its id: the waiting
+reason, the batch registration window, and the planned join time, all in UTC.
+The expanded view and `activity inspect` show the same lines inline. The
+timestamps come from the operator's clock, and the planned join is when the
+wallet wakes to prepare its inputs, not a guaranteed send time.
+`--format json` emits the raw response for pipelines instead, with the same
+details under each entry's `progress.waiting_reason` and
+`progress.batch_window`:
 
 ```bash title="Terminal"
 wavecli activity --format json

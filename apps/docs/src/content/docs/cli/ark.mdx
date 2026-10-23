@@ -169,7 +169,12 @@ wavecli ark rounds join
 
 ### `rounds list`
 
-Lists round FSM states, optionally filtered.
+Lists round FSM states, optionally filtered. A round still assembling carries
+a `waiting_reason`, and while it waits for a scheduled batch it also carries a
+`batch_window` with the registration opening, the cutoff, and the planned join
+time. `round_key` identifies the local attempt before the operator assigns a
+round id, and `boarding_addresses` ties a pending round to its deposit
+activity.
 
 | Flag | Default | Description |
 |---|---|---|
@@ -190,8 +195,9 @@ wavecli ark rounds list --state confirmed
 
 ### `rounds watch`
 
-Opens a server-streaming connection that prints round state transitions as
-they occur. Press Ctrl-C to stop, or bound the watch up front: `--for` watches
+Opens a server-streaming connection that prints round updates as they occur:
+state transitions, and changes to a round's waiting metadata while it stays in
+the same state. Press Ctrl-C to stop, or bound the watch up front: `--for` watches
 for a fixed duration (overriding the global `--timeout` for the stream) and
 `--max-events` stops after a number of updates, either of which ends the
 stream cleanly with exit `0`.
