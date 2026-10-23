@@ -17,6 +17,23 @@ const IOS_PASSKEYS_ENV = 'WAVELENGTH_IOS_PASSKEYS';
 // is lost today: the iOS half of the association still awaits a Team ID, so
 // the entitlement cannot validate either way. See the README.
 export default ({ config }: ConfigContext): ExpoConfig => {
+  // Maestro clears this app's storage. Give it a separate sandbox so running
+  // the smoke test locally cannot delete a wallet in the ordinary demo.
+  if (process.env.EXPO_PUBLIC_NATIVE_SMOKE === '1') {
+    return {
+      ...config,
+      name: 'Wavelength Storage Smoke',
+      ios: {
+        ...config.ios,
+        bundleIdentifier: 'engineering.lightning.wavelength.smoke',
+      },
+      android: {
+        ...config.android,
+        package: 'engineering.lightning.wavelength.smoke',
+      },
+    } as ExpoConfig;
+  }
+
   if (process.env[IOS_PASSKEYS_ENV] !== '1') {
     return config as ExpoConfig;
   }
