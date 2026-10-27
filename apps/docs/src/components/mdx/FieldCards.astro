@@ -15,10 +15,8 @@
  * this instance at once. REST is the no-JS default.
  *
  * Props:
- *   cards - array of { title, accent, fields, tags, empty }.
+ *   cards - array of { title, accent, fields, tags }.
  *     accent selects the title-chip tint (one of the theme's accent tokens).
- *     empty renders a dashed muted card instead of a field list, for groups
- *     (e.g. mainnet) with nothing to show.
  */
 interface Field {
   label: string;
@@ -30,7 +28,6 @@ interface Card {
   accent?: 'teal' | 'sky' | 'lime' | 'violet' | 'orange';
   fields?: Field[];
   tags?: string[];
-  empty?: string;
 }
 
 interface Props {
@@ -56,30 +53,26 @@ const hasVariants = cards.some((c) =>
     {cards.map((c, i) => {
       const titleId = `wdk-field-card-title-${i}-${c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
       return (
-        <section class:list={['wdk-field-card', c.empty && 'wdk-field-card--empty']} data-accent={c.accent ?? 'orange'} aria-labelledby={titleId}>
+        <section class="wdk-field-card" data-accent={c.accent ?? 'orange'} aria-labelledby={titleId}>
           <header class="wdk-field-card__head">
             <span class="wdk-field-card__title" id={titleId}>{c.title}</span>
           </header>
 
-          {c.empty ? (
-            <p class="wdk-field-card__empty-note">{c.empty}</p>
-          ) : (
-            <dl class="wdk-field-card__fields">
-              {c.fields?.map((f) => (
-                <div class="wdk-field-card__field">
-                  <dt>{f.label}</dt>
-                  {typeof f.value === 'string' ? (
-                    <dd><code>{f.value}</code></dd>
-                  ) : (
-                    <dd>
-                      <code data-variant="rest">{f.value.rest}</code>
-                      <code data-variant="grpc" hidden>{f.value.grpc}</code>
-                    </dd>
-                  )}
-                </div>
-              ))}
-            </dl>
-          )}
+          <dl class="wdk-field-card__fields">
+            {c.fields?.map((f) => (
+              <div class="wdk-field-card__field">
+                <dt>{f.label}</dt>
+                {typeof f.value === 'string' ? (
+                  <dd><code>{f.value}</code></dd>
+                ) : (
+                  <dd>
+                    <code data-variant="rest">{f.value.rest}</code>
+                    <code data-variant="grpc" hidden>{f.value.grpc}</code>
+                  </dd>
+                )}
+              </div>
+            ))}
+          </dl>
 
           {c.tags && c.tags.length > 0 && (
             <div class="wdk-field-card__tags">
@@ -227,27 +220,6 @@ const hasVariants = cards.some((c) =>
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 0.15em 0.5em;
-  }
-
-  /* Empty card (e.g. mainnet): dashed, muted, no colored accent bar, since
-     there is nothing live to represent. */
-  .wdk-field-card--empty {
-    border-top-color: var(--border);
-    border-style: dashed;
-    background: transparent;
-  }
-
-  .wdk-field-card--empty .wdk-field-card__title {
-    color: var(--text-dim);
-    background: var(--surface-2);
-    border-color: var(--border);
-  }
-
-  .wdk-field-card__empty-note {
-    font-size: 0.8125rem;
-    color: var(--text-dim);
-    margin: 0;
-    line-height: 1.6;
   }
 </style>
 

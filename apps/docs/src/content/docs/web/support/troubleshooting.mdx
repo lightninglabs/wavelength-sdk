@@ -125,7 +125,9 @@ regtest URL comes from you; the demo app ships its own local defaults (Ark
 on `7071`, Esplora on `8501`, swap on `10032`).
 
 Signet and testnet presets from `defaultConfig()` should work without a local
-backend; if they fail, check corporate proxies or ad blockers first. On web,
+backend, and so should the mainnet preset once you pass `allowMainnet: true`
+(without it the SDK rejects the config before startup). If they fail, check
+corporate proxies or ad blockers first. On web,
 Ark and swap values must be REST URLs. The transport always rejects
 `arkServerTlsCertPath`. It accepts `swapServerTlsCertPath` only when
 `disableSwaps: true`, which suppresses every swap field.

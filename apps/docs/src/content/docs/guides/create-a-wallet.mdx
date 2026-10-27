@@ -57,8 +57,8 @@ Build a [`WalletEngine`](/reference/wavelength-core/#WalletEngine) outside your 
 hooks. Pass `config` and `autoStart: true` so the engine boots the embedded
 daemon on its own as soon as the runtime is ready; no boot effect needed.
 
-Start with [`defaultConfig('signet')`](/reference/wavelength-web/#defaultConfig). Move to a hand-built mainnet config
-(with `allowMainnet: true`) only once you have key backup and recovery in
+Start with [`defaultConfig('signet')`](/reference/wavelength-web/#defaultConfig). Move to
+`defaultConfig('mainnet', { allowMainnet: true })` only once you have key backup and recovery in
 place.
 
 <PlatformTabs>

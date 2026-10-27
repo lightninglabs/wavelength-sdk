@@ -116,13 +116,13 @@ calls [wavelength-web's](/reference/wavelength-web/#defaultConfig) or
 [wavelength-react-native's](/reference/wavelength-react-native/#defaultConfig)
 `defaultConfig` instead.
 
-Only the preset networks are accepted. `mainnet` and `regtest` have no
-preset: a `RuntimeConfig` for either is built by hand.
+Only the preset networks are accepted. `regtest` has no preset: its
+`RuntimeConfig` is built by hand.
 
 <Signature title="wavelength-core.d.ts" code={networkDefaultsSig} />
 
 <ParamsTable rows={[
-  { name: 'network', type: 'PresetNetwork', desc: 'The Bitcoin network to look up; mainnet and regtest are excluded because they have no preset.' },
+  { name: 'network', type: 'PresetNetwork', desc: 'The Bitcoin network to look up; regtest is excluded because it has no preset.' },
   { name: 'transport', type: 'ServerTransport', desc: "The endpoint flavor the caller's transport dials: 'rest' or 'grpc'." },
 ]} />
 
@@ -215,8 +215,8 @@ their transport package and override only the fields they need.
 Selects the Bitcoin network the embedded daemon runs against.
 `PresetNetwork` narrows the union to the networks that carry a public
 endpoint preset (the domain of `networkDefaults` and the transports'
-`defaultConfig`). mainnet and regtest are excluded: mainnet has no public
-deployment yet, and regtest's local ports vary per development environment.
+`defaultConfig`). regtest is excluded because its local ports vary per
+development environment.
 `testnet4` is part of the union and carries a preset, but its deployment is
 not supported yet, so its endpoints are not listed below.
 
@@ -259,15 +259,19 @@ addresses (React Native transport):
   */
   {
     title: 'mainnet',
-    empty: 'No public preset - build the RuntimeConfig by hand with your own arkServerAddress, walletEsploraUrl, swapServerAddress, and allowMainnet.',
+    accent: 'orange',
+    fields: [
+      { label: 'arkServerAddress', value: { rest: 'https://wavelength-rest.lightning.finance', grpc: 'wavelength.lightning.finance:443' } },
+      { label: 'walletEsploraUrl', value: 'https://mempool.staging.lightningcluster.com/api' },
+      { label: 'swapServerAddress', value: { rest: 'https://swapd-rest.lightning.finance', grpc: 'swap.wavelength.lightning.finance:443' } },
+    ],
   },
 ]} />
 
-<Callout type="caution" title="mainnet has no public preset">
-mainnet is not a `PresetNetwork`, so there is no `defaultConfig` for it. There
-is no canonical public gateway for mainnet yet, so build the `RuntimeConfig` by
-hand: supply your own `arkServerAddress`, `walletEsploraUrl`, and `swapServerAddress` (or
-`disableSwaps`) and pass `allowMainnet: true`, or `start()` will refuse to run.
+<Callout type="caution" title="mainnet needs allowMainnet">
+The mainnet preset alone does not start a wallet. Pass `allowMainnet: true`
+as an override, for example `defaultConfig('mainnet', { allowMainnet: true })`,
+or `start()` will refuse to run.
 </Callout>
 
 </ApiSymbol>
