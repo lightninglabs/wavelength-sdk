@@ -15,11 +15,12 @@ export type Network =
 
 /**
  * The networks that carry a public endpoint preset, and so can be passed to a
- * transport package's defaultConfig helper. mainnet and regtest are excluded:
- * mainnet has no public deployment yet, and regtest's ports vary per
- * development environment. A {@link RuntimeConfig} for either is built by hand.
+ * transport package's defaultConfig helper. regtest is excluded because its
+ * ports vary per development environment, so its {@link RuntimeConfig} is
+ * built by hand. A mainnet preset still needs
+ * {@link RuntimeConfig.allowMainnet} set before start.
  */
-export type PresetNetwork = 'testnet' | 'testnet4' | 'signet';
+export type PresetNetwork = 'mainnet' | 'testnet' | 'testnet4' | 'signet';
 
 /**
  * The daemon log verbosity levels accepted by {@link RuntimeConfig.debugLevel},
@@ -238,6 +239,17 @@ type NetworkEndpoints = {
 // per-network defaults. Record over PresetNetwork so that adding a preset
 // network without its endpoints here is a compile error.
 const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
+  mainnet: {
+    ark: {
+      rest: 'https://wavelength-rest.lightning.finance',
+      grpc: 'wavelength.lightning.finance:443',
+    },
+    swap: {
+      rest: 'https://swapd-rest.lightning.finance',
+      grpc: 'swap.wavelength.lightning.finance:443',
+    },
+    esplora: 'https://mempool.staging.lightningcluster.com/api',
+  },
   signet: {
     ark: {
       rest: 'https://signet.wavelength-rest.lightning.finance',
@@ -283,8 +295,8 @@ const NETWORK_ENDPOINTS: Record<PresetNetwork, NetworkEndpoints> = {
  * building block the transport packages' defaultConfig helpers compose over;
  * app code normally calls those instead.
  *
- * Only the preset networks are accepted (see {@link PresetNetwork}); mainnet
- * and regtest have no preset and their {@link RuntimeConfig} is built by hand.
+ * Only the preset networks are accepted (see {@link PresetNetwork}); regtest
+ * has no preset and its {@link RuntimeConfig} is built by hand.
  *
  * @param network - The Bitcoin network to look up.
  * @param transport - The endpoint flavor the caller's transport dials.

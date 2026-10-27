@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { validateRuntimeConfig } from '@lightninglabs/wavelength-core';
 import { defaultConfig } from './config.ts';
 
 describe('defaultConfig (react-native)', () => {
@@ -23,6 +24,25 @@ describe('defaultConfig (react-native)', () => {
     assert.equal(
       config.swapServerAddress,
       'swapd-testnet4.testnet.lightningcluster.com:443',
+    );
+  });
+
+  it('builds a startable mainnet config when allowMainnet is set', () => {
+    const config = defaultConfig('mainnet', { allowMainnet: true });
+    assert.deepEqual(config, {
+      network: 'mainnet',
+      arkServerAddress: 'wavelength.lightning.finance:443',
+      walletEsploraUrl: 'https://mempool.staging.lightningcluster.com/api',
+      swapServerAddress: 'swap.wavelength.lightning.finance:443',
+      allowMainnet: true,
+    });
+    assert.doesNotThrow(() => validateRuntimeConfig(config, 'grpc'));
+  });
+
+  it('leaves a mainnet config without allowMainnet rejected', () => {
+    assert.throws(
+      () => validateRuntimeConfig(defaultConfig('mainnet'), 'grpc'),
+      /mainnet requires allowMainnet: true/,
     );
   });
 });
