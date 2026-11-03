@@ -25,7 +25,7 @@ never funds" bugs.
 
 ## defaultConfig presets
 
-For public test networks, use your transport package's `defaultConfig(network)` instead of hand-typing URLs. It returns a ready **RuntimeConfig** with canonical endpoints merged with any overrides you pass:
+For the hosted networks, use your transport package's `defaultConfig(network)` instead of hand-typing URLs. It returns a ready **RuntimeConfig** with canonical endpoints merged with any overrides you pass:
 
 <PlatformTabs>
 <div data-label="Web">
@@ -61,13 +61,12 @@ Presets ship for:
 |---------|-------------|
 | `'signet'` | Default for docs live embeds and the demo app; public Lightning Labs test infrastructure. Get test coins from the [signet faucet](https://robinet.eldamar.icu/). |
 | `'testnet'` | Bitcoin testnet3 with hosted Ark/swap gateways. |
+| `'mainnet'` | Real bitcoin on the hosted Lightning Labs deployment. Also requires `allowMainnet` (see below). |
 
-Hosted test-network gateways use TLS. The web preset uses REST URLs, while the
-React Native preset uses matching `host:port` gRPC addresses. `defaultConfig`
-accepts only these preset networks. `'mainnet'` and `'regtest'` are excluded:
-mainnet has no public deployment yet, and regtest's local ports vary per
-development environment. Build a `RuntimeConfig` for either by hand: mainnet
-with your own endpoints and `allowMainnet` (see below), regtest with local
+Hosted gateways use TLS. The web preset uses REST URLs, while the React Native
+preset uses matching `host:port` gRPC addresses. `defaultConfig` accepts only
+these preset networks. `'regtest'` is excluded because its local ports vary per
+development environment, so build its `RuntimeConfig` by hand with local
 endpoints and the insecure-transport flags.
 
 Pass overrides as the second argument to change data directory, point at your own operator, or toggle advanced flags without losing the rest of the preset.
@@ -75,9 +74,10 @@ Pass overrides as the second argument to change data directory, point at your ow
 ## allowMainnet
 
 Mainnet is deliberately gated. Set **`allowMainnet: true`** together with
-**`network: 'mainnet'`** and your own **`arkServerAddress`**,
-**`swapServerAddress`**, and **`walletEsploraUrl`**. Without **`allowMainnet`**,
-the SDK rejects the configuration before startup.
+**`network: 'mainnet'`**, for example
+`defaultConfig('mainnet', { allowMainnet: true })`. Without **`allowMainnet`**,
+the SDK rejects the configuration before startup, even when it comes from the
+mainnet preset.
 
 On mainnet the daemon also refuses plaintext links to the Ark and swap
 servers, because both carry the wallet's credentials and payment traffic.
@@ -89,19 +89,6 @@ Startup fails if `arkServerInsecure` or `swapServerInsecure` is set, or if
 </Callout>
 
 Test networks ignore **`allowMainnet`**; it exists only for mainnet runs.
-
-## Mainnet access
-
-Signet and testnet are open to anyone. Mainnet is different: the mainnet server
-accepts only clients on an approved allowlist, so `allowMainnet` on its own is
-not enough to connect. Access is keyed to your client's identity, its
-mailbox ID, which `wavecli getinfo` reports as `identity_pubkey`.
-
-To request access, initialize and unlock your wallet, run `wavecli getinfo`, and
-copy the `identity_pubkey` value (a 66-character hex string). Submit that value
-through the [mainnet access request form](https://docs.google.com/forms/d/e/1FAIpQLScX-AwTYPCRqD9WI2LOtalgL25PSOJ__I6Gf4D8xW04WyWCpA/viewform). Once approved, your client can register and connect. If you
-re-initialize with a new seed, the identity changes and you have to request
-access again for the new `identity_pubkey`.
 
 ## Complete configuration
 

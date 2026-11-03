@@ -148,8 +148,8 @@ the native runtime binaries are staged separately from npm. The
 ## Configuration
 
 `defaultConfig(network)` returns a ready-to-use config preloaded with the
-canonical public endpoints for `signet` and `testnet`. Override only
-what you need:
+canonical public endpoints for `signet`, `testnet`, and `mainnet`. Override
+only what you need:
 
 ```ts
 import { defaultConfig } from "@lightninglabs/wavelength-web";
@@ -180,8 +180,8 @@ const config: RuntimeConfig = {
 ```
 
 Every field is documented on the [`RuntimeConfig`](packages/core/src/config.ts)
-type. `mainnet` has no public preset yet, so like regtest it is built by hand:
-supply the endpoints and `allowMainnet: true` yourself.
+type. `mainnet` has a preset too, but it still needs an explicit opt-in:
+`defaultConfig("mainnet", { allowMainnet: true })`.
 
 ## Runtime assets and native bindings
 

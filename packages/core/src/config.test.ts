@@ -10,6 +10,19 @@ import { WavelengthError } from './errors.ts';
 import type { ServerTransport } from './facade.ts';
 
 describe('networkDefaults', () => {
+  it('returns the mainnet endpoints in each flavor', () => {
+    assert.deepEqual(networkDefaults('mainnet', 'rest'), {
+      arkServerAddress: 'https://wavelength-rest.lightning.finance',
+      walletEsploraUrl: 'https://mempool.staging.lightningcluster.com/api',
+      swapServerAddress: 'https://swapd-rest.lightning.finance',
+    });
+    assert.deepEqual(networkDefaults('mainnet', 'grpc'), {
+      arkServerAddress: 'wavelength.lightning.finance:443',
+      walletEsploraUrl: 'https://mempool.staging.lightningcluster.com/api',
+      swapServerAddress: 'swap.wavelength.lightning.finance:443',
+    });
+  });
+
   it('returns the signet endpoints in each flavor', () => {
     assert.deepEqual(networkDefaults('signet', 'rest'), {
       arkServerAddress: 'https://signet.wavelength-rest.lightning.finance',

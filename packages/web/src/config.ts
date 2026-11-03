@@ -10,10 +10,10 @@ import {
  * merged with any overrides. Pass overrides to set dataDir or point at your
  * own infrastructure, e.g. `defaultConfig('signet', { dataDir: 'my-wallet' })`.
  *
- * Only the preset networks are accepted (see {@link PresetNetwork}). mainnet
- * and regtest have no preset: build their config by hand, mainnet with your
- * own gateway URLs and allowMainnet, regtest with local URLs and the
- * insecure-transport flags.
+ * Only the preset networks are accepted (see {@link PresetNetwork}). regtest
+ * has no preset: build its config by hand with local URLs and the
+ * insecure-transport flags. A mainnet config still needs allowMainnet, e.g.
+ * `defaultConfig('mainnet', { allowMainnet: true })`.
  *
  * @param network - The Bitcoin network to build a config for.
  * @param overrides - Fields that override the network preset's defaults.
