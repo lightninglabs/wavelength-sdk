@@ -1,0 +1,13 @@
+appId: engineering.lightning.wavelength.smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Native storage smoke passed: fresh'
+    timeout: 120000
+- stopApp
+# Keep app data but restart the native process, not just the JS client.
+- launchApp
+- extendedWaitUntil:
+    visible: 'Native storage smoke passed: reopened'
+    timeout: 120000

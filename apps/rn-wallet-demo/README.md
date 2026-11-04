@@ -117,6 +117,53 @@ local build uses), so treat wallets created with it as throwaways.
   sets. Entitlements are baked into the generated `ios/` project, so switching
   the flag takes a `prebuild --clean` to take effect.
 
+## Native storage CI
+
+The `Native storage smoke` workflow builds the real gomobile bindings through
+the SDK's `bindings:local` script and runs this app on an Android API 34 x86_64
+emulator and an iOS simulator. Android inherits the `sqlite_cgo` build tag from
+Wavelength's Android target; iOS continues to use its default SQLite driver.
+The workflow pins the merged commit from
+[Wavelength #1352](https://github.com/lightninglabs/wavelength/pull/1352)
+until the Android fix is released. This test-only pin does not change
+`RUNTIME_MANIFEST_VERSION` or the binaries downloaded by `bindings:fetch`.
+Move both pins to the published release when it is available.
+
+With `EXPO_PUBLIC_NATIVE_SMOKE=1`, the app starts the real runtime on regtest,
+checks `getInfo()`, stops it, and checks that both `waved.db` and `swaps.db`
+contain committed SQLite schemas. Maestro then restarts the app process and
+requires those files to exist and reopen successfully. Loopback endpoints
+keep the test independent of public services. No wallet is created, so this
+does not cover chain synchronization, payments, or passkeys.
+
+The smoke app uses `engineering.lightning.wavelength.smoke`, a separate
+application ID whose storage Maestro may clear. It never clears the ordinary
+demo's wallet. Release builds bundle the test JavaScript, so no Metro server
+is needed. To run locally, install Maestro 2.10.0 and the platform toolchain,
+then run from the workspace root:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+WAVELENGTH_DIR=/path/to/wavelength pnpm --filter \
+  @lightninglabs/wavelength-react-native run bindings:local android
+# Boot an API 34 x86_64 emulator first.
+bash apps/rn-wallet-demo/smoke/run-android.sh
+
+WAVELENGTH_DIR=/path/to/wavelength pnpm --filter \
+  @lightninglabs/wavelength-react-native run bindings:local ios
+bash apps/rn-wallet-demo/smoke/run-ios.sh
+```
+
+The scripts regenerate the ignored native project for the smoke app ID.
+On iOS, Expo builds the simulator app without launching it; `simctl` installs
+it and Maestro launches it directly, avoiding Expo's development-server URL.
+Before returning to the normal demo, unset `EXPO_PUBLIC_NATIVE_SMOKE` and run
+`expo prebuild --clean` for that platform. CI uploads build logs, Maestro
+reports, and available platform crash logs as `native-smoke-*` artifacts.
+CI caches completed native bindings by daemon commit, gomobile version, runner
+image, and staging script so an app-stage retry can reuse the same binaries.
+
 ## Troubleshooting
 
 - **The app shows UI that does not match the code.** Metro served a stale
