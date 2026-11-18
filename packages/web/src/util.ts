@@ -39,6 +39,7 @@ export function debugTs(): string {
 // shapes all match. wavewalletdk-worker.js cannot import this module and
 // carries an identical copy; keep the two in sync.
 const SECRET_FIELDS: ReadonlySet<string> = new Set([
+  'preimage',
   'walletpassword',
   'seedpassphrase',
   'mnemonic',

@@ -12,6 +12,8 @@ const ENCIPHERED_SEED = 'AGVuY2lwaGVyZWQgc2VlZA==';
 const PRF_OUTPUT = 'ab'.repeat(32);
 const SEED_ENTROPY = 'AAECAwQFBgcICQoLDA0ODw==';
 
+const PREIMAGE = 'de'.repeat(32);
+
 type Case = {
   method: string;
   params: unknown;
@@ -54,6 +56,13 @@ const CASES: Case[] = [
       RecoveryRan: true,
       RecoveredVTXOs: 2,
     },
+  },
+  {
+    method: 'payOnActiveChannel',
+    params: { Invoice: 'invoice', MaxFeeSat: 2 },
+    result: { Preimage: PREIMAGE, payment: { preimage: PREIMAGE, FeeSat: 1 } },
+    redactedParams: { Invoice: 'invoice', MaxFeeSat: 2 },
+    redactedResult: { Preimage: R, payment: { preimage: R, FeeSat: 1 } },
   },
   {
     method: 'unlockWallet',
@@ -101,6 +110,7 @@ const SECRETS = [
   ENCIPHERED_SEED,
   PRF_OUTPUT,
   SEED_ENTROPY,
+  PREIMAGE,
   ...MNEMONIC,
 ];
 
