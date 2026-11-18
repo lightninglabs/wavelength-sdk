@@ -8,6 +8,7 @@ const android = new URL(
   import.meta.url,
 );
 const ios = new URL('../ios/WavelengthModule.mm', import.meta.url);
+const iosArk = new URL('../ios/WavelengthArkBindings.hpp', import.meta.url);
 
 const nativeMethods = {
   start: ['Mobile.start', 'MobileStart'],
@@ -27,6 +28,9 @@ const nativeMethods = {
   ],
   deposit: ['Mobile.deposit', 'MobileDeposit'],
   receive: ['Mobile.receive', 'MobileReceive'],
+  promoteVTXO: ['promoteVTXO', 'MobilePromoteVTXO'],
+  payOnActiveChannel: ['payOnActiveChannel', 'MobilePayOnActiveChannel'],
+  receiveOnActiveChannel: ['receiveOnActiveChannel', 'MobileReceiveOnActiveChannel'],
   prepareSend: ['Mobile.prepareSend', 'MobilePrepareSend'],
   sendPrepared: ['Mobile.sendPrepared', 'MobileSendPrepared'],
   list: ['Mobile.list', 'MobileList'],
@@ -63,10 +67,15 @@ async function readNativeSources(): Promise<{ kt: string; mm: string }> {
 }
 
 function androidDispatch(source: string): Record<string, string> {
-  return Object.fromEntries(
+  const direct = Object.fromEntries(
     [...source.matchAll(/^\s*"([^"]+)"\s*->\s*(?:\{\s*)?(Mobile\.\w+)\(/gm)]
       .map((match) => [match[1], match[2]]),
   );
+  const optional = source.match(/^\s*("[^"\n]+"(?:, "[^"\n]+")*) ->\s*arkChannels\.call\(method, params\)/m);
+  for (const [, name] of optional?.[1].matchAll(/"([^"]+)"/g) ?? []) {
+    direct[name] = name;
+  }
+  return direct;
 }
 
 function iosDispatch(source: string): Record<string, string> {
@@ -97,7 +106,10 @@ describe('native facade dispatch', () => {
     );
 
     assert.deepEqual(androidDispatch(kt), expectedAndroid);
-    assert.deepEqual(iosDispatch(mm), expectedIos);
+    assert.match(mm, /WavelengthArkBindings<>::dispatch\(method, params, &result, &error\)/);
+    assert.deepEqual({
+      ...iosDispatch(mm), ...iosDispatch(await readFile(iosArk, 'utf8')),
+    }, expectedIos);
   });
 
   it('forwards external-seed starts as byte request and result values', async () => {

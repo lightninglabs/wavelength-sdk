@@ -1,4 +1,5 @@
 #import "WavelengthModule.h"
+#import "WavelengthArkBindings.hpp"
 
 #import <Wavewalletdk/Wavewalletdk.h>
 #import <WavelengthSpec/WavelengthSpec.h>
@@ -44,6 +45,12 @@ RCT_EXPORT_MODULE(Wavelength)
                   reject:(RCTPromiseRejectBlock)reject
 {
   resolve(@([WavelengthPasskey prfSupported]));
+}
+
+- (void)supportsArkChannels:(RCTPromiseResolveBlock)resolve
+                     reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@(WavelengthArkBindings<>::supported));
 }
 
 - (void)passkeyCreate:(NSString *)requestJson
@@ -104,7 +111,16 @@ RCT_EXPORT_MODULE(Wavelength)
     NSString *json = @"";
     NSData *params = [paramsJson dataUsingEncoding:NSUTF8StringEncoding];
 
-    if ([method isEqualToString:@"start"]) {
+    if (WavelengthArkBindings<>::dispatch(method, params, &result, &error)) {
+      if (!WavelengthArkBindings<>::supported) {
+        reject(@"unsupported_facade_method", @"Native bindings do not support Ark channels", nil);
+        return;
+      }
+      if (error == nil && result.length == 0) {
+        reject(kWavelengthErrorCode, [method stringByAppendingString:@" returned no JSON"], nil);
+        return;
+      }
+    } else if ([method isEqualToString:@"start"]) {
       MobileStart(paramsJson, &error);
     } else if ([method isEqualToString:@"startExternalSeedWallet"]) {
       result = MobileStartExternalSeedWallet(params, &error);
@@ -171,8 +187,12 @@ RCT_EXPORT_MODULE(Wavelength)
     }
     if (result != nil) {
       json = [[NSString alloc] initWithData:result encoding:NSUTF8StringEncoding];
+      if (json == nil) {
+        reject(kWavelengthErrorCode, [method stringByAppendingString:@" returned invalid UTF-8"], nil);
+        return;
+      }
     }
-    resolve(json ?: @"");
+    resolve(json);
   });
 }
 
