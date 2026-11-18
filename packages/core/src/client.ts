@@ -13,6 +13,8 @@ import type {
   GetExitPlanRequest,
   ListRequest,
   OpenWalletFromPasskeyRequest,
+  PayOnActiveChannelRequest,
+  PromoteVTXORequest,
   ReceiveRequest,
   SendRequest,
   SweepWalletRequest,
@@ -29,7 +31,9 @@ import type {
   GetExitPlanResult,
   ListResult,
   OpenWalletFromPasskeyResult,
+  PayOnActiveChannelResult,
   PrepareSendResult,
+  PromoteVTXOResult,
   ReceiveResult,
   SendResult,
   SweepWalletResult,
@@ -41,8 +45,8 @@ import type {
  * wraps the embedded daemon's lifecycle, wallet operations, and activity
  * stream behind typed, camelCase-normalized methods.
  *
- * External-seed startup is an additive transport capability;
- * see {@link ExternalSeedWalletClient}.
+ * External-seed startup and Ark channel operations are additive capabilities;
+ * see {@link ExternalSeedWalletClient} and {@link ArkChannelClient}.
  */
 export interface WavelengthClient {
   /** Resolves once the runtime assets are loaded and the client is usable. */
@@ -155,4 +159,21 @@ export interface ExternalSeedWalletClient extends WavelengthClient {
     config: RuntimeConfig,
     req: ExternalSeedWalletRequest,
   ): Promise<ExternalSeedWalletOpenResult>;
+}
+
+/**
+ * Explicit Ark channel operations on the official web and React Native clients.
+ * Enable them with {@link RuntimeConfig.arkChannelsEnabled} and a supporting
+ * runtime. Errors, including unsupported methods on older runtimes, reject
+ * the call. No method retries or falls back to a wallet swap.
+ */
+export interface ArkChannelClient extends WavelengthClient {
+  /** Promotes wallet funds under a caller-owned idempotency key. */
+  promoteVTXO(req: PromoteVTXORequest): Promise<PromoteVTXOResult>;
+  /** Pays a BOLT-11 invoice from outbound channel liquidity up to the fee cap. */
+  payOnActiveChannel(
+    req: PayOnActiveChannelRequest,
+  ): Promise<PayOnActiveChannelResult>;
+  /** Issues an invoice for a positive amount against existing inbound liquidity. */
+  receiveOnActiveChannel(req: ReceiveRequest): Promise<ReceiveResult>;
 }

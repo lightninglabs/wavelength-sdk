@@ -44,6 +44,26 @@ await client.ready();
 await client.start(defaultConfig("signet"));
 ```
 
+## Explicit Ark channels
+
+With a channel-capable Wavelength runtime and SwapDK hub, a funded, unlocked
+`lwwallet` can promote wallet VTXOs and pay over the resulting channel. Enable
+channels at startup with `{ ...config, arkChannelsEnabled: true }`. The same
+three client methods are available in the React Native SDK.
+
+```ts
+// Persist one key per promotion. Reuse it if the reply is lost.
+const channel = await client.promoteVTXO({ amountSat: 100_000, idempotencyKey });
+await client.payOnActiveChannel({ invoice, maxFeeSat: 10 });
+const incoming = await client.receiveOnActiveChannel({ amountSat: 5_000 });
+```
+
+The receive call requests an invoice against existing inbound liquidity. It
+does not open another channel or fall back to a swap. Use `client.receive()`
+for the separate vHTLC flow. Use WASM assets or a native library built from
+the matching channel branch; the previously released binaries do not expose
+these operations. Do not log the payment preimage returned by a successful pay.
+
 ## Performance diagnostics
 
 `onPerformance` opts a client or engine into structured timing samples. The

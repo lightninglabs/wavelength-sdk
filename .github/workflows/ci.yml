@@ -71,6 +71,7 @@ jobs:
       - run: pnpm --filter @lightninglabs/wavelength-core test
       - run: pnpm --filter @lightninglabs/wavelength-web test
       - run: pnpm --filter @lightninglabs/wavelength-react test
+      - run: pnpm --filter @lightninglabs/wavelength-react-native test
       # Validate the packed packages: publint for packaging mistakes, attw for
       # type/runtime resolution across consumer modes (Node ESM, bundlers).
       - run: pnpm check:packages

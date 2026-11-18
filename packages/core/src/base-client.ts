@@ -8,6 +8,8 @@ import type {
   GetExitPlanRequest,
   ListRequest,
   OpenWalletFromPasskeyRequest,
+  PayOnActiveChannelRequest,
+  PromoteVTXORequest,
   ReceiveRequest,
   SendRequest,
   SweepWalletRequest,
@@ -25,14 +27,16 @@ import type {
   GetExitPlanResult,
   ListResult,
   OpenWalletFromPasskeyResult,
+  PayOnActiveChannelResult,
   PrepareSendResult,
+  PromoteVTXOResult,
   ReceiveResult,
   SendResult,
   SweepWalletResult,
   UnlockWalletResult,
 } from './results.ts';
 import { validateRuntimeConfig, type RuntimeConfig } from './config.ts';
-import type { ExternalSeedWalletClient } from './client.ts';
+import type { ArkChannelClient, ExternalSeedWalletClient } from './client.ts';
 import type { WavelengthEvent, WavelengthListener } from './events.ts';
 import type { WalletInfo, WalletStatus } from './state.ts';
 import type { FacadeMethod, ServerTransport } from './facade.ts';
@@ -40,6 +44,9 @@ import {
   assertFacadeMethod,
   toExternalSeedWalletStartParams,
   toGoCreateWalletReq,
+  toGoPayOnActiveChannelReq,
+  toGoPromoteVTXOReq,
+  toGoReceiveOnActiveChannelReq,
   toGoUnlockWalletReq,
   toMobileConfig,
 } from './facade.ts';
@@ -55,8 +62,8 @@ import {
 } from './activity-options.ts';
 
 /**
- * Implements the transport-agnostic half of
- * {@link ExternalSeedWalletClient}: every RPC verb is expressed in terms of
+ * Implements {@link ExternalSeedWalletClient} and {@link ArkChannelClient}
+ * across transports: every RPC verb is expressed in terms of
  * the abstract invokeFacade, so a transport (web wasm, React Native gomobile,
  * or a future one) supplies only the pipe: invokeFacade, ready, the
  * activity-stream plumbing, and its {@link ServerTransport} flavor. The shared
@@ -64,7 +71,8 @@ import {
  * catalog, public contract, native dispatch, and response normalization remain
  * separate synchronization points.
  */
-export abstract class BaseWavelengthClient implements ExternalSeedWalletClient {
+export abstract class BaseWavelengthClient
+  implements ExternalSeedWalletClient, ArkChannelClient {
   protected readonly listeners = new Set<WavelengthListener>();
 
   // Serializes runtime lifecycle operations for transports that route start and
@@ -267,6 +275,26 @@ export abstract class BaseWavelengthClient implements ExternalSeedWalletClient {
 
   receive(req: ReceiveRequest): Promise<ReceiveResult> {
     return this.callFacade<ReceiveResult>('receive', req);
+  }
+
+  async promoteVTXO(req: PromoteVTXORequest): Promise<PromoteVTXOResult> {
+    return this.callFacade<PromoteVTXOResult>(
+      'promoteVTXO', toGoPromoteVTXOReq(req),
+    );
+  }
+
+  async payOnActiveChannel(
+    req: PayOnActiveChannelRequest,
+  ): Promise<PayOnActiveChannelResult> {
+    return this.callFacade<PayOnActiveChannelResult>(
+      'payOnActiveChannel', toGoPayOnActiveChannelReq(req),
+    );
+  }
+
+  async receiveOnActiveChannel(req: ReceiveRequest): Promise<ReceiveResult> {
+    return this.callFacade<ReceiveResult>(
+      'receiveOnActiveChannel', toGoReceiveOnActiveChannelReq(req),
+    );
   }
 
   // prepareSend quotes a payment without dispatching it, returning the fee and a

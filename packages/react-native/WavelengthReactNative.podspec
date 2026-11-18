@@ -11,7 +11,8 @@ Pod::Spec.new do |s|
   s.authors      = "Lightning Labs"
   s.platforms    = { :ios => "15.1" }
   s.source       = { :git => "https://github.com/lightninglabs/wavelength-sdk.git" }
-  s.source_files = "ios/**/*.{h,mm,swift}"
+  s.source_files = "ios/**/*.{h,hpp,mm,swift}"
+  s.private_header_files = "ios/*.hpp"
   s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
 
   # The gomobile-built daemon. Not shipped in the npm package and gitignored

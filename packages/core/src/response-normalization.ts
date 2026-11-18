@@ -111,6 +111,7 @@ export function normalizeFacadeResult<T = unknown>(
     return { ...result, inputs: nilSlice(result.inputs) } as T;
   case 'deposit':
   case 'receive':
+  case 'receiveOnActiveChannel':
   case 'sendPrepared':
     return {
       ...result,

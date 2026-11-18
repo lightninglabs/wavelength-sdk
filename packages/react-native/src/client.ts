@@ -19,6 +19,8 @@ import type {
 export type WavelengthNativeModule = {
   /** Invokes a facade verb by name with a JSON payload, returning JSON. */
   call(method: string, paramsJson: string): Promise<string>;
+  /** Absent on an older app binary after a JS-only update. */
+  supportsArkChannels?(): Promise<boolean>;
   /** Opens the native activity subscription. */
   startActivity(reqJson: string): Promise<void>;
   /** Closes the native activity subscription. */
@@ -46,6 +48,25 @@ export type NativeActivityEvent = {
 export type SubscribeToNativeEvents = (
   listener: (event: NativeActivityEvent) => void,
 ) => () => void;
+
+// Older gomobile runtimes ignore unknown config fields. Check before either
+// lifecycle verb can open a wallet with the requested feature silently off.
+function needsArkChannels(method: FacadeMethod, params: unknown): boolean {
+  switch (method) {
+  case 'promoteVTXO':
+  case 'payOnActiveChannel':
+  case 'receiveOnActiveChannel':
+    return true;
+  case 'startExternalSeedWallet':
+    params = (params as { config: unknown }).config;
+    break;
+  case 'start':
+    break;
+  default:
+    return false;
+  }
+  return (params as { ark_channels_enabled?: boolean }).ark_channels_enabled === true;
+}
 
 /**
  * The React Native transport: implements {@link BaseWavelengthClient}'s pipe
@@ -103,6 +124,12 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
     params: unknown = {},
   ): Promise<T> {
     try {
+      if (needsArkChannels(method, params) && !(await this.native.supportsArkChannels?.())) {
+        throw new WavelengthError(
+          'Native bindings do not support Ark channels',
+          'unsupported_facade_method',
+        );
+      }
       const resultJson = await this.native.call(
         method,
         JSON.stringify(params ?? {}),
@@ -110,9 +137,14 @@ export class NativeWavelengthClient extends BaseWavelengthClient {
 
       return (resultJson ? JSON.parse(resultJson) : null) as T;
     } catch (err) {
-      throw new WavelengthError(errorMessage(err), 'wavelength_error', {
-        cause: err,
-      });
+      if (err instanceof WavelengthError) throw err;
+      const unsupported = err !== null && typeof err === 'object' &&
+        'code' in err && err.code === 'unsupported_facade_method';
+      throw new WavelengthError(
+        errorMessage(err),
+        unsupported ? 'unsupported_facade_method' : 'wavelength_error',
+        { cause: err },
+      );
     }
   }
 
