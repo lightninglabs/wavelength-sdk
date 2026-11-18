@@ -115,6 +115,16 @@ describe('toMobileConfig', () => {
     assert.equal(Object.hasOwn(defaulted, 'max_payment_cltv'), false);
   });
 
+  it('forwards an explicit channel toggle and omits it for legacy configs', () => {
+    for (const transport of ['rest', 'grpc'] as const) {
+      for (const enabled of [true, false]) {
+        const config = toMobileConfig({ arkChannelsEnabled: enabled }, transport);
+        assert.equal(config.ark_channels_enabled, enabled);
+      }
+      assert.equal(Object.hasOwn(toMobileConfig({}, transport), 'ark_channels_enabled'), false);
+    }
+  });
+
   it('omits every swap field when swaps are disabled', () => {
     const out = toMobileConfig(
       {

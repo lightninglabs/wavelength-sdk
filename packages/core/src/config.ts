@@ -116,6 +116,11 @@ export type RuntimeConfig = {
   /** Disables Lightning swaps and omits every swap configuration field. */
   disableSwaps?: boolean;
   /**
+   * Enables explicit Ark channel operations with a supporting runtime.
+   * Requires the lwwallet backend and swaps. Defaults to false.
+   */
+  arkChannelsEnabled?: boolean;
+  /**
    * Maximum per-round operator fee the daemon accepts, in satoshis. Must be a
    * nonnegative safe integer.
    */
@@ -167,6 +172,17 @@ export function validateRuntimeConfig(
   const walletType = config.walletType ?? 'lwwallet';
   if (walletType !== 'lwwallet' && walletType !== 'btcwallet') {
     invalidConfig(`unsupported walletType: ${String(walletType)}`);
+  }
+  if (
+    config.arkChannelsEnabled !== undefined &&
+    typeof config.arkChannelsEnabled !== 'boolean'
+  ) {
+    invalidConfig('arkChannelsEnabled must be a boolean');
+  }
+  if (
+    config.arkChannelsEnabled && (config.disableSwaps || walletType !== 'lwwallet')
+  ) {
+    invalidConfig('arkChannelsEnabled requires swaps and walletType lwwallet');
   }
   if (config.network === 'mainnet' && config.allowMainnet !== true) {
     invalidConfig('mainnet requires allowMainnet: true');

@@ -135,6 +135,25 @@ export type ReceiveRequest = {
   memo?: string;
 };
 
+/** Selects wallet liquidity to promote into an Ark channel. */
+export type PromoteVTXORequest = {
+  /** Amount to promote, in satoshis. Must be a positive safe integer. */
+  amountSat: number;
+  /**
+   * Caller-owned key (1 to 128 UTF-8 bytes). Persist it before dispatch and
+   * reuse it unchanged when retrying the same promotion.
+   */
+  idempotencyKey: string;
+};
+
+/** Authorizes payment of an invoice from existing outbound channel liquidity. */
+export type PayOnActiveChannelRequest = {
+  /** The signed BOLT-11 invoice to pay. */
+  invoice: string;
+  /** Maximum fee in satoshis. A nonnegative safe integer; zero is explicit. */
+  maxFeeSat: number;
+};
+
 /**
  * Parameters for sending a payment, as a discriminated union: supply an
  * `invoice` for a Lightning send or an `onchainAddress` for an on-chain send.

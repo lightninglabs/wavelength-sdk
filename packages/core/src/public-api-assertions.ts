@@ -16,6 +16,7 @@ import {
 } from './index.ts';
 import type {
   ActivityStreamOptions,
+  ArkChannelClient,
   CreditPreview,
   DebugLevel,
   EntryFailureCode,
@@ -33,6 +34,12 @@ import type {
   FacadeMethod,
   OnchainHistory,
   OnchainTx,
+  PayOnActiveChannelRequest,
+  PayOnActiveChannelResult,
+  PromoteVTXORequest,
+  PromoteVTXOResult,
+  ReceiveRequest,
+  ReceiveResult,
   RuntimeConfig,
   WavelengthClient,
   SendQuoteStatus,
@@ -95,3 +102,16 @@ const _externalSeedClientIsLegacy: WavelengthClient =
   null as unknown as ExternalSeedWalletClient;
 void _legacyClientHasNoExternalSeedStart;
 void _externalSeedClientIsLegacy;
+
+// Ark channel calls are additive too; keep their root exports and signatures
+// available without requiring custom clients to implement them.
+type ChannelMethods = 'promoteVTXO' | 'payOnActiveChannel' | 'receiveOnActiveChannel';
+const _legacyClientHasNoChannels:
+  Extract<ChannelMethods, keyof WavelengthClient> extends never ? true : false = true;
+const _channelMethods: {
+  promoteVTXO(req: PromoteVTXORequest): Promise<PromoteVTXOResult>;
+  payOnActiveChannel(req: PayOnActiveChannelRequest): Promise<PayOnActiveChannelResult>;
+  receiveOnActiveChannel(req: ReceiveRequest): Promise<ReceiveResult>;
+} = null as unknown as ArkChannelClient;
+void _legacyClientHasNoChannels;
+void _channelMethods;

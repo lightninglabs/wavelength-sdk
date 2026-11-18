@@ -9,6 +9,30 @@ import type {
  */
 export type OpenWalletFromPasskeyResult = OpenWalletResult;
 
+/** The durable channel state returned by a promotion. */
+export type PromoteVTXOResult = {
+  /** Hex-encoded channel identifier. */
+  channelId: string;
+  /** The channel's lifecycle phase at the time of the reply. */
+  phase: string;
+  /** Funded capacity in satoshis. */
+  capacitySat: number;
+};
+
+/** A settled payment made from an active Ark channel. */
+export type PayOnActiveChannelResult = {
+  /** Hex-encoded identifier of the paying channel. */
+  channelId: string;
+  /** Hex-encoded payment hash from the invoice. */
+  paymentHash: string;
+  /** Hex-encoded proof of payment, verified by the daemon. */
+  preimage: string;
+  /** Amount settled on the private channel leg, in satoshis. */
+  privateAmountSat: number;
+  /** Fee paid, in satoshis. */
+  feeSat: number;
+};
+
 /** Result of atomically starting and opening an external-seed daemon wallet. */
 export type ExternalSeedWalletOpenResult = {
   /** True when the seed was imported into a new local profile. */
