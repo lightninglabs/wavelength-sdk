@@ -1,0 +1,183 @@
+name: Native storage smoke
+
+on:
+  pull_request:
+    paths:
+      - 'packages/core/**'
+      - 'packages/react-native/**'
+      - 'apps/rn-wallet-demo/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/native-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/core/**'
+      - 'packages/react-native/**'
+      - 'apps/rn-wallet-demo/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/native-smoke.yml'
+  workflow_dispatch:
+    inputs:
+      wavelength-ref:
+        description: Wavelength revision to build instead of the test pin
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: '1'
+  EXPO_PUBLIC_NATIVE_SMOKE: '1'
+  LANG: en_US.UTF-8
+  # Test the merged Android fix before release. This is deliberately separate
+  # from the published WASM/runtime pin used by SDK consumers and Pages.
+  # https://github.com/lightninglabs/wavelength/pull/1352
+  WAVELENGTH_REF: df5208b673dd436c3b585e3f9a1ed00b6a4b3f92
+  GOMOBILE_VERSION: v0.0.0-20260908204917-8b95e45f8d3e
+  MAESTRO_CLI_NO_ANALYTICS: '1'
+
+jobs:
+  storage:
+    name: Native storage (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            runner: ubuntu-24.04
+            timeout: 60
+          - platform: ios
+            runner: macos-26
+            # A cold full XCFramework build took 46 minutes before the
+            # Expo app build started. Allow both stages to finish.
+            timeout: 120
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check out the paired daemon
+        uses: actions/checkout@v7
+        with:
+          repository: lightninglabs/wavelength
+          ref: ${{ inputs['wavelength-ref'] || env.WAVELENGTH_REF }}
+          path: .native-runtime
+      - name: Reclaim Android build space
+        if: matrix.platform == 'android'
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: .native-runtime/go.mod
+          cache-dependency-path: .native-runtime/go.sum
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        if: matrix.platform == 'android'
+        with:
+          # The action's old default includes the removed `tools` package.
+          packages: platform-tools
+      - uses: nttld/setup-ndk@v1
+        if: matrix.platform == 'android'
+        id: ndk
+        with:
+          ndk-version: r27c
+      - name: Install gomobile
+        run: |
+          go install "golang.org/x/mobile/cmd/gomobile@$GOMOBILE_VERSION"
+          go install "golang.org/x/mobile/cmd/gobind@$GOMOBILE_VERSION"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Identify the native build inputs
+        id: runtime
+        run: |
+          echo "sha=$(git -C .native-runtime rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image=$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Restore native bindings
+        id: bindings-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            packages/react-native/android/libs/Wavewalletdk.aar
+            packages/react-native/ios/Wavewalletdk.xcframework
+          key: native-bindings-r27c-${{ runner.os }}-${{ runner.arch }}-${{ steps.runtime.outputs.image }}-${{ steps.runtime.outputs.sha }}-${{ env.GOMOBILE_VERSION }}-${{ hashFiles('packages/react-native/scripts/bindings-local.sh') }}
+      - name: Build and stage native bindings through the SDK
+        if: steps.bindings-cache.outputs.cache-hit != 'true'
+        env:
+          WAVELENGTH_DIR: ${{ github.workspace }}/.native-runtime
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          gomobile init
+          pnpm --filter @lightninglabs/wavelength-react-native \
+            run bindings:local "$PLATFORM"
+      # Save immediately after a successful binding build, even if a later
+      # app build or device test fails. Never restore across daemon commits
+      # or runner images, which also identify the installed Xcode toolchain.
+      - name: Save native bindings
+        if: steps.bindings-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            packages/react-native/android/libs/Wavewalletdk.aar
+            packages/react-native/ios/Wavewalletdk.xcframework
+          key: ${{ steps.bindings-cache.outputs.cache-primary-key }}
+      - name: Install Maestro 2.10.0
+        run: |
+          curl -fsSL --retry 3 \
+            https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.10.0/maestro.zip \
+            -o "$RUNNER_TEMP/maestro.zip"
+          echo "29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991  $RUNNER_TEMP/maestro.zip" \
+            | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro"
+          echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable Android emulator acceleration
+        if: matrix.platform == 'android'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run in an Android app sandbox
+        if: matrix.platform == 'android'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          # Match issue #1351: API 34 x86_64 blocks modernc's raw lstat.
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash apps/rn-wallet-demo/smoke/run-android.sh
+      - name: Run in an iOS app sandbox
+        if: matrix.platform == 'ios'
+        run: bash apps/rn-wallet-demo/smoke/run-ios.sh
+      - name: Upload native build and smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-smoke-${{ matrix.platform }}
+          path: apps/rn-wallet-demo/smoke-output/
+          if-no-files-found: ignore
+          retention-days: 7

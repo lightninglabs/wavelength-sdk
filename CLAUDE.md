@@ -34,13 +34,16 @@ pnpm --filter web-wallet-demo run test         # Playwright smoke test (headless
 
 The smoke test is **hermetic**: `apps/web-wallet-demo/smoke-server.js` mocks every backend and serves the built demo, so no regtest network is required. It defaults to port 8790 (the regtest stack occupies 7071/8501/8091/10032; `reuseExistingServer` will otherwise latch onto a stray service). It runs locally only. **CI does not run it.**
 
-### React Native demo (manual verification)
+### React Native demo
 
-`apps/rn-wallet-demo` has no hermetic smoke test; there is no wasm-style
-mock target for a compiled-in native runtime. Verification is device-driven:
+`apps/rn-wallet-demo` has a native storage smoke test on Android and iOS CI.
+It builds the real bindings, starts and stops the daemon in an app sandbox,
+and reopens its databases after a process restart. See the demo README for
+the separate smoke app ID, test-only daemon pin, and local commands. Wallet
+creation, sync, payments, and passkeys still require device-driven checks:
 build and run the dev client with `npx expo run:android` / `npx expo
-run:ios` from that directory and exercise the flows by hand against a
-regtest stack. Before either command, stage the native binaries with
+run:ios` from that directory and exercise those flows against a regtest
+stack. Before either command, stage the native binaries with
 `pnpm --filter @lightninglabs/wavelength-react-native run bindings:fetch`
 (downloads them from the pinned wavelength release; `bindings:local` builds
 from a `WAVELENGTH_DIR` checkout instead, see the demo README and the script
