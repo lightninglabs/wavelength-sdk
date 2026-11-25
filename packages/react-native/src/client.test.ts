@@ -142,6 +142,7 @@ describe('NativeWavelengthClient', () => {
 
   it('startExternalSeedWallet preserves the final profile config', async () => {
     const fake = makeFake();
+    fake.native.supportsArkChannels = () => Promise.resolve(true);
     const client = new NativeWavelengthClient(fake.native, fake.subscribe);
     fake.responses.set('startExternalSeedWallet', JSON.stringify({
       Imported: true,
@@ -159,6 +160,7 @@ describe('NativeWavelengthClient', () => {
         network: 'regtest',
         dataDir: FINAL_PROFILE_DATA_DIR,
         arkServerAddress: 'h:7070',
+        arkChannelsEnabled: true,
       },
       {
         seedEntropy: Uint8Array.from({ length: 16 }, (_, index) => index),
@@ -175,6 +177,7 @@ describe('NativeWavelengthClient', () => {
         data_dir: FINAL_PROFILE_DATA_DIR,
         network: 'regtest',
         server_address: 'h:7070',
+        ark_channels_enabled: true,
         server_transport: 'grpc',
         swap_server_transport: 'grpc',
         wallet_type: 'lwwallet',
@@ -195,6 +198,86 @@ describe('NativeWavelengthClient', () => {
       recoveredOORReceiveScripts: 4,
       recoveredOORRecipientEvents: 5,
     });
+  });
+
+  it('forwards channel opt-in, exact verbs and JSON without a fallback', async () => {
+    const fake = makeFake();
+    fake.native.supportsArkChannels = () => Promise.resolve(true);
+    const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+    const channelId = 'ab'.repeat(32);
+    const preimage = '00'.repeat(32);
+    const paymentHash = '66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925';
+    fake.responses.set('getInfo', '{}');
+    fake.responses.set('promoteVTXO', JSON.stringify({
+      ChannelID: channelId, Phase: 'Active', CapacitySat: 500,
+    }));
+    fake.responses.set('payOnActiveChannel', JSON.stringify({
+      ChannelID: channelId, Preimage: preimage, PaymentHash: paymentHash,
+      PrivateAmountSat: 200, FeeSat: 0,
+    }));
+    fake.responses.set('receiveOnActiveChannel', JSON.stringify({
+      Invoice: 'ln-in', Entry: { Progress: null, Request: null },
+    }));
+
+    await client.start({ network: 'regtest', arkChannelsEnabled: true });
+    assert.equal(JSON.parse(fake.calls[0].paramsJson).ark_channels_enabled, true);
+    assert.deepEqual(await client.promoteVTXO({ amountSat: 500, idempotencyKey: 'p1' }), {
+      channelId, phase: 'Active', capacitySat: 500,
+    });
+    assert.deepEqual(await client.payOnActiveChannel({ invoice: 'ln-out', maxFeeSat: 0 }), {
+      channelId, preimage, paymentHash, privateAmountSat: 200, feeSat: 0,
+    });
+    assert.deepEqual(await client.receiveOnActiveChannel({ amountSat: 70, memo: 'inbound' }), {
+      invoice: 'ln-in', entry: { progress: undefined, request: undefined },
+    });
+    assert.deepEqual(fake.calls.slice(2).map(({ method, paramsJson }) =>
+      [method, JSON.parse(paramsJson)]), [
+      ['promoteVTXO', { AmountSat: 500, IdempotencyKey: 'p1' }],
+      ['payOnActiveChannel', { Invoice: 'ln-out', MaxFeeSat: 0 }],
+      ['receiveOnActiveChannel', { AmountSat: 70, Memo: 'inbound' }],
+    ]);
+  });
+
+  for (const binary of ['old RN bridge', 'old gomobile bindings']) {
+    it(`rejects channel operations before dispatch on ${binary}`, async () => {
+      const fake = makeFake();
+      if (binary === 'old gomobile bindings') {
+        fake.native.supportsArkChannels = () => Promise.resolve(false);
+      }
+      const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+      const config = {
+        network: 'regtest' as const, dataDir: FINAL_PROFILE_DATA_DIR, arkChannelsEnabled: true,
+      };
+      const unsupported = { name: 'WavelengthError', code: 'unsupported_facade_method' };
+      await assert.rejects(client.start(config), unsupported);
+      await assert.rejects(client.startExternalSeedWallet(config, {
+        seedEntropy: new Uint8Array(16),
+      }), unsupported);
+      await assert.rejects(client.promoteVTXO({ amountSat: 20, idempotencyKey: 'p' }), unsupported);
+      await assert.rejects(client.payOnActiveChannel({ invoice: 'inv', maxFeeSat: 1 }), unsupported);
+      await assert.rejects(client.receiveOnActiveChannel({ amountSat: 1 }), unsupported);
+      assert.deepEqual(fake.calls, []);
+      fake.responses.set('getInfo', '{}');
+      await client.start({ ...config, arkChannelsEnabled: false });
+      assert.deepEqual(fake.calls.map(({ method }) => method), ['start', 'getInfo']);
+    });
+  }
+
+  it('preserves channel errors, including native causes, without retrying the payment', async () => {
+    for (const [code, message] of [
+      ['wavelength_error', 'rpc error: no liquidity'],
+      ['unsupported_facade_method', 'Native bindings do not support Ark channels'],
+    ]) {
+      const fake = makeFake();
+      const cause = Object.assign(new Error(message), { code });
+      const methods: string[] = [];
+      fake.native.supportsArkChannels = () => Promise.resolve(true);
+      fake.native.call = async (method) => { methods.push(method); throw cause; };
+      const client = new NativeWavelengthClient(fake.native, fake.subscribe);
+      await assert.rejects(client.payOnActiveChannel({ invoice: 'inv', maxFeeSat: 1 }),
+        { name: 'WavelengthError', code, message, cause });
+      assert.deepEqual(methods, ['payOnActiveChannel']);
+    }
   });
 
   it('wraps native rejections in WavelengthError', async () => {

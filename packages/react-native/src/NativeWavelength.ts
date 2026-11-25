@@ -11,6 +11,8 @@ import { TurboModuleRegistry } from 'react-native';
 export interface Spec extends TurboModule {
   /** Invokes a facade verb by name with a JSON payload, returning JSON. */
   call(method: string, paramsJson: string): Promise<string>;
+  /** True only if all three Ark channel calls exist in the linked bindings. */
+  supportsArkChannels(): Promise<boolean>;
   /** Opens the activity subscription; entries arrive as device events. */
   startActivity(reqJson: string): Promise<void>;
   /** Closes the activity subscription; a no-op when none is open. */

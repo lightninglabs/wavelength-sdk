@@ -38,6 +38,7 @@ function debugTs() {
 // Mirrors SECRET_FIELDS and facadeDebugPayload in packages/web/src/util.ts,
 // hand-copied because this worker cannot import it; keep the two identical.
 const SECRET_FIELDS = new Set([
+  "preimage",
   "walletpassword",
   "seedpassphrase",
   "mnemonic",

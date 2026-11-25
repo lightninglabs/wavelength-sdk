@@ -13,6 +13,7 @@ android {
   compileSdkVersion rootProject.hasProperty("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 35
 
   defaultConfig {
+    consumerProguardFiles "consumer-rules.pro"
     // The gomobile bindings are built with -androidapi 21; RN itself floors
     // higher, so inherit the app's minSdk when present.
     minSdkVersion rootProject.hasProperty("minSdkVersion") ? rootProject.ext.minSdkVersion : 24

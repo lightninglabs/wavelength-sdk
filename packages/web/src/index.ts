@@ -2,6 +2,7 @@ import {
   createWalletEngine,
   type DistributiveOmit,
   type ExternalSeedWalletClient,
+  type ArkChannelClient,
   type PasskeyCeremony,
   type WavelengthPerformanceListener,
   type WalletEngine,
@@ -104,7 +105,7 @@ export type WebClientOptions = {
  */
 export function createWebClient(
   options: WebClientOptions = {},
-): ExternalSeedWalletClient {
+): ExternalSeedWalletClient & ArkChannelClient {
   return options.runtimeThread === 'main'
     ? new MainThreadWavelengthClient(options)
     : new WorkerWavelengthClient(options);

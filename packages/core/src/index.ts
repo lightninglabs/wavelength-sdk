@@ -55,6 +55,8 @@ export type {
   GetExitPlanRequest,
   ListRequest,
   OpenWalletFromPasskeyRequest,
+  PayOnActiveChannelRequest,
+  PromoteVTXORequest,
   ReceiveRequest,
   RestoreWalletRequest,
   SendRequest,
@@ -100,7 +102,9 @@ export type {
   OnchainHistory,
   OnchainTx,
   OpenWalletFromPasskeyResult,
+  PayOnActiveChannelResult,
   PrepareSendResult,
+  PromoteVTXOResult,
   ReceiveResult,
   SendRail,
   SendQuoteStatus,
@@ -177,8 +181,9 @@ export type {
 } from './exit.ts';
 
 // The stable client contract every transport implements, plus the additive
-// capability used by caller-owned external-seed startup.
+// capabilities for Ark channels and caller-owned external-seed startup.
 export type {
+  ArkChannelClient,
   ExternalSeedWalletClient,
   WavelengthClient,
 } from './client.ts';

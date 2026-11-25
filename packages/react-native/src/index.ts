@@ -2,6 +2,7 @@ import { NativeEventEmitter, NativeModules } from 'react-native';
 import {
   createWalletEngine,
   type ExternalSeedWalletClient,
+  type ArkChannelClient,
   type PasskeyCeremony,
   type DistributiveOmit,
   type WalletEngine,
@@ -20,7 +21,7 @@ import {
  * no options today; an options parameter can be added later without a breaking
  * change.
  */
-export function createNativeClient(): ExternalSeedWalletClient {
+export function createNativeClient(): ExternalSeedWalletClient & ArkChannelClient {
   // NativeModules.Wavelength is the interop view of the Turbo Module; the
   // emitter needs it (or any module carrying addListener/removeListeners) to
   // route 'wavelengthActivity' device events on both platforms.

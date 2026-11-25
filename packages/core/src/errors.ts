@@ -25,8 +25,10 @@
  * `'asset_load_failed'` cover a downloaded, verified module that fails to
  * compile, which is not an asset problem and surfaces as `'wavelength_error'`
  * too. `'invalid_external_seed'` means an external-seed wallet request failed
- * local validation. `'runtime_active'` means the client already has a runtime
- * active and must stop it before selecting another external-seed profile.
+ * local validation. `'invalid_channel_request'` means a typed Ark channel
+ * request failed validation before dispatch. `'runtime_active'` means the client
+ * already has a runtime active and must stop it before selecting another
+ * external-seed profile.
  * The `(string & {})` arm keeps the union open for forward
  * compatibility while still offering autocomplete on the known codes.
  */
@@ -41,6 +43,7 @@ export type WavelengthErrorCode =
   | 'unsupported_facade_method'
   | 'invalid_cursor'
   | 'invalid_config'
+  | 'invalid_channel_request'
   | 'invalid_external_seed'
   | 'runtime_active'
   | (string & {});

@@ -10,6 +10,7 @@ export const ACRONYM_OVERRIDES: Record<string, string> = {
   ID: 'id',
   VTXOs: 'vtxos',
   SendIntentID: 'sendIntentId',
+  ChannelID: 'channelId',
 };
 
 // camelKey converts one Go/PascalCase field name to camelCase. Most names just

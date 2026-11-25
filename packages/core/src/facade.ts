@@ -2,6 +2,9 @@ import type { RuntimeConfig } from './config.ts';
 import type {
   CreateWalletRequest,
   ExternalSeedWalletRequest,
+  PayOnActiveChannelRequest,
+  PromoteVTXORequest,
+  ReceiveRequest,
   UnlockWalletRequest,
 } from './requests.ts';
 import { WavelengthError } from './errors.ts';
@@ -22,6 +25,9 @@ export const FACADE_METHODS = [
   'openWalletFromPasskey',
   'deposit',
   'receive',
+  'promoteVTXO',
+  'payOnActiveChannel',
+  'receiveOnActiveChannel',
   'prepareSend',
   'sendPrepared',
   'list',
@@ -88,6 +94,7 @@ export type MobileConfig = {
   swap_server_transport?: ServerTransport;
   swap_server_insecure?: boolean;
   swap_database_file_name?: string;
+  ark_channels_enabled?: boolean;
   max_operator_fee_sat?: number;
   max_payment_cltv?: number;
   signing_workers?: number;
@@ -130,6 +137,7 @@ export function toMobileConfig(
     network: config.network,
     debug_level: config.debugLevel,
     allow_mainnet: config.allowMainnet,
+    ark_channels_enabled: config.arkChannelsEnabled,
     server_address: config.arkServerAddress,
     server_tls_cert_path: config.arkServerTlsCertPath,
     server_transport: serverTransport,
@@ -194,6 +202,10 @@ const BASE64_ALPHABET =
  * TextEncoder so it behaves identically in the browser, a worker, and Hermes.
  */
 export function base64FromUtf8(value: string): string {
+  return base64FromBytes(utf8Bytes(value));
+}
+
+function utf8Bytes(value: string): Uint8Array {
   const bytes: number[] = [];
   for (const ch of value) {
     const cp = ch.codePointAt(0) as number;
@@ -217,7 +229,7 @@ export function base64FromUtf8(value: string): string {
     }
   }
 
-  return base64FromBytes(Uint8Array.from(bytes));
+  return Uint8Array.from(bytes);
 }
 
 /**
@@ -269,4 +281,49 @@ export function toGoUnlockWalletReq(req: UnlockWalletRequest) {
   return {
     WalletPassword: req.password ? base64FromUtf8(req.password) : undefined,
   };
+}
+
+// JSON cannot carry bigint and can silently round unsafe numbers. Check the
+// caller's amount or fee cap before either transport serializes the request.
+function channelSats(field: 'amountSat' | 'maxFeeSat', value: number): number {
+  const amount = field === 'amountSat';
+  if (!Number.isSafeInteger(value) || value < (amount ? 1 : 0)) {
+    const range = amount ? 'positive' : 'nonnegative';
+    throw new WavelengthError(
+      `${field} must be a ${range} safe integer`, 'invalid_channel_request',
+    );
+  }
+  return value;
+}
+
+/** Maps a promotion without deriving or rewriting its replay identity. */
+export function toGoPromoteVTXOReq({ amountSat, idempotencyKey }: PromoteVTXORequest) {
+  // Go enforces the key limit in bytes, not JS code units. Unpaired surrogates
+  // would decode as replacement characters and change the key on the wire.
+  if (
+    typeof idempotencyKey !== 'string' || idempotencyKey.length === 0 ||
+    idempotencyKey.length > 128 || /[\uD800-\uDFFF]/u.test(idempotencyKey) ||
+    utf8Bytes(idempotencyKey).length > 128
+  ) {
+    throw new WavelengthError(
+      'idempotencyKey must be 1 to 128 UTF-8 bytes', 'invalid_channel_request',
+    );
+  }
+  return { AmountSat: channelSats('amountSat', amountSat), IdempotencyKey: idempotencyKey };
+}
+
+/** Maps an explicit channel payment, including a zero fee cap. */
+export function toGoPayOnActiveChannelReq({ invoice, maxFeeSat }: PayOnActiveChannelRequest) {
+  if (typeof invoice !== 'string' || !invoice) {
+    throw new WavelengthError('invoice is required', 'invalid_channel_request');
+  }
+  return { Invoice: invoice, MaxFeeSat: channelSats('maxFeeSat', maxFeeSat) };
+}
+
+/** Maps the same receive fields the daemon uses for an ordinary invoice. */
+export function toGoReceiveOnActiveChannelReq({ amountSat, memo }: ReceiveRequest) {
+  if (memo !== undefined && typeof memo !== 'string') {
+    throw new WavelengthError('memo must be a string', 'invalid_channel_request');
+  }
+  return { AmountSat: channelSats('amountSat', amountSat), Memo: memo };
 }

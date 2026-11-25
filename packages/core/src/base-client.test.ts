@@ -24,7 +24,9 @@ class FakeClient extends BaseWavelengthClient {
     params: unknown = {},
   ): Promise<T> {
     this.calls.push({ method, params });
-    return Promise.resolve((this.responses.get(method) ?? {}) as T);
+    const response = this.responses.get(method);
+    if (response instanceof Error) return Promise.reject(response);
+    return Promise.resolve((response ?? {}) as T);
   }
 
   protected openActivityStream(opts: ActivityStreamOptions): Promise<void> {
@@ -222,6 +224,115 @@ describe('BaseWavelengthClient', () => {
       paymentHash: 'ph',
     } as never);
     assert.equal(result.paymentHash, 'ph');
+  });
+
+  describe('explicit Ark channel calls', () => {
+    const channelId = '01'.repeat(32);
+    const amountSat = 4_294_967_297; // Must survive a 32-bit boundary.
+    const idempotencyKey = ' promotion-1 ';
+    const invoice = 'ln-channel-invoice';
+
+    it('preserves the promotion amount and caller key across explicit retries', async () => {
+      const client = new FakeClient();
+      client.responses.set('promoteVTXO', {
+        ChannelID: channelId, Phase: 'Active', CapacitySat: amountSat,
+      });
+      for (let i = 0; i < 2; i++) {
+        assert.deepEqual(await client.promoteVTXO({ amountSat, idempotencyKey }), {
+          channelId, phase: 'Active', capacitySat: amountSat,
+        });
+      }
+      const call = {
+        method: 'promoteVTXO',
+        params: { AmountSat: amountSat, IdempotencyKey: idempotencyKey },
+      };
+      assert.deepEqual(client.calls, [call, call]);
+    });
+
+    it('dispatches the exact fee cap and returns the normalized payment proof', async () => {
+      const client = new FakeClient();
+      const paymentHash = 'ab'.repeat(32);
+      const preimage = 'cd'.repeat(32);
+      for (const feeSat of [0, 5]) {
+        client.responses.set('payOnActiveChannel', {
+          ChannelID: channelId, PaymentHash: paymentHash, Preimage: preimage,
+          PrivateAmountSat: amountSat, FeeSat: feeSat,
+        });
+        assert.deepEqual(await client.payOnActiveChannel({ invoice, maxFeeSat: feeSat }), {
+          channelId, paymentHash, preimage, privateAmountSat: amountSat, feeSat,
+        });
+      }
+      assert.deepEqual(client.calls, [0, 5].map((maxFeeSat) => ({
+        method: 'payOnActiveChannel', params: { Invoice: invoice, MaxFeeSat: maxFeeSat },
+      })));
+    });
+
+    it('issues a channel invoice and normalizes its nested activity entry', async () => {
+      const client = new FakeClient();
+      client.responses.set('receiveOnActiveChannel', {
+        Invoice: invoice, Entry: { ID: 'receive-1', Progress: null, Request: null },
+      });
+      const memo = 'inbound';
+      assert.deepEqual(await client.receiveOnActiveChannel({ amountSat, memo }), {
+        invoice, entry: { id: 'receive-1', progress: undefined, request: undefined },
+      });
+      assert.deepEqual(client.calls, [{
+        method: 'receiveOnActiveChannel', params: { AmountSat: amountSat, Memo: memo },
+      }]);
+    });
+
+    it('rejects non-JSON and inexact satoshis before dispatch', async () => {
+      const client = new FakeClient();
+      const invalid = { code: 'invalid_channel_request' };
+      for (const value of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1,
+        1n, 2n ** 63n, '123', null, undefined]) {
+        // Untyped hosts can pass values that TS would have rejected.
+        const sats = value as number;
+        await assert.rejects(client.promoteVTXO({ amountSat: sats, idempotencyKey }), invalid);
+        await assert.rejects(client.receiveOnActiveChannel({ amountSat: sats }), invalid);
+        await assert.rejects(client.payOnActiveChannel({ invoice, maxFeeSat: sats }), invalid);
+      }
+      await assert.rejects(client.promoteVTXO({ amountSat: 0, idempotencyKey }), invalid);
+      await assert.rejects(client.receiveOnActiveChannel({ amountSat: 0 }), invalid);
+      assert.deepEqual(client.calls, []);
+    });
+
+    it('requires a wire-stable caller key and a nonempty invoice', async () => {
+      const client = new FakeClient();
+      const invalid = { code: 'invalid_channel_request' };
+      // U+1F511 takes two JS code units but four UTF-8 bytes.
+      const boundaryKey = '\u{1F511}'.repeat(32);
+      for (const key of ['', undefined, 1, 'x'.repeat(129), boundaryKey + 'x', '\uD800']) {
+        await assert.rejects(client.promoteVTXO({ amountSat, idempotencyKey: key as string }), invalid);
+      }
+      await assert.rejects(client.payOnActiveChannel({ invoice: '', maxFeeSat: 0 }), invalid);
+      await assert.rejects(client.receiveOnActiveChannel({ amountSat, memo: 1n as never }), invalid);
+      assert.deepEqual(client.calls, []);
+      await client.promoteVTXO({ amountSat, idempotencyKey: boundaryKey });
+      assert.deepEqual(client.calls, [{
+        method: 'promoteVTXO', params: { AmountSat: amountSat, IdempotencyKey: boundaryKey },
+      }]);
+    });
+
+    it('propagates daemon and older-runtime errors without retry or fallback', async () => {
+      const client = new FakeClient();
+      const operations = {
+        promoteVTXO: () => client.promoteVTXO({ amountSat, idempotencyKey }),
+        payOnActiveChannel: () => client.payOnActiveChannel({ invoice, maxFeeSat: 0 }),
+        receiveOnActiveChannel: () => client.receiveOnActiveChannel({ amountSat }),
+      };
+      for (const [method, invoke] of Object.entries(operations)) {
+        for (const error of [
+          new Error('rpc error: code = FailedPrecondition desc = no liquidity'),
+          new WavelengthError(`unsupported facade method: ${method}`, 'unsupported_facade_method'),
+        ]) {
+          client.responses.set(method, error);
+          client.calls.length = 0;
+          await assert.rejects(invoke, (err) => err === error);
+          assert.deepEqual(client.calls.map((call) => call.method), [method]);
+        }
+      }
+    });
   });
 
   it('forwards list kinds and both exit variants exactly', async () => {

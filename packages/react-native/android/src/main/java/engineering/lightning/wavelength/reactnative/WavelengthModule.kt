@@ -37,8 +37,13 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
   NativeWavelengthSpec(reactContext) {
 
   private val executor: ExecutorService = Executors.newCachedThreadPool()
+  private val arkChannels = ArkChannelBindings(Mobile::class.java)
 
   override fun getName(): String = NAME
+
+  override fun supportsArkChannels(promise: Promise) {
+    promise.resolve(arkChannels.supported)
+  }
 
   override fun getDefaultDataDir(promise: Promise) {
     promise.resolve(File(reactApplicationContext.filesDir, "wavelength").absolutePath)
@@ -145,6 +150,8 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
     executor.execute {
       try {
         promise.resolve(dispatch(method, paramsJson))
+      } catch (e: MissingArkChannels) {
+        promise.reject("unsupported_facade_method", e.message, e)
       } catch (e: Throwable) {
         promise.reject(ERROR_CODE, e.message ?: "wavelength call failed", e)
       }
@@ -168,6 +175,8 @@ class WavelengthModule(reactContext: ReactApplicationContext) :
       "openWalletFromPasskey" -> Mobile.openWalletFromPasskey(params).toString(Charsets.UTF_8)
       "deposit" -> Mobile.deposit(params).toString(Charsets.UTF_8)
       "receive" -> Mobile.receive(params).toString(Charsets.UTF_8)
+      "promoteVTXO", "payOnActiveChannel", "receiveOnActiveChannel" ->
+        arkChannels.call(method, params)
       "prepareSend" -> Mobile.prepareSend(params).toString(Charsets.UTF_8)
       "sendPrepared" -> Mobile.sendPrepared(params).toString(Charsets.UTF_8)
       "list" -> Mobile.list(params).toString(Charsets.UTF_8)
